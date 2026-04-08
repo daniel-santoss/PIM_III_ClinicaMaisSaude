@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="ClinicaMaisSaude.API/ClinicaMaisSaude.API.csproj" />
+  <Project Path="ClinicaMaisSaude.Application/ClinicaMaisSaude.Application.csproj" />
+  <Project Path="ClinicaMaisSaude.Domain/ClinicaMaisSaude.Domain.csproj" />
+  <Project Path="ClinicaMaisSaude.Infrastructure/ClinicaMaisSaude.Infrastructure.csproj" />
+</Solution>
