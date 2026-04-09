@@ -9,7 +9,7 @@ namespace ClinicaMaisSaude.Domain.Entities
     {
         public Guid Id { get; private set; }
         public DateTime DataHoraConsulta { get; private set; }
-        public decimal ProbabilidadeFalta { get; private set; }
+        public double ProbabilidadeFalta { get; private set; }
         public Guid PacienteId { get; private set; }
         public Guid MedicoId { get; private set; }
         public StatusAgendamento Status { get; private set; }
