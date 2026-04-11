@@ -11,7 +11,7 @@ namespace ClinicaMaisSaude.Domain.Interfaces
         Task AdicionarAsync(Agendamento agendamento);
         Task AtualizarAsync(Agendamento agendamento);
 
-        // Task<> -> Operações que retornam um resultado
+        // Task<T> -> Operações que retornam um resultado
         Task<Agendamento> ObterPorIdAsync(Guid id);
 
         // IEnumerable -> Lista somente leitura

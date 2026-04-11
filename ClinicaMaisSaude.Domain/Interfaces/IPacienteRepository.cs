@@ -7,7 +7,7 @@ namespace ClinicaMaisSaude.Domain.Interfaces
 {
     public interface IPacienteRepository
     {
-        // O "Async" no nome do método indica que ele é assíncrono e deve ser aguardado com "await" ao ser chamado
+        // O "Async" no nome do método para lembrar de colocar o "await" ao ser chamado
         Task AdicionarAsync(Paciente paciente);
         Task<Paciente?> ObterPorIdAsync(Guid id) ;
         Task<Paciente?> ObterPorCpfAsync(string cpf);
