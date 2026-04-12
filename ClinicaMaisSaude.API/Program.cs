@@ -1,14 +1,19 @@
-using ClinicaMaisSaude.Infrastructure.Data;
-using Microsoft.EntityFrameworkCore;
-using ClinicaMaisSaude.Domain.Interfaces;
-using ClinicaMaisSaude.Infrastructure.Repositories;
 using ClinicaMaisSaude.Application.Interfaces;
 using ClinicaMaisSaude.Application.Services;
+using ClinicaMaisSaude.Application.Validators;
+using ClinicaMaisSaude.Domain.Interfaces;
+using ClinicaMaisSaude.Infrastructure.Data;
+using ClinicaMaisSaude.Infrastructure.Repositories;
+using FluentValidation;
+using FluentValidation.AspNetCore;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Ensina a API a ler a pasta Controllers
 builder.Services.AddControllers();
+builder.Services.AddFluentValidationAutoValidation();
+builder.Services.AddValidatorsFromAssemblyContaining<PacienteRequestValidator>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
