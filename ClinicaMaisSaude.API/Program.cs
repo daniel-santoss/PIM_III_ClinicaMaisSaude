@@ -13,6 +13,15 @@ var builder = WebApplication.CreateBuilder(args);
 // Ensina a API a ler a pasta Controllers
 builder.Services.AddControllers();
 builder.Services.AddFluentValidationAutoValidation();
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("PermitirFrontEnd", policy =>
+    {
+        policy.WithOrigins("http://localhost:5173")
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
 builder.Services.AddValidatorsFromAssemblyContaining<PacienteRequestValidator>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -36,6 +45,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseCors("PermitirFrontEnd");
 
 // Mapeia as rotas (Endpoints) construídas no PacientesController
 app.MapControllers();
