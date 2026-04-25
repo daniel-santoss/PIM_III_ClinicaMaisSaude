@@ -34,8 +34,8 @@ export default function App() {
     <div>
       <h1>Cadastro de Pacientes</h1>
       <input type="text" className="p-2 border rounded w-full bg-gray-50" placeholder="Nome" value={paciente.nome} onChange={(e) => setPaciente({ ...paciente, nome: e.target.value })} />
-      <input type="text" className="p-2 border rounded w-full bg-gray-50" placeholder="CPF" value={paciente.cpf} onChange={(e) => setPaciente({ ...paciente, cpf: e.target.value })} />
-      <input type="text" className="p-2 border rounded w-full bg-gray-50" placeholder="Telefone" value={paciente.telefone} onChange={(e) => setPaciente({ ...paciente, telefone: e.target.value })} />
+      <input type="text" className="p-2 border rounded w-full bg-gray-50" maxLength={14} placeholder="CPF" value={paciente.cpf} onChange={(e) => setPaciente({ ...paciente, cpf: e.target.value })} />
+      <input type="text" className="p-2 border rounded w-full bg-gray-50" maxLength={15} placeholder="Telefone" value={paciente.telefone} onChange={(e) => setPaciente({ ...paciente, telefone: e.target.value })} />
       <input type="email" className="p-2 border rounded w-full bg-gray-50" placeholder="Email" value={paciente.email} onChange={(e) => setPaciente({ ...paciente, email: e.target.value })} />
       <button className="p-2 bg-green-500 text-white rounded" onClick={enviarDados}>Salvar</button>
     </div>

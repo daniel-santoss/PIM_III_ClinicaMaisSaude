@@ -26,7 +26,11 @@ namespace ClinicaMaisSaude.Application.Services
                 throw new Exception("Já existe um cadastro para o CPF informado.");
             }
 
-            var paciente = new Paciente(request.Nome, request.Cpf, request.Telefone, request.Email);
+            var paciente = new Paciente(
+                request.Nome,
+                request.Cpf.Replace(".", "").Replace("-", ""),
+                request.Telefone.Replace("(", "").Replace(")", "").Replace("-", "").Replace(" ", ""),
+                request.Email);
             
             await _repository.AdicionarAsync(paciente);
 
@@ -38,6 +42,28 @@ namespace ClinicaMaisSaude.Application.Services
                 Telefone = paciente.Telefone,
                 Email = paciente.Email
             };
+
+
+        }
+
+        // Adicione este método dentro da classe PacienteService
+        public async Task<IEnumerable<PacienteResponse>> ObterTodosAsync()
+        {
+            // 1. Busca todas as entidades de domínio no banco de dados (via Repository ou DbContext)
+            var pacientes = await _repository.ObterTodosAsync();
+
+            // 2. Transforma (Mapeia) a lista de Entidades 'Paciente' para uma lista de DTOs 'PacienteResponse'
+            var resposta = pacientes.Select(p => new PacienteResponse
+            {
+                Id = p.Id,
+                Nome = p.Nome,
+                Cpf = p.Cpf,
+                Telefone = p.Telefone,
+                Email = p.Email
+            });
+
+            // 3. Retorna a lista pronta
+            return resposta;
         }
     }
 }

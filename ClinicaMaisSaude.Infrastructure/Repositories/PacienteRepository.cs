@@ -11,7 +11,7 @@ namespace ClinicaMaisSaude.Infrastructure.Repositories
 
         public PacienteRepository(ClinicaDbContext context)
         {
-            _context = context;   
+            _context = context;
         }
         public async Task AdicionarAsync(Paciente paciente)
         {
@@ -28,7 +28,16 @@ namespace ClinicaMaisSaude.Infrastructure.Repositories
 
         public async Task<Paciente?> ObterPorCpfAsync(string cpf)
         {
-            return await _context.Pacientes.FirstOrDefaultAsync(x => x.Cpf == cpf); 
+            return await _context.Pacientes
+                                .AsNoTracking()
+                                .FirstOrDefaultAsync(p => p.Cpf == cpf);
+        }
+
+        public async Task<IEnumerable<Paciente>> ObterTodosAsync()
+        {
+            return await _context.Pacientes
+                                 .AsNoTracking()
+                                 .ToListAsync();
         }
 
     }

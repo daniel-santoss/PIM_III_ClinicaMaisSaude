@@ -9,6 +9,8 @@ namespace ClinicaMaisSaude.Application.Interfaces
     public interface IPacienteService
     {
         Task<PacienteResponse> AdicionarAsync(PacienteRequest request);
+
+        Task<IEnumerable<PacienteResponse>> ObterTodosAsync();
     }
 
 }
