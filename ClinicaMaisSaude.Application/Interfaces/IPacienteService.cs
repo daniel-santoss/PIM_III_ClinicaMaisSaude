@@ -1,4 +1,4 @@
-﻿using ClinicaMaisSaude.Application.DTOs.Paciente;
+using ClinicaMaisSaude.Application.DTOs.Paciente;
 using ClinicaMaisSaude.Domain.Entities;
 using System;
 using System.Collections.Generic;
@@ -10,7 +10,11 @@ namespace ClinicaMaisSaude.Application.Interfaces
     {
         Task<PacienteResponse> AdicionarAsync(PacienteRequest request);
 
-        Task<IEnumerable<PacienteResponse>> ObterTodosAsync();
+        Task<IEnumerable<PacienteResponse>> ObterTodosAsync(string? nome = null, string? cpf = null);
+
+        Task<PacienteResponse> AtualizarAsync(Guid id, PacienteRequest request);
+
+        Task DesativarAsync(Guid id);
     }
 
 }

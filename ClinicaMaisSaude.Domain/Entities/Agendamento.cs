@@ -1,4 +1,4 @@
-﻿using ClinicaMaisSaude.Domain.Enums;
+using ClinicaMaisSaude.Domain.Enums;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -13,6 +13,8 @@ namespace ClinicaMaisSaude.Domain.Entities
         public Guid PacienteId { get; private set; }
         public Guid MedicoId { get; private set; }
         public StatusAgendamento Status { get; private set; }
+
+        public virtual Paciente Paciente { get; private set; }
 
         public Agendamento(Guid pacienteId, Guid medicoId, DateTime dataHoraConsulta)
         {

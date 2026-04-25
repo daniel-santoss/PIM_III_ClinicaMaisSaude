@@ -1,4 +1,4 @@
-﻿using ClinicaMaisSaude.Domain.Entities;
+using ClinicaMaisSaude.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace ClinicaMaisSaude.Infrastructure.Data
@@ -32,6 +32,22 @@ namespace ClinicaMaisSaude.Infrastructure.Data
                 entidade.Property(p => p.Email)
                     .HasMaxLength(150)
                     .IsRequired();
+
+                entidade.Property(p => p.Ativo)
+                    .HasDefaultValue(true);
+            });
+
+            modelBuilder.Entity<Agendamento>(entidade =>
+            {
+                entidade.HasKey(a => a.Id);
+
+                entidade.Property(a => a.DataHoraConsulta)
+                    .IsRequired();
+
+                entidade.HasOne(a => a.Paciente)
+                    .WithMany(p => p.Agendamentos)
+                    .HasForeignKey(a => a.PacienteId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
         }
     }
