@@ -25,7 +25,7 @@ namespace ClinicaMaisSaude.Application.Validators
 
             RuleFor(x => x.Telefone)
                 .NotEmpty().WithMessage("O Telefone é obrigatório.")
-                .Length(11).WithMessage("O Telefone deve ter exatamente 11 dígitos, incluindo o DDD.");
+                .Must(ValidarTelefone).WithMessage("O Telefone fornecido é inválido. Digite o DDD e o número.");
         }
 
         private bool ValidarCpf(string cpf)
@@ -64,6 +64,16 @@ namespace ClinicaMaisSaude.Application.Validators
             digito += resto.ToString();
 
             return cpf.EndsWith(digito);
+        }
+
+        private bool ValidarTelefone(string telefone)
+        {
+            if (string.IsNullOrWhiteSpace(telefone)) return false;
+
+            // Filtra a string e guarda apenas os caracteres que são números (0 a 9)
+            string apenasNumeros = new string(telefone.Where(char.IsDigit).ToArray());
+
+            return apenasNumeros.Length == 11;
         }
     }
 }

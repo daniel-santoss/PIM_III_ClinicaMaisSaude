@@ -29,5 +29,13 @@ namespace ClinicaMaisSaude.API.Controllers
                 return BadRequest(ex.Message);
             }
         }
+
+        [HttpGet]
+        public async Task<IActionResult> ObterTodos()
+        {
+            var pacientes = await _pacienteService.ObterTodosAsync();
+
+            return Ok(pacientes);
+        }
     }
 }
