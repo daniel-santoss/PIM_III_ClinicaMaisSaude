@@ -1,4 +1,4 @@
-﻿using ClinicaMaisSaude.Domain.Entities;
+using ClinicaMaisSaude.Domain.Entities;
 using ClinicaMaisSaude.Domain.Interfaces;
 using ClinicaMaisSaude.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -38,8 +38,31 @@ namespace ClinicaMaisSaude.Infrastructure.Repositories
         public async Task<IEnumerable<Agendamento>> ObterAgendamentosDoDiaAsync(DateTime date)
         {
             return await _context.Agendamentos
+                .AsNoTracking()
+                .Include(a => a.Paciente)
                 .Where(x => x.DataHoraConsulta.Date == date.Date)
                 .ToListAsync();
+        }
+
+        public async Task<IEnumerable<Agendamento>> ObterTodosAsync()
+        {
+            return await _context.Agendamentos
+                .AsNoTracking()
+                .Include(a => a.Paciente)
+                .ToListAsync();
+        }
+
+        public async Task DeletarAsync(Agendamento agendamento)
+        {
+            _context.Agendamentos.Remove(agendamento);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task<bool> ExisteAgendamentoNoHorarioAsync(Guid pacienteId, DateTime dataHora)
+        {
+            return await _context.Agendamentos
+                .AsNoTracking()
+                .AnyAsync(a => a.PacienteId == pacienteId && a.DataHoraConsulta == dataHora);
         }
 
     }

@@ -1,4 +1,4 @@
-﻿using ClinicaMaisSaude.Application.DTOs;
+using ClinicaMaisSaude.Application.DTOs;
 using ClinicaMaisSaude.Application.DTOs.Paciente;
 using ClinicaMaisSaude.Application.Interfaces;
 using ClinicaMaisSaude.Application.Services;
@@ -31,11 +31,39 @@ namespace ClinicaMaisSaude.API.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> ObterTodos()
+        public async Task<IActionResult> ObterTodos([FromQuery] string? nome, [FromQuery] string? cpf)
         {
-            var pacientes = await _pacienteService.ObterTodosAsync();
+            var pacientes = await _pacienteService.ObterTodosAsync(nome, cpf);
 
             return Ok(pacientes);
+        }
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> AtualizarPaciente(Guid id, [FromBody] PacienteRequest request)
+        {
+            try
+            {
+                var resultado = await _pacienteService.AtualizarAsync(id, request);
+                return Ok(resultado);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DesativarPaciente(Guid id)
+        {
+            try
+            {
+                await _pacienteService.DesativarAsync(id);
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
     }
 }

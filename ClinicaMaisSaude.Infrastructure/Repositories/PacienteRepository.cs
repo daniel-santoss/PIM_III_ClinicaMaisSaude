@@ -1,4 +1,4 @@
-﻿using ClinicaMaisSaude.Domain.Entities;
+using ClinicaMaisSaude.Domain.Entities;
 using ClinicaMaisSaude.Domain.Interfaces;
 using ClinicaMaisSaude.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -33,11 +33,25 @@ namespace ClinicaMaisSaude.Infrastructure.Repositories
                                 .FirstOrDefaultAsync(p => p.Cpf == cpf);
         }
 
-        public async Task<IEnumerable<Paciente>> ObterTodosAsync()
+        public async Task<IEnumerable<Paciente>> ObterTodosAsync(string? nome = null, string? cpf = null)
         {
-            return await _context.Pacientes
-                                 .AsNoTracking()
-                                 .ToListAsync();
+            var query = _context.Pacientes
+                                .AsNoTracking()
+                                .Where(p => p.Ativo);
+
+            if (!string.IsNullOrWhiteSpace(nome))
+                query = query.Where(p => p.Nome.Contains(nome));
+
+            if (!string.IsNullOrWhiteSpace(cpf))
+                query = query.Where(p => p.Cpf.StartsWith(cpf));
+
+            return await query.ToListAsync();
+        }
+
+        public async Task AtualizarAsync(Paciente paciente)
+        {
+            _context.Pacientes.Update(paciente);
+            await _context.SaveChangesAsync();
         }
 
     }

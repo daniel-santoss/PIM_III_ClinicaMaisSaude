@@ -34,6 +34,7 @@ builder.Services.AddDbContext<ClinicaDbContext>(options => options.UseSqlServer(
 builder.Services.AddScoped<IPacienteRepository, PacienteRepository>();
 builder.Services.AddScoped<IAgendamentoRepository, AgendamentoRepository>();
 builder.Services.AddScoped<IPacienteService, PacienteService>();
+builder.Services.AddScoped<IAgendamentoService, AgendamentoService>();
 
 var app = builder.Build();
 
