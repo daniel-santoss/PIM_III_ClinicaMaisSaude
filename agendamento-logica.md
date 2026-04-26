@@ -147,10 +147,10 @@ Criar campo `AgendamentoOrigemId (Guid?)` na entidade. Retornos referenciam a co
 
 ### 3. Duração por Tipo
 Cada `TipoConsulta` tem uma duração padrão em minutos:
-- Triagem: 15 min
-- Vacina: 10 min
+- Triagem: 20 min
+- Vacina: 15 min
 - Exame: 30 min
-- Consulta Médica: 30 min
+- Consulta Médica: 40 min
 - Retorno: 20 min
 
 Usar para validar sobreposição de horários com mais precisão (hoje valida só o horário exato).

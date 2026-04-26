@@ -4,6 +4,7 @@ using ClinicaMaisSaude.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ClinicaMaisSaude.Infrastructure.Migrations
 {
     [DbContext(typeof(ClinicaDbContext))]
-    partial class ClinicaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260426182359_ConfigurarAutenticacao")]
+    partial class ConfigurarAutenticacao
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -35,8 +38,10 @@ namespace ClinicaMaisSaude.Infrastructure.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<DateTime>("DtCriado")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("Dt_Criado");
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("MedicoId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("PacienteId")
                         .HasColumnType("uniqueidentifier");
@@ -44,7 +49,7 @@ namespace ClinicaMaisSaude.Infrastructure.Migrations
                     b.Property<double>("ProbabilidadeFalta")
                         .HasColumnType("float");
 
-                    b.Property<Guid>("ProfissionalId")
+                    b.Property<Guid?>("ProfissionalId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<int>("Status")
@@ -81,8 +86,7 @@ namespace ClinicaMaisSaude.Infrastructure.Migrations
                         .HasColumnType("varchar(11)");
 
                     b.Property<DateTime>("DtCriado")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("Dt_Criado");
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("Email")
                         .IsRequired()
@@ -115,8 +119,7 @@ namespace ClinicaMaisSaude.Infrastructure.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("DtCriado")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("Dt_Criado");
+                        .HasColumnType("datetime2");
 
                     b.Property<int>("TipoProfissional")
                         .HasColumnType("int");
@@ -195,8 +198,7 @@ namespace ClinicaMaisSaude.Infrastructure.Migrations
                         .HasColumnType("nvarchar(14)");
 
                     b.Property<DateTime>("DtCriado")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("Dt_Criado");
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("Email")
                         .IsRequired()
@@ -215,7 +217,7 @@ namespace ClinicaMaisSaude.Infrastructure.Migrations
                     b.HasIndex("Email")
                         .IsUnique();
 
-                    b.ToTable("LoginPortal", (string)null);
+                    b.ToTable("Usuarios");
                 });
 
             modelBuilder.Entity("ClinicaMaisSaude.Domain.Entities.Agendamento", b =>
@@ -228,9 +230,7 @@ namespace ClinicaMaisSaude.Infrastructure.Migrations
 
                     b.HasOne("ClinicaMaisSaude.Domain.Entities.Profissional", null)
                         .WithMany("Agendamentos")
-                        .HasForeignKey("ProfissionalId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("ProfissionalId");
 
                     b.Navigation("Paciente");
                 });

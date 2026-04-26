@@ -72,6 +72,8 @@ export default function AgendamentoList() {
   const [erro, setErro] = useState<string | null>(null);
   const [refreshContador, setRefreshContador] = useState(0);
 
+  const isPaciente = localStorage.getItem("tipoUsuario") === "Paciente";
+
   // Form de criação
   const [pacienteSelecionado, setPacienteSelecionado] = useState("");
   const [dataLocal, setDataLocal] = useState("");
@@ -101,9 +103,11 @@ export default function AgendamentoList() {
     setCarregando(true);
     setErro(null);
     try {
+      const token = localStorage.getItem("authToken");
+      const headers = { "Authorization": `Bearer ${token}` };
       const [resAgendamentos, resPacientes] = await Promise.all([
-        fetch("http://localhost:5045/api/Agendamentos"),
-        fetch("http://localhost:5045/api/Pacientes")
+        fetch("http://localhost:5045/api/Agendamentos", { headers }),
+        fetch("http://localhost:5045/api/Pacientes", { headers })
       ]);
 
       if (!resAgendamentos.ok || !resPacientes.ok) throw new Error("Erro ao carregar dados do servidor.");
@@ -129,12 +133,12 @@ export default function AgendamentoList() {
     }
 
     try {
+      const token = localStorage.getItem("authToken");
       const response = await fetch("http://localhost:5045/api/Agendamentos", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify({
           pacienteId: pacienteSelecionado,
-          medicoId: medicoIdMock,
           dataHoraConsulta: dataLocal,
           tipoProfissional: tipoProfissional,
           tipoConsulta: tipoConsulta,
@@ -161,9 +165,10 @@ export default function AgendamentoList() {
     if (!cancelarAlvo) return;
     setCancelando(true);
     try {
+      const token = localStorage.getItem("authToken");
       const response = await fetch(`http://localhost:5045/api/Agendamentos/${cancelarAlvo.id}/status`, { 
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify(EnumStatusUrl["Cancelado"]) // Transita para 'Cancelado'
       });
       if (!response.ok) {
@@ -183,13 +188,15 @@ export default function AgendamentoList() {
     if (!alterarAlvo || !alterarData) return;
     setAlterando(true);
     try {
+      const token = localStorage.getItem("authToken");
       const response = await fetch(`http://localhost:5045/api/Agendamentos/${alterarAlvo.id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify({
           pacienteId: alterarAlvo.pacienteId,
-          medicoId: alterarAlvo.medicoId,
-          dataHoraConsulta: alterarData
+          dataHoraConsulta: alterarData,
+          tipoConsulta: 0, // Ignorado pelo backend no PUT atual mas necessário no shape base
+          tipoProfissional: 0
         })
       });
 
@@ -213,9 +220,10 @@ export default function AgendamentoList() {
     if (valorEnum === undefined) return;
 
     try {
+      const token = localStorage.getItem("authToken");
       const response = await fetch(`http://localhost:5045/api/Agendamentos/${id}/status`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify(valorEnum)
       });
       
@@ -406,7 +414,7 @@ export default function AgendamentoList() {
                           </span>
                         </div>
 
-                        {emAberto && (
+                        {emAberto && !isPaciente && (
                             <button title="Alterar horário" onClick={() => abrirAlteracao(agenda)} className="p-1.5 ml-2 text-blue-400 hover:text-blue-600 hover:bg-blue-50 rounded-full flex-shrink-0">
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                             </button>
@@ -420,29 +428,31 @@ export default function AgendamentoList() {
                            {MapNomesStatus[agenda.status] || agenda.status}
                         </span>
                         
-                        <div className="flex gap-2 items-center">
-                          {podeCancelar && (
-                            <button 
-                              onClick={() => setCancelarAlvo({ id: agenda.id, nome: agenda.pacienteNome })} 
-                              className="text-[11px] font-bold text-red-600 hover:bg-red-50 px-2 py-1 rounded"
-                            >
-                              CANCELAR
-                            </button>
-                          )}
-                          
-                          {opcoesValidas.length > 0 && (
-                            <select 
-                              className="text-xs border border-gray-300 rounded p-1 font-medium text-gray-700 bg-white"
-                              value={agenda.status}
-                              onChange={(e) => alterarStatus(agenda.id, e.target.value)}
-                            >
-                              <option value={agenda.status} disabled>Mudar Status</option>
-                              {opcoesValidas.map(op => (
-                                <option key={op} value={op}>{MapNomesStatus[op]}</option>
-                              ))}
-                            </select>
-                          )}
-                        </div>
+                        {!isPaciente && (
+                            <div className="flex gap-2 items-center">
+                            {podeCancelar && (
+                                <button 
+                                onClick={() => setCancelarAlvo({ id: agenda.id, nome: agenda.pacienteNome })} 
+                                className="text-[11px] font-bold text-red-600 hover:bg-red-50 px-2 py-1 rounded"
+                                >
+                                CANCELAR
+                                </button>
+                            )}
+                            
+                            {opcoesValidas.length > 0 && (
+                                <select 
+                                className="text-xs border border-gray-300 rounded p-1 font-medium text-gray-700 bg-white"
+                                value={agenda.status}
+                                onChange={(e) => alterarStatus(agenda.id, e.target.value)}
+                                >
+                                <option value={agenda.status} disabled>Mudar Status</option>
+                                {opcoesValidas.map(op => (
+                                    <option key={op} value={op}>{MapNomesStatus[op]}</option>
+                                ))}
+                                </select>
+                            )}
+                            </div>
+                        )}
                       </div>
 
                     </div>

@@ -58,11 +58,11 @@ namespace ClinicaMaisSaude.Infrastructure.Repositories
             await _context.SaveChangesAsync();
         }
 
-        public async Task<bool> ExisteAgendamentoNoHorarioAsync(Guid pacienteId, DateTime dataHora)
+        public async Task<bool> ExisteAgendamentoNoHorarioAsync(Guid profissionalId, DateTime dataHora)
         {
             return await _context.Agendamentos
                 .AsNoTracking()
-                .AnyAsync(a => a.PacienteId == pacienteId && a.DataHoraConsulta == dataHora);
+                .AnyAsync(a => a.ProfissionalId == profissionalId && a.DataHoraConsulta == dataHora);
         }
 
     }
