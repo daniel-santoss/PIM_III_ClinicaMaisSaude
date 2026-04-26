@@ -14,5 +14,6 @@ namespace ClinicaMaisSaude.Application.DTOs.Auth
         public Guid UsuarioId { get; set; }
         public string TipoUsuario { get; set; } = string.Empty;
         public Guid? PacienteId { get; set; }
+        public bool IsAdmin { get; set; }
     }
 }

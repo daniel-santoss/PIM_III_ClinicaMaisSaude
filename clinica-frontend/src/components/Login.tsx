@@ -25,6 +25,7 @@ export default function Login({ onLogado }: { onLogado: () => void }) {
       const data = await response.json();
       localStorage.setItem("authToken", data.token);
       localStorage.setItem("tipoUsuario", data.tipoUsuario);
+      localStorage.setItem("isAdmin", data.isAdmin ? "true" : "false");
       onLogado();
 
     } catch (err: any) {
