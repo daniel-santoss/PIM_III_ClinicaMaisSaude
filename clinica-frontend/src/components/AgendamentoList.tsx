@@ -20,19 +20,6 @@ export interface PacienteResponse {
   email: string;
 }
 
-const EnumTipoProfissional = {
-  0: "Enfermeira",
-  1: "Médico"
-};
-
-const EnumTipoConsulta = {
-  0: "Triagem",
-  1: "Exame",
-  2: "Vacina",
-  3: "Consulta Médica",
-  4: "Retorno"
-};
-
 // 6 representa o novo status "Cancelado"
 const EnumStatusUrl = {
   "Agendado": 0,
@@ -77,7 +64,6 @@ export default function AgendamentoList() {
   // Form de criação
   const [pacienteSelecionado, setPacienteSelecionado] = useState("");
   const [dataLocal, setDataLocal] = useState("");
-  const [medicoIdMock] = useState("00000000-0000-0000-0000-000000000000"); // mantido fixo para simplificar
   
   const [tipoProfissional, setTipoProfissional] = useState(0);
   const [tipoConsulta, setTipoConsulta] = useState(0);

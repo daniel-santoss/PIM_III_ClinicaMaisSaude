@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import PacienteList from "./components/PacienteList";
 import AgendamentoList from "./components/AgendamentoList";
 import Login from "./components/Login";
+import { CadastroUsuario } from "./components/CadastroUsuario";
 
 interface PacienteRequest {
   nome: string;
@@ -13,14 +14,17 @@ interface PacienteRequest {
 export default function App() {
   const [autenticado, setAutenticado] = useState(false);
   const [tipoUsuario, setTipoUsuario] = useState("");
-  const [abaAtiva, setAbaAtiva] = useState<"pacientes" | "agendamentos">("agendamentos");
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [abaAtiva, setAbaAtiva] = useState<"pacientes" | "agendamentos" | "cadastro">("agendamentos");
 
   useEffect(() => {
     const token = localStorage.getItem("authToken");
     const tipo = localStorage.getItem("tipoUsuario");
+    const admin = localStorage.getItem("isAdmin") === "true";
     if (token) {
         setAutenticado(true);
         setTipoUsuario(tipo || "Paciente");
+        setIsAdmin(admin);
         setAbaAtiva(tipo === "Paciente" ? "agendamentos" : "pacientes");
     }
   }, []);
@@ -28,6 +32,7 @@ export default function App() {
   const handleLogout = () => {
     localStorage.removeItem("authToken");
     localStorage.removeItem("tipoUsuario");
+    localStorage.removeItem("isAdmin");
     setAutenticado(false);
   };
 
@@ -82,7 +87,9 @@ export default function App() {
     return <Login onLogado={() => {
         setAutenticado(true);
         const tipo = localStorage.getItem("tipoUsuario");
+        const admin = localStorage.getItem("isAdmin") === "true";
         setTipoUsuario(tipo || "Paciente");
+        setIsAdmin(admin);
         setAbaAtiva(tipo === "Paciente" ? "agendamentos" : "pacientes");
     }} />
   }
@@ -121,6 +128,18 @@ export default function App() {
         >
           Agendamentos
         </button>
+        {isAdmin && (
+            <button
+            onClick={() => setAbaAtiva("cadastro")}
+            className={`px-6 py-2.5 text-sm font-semibold transition-colors border-b-2 ${
+                abaAtiva === "cadastro"
+                ? "border-purple-600 text-purple-600 bg-purple-50/50"
+                : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+            }`}
+            >
+            Cadastrar Usuários
+            </button>
+        )}
       </div>
 
       {/* Conteúdo da Aba: Pacientes */}
@@ -149,6 +168,11 @@ export default function App() {
       {/* Conteúdo da Aba: Agendamentos */}
       {abaAtiva === "agendamentos" && (
         <AgendamentoList />
+      )}
+
+      {/* Conteúdo da Aba: Cadastro (Admin) */}
+      {abaAtiva === "cadastro" && isAdmin && (
+        <CadastroUsuario />
       )}
     </div>
   )

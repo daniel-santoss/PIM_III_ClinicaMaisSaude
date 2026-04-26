@@ -35,7 +35,12 @@ namespace ClinicaMaisSaude.API.Services
             var usuario = await _context.Usuarios
                 .FirstOrDefaultAsync(u => u.Email == request.Identificador || u.Cpf == cleanIdentificador);
 
-            if (usuario == null || !BCrypt.Net.BCrypt.Verify(request.Senha, usuario.SenhaHash))
+            if (usuario == null)
+            {
+                throw new Exception("Credenciais inválidas.");
+            }
+
+            if (!BCrypt.Net.BCrypt.Verify(request.Senha, usuario.SenhaHash.Trim()))
             {
                 throw new Exception("Credenciais inválidas.");
             }
@@ -64,7 +69,8 @@ namespace ClinicaMaisSaude.API.Services
             {
                 new Claim(ClaimTypes.NameIdentifier, usuario.Id.ToString()),
                 new Claim(ClaimTypes.Role, tipoUsuarioStr),
-                new Claim("TipoUsuario", tipoUsuarioStr)
+                new Claim("TipoUsuario", tipoUsuarioStr),
+                new Claim("IsAdmin", usuario.IsAdmin.ToString().ToLower())
             };
 
             if (pacienteId.HasValue)
@@ -91,7 +97,8 @@ namespace ClinicaMaisSaude.API.Services
                 Token = tokenHandler.WriteToken(token),
                 UsuarioId = usuario.Id,
                 TipoUsuario = tipoUsuarioStr,
-                PacienteId = pacienteId
+                PacienteId = pacienteId,
+                IsAdmin = usuario.IsAdmin
             };
         }
     }
