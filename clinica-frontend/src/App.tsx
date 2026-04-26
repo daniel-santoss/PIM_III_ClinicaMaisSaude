@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import PacienteList from "./components/PacienteList";
 import AgendamentoList from "./components/AgendamentoList";
+import Login from "./components/Login";
 
 interface PacienteRequest {
   nome: string;
@@ -10,7 +11,25 @@ interface PacienteRequest {
 }
 
 export default function App() {
-  const [abaAtiva, setAbaAtiva] = useState<"pacientes" | "agendamentos">("pacientes");
+  const [autenticado, setAutenticado] = useState(false);
+  const [tipoUsuario, setTipoUsuario] = useState("");
+  const [abaAtiva, setAbaAtiva] = useState<"pacientes" | "agendamentos">("agendamentos");
+
+  useEffect(() => {
+    const token = localStorage.getItem("authToken");
+    const tipo = localStorage.getItem("tipoUsuario");
+    if (token) {
+        setAutenticado(true);
+        setTipoUsuario(tipo || "Paciente");
+        setAbaAtiva(tipo === "Paciente" ? "agendamentos" : "pacientes");
+    }
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("authToken");
+    localStorage.removeItem("tipoUsuario");
+    setAutenticado(false);
+  };
 
   const [paciente, setPaciente] = useState<PacienteRequest>({
     nome: '',
@@ -42,10 +61,12 @@ export default function App() {
     };
 
   const enviarDados = async () => {
+    const token = localStorage.getItem("authToken");
     const response = await fetch('http://localhost:5045/api/Pacientes', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify(paciente)
     })
@@ -57,22 +78,39 @@ export default function App() {
     setRecarregar((prev) => prev + 1);
   }
 
+  if (!autenticado) {
+    return <Login onLogado={() => {
+        setAutenticado(true);
+        const tipo = localStorage.getItem("tipoUsuario");
+        setTipoUsuario(tipo || "Paciente");
+        setAbaAtiva(tipo === "Paciente" ? "agendamentos" : "pacientes");
+    }} />
+  }
+
   return (
     <div className="max-w-6xl mx-auto p-4 md:p-8 bg-gray-50 min-h-screen">
-      <h1 className="text-3xl font-bold text-gray-800 mb-6 border-b pb-4 border-gray-200">Clínica Mais Saúde</h1>
+      <div className="flex justify-between items-center mb-6 border-b pb-4 border-gray-200">
+        <h1 className="text-3xl font-bold text-gray-800">Clínica Mais Saúde</h1>
+        <div className="flex items-center gap-4">
+            <span className="text-sm font-medium text-gray-600 border px-3 py-1 rounded bg-white">Perfil: {tipoUsuario}</span>
+            <button onClick={handleLogout} className="text-sm text-red-600 hover:text-red-800 font-medium">Sair</button>
+        </div>
+      </div>
       
       {/* Abas de Navegação */}
       <div className="flex space-x-1 border-b border-gray-200 mb-8">
-        <button
-          onClick={() => setAbaAtiva("pacientes")}
-          className={`px-6 py-2.5 text-sm font-semibold transition-colors border-b-2 ${
-            abaAtiva === "pacientes"
-              ? "border-blue-600 text-blue-600 bg-blue-50/50"
-              : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50"
-          }`}
-        >
-          Pacientes
-        </button>
+        {tipoUsuario !== "Paciente" && (
+            <button
+            onClick={() => setAbaAtiva("pacientes")}
+            className={`px-6 py-2.5 text-sm font-semibold transition-colors border-b-2 ${
+                abaAtiva === "pacientes"
+                ? "border-blue-600 text-blue-600 bg-blue-50/50"
+                : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+            }`}
+            >
+            Pacientes
+            </button>
+        )}
         <button
           onClick={() => setAbaAtiva("agendamentos")}
           className={`px-6 py-2.5 text-sm font-semibold transition-colors border-b-2 ${

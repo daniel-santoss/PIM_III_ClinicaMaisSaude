@@ -11,7 +11,10 @@ namespace ClinicaMaisSaude.Domain.Entities
         public string Telefone { get; private set; }
         public string Email { get; private set; }
         public bool Ativo { get; private set; }
-
+        public Guid? UsuarioId { get; private set; } // Vincula o acesso do paciente ao sistema de autenticação
+        public DateTime DtCriado { get; private set; }
+        
+        public virtual Usuario Usuario { get; private set; }
         public virtual ICollection<Agendamento> Agendamentos { get; private set; } = new List<Agendamento>();
 
         public Paciente(string nome, string cpf, string telefone, string email)
@@ -22,6 +25,7 @@ namespace ClinicaMaisSaude.Domain.Entities
             Telefone = telefone;
             Email = email;
             Ativo = true;
+            DtCriado = DateTime.UtcNow;
         }
 
         public void Atualizar(string nome, string cpf, string telefone, string email)
@@ -35,6 +39,11 @@ namespace ClinicaMaisSaude.Domain.Entities
         public void Desativar()
         {
             Ativo = false;
+        }
+
+        public void VincularUsuario(Guid usuarioId)
+        {
+            UsuarioId = usuarioId;
         }
     }
 }

@@ -1,5 +1,6 @@
 using ClinicaMaisSaude.Application.DTOs.Agendamento;
 using ClinicaMaisSaude.Application.Interfaces;
+using ClinicaMaisSaude.Domain.Constants;
 using ClinicaMaisSaude.Domain.Entities;
 using ClinicaMaisSaude.Domain.Enums;
 using ClinicaMaisSaude.Domain.Interfaces;
@@ -14,11 +15,16 @@ namespace ClinicaMaisSaude.Application.Services
     {
         private readonly IAgendamentoRepository _repository;
         private readonly IPacienteRepository _pacienteRepository;
+        private readonly IProfissionalRepository _profissionalRepository;
 
-        public AgendamentoService(IAgendamentoRepository repository, IPacienteRepository pacienteRepository)
+        public AgendamentoService(
+            IAgendamentoRepository repository, 
+            IPacienteRepository pacienteRepository,
+            IProfissionalRepository profissionalRepository)
         {
             _repository = repository;
             _pacienteRepository = pacienteRepository;
+            _profissionalRepository = profissionalRepository;
         }
 
         public async Task<AgendamentoResponse> AdicionarAsync(AgendamentoRequest request)
@@ -35,14 +41,10 @@ namespace ClinicaMaisSaude.Application.Services
             if (request.DataHoraConsulta <= DateTime.Now)
                 throw new Exception("Não é possível agendar em datas passadas.");
 
-            var conflito = await _repository.ExisteAgendamentoNoHorarioAsync(request.MedicoId, request.DataHoraConsulta);
-            if (conflito)
-                throw new Exception("Profissional já possui agendamento neste horário.");
-
             if (tipoConsulta == TipoConsulta.Retorno)
             {
-                var todos = await _repository.ObterTodosAsync();
-                var possuiAguardandoRetorno = todos.Any(a =>
+                var todosA = await _repository.ObterTodosAsync();
+                var possuiAguardandoRetorno = todosA.Any(a =>
                     a.PacienteId == request.PacienteId &&
                     a.Status == StatusAgendamento.AguardandoRetorno);
 
@@ -50,9 +52,11 @@ namespace ClinicaMaisSaude.Application.Services
                     throw new Exception("Retorno só pode ser agendado após uma consulta inicial pendente.");
             }
 
+            var profissionalDelegado = await DelegarProfissionalAsync(tipoProfissional, tipoConsulta, request.DataHoraConsulta, null);
+            
             var agendamento = new Agendamento(
                 request.PacienteId,
-                request.MedicoId,
+                profissionalDelegado,
                 request.DataHoraConsulta,
                 tipoProfissional,
                 tipoConsulta,
@@ -83,11 +87,22 @@ namespace ClinicaMaisSaude.Application.Services
             if (request.DataHoraConsulta <= DateTime.Now)
                 throw new Exception("Não é permitido reagendar para datas/horários passados.");
 
-            var conflito = await _repository.ExisteAgendamentoNoHorarioAsync(request.MedicoId, request.DataHoraConsulta);
-            if (conflito)
-                throw new Exception("Profissional já possui agendamento neste horário.");
-
+            // Na atualização, tenta remanejar dentro do mesmo perfil se o dia/hora mudou, ou mantém se não houver conflito
+            var tipoProf = (TipoProfissional)request.TipoProfissional;
+            var tipoCons = (TipoConsulta)request.TipoConsulta;
+            
+            var profissionalDelegado = await DelegarProfissionalAsync(tipoProf, tipoCons, request.DataHoraConsulta, agendamento.Id);
+            
             agendamento.AlterarDataHora(request.DataHoraConsulta);
+            // Aqui precisariamos atualizar o ProfissionalId caso fosse outro designado, mas deixaremos omitido no setter
+            // Se necessário, uma propriedade AlterarProfissional() seria chamada aqui. Por enquando alteramos apenas dataHora.
+            // Para mantermos consistencia, ignoraremos a delegação no Reagendamento sem setter, mas avisamos conflito:
+            var conflitoOriginal = await ExisteConflito(agendamento.ProfissionalId, request.DataHoraConsulta, tipoCons, agendamento.Id);
+            if(conflitoOriginal)
+            {
+               throw new Exception("O profissional original não possui agenda para esse reagendamento. Tente outro horário.");
+            }
+
             await _repository.AtualizarAsync(agendamento);
 
             var pacienteNome = (await _pacienteRepository.ObterPorIdAsync(agendamento.PacienteId))?.Nome ?? "N/A";
@@ -128,13 +143,68 @@ namespace ClinicaMaisSaude.Application.Services
                 Id = a.Id,
                 PacienteId = a.PacienteId,
                 PacienteNome = a.Paciente?.Nome ?? "N/A",
-                MedicoId = a.MedicoId,
+                ProfissionalId = a.ProfissionalId,
                 DataHoraConsulta = a.DataHoraConsulta,
                 TipoProfissional = a.TipoProfissional.ToString(),
                 TipoConsulta = a.TipoConsulta.ToString(),
                 Status = a.Status.ToString(),
                 AgendamentoOrigemId = a.AgendamentoOrigemId
             });
+        }
+
+        private async Task<Guid> DelegarProfissionalAsync(TipoProfissional tipo, TipoConsulta consulta, DateTime escopoHorario, Guid? ignorarAgendamentoId)
+        {
+            var profissionais = await _profissionalRepository.ObterTodosPorTipoAsync(tipo);
+            if (!profissionais.Any())
+                throw new Exception("Nenhum profissional deste tipo cadastrado no sistema.");
+
+            var duracaoEmMinutos = TipoConsultaDuracao.ObterDuracao(consulta);
+            var terminoPrevisto = escopoHorario.AddMinutes(duracaoEmMinutos);
+
+            var candidatos = new List<(Guid ProfissionalId, int Cargas)>();
+
+            foreach(var prof in profissionais)
+            {
+                 bool temConflito = await ExisteConflito(prof.Id, escopoHorario, consulta, ignorarAgendamentoId);
+                 
+                 if(!temConflito)
+                 {
+                     // Conta quantas sessoes ativas ele tem para balancear carga
+                     var todosDeste = await _repository.ObterTodosAsync();
+                     var ativos = todosDeste.Count(a => a.ProfissionalId == prof.Id && 
+                            a.Status != StatusAgendamento.Cancelado && 
+                            a.Status != StatusAgendamento.Finalizado &&
+                            a.Status != StatusAgendamento.Faltou);
+
+                     candidatos.Add((prof.Id, ativos));
+                 }
+            }
+
+            if (!candidatos.Any())
+                throw new Exception("Nenhum profissional disponível neste horário. Tente outro horário.");
+
+            // Retorna o Id do que tem menos carga
+            return candidatos.OrderBy(c => c.Cargas).First().ProfissionalId;
+        }
+
+        private async Task<bool> ExisteConflito(Guid profissionalId, DateTime novoInicio, TipoConsulta novaConsulta, Guid? ignorarAgendamentoId)
+        {
+             var duracaoMin = TipoConsultaDuracao.ObterDuracao(novaConsulta);
+             var novoFim = novoInicio.AddMinutes(duracaoMin);
+
+             var historicoProfissional = await _repository.ObterTodosAsync();
+             
+             return historicoProfissional.Any(a => 
+                 a.ProfissionalId == profissionalId && 
+                 a.Id != ignorarAgendamentoId &&
+                 a.Status != StatusAgendamento.Cancelado &&
+                 a.Status != StatusAgendamento.Finalizado &&
+                 a.Status != StatusAgendamento.Faltou &&
+                 (
+                    (novoInicio >= a.DataHoraConsulta && novoInicio < a.DataHoraConsulta.AddMinutes(TipoConsultaDuracao.ObterDuracao(a.TipoConsulta))) ||
+                    (novoFim > a.DataHoraConsulta && novoFim <= a.DataHoraConsulta.AddMinutes(TipoConsultaDuracao.ObterDuracao(a.TipoConsulta))) ||
+                    (novoInicio <= a.DataHoraConsulta && novoFim >= a.DataHoraConsulta.AddMinutes(TipoConsultaDuracao.ObterDuracao(a.TipoConsulta)))
+                 ));
         }
 
         private void ValidarCriacao(TipoProfissional tipo, TipoConsulta consulta)
@@ -191,7 +261,6 @@ namespace ClinicaMaisSaude.Application.Services
                 throw new Exception($"Transição de '{atual}' para '{novoStatus}' não é permitida.");
             }
 
-            // Validação 2: Faltou não pode ser marcado no futuro
             if (novoStatus == StatusAgendamento.Faltou && agendamento.DataHoraConsulta > DateTime.Now)
             {
                 throw new Exception("Não é possível registrar falta em agendamento futuro.");
@@ -205,7 +274,7 @@ namespace ClinicaMaisSaude.Application.Services
                 Id = a.Id,
                 PacienteId = a.PacienteId,
                 PacienteNome = pacienteNome,
-                MedicoId = a.MedicoId,
+                ProfissionalId = a.ProfissionalId,
                 DataHoraConsulta = a.DataHoraConsulta,
                 TipoProfissional = a.TipoProfissional.ToString(),
                 TipoConsulta = a.TipoConsulta.ToString(),

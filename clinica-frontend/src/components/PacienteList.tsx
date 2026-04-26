@@ -43,7 +43,8 @@ export default function PacienteList({ recarregarContador = 0 }: PacienteListPro
       const queryString = params.toString();
       const url = `http://localhost:5045/api/Pacientes${queryString ? `?${queryString}` : ""}`;
 
-      fetch(url)
+      const token = localStorage.getItem("authToken");
+      fetch(url, { headers: { 'Authorization': `Bearer ${token}` } })
         .then((res) => {
           if (!res.ok) throw new Error(`Erro ao buscar pacientes: ${res.status}`);
           return res.json();
@@ -69,9 +70,10 @@ export default function PacienteList({ recarregarContador = 0 }: PacienteListPro
     if (!editandoId) return;
     setSalvando(true);
     try {
+      const token = localStorage.getItem("authToken");
       const response = await fetch(`http://localhost:5045/api/Pacientes/${editandoId}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify(form),
       });
       if (!response.ok) {
@@ -100,8 +102,10 @@ export default function PacienteList({ recarregarContador = 0 }: PacienteListPro
     if (!excluindoPaciente) return;
     setExcluindoLoader(true);
     try {
+      const token = localStorage.getItem("authToken");
       const response = await fetch(`http://localhost:5045/api/Pacientes/${excluindoPaciente.id}`, {
         method: "DELETE",
+        headers: { "Authorization": `Bearer ${token}` }
       });
       if (!response.ok) {
         const erro = await response.text();

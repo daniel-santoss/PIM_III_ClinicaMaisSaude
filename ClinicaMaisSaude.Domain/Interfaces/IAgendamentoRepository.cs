@@ -19,6 +19,6 @@ namespace ClinicaMaisSaude.Domain.Interfaces
         Task<IEnumerable<Agendamento>> ObterAgendamentosDoDiaAsync(DateTime date);
 
         Task DeletarAsync(Agendamento agendamento);
-        Task<bool> ExisteAgendamentoNoHorarioAsync(Guid pacienteId, DateTime dataHora);
+        Task<bool> ExisteAgendamentoNoHorarioAsync(Guid profissionalId, DateTime dataHora);
     }
 }

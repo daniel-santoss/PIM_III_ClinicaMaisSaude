@@ -1,5 +1,8 @@
 using ClinicaMaisSaude.Domain.Entities;
+using ClinicaMaisSaude.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
+using System;
+using System.Linq;
 
 namespace ClinicaMaisSaude.Infrastructure.Data
 {
@@ -9,6 +12,9 @@ namespace ClinicaMaisSaude.Infrastructure.Data
 
         public DbSet<Paciente> Pacientes { get; set; }
         public DbSet<Agendamento> Agendamentos { get; set; }
+        public DbSet<Usuario> Usuarios { get; set; }
+        public DbSet<Profissional> Profissionais { get; set; }
+        public DbSet<StatusAgendamentoLookup> StatusAgendamentoLookup { get; set; }
 
         // Método que intercepta a criação das tabelas no SQL Server
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -57,6 +63,43 @@ namespace ClinicaMaisSaude.Infrastructure.Data
                     .WithMany(p => p.Agendamentos)
                     .HasForeignKey(a => a.PacienteId)
                     .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<Usuario>(entidade =>
+            {
+                entidade.HasKey(u => u.Id);
+                entidade.HasIndex(u => u.Email).IsUnique();
+                entidade.HasIndex(u => u.Cpf).IsUnique();
+                entidade.Property(u => u.Email).IsRequired().HasMaxLength(150);
+                entidade.Property(u => u.Cpf).IsRequired().HasMaxLength(14);
+                entidade.Property(u => u.SenhaHash).IsRequired();
+            });
+
+            modelBuilder.Entity<Profissional>(entidade =>
+            {
+                entidade.HasKey(p => p.Id);
+                entidade.Property(p => p.TipoProfissional).IsRequired();
+                entidade.HasOne(p => p.Usuario)
+                    .WithMany()
+                    .HasForeignKey(p => p.UsuarioId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<StatusAgendamentoLookup>(entidade =>
+            {
+                entidade.HasKey(s => s.Id);
+                entidade.Property(s => s.Id).HasConversion<int>().ValueGeneratedNever();
+                entidade.Property(s => s.Nome).IsRequired().HasMaxLength(50);
+
+                var statusValores = Enum.GetValues(typeof(StatusAgendamento))
+                                        .Cast<StatusAgendamento>()
+                                        .Select(s => new StatusAgendamentoLookup
+                                        {
+                                            Id = s,
+                                            Nome = s.ToString()
+                                        });
+
+                entidade.HasData(statusValores);
             });
         }
     }
