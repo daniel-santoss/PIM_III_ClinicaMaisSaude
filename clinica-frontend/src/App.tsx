@@ -21,6 +21,26 @@ export default function App() {
 
   const [recarregar, setRecarregar] = useState(0);
 
+    const mascaraCpf = (valor: string): string => {
+      const nums = valor.replace(/\D/g, "").slice(0, 11);
+      return nums
+        .replace(/(\d{3})(\d)/, "$1.$2")
+        .replace(/(\d{3})(\d)/, "$1.$2")
+        .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+    };
+
+    const mascaraTelefone = (valor: string): string => {
+      const nums = valor.replace(/\D/g, "").slice(0, 11);
+      if (nums.length <= 10) {
+        return nums
+          .replace(/(\d{2})(\d)/, "($1) $2")
+          .replace(/(\d{4})(\d)/, "$1-$2");
+      }
+      return nums
+        .replace(/(\d{2})(\d)/, "($1) $2")
+        .replace(/(\d{5})(\d)/, "$1-$2");
+    };
+
   const enviarDados = async () => {
     const response = await fetch('http://localhost:5045/api/Pacientes', {
       method: 'POST',
@@ -72,8 +92,8 @@ export default function App() {
             <h2 className="text-lg font-semibold text-gray-700 mb-4">Novo Paciente</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <input type="text" className="p-3 border border-gray-300 rounded bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all" placeholder="Nome completo" value={paciente.nome} onChange={(e) => setPaciente({ ...paciente, nome: e.target.value })} />
-              <input type="text" className="p-3 border border-gray-300 rounded bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all" maxLength={14} placeholder="CPF (somente números ou formato)" value={paciente.cpf} onChange={(e) => setPaciente({ ...paciente, cpf: e.target.value })} />
-              <input type="text" className="p-3 border border-gray-300 rounded bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all" maxLength={15} placeholder="Telefone" value={paciente.telefone} onChange={(e) => setPaciente({ ...paciente, telefone: e.target.value })} />
+              <input type="text" className="p-3 border border-gray-300 rounded bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all" maxLength={14} placeholder="CPF (000.000.000-00)" value={paciente.cpf} onChange={(e) => setPaciente({ ...paciente, cpf: mascaraCpf(e.target.value) })} />
+              <input type="text" className="p-3 border border-gray-300 rounded bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all" maxLength={15} placeholder="Telefone (00) 00000-0000" value={paciente.telefone} onChange={(e) => setPaciente({ ...paciente, telefone: mascaraTelefone(e.target.value) })} />
               <input type="email" className="p-3 border border-gray-300 rounded bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all" placeholder="E-mail" value={paciente.email} onChange={(e) => setPaciente({ ...paciente, email: e.target.value })} />
             </div>
             <div className="flex justify-end">

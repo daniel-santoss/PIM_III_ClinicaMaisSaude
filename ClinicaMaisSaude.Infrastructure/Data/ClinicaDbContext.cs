@@ -44,6 +44,15 @@ namespace ClinicaMaisSaude.Infrastructure.Data
                 entidade.Property(a => a.DataHoraConsulta)
                     .IsRequired();
 
+                entidade.Property(a => a.TipoProfissional)
+                    .IsRequired();
+
+                entidade.Property(a => a.TipoConsulta)
+                    .IsRequired();
+
+                entidade.Property(a => a.Status)
+                    .IsRequired();
+
                 entidade.HasOne(a => a.Paciente)
                     .WithMany(p => p.Agendamentos)
                     .HasForeignKey(a => a.PacienteId)
