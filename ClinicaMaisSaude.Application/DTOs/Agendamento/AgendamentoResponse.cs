@@ -8,6 +8,7 @@ namespace ClinicaMaisSaude.Application.DTOs.Agendamento
         public Guid PacienteId { get; set; }
         public string PacienteNome { get; set; } = string.Empty;
         public Guid ProfissionalId { get; set; }
+        public string NomeProfissional { get; set; } = string.Empty;
         public DateTime DataHoraConsulta { get; set; }
         public string TipoProfissional { get; set; } = string.Empty;
         public string TipoConsulta { get; set; } = string.Empty;

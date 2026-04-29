@@ -20,5 +20,8 @@ namespace ClinicaMaisSaude.Domain.Interfaces
 
         Task DeletarAsync(Agendamento agendamento);
         Task<bool> ExisteAgendamentoNoHorarioAsync(Guid profissionalId, DateTime dataHora);
+
+        Task AdicionarHistoricoAsync(AgendamentoHistorico historico);
+        Task<IEnumerable<AgendamentoHistorico>> ObterHistoricoPorAgendamentoAsync(Guid agendamentoId);
     }
 }

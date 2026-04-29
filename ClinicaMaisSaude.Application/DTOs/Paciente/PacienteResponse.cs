@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 
 namespace ClinicaMaisSaude.Application.DTOs.Paciente
 {
@@ -9,5 +9,6 @@ namespace ClinicaMaisSaude.Application.DTOs.Paciente
         public string Cpf { get; set; }
         public string Telefone { get; set; }
         public string Email { get; set; }
+        public Guid? UsuarioId { get; set; }
     }
 }

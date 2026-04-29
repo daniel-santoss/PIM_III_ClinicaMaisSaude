@@ -40,7 +40,8 @@ namespace ClinicaMaisSaude.Application.Services
                 Nome = paciente.Nome,
                 Cpf = paciente.Cpf,
                 Telefone = paciente.Telefone,
-                Email = paciente.Email
+                Email = paciente.Email,
+                UsuarioId = paciente.UsuarioId
             };
 
 
@@ -59,7 +60,8 @@ namespace ClinicaMaisSaude.Application.Services
                 Nome = p.Nome,
                 Cpf = p.Cpf,
                 Telefone = p.Telefone,
-                Email = p.Email
+                Email = p.Email,
+                UsuarioId = p.UsuarioId
             });
 
             // 3. Retorna a lista pronta
@@ -87,7 +89,8 @@ namespace ClinicaMaisSaude.Application.Services
                 Nome = paciente.Nome,
                 Cpf = paciente.Cpf,
                 Telefone = paciente.Telefone,
-                Email = paciente.Email
+                Email = paciente.Email,
+                UsuarioId = paciente.UsuarioId
             };
         }
 

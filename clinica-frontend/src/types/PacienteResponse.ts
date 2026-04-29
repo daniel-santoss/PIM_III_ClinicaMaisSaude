@@ -4,4 +4,5 @@ export interface PacienteResponse {
   cpf: string;
   telefone: string;
   email: string;
+  usuarioId?: string;
 }

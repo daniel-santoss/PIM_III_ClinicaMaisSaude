@@ -15,6 +15,7 @@ namespace ClinicaMaisSaude.Infrastructure.Data
         public DbSet<Usuario> Usuarios { get; set; }
         public DbSet<Profissional> Profissionais { get; set; }
         public DbSet<StatusAgendamentoLookup> StatusAgendamentoLookup { get; set; }
+        public DbSet<AgendamentoHistorico> AgendamentoHistoricos { get; set; }
 
         // Método que intercepta a criação das tabelas no SQL Server
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -46,6 +47,19 @@ namespace ClinicaMaisSaude.Infrastructure.Data
                     .OnDelete(DeleteBehavior.Restrict);
             });
 
+            modelBuilder.Entity<AgendamentoHistorico>(entidade =>
+            {
+                entidade.HasKey(h => h.Id);
+                entidade.Property(h => h.TipoEvento).IsRequired();
+                entidade.Property(h => h.RealizadoPor).IsRequired();
+                entidade.Property(h => h.Dt_Criado).IsRequired();
+
+                entidade.HasOne(h => h.Agendamento)
+                    .WithMany()
+                    .HasForeignKey(h => h.AgendamentoId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
             modelBuilder.Entity<Usuario>(entidade =>
             {
                 entidade.ToTable("LoginPortal");
@@ -74,6 +88,7 @@ namespace ClinicaMaisSaude.Infrastructure.Data
             {
                 entidade.HasKey(p => p.Id);
                 entidade.Property(p => p.TipoProfissional).IsRequired();
+                entidade.Property(p => p.Nome).IsRequired().HasMaxLength(100);
                 entidade.Property(p => p.Crm).HasMaxLength(20);
                 entidade.Property(p => p.UfCrm).HasMaxLength(2);
                 entidade.Property(p => p.DtCriado).HasColumnName("Dt_Criado");
@@ -89,6 +104,7 @@ namespace ClinicaMaisSaude.Infrastructure.Data
                     adminProfissionalId,
                     adminUsuarioId,
                     TipoProfissional.Medico,
+                    "Dr. Admin",
                     "123456",
                     "SP",
                     new DateTime(2026, 04, 26, 0, 0, 0, DateTimeKind.Utc)

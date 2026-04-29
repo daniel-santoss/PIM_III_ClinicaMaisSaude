@@ -31,9 +31,10 @@ namespace ClinicaMaisSaude.API.Services
         public async Task<LoginResponse> AutenticarAsync(LoginRequest request)
         {
             var cleanIdentificador = request.Identificador.Replace(".", "").Replace("-", "").Trim();
+            var emailNormalizado = request.Identificador.Trim().ToLowerInvariant();
 
             var usuario = await _context.Usuarios
-                .FirstOrDefaultAsync(u => u.Email == request.Identificador || u.Cpf == cleanIdentificador);
+                .FirstOrDefaultAsync(u => u.Email == emailNormalizado || u.Cpf == cleanIdentificador);
 
             if (usuario == null)
             {

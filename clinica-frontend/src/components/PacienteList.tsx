@@ -12,6 +12,7 @@ interface PacienteEdicao {
   email: string;
 }
 
+
 export default function PacienteList({ recarregarContador = 0 }: PacienteListProps) {
   const [pacientes, setPacientes] = useState<PacienteResponse[]>([]);
   const [carregando, setCarregando] = useState(true);
@@ -30,6 +31,16 @@ export default function PacienteList({ recarregarContador = 0 }: PacienteListPro
   // Estado do modal de exclusão
   const [excluindoPaciente, setExcluindoPaciente] = useState<{ id: string, nome: string } | null>(null);
   const [excluindoLoader, setExcluindoLoader] = useState(false);
+
+  // Estado do modal de reset de senha
+  const [pacienteReset, setPacienteReset] = useState<{ id: string, usuarioId: string, nome: string } | null>(null);
+  const [novaSenhaReset, setNovaSenhaReset] = useState("");
+  const [senhaExibida, setSenhaExibida] = useState<string | null>(null);
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetMensagem, setResetMensagem] = useState<{ texto: string; erro: boolean } | null>(null);
+
+  const isAdmin = localStorage.getItem("isAdmin") === "true";
+  const isEnfermeira = localStorage.getItem("tipoUsuario") === "Enfermeira";
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -121,6 +132,44 @@ export default function PacienteList({ recarregarContador = 0 }: PacienteListPro
     }
   };
 
+  const handleResetSenha = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!pacienteReset || !novaSenhaReset) return;
+    setResetLoading(true);
+    setResetMensagem(null);
+    try {
+      const token = localStorage.getItem("authToken");
+      const response = await fetch(`http://localhost:5045/api/LoginPortal/${pacienteReset.usuarioId}/reset-senha`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify({ novaSenha: novaSenhaReset })
+      });
+
+      if (!response.ok) {
+        const err = await response.text();
+        setResetMensagem({ texto: err || "Erro ao redefinir.", erro: true });
+      } else {
+        setSenhaExibida(novaSenhaReset);
+        setNovaSenhaReset("");
+        setResetMensagem(null);
+      }
+    } catch (e) {
+      setResetMensagem({ texto: "Falha de conexão.", erro: true });
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
+  const fecharModalReset = () => {
+    setPacienteReset(null);
+    setNovaSenhaReset("");
+    setSenhaExibida(null);
+    setResetMensagem(null);
+  };
+
   if (erro) {
     return <p className="text-center text-red-500 py-8">{erro}</p>;
   }
@@ -204,6 +253,14 @@ export default function PacienteList({ recarregarContador = 0 }: PacienteListPro
                     >
                       Excluir
                     </button>
+                    {(isAdmin || isEnfermeira) && p.usuarioId && (
+                      <button
+                        className="px-3 py-1.5 text-xs font-medium bg-amber-50 text-amber-600 rounded border border-amber-200 hover:bg-amber-100 hover:border-amber-300 transition-colors"
+                        onClick={() => setPacienteReset({ id: p.id, usuarioId: p.usuarioId!, nome: p.nome })}
+                      >
+                        Redefinir Senha
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))
@@ -313,6 +370,57 @@ export default function PacienteList({ recarregarContador = 0 }: PacienteListPro
                 {excluindoLoader ? "Excluindo..." : "Sim, excluir"}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+      {/* Modal de Reset de Senha */}
+      {pacienteReset && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+            <h3 className="text-xl font-bold text-gray-800 mb-2">Redefinir Senha</h3>
+            <p className="text-sm text-gray-600 mb-4">Paciente: <span className="font-semibold">{pacienteReset.nome}</span></p>
+            
+            {resetMensagem && (
+              <div className={`p-3 rounded mb-4 text-sm ${resetMensagem.erro ? "bg-red-50 text-red-700" : "bg-green-50 text-green-700"}`}>
+                {resetMensagem.texto}
+              </div>
+            )}
+
+            {senhaExibida ? (
+              <div className="bg-amber-50 border border-amber-200 p-4 rounded-lg mb-4 text-center">
+                <p className="text-sm font-semibold text-amber-800 mb-2">Anote esta senha — ela não será exibida novamente:</p>
+                <p className="text-2xl font-mono font-bold text-gray-900 bg-white border border-dashed border-amber-300 py-2 rounded">{senhaExibida}</p>
+                <p className="text-xs text-amber-600 mt-2">Passe esta senha de forma segura para o paciente.</p>
+              </div>
+            ) : (
+              <form onSubmit={handleResetSenha}>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Nova Senha</label>
+                  <input
+                    type="text"
+                    required
+                    value={novaSenhaReset}
+                    onChange={(e) => setNovaSenhaReset(e.target.value)}
+                    className="w-full border border-gray-300 rounded p-2 focus:ring-2 focus:ring-amber-500 outline-none"
+                    placeholder="Digite a nova senha provisória"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={resetLoading}
+                  className={`w-full text-white font-bold py-2.5 rounded transition-colors mb-2 ${resetLoading ? "bg-amber-400 cursor-not-allowed" : "bg-amber-600 hover:bg-amber-700"}`}
+                >
+                  {resetLoading ? "Redefinindo..." : "Confirmar Redefinição"}
+                </button>
+              </form>
+            )}
+
+            <button
+              onClick={fecharModalReset}
+              className="w-full mt-2 text-gray-600 hover:bg-gray-100 font-medium py-2 rounded transition-colors"
+            >
+              {senhaExibida ? "Fechar" : "Cancelar"}
+            </button>
           </div>
         </div>
       )}
