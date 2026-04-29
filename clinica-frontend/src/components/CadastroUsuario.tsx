@@ -1,7 +1,16 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { FormEvent } from "react";
+import { mascaraCpf } from "../utils/validators";
 
-export function CadastroUsuario() {
+interface UsuarioInfo {
+  id: string;
+  nome: string;
+  email: string;
+  cpf: string;
+  tipoUsuario: string;
+}
+
+export function CadastroUsuario({ onUserCreated }: { onUserCreated?: () => void }) {
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [cpf, setCpf] = useState("");
@@ -12,6 +21,8 @@ export function CadastroUsuario() {
 
   const [loading, setLoading] = useState(false);
   const [mensagem, setMensagem] = useState<{ texto: string; erro: boolean } | null>(null);
+
+
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -48,8 +59,8 @@ export function CadastroUsuario() {
         setEmail("");
         setCpf("");
         setSenha("");
-        setCrm("");
         setUfCrm("");
+        if (onUserCreated) onUserCreated();
       }
     } catch (err) {
       setMensagem({ texto: "Falha de conexão com o servidor.", erro: true });
@@ -62,7 +73,7 @@ export function CadastroUsuario() {
     <div className="max-w-2xl mx-auto bg-white p-8 rounded-xl shadow border border-gray-100">
       <div className="mb-6 border-b pb-4">
         <h2 className="text-2xl font-bold text-gray-800">Cadastro de Usuários</h2>
-        <p className="text-sm text-gray-500 mt-1">Acesso restrito: Administradores</p>
+        <p className="text-sm text-gray-500 mt-1">Acesso restrito</p>
       </div>
 
       {mensagem && (
@@ -103,8 +114,9 @@ export function CadastroUsuario() {
             <input
               type="text"
               required
+              maxLength={14}
               value={cpf}
-              onChange={(e) => setCpf(e.target.value)}
+              onChange={(e) => setCpf(mascaraCpf(e.target.value))}
               className="w-full border border-gray-300 rounded p-2 focus:ring-2 focus:ring-blue-500 outline-none"
               placeholder="000.000.000-00"
             />
@@ -158,12 +170,33 @@ export function CadastroUsuario() {
                 className="w-full border border-blue-300 rounded p-2 bg-white focus:ring-2 focus:ring-blue-500 outline-none"
               >
                 <option value="">Selecione...</option>
-                <option value="SP">SP</option>
-                <option value="RJ">RJ</option>
+                <option value="AC">AC</option>
+                <option value="AL">AL</option>
+                <option value="AP">AP</option>
+                <option value="AM">AM</option>
+                <option value="BA">BA</option>
+                <option value="CE">CE</option>
+                <option value="DF">DF</option>
+                <option value="ES">ES</option>
+                <option value="GO">GO</option>
+                <option value="MA">MA</option>
+                <option value="MT">MT</option>
+                <option value="MS">MS</option>
                 <option value="MG">MG</option>
-                <option value="RS">RS</option>
+                <option value="PA">PA</option>
+                <option value="PB">PB</option>
                 <option value="PR">PR</option>
-                {/* Outras UFs podem ser adicionadas */}
+                <option value="PE">PE</option>
+                <option value="PI">PI</option>
+                <option value="RJ">RJ</option>
+                <option value="RN">RN</option>
+                <option value="RS">RS</option>
+                <option value="RO">RO</option>
+                <option value="RR">RR</option>
+                <option value="SC">SC</option>
+                <option value="SP">SP</option>
+                <option value="SE">SE</option>
+                <option value="TO">TO</option>
               </select>
             </div>
           </div>
@@ -179,6 +212,8 @@ export function CadastroUsuario() {
           </button>
         </div>
       </form>
+
+
     </div>
   );
 }

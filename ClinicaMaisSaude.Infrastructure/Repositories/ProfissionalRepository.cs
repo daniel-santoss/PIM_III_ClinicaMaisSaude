@@ -34,5 +34,13 @@ namespace ClinicaMaisSaude.Infrastructure.Repositories
                 .Include(p => p.Usuario)
                 .FirstOrDefaultAsync(p => p.Id == id);
         }
+
+        public async Task<IEnumerable<Profissional>> ObterTodosAsync()
+        {
+            return await _context.Profissionais
+                .AsNoTracking()
+                .Include(p => p.Usuario)
+                .ToListAsync();
+        }
     }
 }

@@ -28,14 +28,17 @@ namespace ClinicaMaisSaude.API.Controllers
             {
                 var tipoUsuario = User.FindFirstValue("TipoUsuario") ?? User.FindFirstValue(ClaimTypes.Role);
                 
-                // Medida de Segurança Crítica: Um paciente não pode forjar a criação de agenda para outro!
                 if (tipoUsuario == "Paciente")
                 {
                     var pacienteIdToken = User.FindFirstValue("PacienteId");
-                    request.PacienteId = Guid.Parse(pacienteIdToken!);
+                    if (request.PacienteId != Guid.Parse(pacienteIdToken!))
+                    {
+                        return StatusCode(403, "Você não pode agendar consultas para outros pacientes.");
+                    }
                 }
 
-                var resultado = await _agendamentoService.AdicionarAsync(request);
+                var usuarioLogadoId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+                var resultado = await _agendamentoService.AdicionarAsync(request, usuarioLogadoId);
                 return Created("", resultado);
             }
             catch (Exception ex)
@@ -72,13 +75,28 @@ namespace ClinicaMaisSaude.API.Controllers
             return Ok(agendamentos);
         }
 
+        [HttpGet("horarios-disponiveis")]
+        public async Task<IActionResult> ObterHorariosDisponiveis([FromQuery] DateTime data, [FromQuery] int tipoConsulta)
+        {
+            try
+            {
+                var horarios = await _agendamentoService.ObterHorariosDisponiveisAsync(data, tipoConsulta);
+                return Ok(horarios);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
         [Authorize(Roles = "Medico,Enfermeira")]
         [HttpPut("{id}")]
         public async Task<IActionResult> AtualizarAgendamento(Guid id, [FromBody] AgendamentoRequest request)
         {
             try
             {
-                var resultado = await _agendamentoService.AtualizarAsync(id, request);
+                var usuarioLogadoId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+                var resultado = await _agendamentoService.AtualizarAsync(id, request, usuarioLogadoId);
                 return Ok(resultado);
             }
             catch (Exception ex)
@@ -93,12 +111,42 @@ namespace ClinicaMaisSaude.API.Controllers
         {
             try
             {
-                var resultado = await _agendamentoService.AlterarStatusAsync(id, novoStatus);
+                var usuarioLogadoId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+                var resultado = await _agendamentoService.AlterarStatusAsync(id, novoStatus, usuarioLogadoId);
                 return Ok(resultado);
             }
             catch (Exception ex)
             {
                 return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpPatch("{id}/remarcar")]
+        [Authorize]
+        public async Task<IActionResult> RemarcarAgendamento(Guid id, [FromBody] RemarcarAgendamentoRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            try
+            {
+                var isAdminClaim = User.Claims.FirstOrDefault(c => c.Type == "IsAdmin")?.Value;
+                var tipoUsuario = User.FindFirstValue("TipoUsuario") ?? User.FindFirstValue(ClaimTypes.Role);
+
+                if (isAdminClaim != "true" && tipoUsuario == "Paciente")
+                {
+                    return StatusCode(403, "Pacientes não têm permissão para remarcar consultas livremente. Entre em contato com a clínica.");
+                }
+
+                var usuarioLogadoId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+                var resultado = await _agendamentoService.RemarcarAsync(id, request, usuarioLogadoId);
+                return Ok(resultado);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { Mensagem = ex.Message });
             }
         }
 
@@ -108,12 +156,28 @@ namespace ClinicaMaisSaude.API.Controllers
         {
             try
             {
-                await _agendamentoService.DeletarAsync(id);
+                var usuarioLogadoId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+                await _agendamentoService.DeletarAsync(id, usuarioLogadoId);
                 return NoContent();
             }
             catch (Exception ex)
             {
                 return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpGet("{id}/historico")]
+        public async Task<IActionResult> ObterHistorico(Guid id)
+        {
+            try
+            {
+                // Aqui podemos adicionar verificação se o paciente está consultando o próprio histórico, se necessário.
+                var historico = await _agendamentoService.ObterHistoricoAsync(id);
+                return Ok(historico);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { Mensagem = ex.Message });
             }
         }
     }

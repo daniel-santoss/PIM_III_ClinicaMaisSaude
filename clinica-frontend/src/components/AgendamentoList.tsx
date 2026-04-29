@@ -10,6 +10,21 @@ export interface AgendamentoResponse {
   tipoConsulta: string;
   status: string;
   agendamentoOrigemId?: string;
+  nomeProfissional: string;
+}
+
+export interface AgendamentoHistoricoResponse {
+  id: string;
+  agendamentoId: string;
+  tipoEvento: string;
+  statusAnterior?: string;
+  statusNovo?: string;
+  dataAnterior?: string;
+  dataNova?: string;
+  observacao?: string;
+  realizadoPor: string;
+  nomeRealizadoPor: string;
+  dtCriado: string;
 }
 
 export interface PacienteResponse {
@@ -52,6 +67,14 @@ function obterMinDateTimeLocal(): string {
   return `${ano}-${mes}-${dia}T${hora}:${minuto}`;
 }
 
+function obterMinDate(): string {
+  const agora = new Date();
+  const ano = agora.getFullYear();
+  const mes = String(agora.getMonth() + 1).padStart(2, "0");
+  const dia = String(agora.getDate()).padStart(2, "0");
+  return `${ano}-${mes}-${dia}`;
+}
+
 export default function AgendamentoList() {
   const [agendamentos, setAgendamentos] = useState<AgendamentoResponse[]>([]);
   const [pacientes, setPacientes] = useState<PacienteResponse[]>([]);
@@ -63,7 +86,10 @@ export default function AgendamentoList() {
 
   // Form de criação
   const [pacienteSelecionado, setPacienteSelecionado] = useState("");
-  const [dataLocal, setDataLocal] = useState("");
+  const [dataSelecionada, setDataSelecionada] = useState("");
+  const [horarioSelecionado, setHorarioSelecionado] = useState("");
+  const [horariosDisponiveis, setHorariosDisponiveis] = useState<string[]>([]);
+  const [carregandoHorarios, setCarregandoHorarios] = useState(false);
   
   const [tipoProfissional, setTipoProfissional] = useState(0);
   const [tipoConsulta, setTipoConsulta] = useState(0);
@@ -74,16 +100,91 @@ export default function AgendamentoList() {
   const [cancelarAlvo, setCancelarAlvo] = useState<{ id: string; nome: string } | null>(null);
   const [cancelando, setCancelando] = useState(false);
   const [alterarAlvo, setAlterarAlvo] = useState<AgendamentoResponse | null>(null);
-  const [alterarData, setAlterarData] = useState("");
   const [alterando, setAlterando] = useState(false);
+  const [alterarDataSomente, setAlterarDataSomente] = useState("");
+  const [alterarHorarioSelecionado, setAlterarHorarioSelecionado] = useState("");
+  const [observacaoRemarcacao, setObservacaoRemarcacao] = useState("");
+  const [horariosDisponiveisAlteracao, setHorariosDisponiveisAlteracao] = useState<string[]>([]);
+  const [carregandoHorariosAlteracao, setCarregandoHorariosAlteracao] = useState(false);
+
+  const [buscaPaciente, setBuscaPaciente] = useState("");
+  const [mostrarListaPacientes, setMostrarListaPacientes] = useState(false);
+  const [filtroAgenda, setFiltroAgenda] = useState("");
+
+  // Histórico
+  const [modalHistoricoAberto, setModalHistoricoAberto] = useState(false);
+  const [historicoAtual, setHistoricoAtual] = useState<AgendamentoHistoricoResponse[]>([]);
+  const [historicoLoading, setHistoricoLoading] = useState(false);
 
   useEffect(() => {
     carregarDados();
   }, [refreshContador]);
 
   useEffect(() => {
+    if (isPaciente && pacientes.length > 0) {
+      setPacienteSelecionado(pacientes[0].id);
+    }
+  }, [isPaciente, pacientes]);
+
+  useEffect(() => {
     setTipoConsulta(tipoProfissional === 0 ? 0 : 3);
   }, [tipoProfissional]);
+
+  useEffect(() => {
+    const fetchHorarios = async () => {
+      if (!dataSelecionada) {
+        setHorariosDisponiveis([]);
+        setHorarioSelecionado("");
+        return;
+      }
+      setCarregandoHorarios(true);
+      try {
+        const token = localStorage.getItem("authToken");
+        const res = await fetch(`http://localhost:5045/api/Agendamentos/horarios-disponiveis?data=${dataSelecionada}&tipoConsulta=${tipoConsulta}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+          setHorariosDisponiveis(await res.json());
+        }
+      } catch (e) {
+        console.error("Erro ao carregar horários", e);
+      } finally {
+        setCarregandoHorarios(false);
+      }
+    };
+    fetchHorarios();
+  }, [dataSelecionada, tipoConsulta, refreshContador]);
+
+  useEffect(() => {
+    const fetchHorariosAlteracao = async () => {
+      if (!alterarAlvo || !alterarDataSomente) {
+        setHorariosDisponiveisAlteracao([]);
+        setAlterarHorarioSelecionado("");
+        return;
+      }
+      setCarregandoHorariosAlteracao(true);
+      try {
+        const token = localStorage.getItem("authToken");
+        let tipoConsultaInt = 0;
+        if (alterarAlvo.tipoConsulta === "Exame") tipoConsultaInt = 1;
+        else if (alterarAlvo.tipoConsulta === "Vacina") tipoConsultaInt = 2;
+        else if (alterarAlvo.tipoConsulta === "Consulta Médica" || alterarAlvo.tipoConsulta === "ConsultaMédica") tipoConsultaInt = 3;
+        else if (alterarAlvo.tipoConsulta === "Retorno") tipoConsultaInt = 4;
+
+        const res = await fetch(`http://localhost:5045/api/Agendamentos/horarios-disponiveis?data=${alterarDataSomente}&tipoConsulta=${tipoConsultaInt}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+          setHorariosDisponiveisAlteracao(await res.json());
+        }
+      } catch (e) {
+        console.error("Erro ao carregar horários", e);
+      } finally {
+        setCarregandoHorariosAlteracao(false);
+      }
+    };
+    fetchHorariosAlteracao();
+  }, [alterarDataSomente, alterarAlvo]);
 
   const carregarDados = async () => {
     setCarregando(true);
@@ -108,8 +209,8 @@ export default function AgendamentoList() {
   };
 
   const criarAgendamento = async () => {
-    if (!pacienteSelecionado || !dataLocal) {
-      setModalMensagem("Por favor, preencha todos os campos.");
+    if (!pacienteSelecionado || !dataSelecionada || !horarioSelecionado) {
+      setModalMensagem("Por favor, preencha todos os campos e selecione um horário.");
       return;
     }
 
@@ -118,6 +219,8 @@ export default function AgendamentoList() {
       return;
     }
 
+    const dataHoraUnida = `${dataSelecionada}T${horarioSelecionado}:00`;
+
     try {
       const token = localStorage.getItem("authToken");
       const response = await fetch("http://localhost:5045/api/Agendamentos", {
@@ -125,7 +228,7 @@ export default function AgendamentoList() {
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify({
           pacienteId: pacienteSelecionado,
-          dataHoraConsulta: dataLocal,
+          dataHoraConsulta: dataHoraUnida,
           tipoProfissional: tipoProfissional,
           tipoConsulta: tipoConsulta,
           agendamentoOrigemId: origemId || null
@@ -138,7 +241,8 @@ export default function AgendamentoList() {
       }
 
       setPacienteSelecionado("");
-      setDataLocal("");
+      setDataSelecionada("");
+      setHorarioSelecionado("");
       setOrigemId("");
       setRefreshContador(p => p + 1);
     } catch (err) {
@@ -171,18 +275,17 @@ export default function AgendamentoList() {
   };
 
   const confirmarAlteracaoHora = async () => {
-    if (!alterarAlvo || !alterarData) return;
+    if (!alterarAlvo || !alterarDataSomente || !alterarHorarioSelecionado) return;
+    const dataHoraUnida = `${alterarDataSomente}T${alterarHorarioSelecionado}:00`;
     setAlterando(true);
     try {
       const token = localStorage.getItem("authToken");
-      const response = await fetch(`http://localhost:5045/api/Agendamentos/${alterarAlvo.id}`, {
-        method: "PUT",
+      const response = await fetch(`http://localhost:5045/api/Agendamentos/${alterarAlvo.id}/remarcar`, {
+        method: "PATCH",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify({
-          pacienteId: alterarAlvo.pacienteId,
-          dataHoraConsulta: alterarData,
-          tipoConsulta: 0, // Ignorado pelo backend no PUT atual mas necessário no shape base
-          tipoProfissional: 0
+          novaDataHora: dataHoraUnida,
+          observacao: observacaoRemarcacao || "Remarcação solicitada."
         })
       });
 
@@ -192,7 +295,9 @@ export default function AgendamentoList() {
       }
 
       setAlterarAlvo(null);
-      setAlterarData("");
+      setAlterarDataSomente("");
+      setAlterarHorarioSelecionado("");
+      setObservacaoRemarcacao("");
       setRefreshContador(p => p + 1);
     } catch (err) {
       setModalMensagem("Falha de conexão ao alterar agendamento.");
@@ -230,7 +335,36 @@ export default function AgendamentoList() {
     const dia = String(d.getDate()).padStart(2, "0");
     const hora = String(d.getHours()).padStart(2, "0");
     const minuto = String(d.getMinutes()).padStart(2, "0");
-    setAlterarData(`${ano}-${mes}-${dia}T${hora}:${minuto}`);
+    setAlterarDataSomente(`${ano}-${mes}-${dia}`);
+    setAlterarHorarioSelecionado(`${hora}:${minuto}`); 
+    setObservacaoRemarcacao("");
+  };
+
+  const abrirHistorico = async (agendamentoId: string) => {
+    setHistoricoLoading(true);
+    setModalHistoricoAberto(true);
+    setHistoricoAtual([]);
+    try {
+      const token = localStorage.getItem("authToken");
+      const resp = await fetch(`http://localhost:5045/api/Agendamentos/${agendamentoId}/historico`, {
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
+      });
+      if (resp.ok) {
+        const dados = await resp.json();
+        setHistoricoAtual(dados);
+      } else {
+        setModalMensagem(await resp.text());
+        setModalHistoricoAberto(false);
+      }
+    } catch (error) {
+      console.error("Erro ao buscar histórico", error);
+      setModalMensagem("Falha de conexão ao buscar histórico.");
+      setModalHistoricoAberto(false);
+    } finally {
+      setHistoricoLoading(false);
+    }
   };
 
   // helper para definir opções do Select (Filtro Inteligente)
@@ -251,6 +385,14 @@ export default function AgendamentoList() {
     }
   };
 
+  const pacientesFiltrados = pacientes.filter(p => p.nome.toLowerCase().includes(buscaPaciente.toLowerCase()) || p.cpf.includes(buscaPaciente));
+
+  const agendamentosFiltrados = agendamentos.filter(a => {
+    const paciente = pacientes.find(p => p.id === a.pacienteId);
+    const cpf = paciente ? paciente.cpf : "";
+    return a.pacienteNome.toLowerCase().includes(filtroAgenda.toLowerCase()) || cpf.includes(filtroAgenda);
+  });
+
   const retornosPendentes = agendamentos.filter(a => a.pacienteId === pacienteSelecionado && a.status === "AguardandoRetorno");
 
   if (erro) return <p className="text-red-500 text-center py-4">{erro}</p>;
@@ -267,19 +409,49 @@ export default function AgendamentoList() {
           </h3>
 
           <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Paciente</label>
-              <select
-                className="w-full p-2.5 border border-gray-300 rounded bg-gray-50 focus:ring-2 focus:ring-blue-500 transition-all font-medium text-gray-700"
-                value={pacienteSelecionado}
-                onChange={(e) => { setPacienteSelecionado(e.target.value); setOrigemId(""); }}
-              >
-                <option value="">-- Selecionar Paciente --</option>
-                {pacientes.map((p) => (
-                  <option key={p.id} value={p.id}>{p.nome}</option>
-                ))}
-              </select>
-            </div>
+            {!isPaciente && (
+              <div className="relative">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Paciente</label>
+                <input
+                  type="text"
+                  placeholder="Buscar por nome ou CPF..."
+                  className="w-full p-2.5 border border-gray-300 rounded bg-white focus:ring-2 focus:ring-blue-500 transition-all text-sm"
+                  value={buscaPaciente}
+                  onChange={(e) => {
+                    setBuscaPaciente(e.target.value);
+                    setMostrarListaPacientes(true);
+                    setPacienteSelecionado(""); 
+                    setOrigemId("");
+                  }}
+                  onFocus={() => setMostrarListaPacientes(true)}
+                  onBlur={() => setTimeout(() => setMostrarListaPacientes(false), 200)}
+                />
+                {mostrarListaPacientes && (
+                  <ul className="absolute z-10 w-full bg-white border border-gray-300 mt-1 max-h-48 overflow-y-auto rounded shadow-lg">
+                    {pacientesFiltrados.length === 0 ? (
+                      <li className="p-2 text-sm text-gray-500">Nenhum paciente encontrado.</li>
+                    ) : (
+                      pacientesFiltrados.map((p) => (
+                        <li
+                          key={p.id}
+                          className="p-2 text-sm hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-0"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => {
+                            setPacienteSelecionado(p.id);
+                            setBuscaPaciente(p.nome);
+                            setMostrarListaPacientes(false);
+                            setOrigemId("");
+                          }}
+                        >
+                          <div className="font-semibold text-gray-800">{p.nome}</div>
+                          <div className="text-xs text-gray-500">CPF: {p.cpf}</div>
+                        </li>
+                      ))
+                    )}
+                  </ul>
+                )}
+              </div>
+            )}
 
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -339,15 +511,52 @@ export default function AgendamentoList() {
             )}
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Data e Hora</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Data da Consulta</label>
               <input
-                type="datetime-local"
+                type="date"
                 className="w-full p-2.5 border border-gray-300 rounded bg-gray-50 focus:ring-2 focus:ring-blue-500 transition-all"
-                value={dataLocal}
-                min={obterMinDateTimeLocal()}
-                onChange={(e) => setDataLocal(e.target.value)}
+                value={dataSelecionada}
+                min={obterMinDate()}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (!val) {
+                    setDataSelecionada("");
+                    return;
+                  }
+                  const dateObj = new Date(val + "T00:00:00");
+                  if (dateObj.getDay() === 0 || dateObj.getDay() === 6) {
+                    setModalMensagem("Não é possível agendar consultas aos fins de semana.");
+                    setDataSelecionada("");
+                  } else {
+                    setDataSelecionada(val);
+                    setHorarioSelecionado("");
+                  }
+                }}
               />
             </div>
+
+            {dataSelecionada && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Horários Disponíveis</label>
+                {carregandoHorarios ? (
+                    <p className="text-sm text-blue-600 font-medium">Buscando horários...</p>
+                ) : horariosDisponiveis.length === 0 ? (
+                    <p className="text-sm text-red-500 font-medium bg-red-50 p-2 rounded border border-red-200">Nenhum horário disponível para esta data e tipo de consulta.</p>
+                ) : (
+                    <div className="grid grid-cols-4 gap-2">
+                        {horariosDisponiveis.map(h => (
+                            <button
+                                key={h}
+                                onClick={() => setHorarioSelecionado(h)}
+                                className={`py-2 text-sm font-semibold rounded border transition-all ${horarioSelecionado === h ? 'bg-green-600 text-white border-green-700 shadow-md transform scale-105' : 'bg-white text-gray-700 border-gray-300 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300'}`}
+                            >
+                                {h}
+                            </button>
+                        ))}
+                    </div>
+                )}
+              </div>
+            )}
 
             <button
               onClick={criarAgendamento}
@@ -360,17 +569,29 @@ export default function AgendamentoList() {
 
         {/* Listagem (ocupa 8 colunas) */}
         <div className="lg:col-span-8 space-y-4">
-          <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2 mb-2">
-            Status da Agenda
-          </h3>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2">
+            <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+              Status da Agenda
+            </h3>
+            <div className="relative w-full sm:w-64">
+              <svg className="absolute left-2.5 top-2.5 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+              <input
+                type="text"
+                placeholder="Filtrar por nome ou CPF..."
+                className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                value={filtroAgenda}
+                onChange={(e) => setFiltroAgenda(e.target.value)}
+              />
+            </div>
+          </div>
 
-          {agendamentos.length === 0 ? (
+          {agendamentosFiltrados.length === 0 ? (
             <div className="bg-gray-50 rounded-lg p-8 text-center border text-gray-500 border-dashed border-gray-300">
               Nenhum agendamento encontrado no sistema.
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {agendamentos
+              {agendamentosFiltrados
                 .sort((a, b) => new Date(a.dataHoraConsulta).getTime() - new Date(b.dataHoraConsulta).getTime())
                 .map((agenda) => {
                   const dataObj = new Date(agenda.dataHoraConsulta);
@@ -397,12 +618,20 @@ export default function AgendamentoList() {
                           <h4 className="font-semibold text-gray-800 text-sm truncate">{agenda.pacienteNome}</h4>
                           <span className="text-xs font-medium text-gray-500">
                             {agenda.tipoProfissional}: <span className="text-gray-700">{agenda.tipoConsulta}</span>
+                            {agenda.nomeProfissional && agenda.nomeProfissional !== "N/A" && (
+                              <span className="text-blue-500 font-semibold ml-1"> — {agenda.nomeProfissional}</span>
+                            )}
                           </span>
                         </div>
 
                         {emAberto && !isPaciente && (
-                            <button title="Alterar horário" onClick={() => abrirAlteracao(agenda)} className="p-1.5 ml-2 text-blue-400 hover:text-blue-600 hover:bg-blue-50 rounded-full flex-shrink-0">
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                            <button title="Remarcar Consulta" onClick={() => abrirAlteracao(agenda)} className="p-1.5 ml-2 text-blue-400 hover:text-blue-600 hover:bg-blue-50 rounded-full flex-shrink-0">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                            </button>
+                        )}
+                        {!isPaciente && (
+                            <button title="Ver Histórico" onClick={() => abrirHistorico(agenda.id)} className="p-1.5 ml-1 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full flex-shrink-0">
+                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                             </button>
                         )}
                       </div>
@@ -482,13 +711,147 @@ export default function AgendamentoList() {
          <div className="bg-white rounded-lg shadow-xl w-full max-w-sm p-6">
            <h3 className="text-lg font-bold text-blue-600 mb-2">Reagendar</h3>
            <p className="text-sm text-gray-500 mb-4">{alterarAlvo.pacienteNome} - {alterarAlvo.tipoConsulta}</p>
-           <input type="datetime-local" className="w-full p-2 border border-gray-300 rounded mb-4" value={alterarData} min={obterMinDateTimeLocal()} onChange={(e) => setAlterarData(e.target.value)} />
-           <div className="flex gap-2">
-             <button disabled={alterando} className="flex-1 bg-gray-200 hover:bg-gray-300 py-2 font-medium text-sm rounded" onClick={() => { setAlterarAlvo(null); setAlterarData("");}}>Cancelar</button>
-             <button disabled={alterando} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 font-medium text-sm rounded" onClick={confirmarAlteracaoHora}>Salvar</button>
+           
+           <div className="mb-4">
+             <label className="block text-sm font-medium text-gray-700 mb-1">Nova Data</label>
+             <input 
+               type="date" 
+               className="w-full p-2 border border-gray-300 rounded mb-3" 
+               value={alterarDataSomente} 
+               min={obterMinDate()} 
+               onChange={(e) => {
+                 const val = e.target.value;
+                 if (val) {
+                   const dateObj = new Date(val + "T00:00:00");
+                   if (dateObj.getDay() === 0 || dateObj.getDay() === 6) {
+                     setModalMensagem("Não é possível agendar consultas aos fins de semana.");
+                     setAlterarDataSomente("");
+                   } else {
+                     setAlterarDataSomente(val);
+                     setAlterarHorarioSelecionado("");
+                   }
+                 } else {
+                   setAlterarDataSomente("");
+                 }
+               }} 
+             />
+
+             {alterarDataSomente && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Horários Disponíveis</label>
+                  {carregandoHorariosAlteracao ? (
+                      <p className="text-sm text-blue-600 font-medium">Buscando horários...</p>
+                  ) : horariosDisponiveisAlteracao.length === 0 ? (
+                      <p className="text-sm text-red-500 font-medium bg-red-50 p-2 rounded border border-red-200">Nenhum horário disponível para esta data e tipo de consulta.</p>
+                  ) : (
+                      <div className="grid grid-cols-4 gap-2 max-h-32 overflow-y-auto pr-1">
+                          {horariosDisponiveisAlteracao.map(h => (
+                              <button
+                                  key={h}
+                                  onClick={() => setAlterarHorarioSelecionado(h)}
+                                  className={`py-1.5 text-xs font-semibold rounded border transition-all ${alterarHorarioSelecionado === h ? 'bg-blue-600 text-white border-blue-700 shadow-md' : 'bg-white text-gray-700 border-gray-300 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300'}`}
+                              >
+                                  {h}
+                              </button>
+                          ))}
+                      </div>
+                  )}
+
+                  <div className="mt-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Observação (Motivo da Remarcação)</label>
+                    <textarea
+                      className="w-full p-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500"
+                      rows={2}
+                      placeholder="Descreva o motivo da alteração..."
+                      value={observacaoRemarcacao}
+                      onChange={(e) => setObservacaoRemarcacao(e.target.value)}
+                    ></textarea>
+                  </div>
+                </div>
+             )}
+           </div>
+
+           <div className="flex gap-2 mt-4">
+             <button disabled={alterando} className="flex-1 bg-gray-200 hover:bg-gray-300 py-2 font-medium text-sm rounded" onClick={() => { setAlterarAlvo(null); setAlterarDataSomente(""); setAlterarHorarioSelecionado("");}}>Cancelar</button>
+             <button disabled={alterando || !alterarDataSomente || !alterarHorarioSelecionado} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 font-medium text-sm rounded disabled:opacity-50 disabled:cursor-not-allowed" onClick={confirmarAlteracaoHora}>Salvar</button>
            </div>
          </div>
        </div>
+      )}
+      {/* Modal Historico */}
+      {modalHistoricoAberto && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-lg p-6 max-h-[80vh] flex flex-col">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold text-gray-800">Histórico do Agendamento</h3>
+              <button onClick={() => setModalHistoricoAberto(false)} className="text-gray-400 hover:text-gray-600">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto pr-2">
+              {historicoLoading ? (
+                <div className="text-center py-8 text-gray-500">Carregando histórico...</div>
+              ) : historicoAtual.length === 0 ? (
+                <div className="text-center py-8 text-gray-500 bg-gray-50 rounded">Nenhum evento registrado para este agendamento.</div>
+              ) : (
+                <div className="relative border-l-2 border-gray-200 ml-3 space-y-6 pb-4 mt-2">
+                  {historicoAtual.map((h, index) => (
+                    <div key={h.id} className="relative pl-6">
+                      <span className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-blue-500 border-2 border-white shadow"></span>
+                      <div className="flex flex-col">
+                        <span className="text-xs font-bold text-gray-400 mb-0.5">
+                          {new Date(h.dtCriado).toLocaleString('pt-BR')}
+                        </span>
+                        <h4 className="text-sm font-bold text-gray-800">
+                          {h.tipoEvento}
+                        </h4>
+                        
+                        {h.tipoEvento === "MudancaStatus" && (
+                          <div className="text-sm text-gray-600 mt-1">
+                            Status: <span className="font-semibold text-gray-700">{MapNomesStatus[h.statusAnterior || ""] || h.statusAnterior || "-"}</span> → <span className="font-semibold text-blue-600">{MapNomesStatus[h.statusNovo || ""] || h.statusNovo}</span>
+                          </div>
+                        )}
+
+                        {h.tipoEvento === "Remarcacao" && (
+                          <div className="text-sm text-gray-600 mt-1">
+                            Data: <span className="font-semibold text-gray-700">{h.dataAnterior ? new Date(h.dataAnterior).toLocaleString('pt-BR') : "-"}</span> → <span className="font-semibold text-blue-600">{h.dataNova ? new Date(h.dataNova).toLocaleString('pt-BR') : "-"}</span>
+                          </div>
+                        )}
+
+                        {h.tipoEvento === "Cancelamento" && (
+                          <div className="text-sm text-red-600 mt-1 font-medium">
+                            Agendamento Cancelado
+                          </div>
+                        )}
+
+                        {h.tipoEvento === "Criacao" && (
+                          <div className="text-sm text-green-600 mt-1 font-medium">
+                            Consulta agendada no sistema
+                          </div>
+                        )}
+
+                        <div className="text-[10px] text-gray-400 mt-2 italic flex items-center gap-1">
+                           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                           Realizado por: {h.nomeRealizadoPor}
+                        </div>
+
+                        {h.observacao && (
+                          <div className="mt-2 text-sm text-gray-700 bg-amber-50 p-2 rounded border border-amber-100">
+                            <span className="font-semibold text-amber-700 block mb-1">Observação:</span> {h.observacao}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="mt-4 pt-4 border-t border-gray-100 text-right">
+              <button onClick={() => setModalHistoricoAberto(false)} className="bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 px-6 font-medium text-sm rounded transition-colors">Fechar</button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );

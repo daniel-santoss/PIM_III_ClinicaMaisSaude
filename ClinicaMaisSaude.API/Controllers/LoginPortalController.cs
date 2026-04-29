@@ -1,7 +1,5 @@
 using ClinicaMaisSaude.Application.DTOs.Auth;
-using ClinicaMaisSaude.Domain.Entities;
-using ClinicaMaisSaude.Domain.Enums;
-using ClinicaMaisSaude.Infrastructure.Data;
+using ClinicaMaisSaude.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Linq;
@@ -13,112 +11,86 @@ namespace ClinicaMaisSaude.API.Controllers
     [Route("api/[controller]")]
     public class LoginPortalController : ControllerBase
     {
-        private readonly ClinicaDbContext _context;
+        private readonly ICadastroService _cadastroService;
 
-        public LoginPortalController(ClinicaDbContext context)
+        public LoginPortalController(ICadastroService cadastroService)
         {
-            _context = context;
+            _cadastroService = cadastroService;
         }
 
         [HttpPost("cadastro")]
-        [Authorize(Roles = "Medico")] // Apenas Médicos acessam (regra extraída do JWT)
+        [Authorize]
         public async Task<IActionResult> CadastroAdmin([FromBody] CadastroRequest request)
         {
-            // Proteção em Camada Dupla: Verifica se o Médico é também um Administrador.
             var isAdminClaim = User.Claims.FirstOrDefault(c => c.Type == "IsAdmin")?.Value;
-            if (isAdminClaim != "true")
+            var tipoUsuario = User.Claims.FirstOrDefault(c => c.Type == "TipoUsuario")?.Value;
+
+            if (isAdminClaim != "true" && tipoUsuario != "Enfermeira")
             {
-                return Forbid("Acesso Negado: Apenas Médicos Administradores podem realizar cadastros.");
+                return Forbid();
             }
 
-            // Sanitização do CPF
-            var cpfLimpo = request.Cpf.Replace(".", "").Replace("-", "").Trim();
-            if (cpfLimpo.Length != 11 || !IsCpfValido(cpfLimpo))
+            if (isAdminClaim != "true" && request.TipoUsuario != "Paciente")
             {
-                return BadRequest("O CPF informado não é matematicamente válido.");
+                return BadRequest("Enfermeiras só podem cadastrar novos Pacientes.");
             }
 
-            if (_context.Usuarios.Any(u => u.Cpf == cpfLimpo || u.Email == request.Email))
+            var resultado = await _cadastroService.CadastrarAsync(request);
+
+            if (!resultado.Sucesso)
             {
-                return BadRequest("Já existe um usuário com este CPF ou E-mail.");
+                return BadRequest(resultado.Mensagem);
             }
 
-            // Tratamento do CRM obrigatório para médicos
-            if (request.TipoUsuario == "Medico")
-            {
-                if (string.IsNullOrWhiteSpace(request.Crm) || request.Crm.Length != 6 || !request.Crm.All(char.IsDigit))
-                {
-                    return BadRequest("Médicos devem possuir um CRM numérico válido de exatos 6 dígitos.");
-                }
-                if (string.IsNullOrWhiteSpace(request.UfCrm))
-                {
-                    return BadRequest("UF do CRM é obrigatória para médicos.");
-                }
-            }
-
-            // Hash da senha usando BCrypt
-            var senhaHash = BCrypt.Net.BCrypt.HashPassword(request.Senha);
-
-            // Criação da Identidade (LoginPortal/Usuario)
-            var novoUsuario = new Usuario(request.Email, cpfLimpo, senhaHash);
-            _context.Usuarios.Add(novoUsuario);
-
-            // Criação do Perfil associado
-            if (request.TipoUsuario == "Paciente")
-            {
-                var paciente = new Paciente(request.Nome, cpfLimpo, "00000000000", request.Email);
-                paciente.VincularUsuario(novoUsuario.Id);
-                _context.Pacientes.Add(paciente);
-            }
-            else if (request.TipoUsuario == "Medico" || request.TipoUsuario == "Enfermeira")
-            {
-                var tipoDoc = request.TipoUsuario == "Medico" ? TipoProfissional.Medico : TipoProfissional.Enfermeira;
-                var profissional = new Profissional(novoUsuario.Id, tipoDoc, request.Crm, request.UfCrm);
-                _context.Profissionais.Add(profissional);
-            }
-            else
-            {
-                return BadRequest("Tipo de usuário inválido.");
-            }
-
-            await _context.SaveChangesAsync();
-            return Ok(new { Mensagem = "Usuário cadastrado com sucesso!" });
+            return Ok(new { Mensagem = resultado.Mensagem });
         }
 
-        // Algoritmo Verificador de CPF
-        private bool IsCpfValido(string cpf)
+        [HttpGet("usuarios")]
+        [Authorize]
+        public async Task<IActionResult> ListarUsuarios()
         {
-            int[] multiplicador1 = new int[9] { 10, 9, 8, 7, 6, 5, 4, 3, 2 };
-            int[] multiplicador2 = new int[10] { 11, 10, 9, 8, 7, 6, 5, 4, 3, 2 };
-            string tempCpf;
-            string digito;
-            int soma;
-            int resto;
-            
-            if (cpf.Distinct().Count() == 1) return false;
+            var isAdminClaim = User.Claims.FirstOrDefault(c => c.Type == "IsAdmin")?.Value;
+            var tipoUsuario = User.Claims.FirstOrDefault(c => c.Type == "TipoUsuario")?.Value;
 
-            tempCpf = cpf.Substring(0, 9);
-            soma = 0;
+            if (isAdminClaim != "true" && tipoUsuario != "Enfermeira")
+            {
+                return Forbid();
+            }
 
-            for (int i = 0; i < 9; i++)
-                soma += int.Parse(tempCpf[i].ToString()) * multiplicador1[i];
-            
-            resto = soma % 11;
-            if (resto < 2) resto = 0;
-            else resto = 11 - resto;
-            
-            digito = resto.ToString();
-            tempCpf = tempCpf + digito;
-            soma = 0;
-            for (int i = 0; i < 10; i++)
-                soma += int.Parse(tempCpf[i].ToString()) * multiplicador2[i];
-            
-            resto = soma % 11;
-            if (resto < 2) resto = 0;
-            else resto = 11 - resto;
-            
-            digito = digito + resto.ToString();
-            return cpf.EndsWith(digito);
+            var usuarios = await _cadastroService.ListarUsuariosAsync();
+            return Ok(usuarios);
         }
+
+        [HttpPatch("{id}/reset-senha")]
+        [Authorize]
+        public async Task<IActionResult> ResetarSenha(Guid id, [FromBody] ResetSenhaRequest request)
+        {
+            var isAdminClaim = User.Claims.FirstOrDefault(c => c.Type == "IsAdmin")?.Value;
+            var tipoUsuario = User.Claims.FirstOrDefault(c => c.Type == "TipoUsuario")?.Value;
+
+            if (isAdminClaim != "true" && tipoUsuario != "Enfermeira")
+            {
+                return Forbid();
+            }
+
+            if (string.IsNullOrWhiteSpace(request.NovaSenha))
+            {
+                return BadRequest("A nova senha não pode ser vazia.");
+            }
+
+            var resultado = await _cadastroService.RedefinirSenhaAsync(id, request.NovaSenha);
+
+            if (!resultado.Sucesso)
+            {
+                return BadRequest(resultado.Mensagem);
+            }
+
+            return Ok(new { Mensagem = resultado.Mensagem });
+        }
+    }
+
+    public class ResetSenhaRequest
+    {
+        public string NovaSenha { get; set; }
     }
 }

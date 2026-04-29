@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using ClinicaMaisSaude.Application.DTOs.AgendamentoHistorico;
 
 namespace ClinicaMaisSaude.Application.Services
 {
@@ -16,18 +17,21 @@ namespace ClinicaMaisSaude.Application.Services
         private readonly IAgendamentoRepository _repository;
         private readonly IPacienteRepository _pacienteRepository;
         private readonly IProfissionalRepository _profissionalRepository;
+        private readonly IUsuarioRepository _usuarioRepository;
 
         public AgendamentoService(
             IAgendamentoRepository repository, 
             IPacienteRepository pacienteRepository,
-            IProfissionalRepository profissionalRepository)
+            IProfissionalRepository profissionalRepository,
+            IUsuarioRepository usuarioRepository)
         {
             _repository = repository;
             _pacienteRepository = pacienteRepository;
             _profissionalRepository = profissionalRepository;
+            _usuarioRepository = usuarioRepository;
         }
 
-        public async Task<AgendamentoResponse> AdicionarAsync(AgendamentoRequest request)
+        public async Task<AgendamentoResponse> AdicionarAsync(AgendamentoRequest request, Guid usuarioLogadoId)
         {
             var tipoProfissional = (TipoProfissional)request.TipoProfissional;
             var tipoConsulta = (TipoConsulta)request.TipoConsulta;
@@ -65,6 +69,14 @@ namespace ClinicaMaisSaude.Application.Services
 
             await _repository.AdicionarAsync(agendamento);
 
+            var historico = new AgendamentoHistorico(
+                agendamento.Id,
+                TipoEventoHistorico.Criacao,
+                usuarioLogadoId,
+                statusNovo: agendamento.Status
+            );
+            await _repository.AdicionarHistoricoAsync(historico);
+
             if (tipoConsulta == TipoConsulta.Retorno && request.AgendamentoOrigemId.HasValue)
             {
                 var origem = await _repository.ObterPorIdAsync(request.AgendamentoOrigemId.Value);
@@ -72,13 +84,25 @@ namespace ClinicaMaisSaude.Application.Services
                 {
                     origem.AlterarStatus(StatusAgendamento.RetornoAgendado);
                     await _repository.AtualizarAsync(origem);
+
+                    var historicoOrigem = new AgendamentoHistorico(
+                        origem.Id,
+                        TipoEventoHistorico.MudancaStatus,
+                        usuarioLogadoId,
+                        statusAnterior: StatusAgendamento.AguardandoRetorno,
+                        statusNovo: StatusAgendamento.RetornoAgendado,
+                        observacao: "Agendamento de retorno vinculado."
+                    );
+                    await _repository.AdicionarHistoricoAsync(historicoOrigem);
                 }
             }
 
-            return MapearResponse(agendamento, paciente.Nome);
+            var profissional = await _profissionalRepository.ObterPorIdAsync(agendamento.ProfissionalId);
+            var profissionalNome = profissional?.Nome ?? "N/A";
+            return MapearResponse(agendamento, paciente.Nome, profissionalNome);
         }
 
-        public async Task<AgendamentoResponse> AtualizarAsync(Guid id, AgendamentoRequest request)
+        public async Task<AgendamentoResponse> AtualizarAsync(Guid id, AgendamentoRequest request, Guid usuarioLogadoId)
         {
             var agendamento = await _repository.ObterPorIdAsync(id);
             if (agendamento == null)
@@ -106,10 +130,12 @@ namespace ClinicaMaisSaude.Application.Services
             await _repository.AtualizarAsync(agendamento);
 
             var pacienteNome = (await _pacienteRepository.ObterPorIdAsync(agendamento.PacienteId))?.Nome ?? "N/A";
-            return MapearResponse(agendamento, pacienteNome);
+            var profissional = await _profissionalRepository.ObterPorIdAsync(agendamento.ProfissionalId);
+            var profissionalNome = profissional?.Nome ?? "N/A";
+            return MapearResponse(agendamento, pacienteNome, profissionalNome);
         }
 
-        public async Task<AgendamentoResponse> AlterarStatusAsync(Guid id, int novoStatusInt)
+        public async Task<AgendamentoResponse> AlterarStatusAsync(Guid id, int novoStatusInt, Guid usuarioLogadoId)
         {
             var agendamento = await _repository.ObterPorIdAsync(id);
             if (agendamento == null)
@@ -118,14 +144,30 @@ namespace ClinicaMaisSaude.Application.Services
             var novoStatus = (StatusAgendamento)novoStatusInt;
             ValidarTransicao(agendamento, novoStatus);
 
+            var statusAntigo = agendamento.Status;
             agendamento.AlterarStatus(novoStatus);
             await _repository.AtualizarAsync(agendamento);
 
+            var tipoEvento = novoStatus == StatusAgendamento.Cancelado 
+                ? TipoEventoHistorico.Cancelamento 
+                : TipoEventoHistorico.MudancaStatus;
+
+            var historico = new AgendamentoHistorico(
+                agendamento.Id,
+                tipoEvento,
+                usuarioLogadoId,
+                statusAnterior: statusAntigo,
+                statusNovo: novoStatus
+            );
+            await _repository.AdicionarHistoricoAsync(historico);
+
             var pacienteNome = (await _pacienteRepository.ObterPorIdAsync(agendamento.PacienteId))?.Nome ?? "N/A";
-            return MapearResponse(agendamento, pacienteNome);
+            var profissional = await _profissionalRepository.ObterPorIdAsync(agendamento.ProfissionalId);
+            var profissionalNome = profissional?.Nome ?? "N/A";
+            return MapearResponse(agendamento, pacienteNome, profissionalNome);
         }
 
-        public async Task DeletarAsync(Guid id)
+        public async Task DeletarAsync(Guid id, Guid usuarioLogadoId)
         {
             var agendamento = await _repository.ObterPorIdAsync(id);
             if (agendamento == null)
@@ -134,9 +176,68 @@ namespace ClinicaMaisSaude.Application.Services
             await _repository.DeletarAsync(agendamento);
         }
 
+        public async Task<AgendamentoResponse> ObterPorIdAsync(Guid id)
+        {
+            var agendamento = await _repository.ObterPorIdAsync(id);
+            if (agendamento == null)
+                throw new Exception("Agendamento não encontrado.");
+
+            var pacienteNome = (await _pacienteRepository.ObterPorIdAsync(agendamento.PacienteId))?.Nome ?? "N/A";
+            var profissional = await _profissionalRepository.ObterPorIdAsync(agendamento.ProfissionalId);
+            var profissionalNome = profissional?.Nome ?? "N/A";
+
+            return MapearResponse(agendamento, pacienteNome, profissionalNome);
+        }
+
+        public async Task<AgendamentoResponse> RemarcarAsync(Guid id, RemarcarAgendamentoRequest request, Guid usuarioLogadoId)
+        {
+            var agendamento = await _repository.ObterPorIdAsync(id);
+            if (agendamento == null)
+                throw new Exception("Agendamento não encontrado.");
+
+            if (agendamento.Status == StatusAgendamento.Cancelado || 
+                agendamento.Status == StatusAgendamento.Finalizado || 
+                agendamento.Status == StatusAgendamento.Faltou)
+            {
+                throw new Exception("Não é possível remarcar um agendamento cancelado, finalizado ou com falta registrada.");
+            }
+
+            if (request.NovaDataHora <= DateTime.Now)
+                throw new Exception("Não é permitido remarcar para datas/horários passados.");
+
+            bool temConflito = await ExisteConflito(agendamento.ProfissionalId, request.NovaDataHora, agendamento.TipoConsulta, agendamento.Id);
+            if (temConflito)
+            {
+                throw new Exception("O profissional responsável já possui um agendamento neste horário. Escolha outro horário.");
+            }
+
+            var dataAntiga = agendamento.DataHoraConsulta;
+            agendamento.AlterarDataHora(request.NovaDataHora);
+
+            await _repository.AtualizarAsync(agendamento);
+
+            var historico = new AgendamentoHistorico(
+                agendamento.Id,
+                TipoEventoHistorico.Remarcacao,
+                usuarioLogadoId,
+                dataAnterior: dataAntiga,
+                dataNova: request.NovaDataHora,
+                observacao: request.Observacao
+            );
+            await _repository.AdicionarHistoricoAsync(historico);
+
+            var pacienteNome = (await _pacienteRepository.ObterPorIdAsync(agendamento.PacienteId))?.Nome ?? "N/A";
+            var profissional = await _profissionalRepository.ObterPorIdAsync(agendamento.ProfissionalId);
+            var profissionalNome = profissional?.Nome ?? "N/A";
+
+            return MapearResponse(agendamento, pacienteNome, profissionalNome);
+        }
+
         public async Task<IEnumerable<AgendamentoResponse>> ObterTodosAsync()
         {
             var agendamentos = await _repository.ObterTodosAsync();
+            var profissionais = await _profissionalRepository.ObterTodosAsync();
+            var profDict = profissionais.ToDictionary(p => p.Id, p => p.Nome);
 
             return agendamentos.Select(a => new AgendamentoResponse
             {
@@ -144,12 +245,79 @@ namespace ClinicaMaisSaude.Application.Services
                 PacienteId = a.PacienteId,
                 PacienteNome = a.Paciente?.Nome ?? "N/A",
                 ProfissionalId = a.ProfissionalId,
+                NomeProfissional = profDict.ContainsKey(a.ProfissionalId) ? profDict[a.ProfissionalId] : "N/A",
                 DataHoraConsulta = a.DataHoraConsulta,
                 TipoProfissional = a.TipoProfissional.ToString(),
                 TipoConsulta = a.TipoConsulta.ToString(),
                 Status = a.Status.ToString(),
                 AgendamentoOrigemId = a.AgendamentoOrigemId
             });
+        }
+
+        public async Task<List<string>> ObterHorariosDisponiveisAsync(DateTime data, int tipoConsultaInt)
+        {
+            var tipoConsulta = (TipoConsulta)tipoConsultaInt;
+            var duracao = TipoConsultaDuracao.ObterDuracao(tipoConsulta);
+            var horarios = new List<string>();
+
+            if (data.DayOfWeek == DayOfWeek.Saturday || data.DayOfWeek == DayOfWeek.Sunday)
+                return horarios;
+
+            var inicioExpediente = new TimeSpan(8, 0, 0);
+            var fimExpediente = new TimeSpan(18, 0, 0);
+            var inicioAlmoco = new TimeSpan(12, 0, 0);
+            var fimAlmoco = new TimeSpan(13, 0, 0);
+
+            var horarioAtual = inicioExpediente;
+
+            var tipoProfissionalNecessario = (tipoConsulta == TipoConsulta.ConsultaMedica || tipoConsulta == TipoConsulta.Retorno) 
+                ? TipoProfissional.Medico 
+                : TipoProfissional.Enfermeira;
+
+            var profissionais = await _profissionalRepository.ObterTodosPorTipoAsync(tipoProfissionalNecessario);
+            if (!profissionais.Any())
+                return horarios;
+
+            while (horarioAtual.Add(TimeSpan.FromMinutes(duracao)) <= fimExpediente)
+            {
+                var fimSlot = horarioAtual.Add(TimeSpan.FromMinutes(duracao));
+
+                if ((horarioAtual >= inicioAlmoco && horarioAtual < fimAlmoco) || 
+                    (fimSlot > inicioAlmoco && fimSlot <= fimAlmoco) ||
+                    (horarioAtual <= inicioAlmoco && fimSlot >= fimAlmoco))
+                {
+                    horarioAtual = horarioAtual.Add(TimeSpan.FromMinutes(duracao));
+                    continue;
+                }
+
+                var dataHoraSlot = data.Date.Add(horarioAtual);
+
+                if (dataHoraSlot <= DateTime.Now)
+                {
+                    horarioAtual = horarioAtual.Add(TimeSpan.FromMinutes(duracao));
+                    continue;
+                }
+
+                bool algumDisponivel = false;
+                foreach (var prof in profissionais)
+                {
+                    bool temConflito = await ExisteConflito(prof.Id, dataHoraSlot, tipoConsulta, null);
+                    if (!temConflito)
+                    {
+                        algumDisponivel = true;
+                        break;
+                    }
+                }
+
+                if (algumDisponivel)
+                {
+                    horarios.Add(horarioAtual.ToString(@"hh\:mm"));
+                }
+
+                horarioAtual = horarioAtual.Add(TimeSpan.FromMinutes(duracao));
+            }
+
+            return horarios;
         }
 
         private async Task<Guid> DelegarProfissionalAsync(TipoProfissional tipo, TipoConsulta consulta, DateTime escopoHorario, Guid? ignorarAgendamentoId)
@@ -261,13 +429,52 @@ namespace ClinicaMaisSaude.Application.Services
                 throw new Exception($"Transição de '{atual}' para '{novoStatus}' não é permitida.");
             }
 
+            // Regra: só pode iniciar atendimento 15 minutos antes do horário da consulta
+            if (novoStatus == StatusAgendamento.EmAtendimento)
+            {
+                var limiteMinimo = agendamento.DataHoraConsulta.AddMinutes(-15);
+                if (DateTime.Now < limiteMinimo)
+                {
+                    throw new Exception("Só é possível iniciar o atendimento a partir de 15 minutos antes do horário agendado.");
+                }
+            }
+
             if (novoStatus == StatusAgendamento.Faltou && agendamento.DataHoraConsulta > DateTime.Now)
             {
                 throw new Exception("Não é possível registrar falta em agendamento futuro.");
             }
         }
 
-        private AgendamentoResponse MapearResponse(Agendamento a, string pacienteNome)
+        public async Task<IEnumerable<AgendamentoHistoricoResponse>> ObterHistoricoAsync(Guid agendamentoId)
+        {
+            var historico = await _repository.ObterHistoricoPorAgendamentoAsync(agendamentoId);
+            
+            var responses = new List<AgendamentoHistoricoResponse>();
+
+            foreach (var h in historico)
+            {
+                var nomeUsuario = await _usuarioRepository.ObterNomeUsuarioAsync(h.RealizadoPor);
+                
+                responses.Add(new AgendamentoHistoricoResponse
+                {
+                    Id = h.Id,
+                    AgendamentoId = h.AgendamentoId,
+                    TipoEvento = h.TipoEvento.ToString(),
+                    StatusAnterior = h.StatusAnterior?.ToString(),
+                    StatusNovo = h.StatusNovo?.ToString(),
+                    DataAnterior = h.DataAnterior,
+                    DataNova = h.DataNova,
+                    Observacao = h.Observacao,
+                    RealizadoPor = h.RealizadoPor,
+                    NomeRealizadoPor = nomeUsuario,
+                    DtCriado = h.Dt_Criado
+                });
+            }
+
+            return responses;
+        }
+
+        private AgendamentoResponse MapearResponse(Agendamento a, string pacienteNome, string profissionalNome)
         {
             return new AgendamentoResponse
             {
@@ -275,6 +482,7 @@ namespace ClinicaMaisSaude.Application.Services
                 PacienteId = a.PacienteId,
                 PacienteNome = pacienteNome,
                 ProfissionalId = a.ProfissionalId,
+                NomeProfissional = profissionalNome,
                 DataHoraConsulta = a.DataHoraConsulta,
                 TipoProfissional = a.TipoProfissional.ToString(),
                 TipoConsulta = a.TipoConsulta.ToString(),

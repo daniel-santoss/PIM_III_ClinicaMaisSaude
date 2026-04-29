@@ -30,5 +30,10 @@ namespace ClinicaMaisSaude.Domain.Entities
             IsAdmin = isAdmin;
             DtCriado = dtCriado;
         }
+
+        public void AlterarSenha(string novoHash)
+        {
+            SenhaHash = novoHash;
+        }
     }
 }

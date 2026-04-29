@@ -9,5 +9,6 @@ namespace ClinicaMaisSaude.Domain.Interfaces
     {
         Task<IEnumerable<Profissional>> ObterTodosPorTipoAsync(TipoProfissional tipo);
         Task<Profissional?> ObterPorIdAsync(System.Guid id);
+        Task<IEnumerable<Profissional>> ObterTodosAsync();
     }
 }
