@@ -110,6 +110,7 @@ export default function AgendamentoList() {
   const [buscaPaciente, setBuscaPaciente] = useState("");
   const [mostrarListaPacientes, setMostrarListaPacientes] = useState(false);
   const [filtroAgenda, setFiltroAgenda] = useState("");
+  const [focoObservacao, setFocoObservacao] = useState(false);
 
   // Histórico
   const [modalHistoricoAberto, setModalHistoricoAberto] = useState(false);
@@ -280,12 +281,27 @@ export default function AgendamentoList() {
     setAlterando(true);
     try {
       const token = localStorage.getItem("authToken");
+      if (!observacaoRemarcacao.trim()) {
+        setModalMensagem("A observação é obrigatória para registrar o motivo da remarcação.");
+        return;
+      }
+
+      // Validação: Não permitir remarcar para o mesmo dia e hora original
+      const dataOriginal = new Date(alterarAlvo.dataHoraConsulta).getTime();
+      const dataNova = new Date(dataHoraUnida).getTime();
+
+      if (dataOriginal === dataNova) {
+        setModalMensagem("A nova data e hora devem ser diferentes do agendamento original.");
+        setAlterando(false);
+        return;
+      }
+
       const response = await fetch(`http://localhost:5045/api/Agendamentos/${alterarAlvo.id}/remarcar`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify({
           novaDataHora: dataHoraUnida,
-          observacao: observacaoRemarcacao || "Remarcação solicitada."
+          observacao: observacaoRemarcacao.trim()
         })
       });
 
@@ -336,7 +352,7 @@ export default function AgendamentoList() {
     const hora = String(d.getHours()).padStart(2, "0");
     const minuto = String(d.getMinutes()).padStart(2, "0");
     setAlterarDataSomente(`${ano}-${mes}-${dia}`);
-    setAlterarHorarioSelecionado(`${hora}:${minuto}`); 
+    setAlterarHorarioSelecionado(""); // Força o usuário a escolher um novo horário
     setObservacaoRemarcacao("");
   };
 
@@ -758,14 +774,24 @@ export default function AgendamentoList() {
                   )}
 
                   <div className="mt-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Observação (Motivo da Remarcação)</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Observação (Motivo da Remarcação) <span className="text-red-500">*</span>
+                    </label>
                     <textarea
-                      className="w-full p-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500"
+                      className={`w-full p-2 border rounded text-sm focus:ring-2 focus:ring-blue-500 transition-colors ${!observacaoRemarcacao.trim() && focoObservacao ? 'border-red-300 bg-red-50/30' : 'border-gray-300'}`}
                       rows={2}
-                      placeholder="Descreva o motivo da alteração..."
+                      placeholder="Descreva obrigatoriamente o motivo..."
                       value={observacaoRemarcacao}
                       onChange={(e) => setObservacaoRemarcacao(e.target.value)}
+                      onFocus={() => setFocoObservacao(true)}
+                      onBlur={() => setFocoObservacao(false)}
                     ></textarea>
+                    {!observacaoRemarcacao.trim() && focoObservacao && (
+                      <p className="text-[10px] text-red-500 font-semibold mt-1 flex items-center gap-1">
+                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd"></path></svg>
+                        Campo obrigatório para auditoria.
+                      </p>
+                    )}
                   </div>
                 </div>
              )}
@@ -773,7 +799,7 @@ export default function AgendamentoList() {
 
            <div className="flex gap-2 mt-4">
              <button disabled={alterando} className="flex-1 bg-gray-200 hover:bg-gray-300 py-2 font-medium text-sm rounded" onClick={() => { setAlterarAlvo(null); setAlterarDataSomente(""); setAlterarHorarioSelecionado("");}}>Cancelar</button>
-             <button disabled={alterando || !alterarDataSomente || !alterarHorarioSelecionado} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 font-medium text-sm rounded disabled:opacity-50 disabled:cursor-not-allowed" onClick={confirmarAlteracaoHora}>Salvar</button>
+             <button disabled={alterando || !alterarDataSomente || !alterarHorarioSelecionado || !observacaoRemarcacao.trim()} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 font-medium text-sm rounded disabled:opacity-50 disabled:cursor-not-allowed" onClick={confirmarAlteracaoHora}>Salvar</button>
            </div>
          </div>
        </div>

@@ -5,4 +5,5 @@ export interface PacienteResponse {
   telefone: string;
   email: string;
   usuarioId?: string;
+  tipo: string;
 }

@@ -22,6 +22,9 @@ export default function PacienteList({ recarregarContador = 0 }: PacienteListPro
   // Estado de busca
   const [buscaNome, setBuscaNome] = useState("");
   const [buscaCpf, setBuscaCpf] = useState("");
+  const [perfisSelecionados, setPerfisSelecionados] = useState<string[]>(["Paciente", "Medico", "Enfermeira"]);
+  const [menuFiltroAberto, setMenuFiltroAberto] = useState(false);
+  const [copiado, setCopiado] = useState(false);
 
   // Estado do modal de edição
   const [editandoId, setEditandoId] = useState<string | null>(null);
@@ -168,6 +171,14 @@ export default function PacienteList({ recarregarContador = 0 }: PacienteListPro
     setNovaSenhaReset("");
     setSenhaExibida(null);
     setResetMensagem(null);
+    setCopiado(false);
+  };
+
+  const copiarSenha = () => {
+    if (!senhaExibida) return;
+    navigator.clipboard.writeText(senhaExibida);
+    setCopiado(true);
+    setTimeout(() => setCopiado(false), 2000);
   };
 
   if (erro) {
@@ -199,10 +210,59 @@ export default function PacienteList({ recarregarContador = 0 }: PacienteListPro
             onChange={(e) => setBuscaCpf(e.target.value)}
           />
         </div>
+
+        {isAdmin && (
+          <div className="relative">
+            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Perfis</label>
+            <button
+              onClick={() => setMenuFiltroAberto(!menuFiltroAberto)}
+              className={`flex items-center gap-2 p-2 border rounded-lg min-w-[140px] transition-all ${
+                menuFiltroAberto ? 'border-blue-500 ring-2 ring-blue-100 bg-blue-50 text-blue-700' : 'border-gray-300 bg-gray-50 text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
+              <span className="text-sm font-medium">Filtrar ({perfisSelecionados.length})</span>
+              <svg className={`w-3 h-3 ml-auto transition-transform ${menuFiltroAberto ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+            </button>
+
+            {menuFiltroAberto && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setMenuFiltroAberto(false)}></div>
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-20 animate-in fade-in zoom-in duration-150 origin-top-right">
+                  <div className="px-3 py-1 mb-1 border-b border-gray-50">
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Selecionar Perfil</span>
+                  </div>
+                  {["Paciente", "Medico", "Enfermeira"].map((perfil) => (
+                    <label key={perfil} className="flex items-center gap-3 px-3 py-2 hover:bg-blue-50 cursor-pointer transition-colors group">
+                      <div className="relative flex items-center">
+                        <input
+                          type="checkbox"
+                          className="peer h-4 w-4 cursor-pointer appearance-none rounded border border-gray-300 bg-white checked:bg-blue-600 checked:border-blue-600 transition-all"
+                          checked={perfisSelecionados.includes(perfil)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setPerfisSelecionados([...perfisSelecionados, perfil]);
+                            } else {
+                              setPerfisSelecionados(perfisSelecionados.filter(p => p !== perfil));
+                            }
+                          }}
+                        />
+                        <svg className="absolute w-2.5 h-2.5 text-white opacity-0 peer-checked:opacity-100 transition-opacity pointer-events-none top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
+                      </div>
+                      <span className="text-sm font-medium text-gray-700 group-hover:text-blue-700">
+                        {perfil === "Medico" ? "Médico" : perfil}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        )}
       </div>
 
       {carregando ? (
-        <p className="text-center text-gray-500 py-8">Carregando pacientes…</p>
+        <p className="text-center text-gray-500 py-8">Carregando dados…</p>
       ) : (
       <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
         <table className="min-w-full divide-y divide-gray-200 text-sm">
@@ -221,25 +281,39 @@ export default function PacienteList({ recarregarContador = 0 }: PacienteListPro
                 Email
               </th>
               <th className="px-4 py-3 text-left font-semibold text-gray-700">
+                Perfil
+              </th>
+              <th className="px-4 py-3 text-left font-semibold text-gray-700">
                 Ações
               </th>
             </tr>
           </thead>
 
           <tbody className="divide-y divide-gray-100 bg-white">
-            {pacientes.length === 0 ? (
+            {pacientes.filter(p => perfisSelecionados.includes(p.tipo)).length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-4 py-6 text-center text-gray-400">
-                  Nenhum paciente cadastrado.
+                <td colSpan={6} className="px-4 py-6 text-center text-gray-400">
+                  Nenhum usuário encontrado com os filtros selecionados.
                 </td>
               </tr>
             ) : (
-              pacientes.map((p) => (
+              pacientes
+                .filter(p => perfisSelecionados.includes(p.tipo))
+                .map((p) => (
                 <tr key={p.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-4 py-3 text-gray-800">{p.nome}</td>
                   <td className="px-4 py-3 text-gray-600">{p.cpf}</td>
                   <td className="px-4 py-3 text-gray-600">{p.telefone}</td>
                   <td className="px-4 py-3 text-gray-600">{p.email}</td>
+                  <td className="px-4 py-3">
+                    <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                      p.tipo === 'Paciente' ? 'bg-green-100 text-green-700' : 
+                      p.tipo === 'Medico' ? 'bg-purple-100 text-purple-700' : 
+                      'bg-blue-100 text-blue-700'
+                    }`}>
+                      {p.tipo}
+                    </span>
+                  </td>
                   <td className="px-4 py-3 flex gap-2">
                     <button
                       className="px-3 py-1.5 text-xs font-medium bg-blue-50 text-blue-600 rounded border border-blue-200 hover:bg-blue-100 hover:border-blue-300 transition-colors"
@@ -389,7 +463,27 @@ export default function PacienteList({ recarregarContador = 0 }: PacienteListPro
             {senhaExibida ? (
               <div className="bg-amber-50 border border-amber-200 p-4 rounded-lg mb-4 text-center">
                 <p className="text-sm font-semibold text-amber-800 mb-2">Anote esta senha — ela não será exibida novamente:</p>
-                <p className="text-2xl font-mono font-bold text-gray-900 bg-white border border-dashed border-amber-300 py-2 rounded">{senhaExibida}</p>
+                <div className="relative group">
+                  <p className="text-2xl font-mono font-bold text-gray-900 bg-white border border-dashed border-amber-300 py-2 px-8 rounded">
+                    {senhaExibida}
+                  </p>
+                  <button
+                    onClick={copiarSenha}
+                    title="Copiar senha"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-amber-600 hover:bg-amber-100 rounded-md transition-all active:scale-95"
+                  >
+                    {copiado ? (
+                      <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
+                    ) : (
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
+                    )}
+                  </button>
+                  {copiado && (
+                    <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] py-1 px-2 rounded shadow-lg animate-bounce">
+                      Copiado!
+                    </span>
+                  )}
+                </div>
                 <p className="text-xs text-amber-600 mt-2">Passe esta senha de forma segura para o paciente.</p>
               </div>
             ) : (
