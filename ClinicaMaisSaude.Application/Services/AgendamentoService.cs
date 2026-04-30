@@ -487,7 +487,8 @@ namespace ClinicaMaisSaude.Application.Services
                 TipoProfissional = a.TipoProfissional.ToString(),
                 TipoConsulta = a.TipoConsulta.ToString(),
                 Status = a.Status.ToString(),
-                AgendamentoOrigemId = a.AgendamentoOrigemId
+                AgendamentoOrigemId = a.AgendamentoOrigemId,
+                DtCriado = a.DtCriado
             };
         }
     }

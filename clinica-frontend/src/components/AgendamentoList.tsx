@@ -11,6 +11,7 @@ export interface AgendamentoResponse {
   status: string;
   agendamentoOrigemId?: string;
   nomeProfissional: string;
+  dtCriado: string;
 }
 
 export interface AgendamentoHistoricoResponse {
@@ -110,6 +111,8 @@ export default function AgendamentoList() {
   const [buscaPaciente, setBuscaPaciente] = useState("");
   const [mostrarListaPacientes, setMostrarListaPacientes] = useState(false);
   const [filtroAgenda, setFiltroAgenda] = useState("");
+  const [filtroStatus, setFiltroStatus] = useState("Todos");
+  const [ordemData, setOrdemData] = useState<"asc" | "desc">("desc");
   const [focoObservacao, setFocoObservacao] = useState(false);
 
   // Histórico
@@ -403,11 +406,21 @@ export default function AgendamentoList() {
 
   const pacientesFiltrados = pacientes.filter(p => p.nome.toLowerCase().includes(buscaPaciente.toLowerCase()) || p.cpf.includes(buscaPaciente));
 
-  const agendamentosFiltrados = agendamentos.filter(a => {
-    const paciente = pacientes.find(p => p.id === a.pacienteId);
-    const cpf = paciente ? paciente.cpf : "";
-    return a.pacienteNome.toLowerCase().includes(filtroAgenda.toLowerCase()) || cpf.includes(filtroAgenda);
-  });
+  const agendamentosFiltrados = agendamentos
+    .filter(a => {
+      const paciente = pacientes.find(p => p.id === a.pacienteId);
+      const cpf = paciente ? paciente.cpf : "";
+      
+      const matchBusca = a.pacienteNome.toLowerCase().includes(filtroAgenda.toLowerCase()) || cpf.includes(filtroAgenda);
+      const matchStatus = filtroStatus === "Todos" || a.status === filtroStatus;
+      
+      return matchBusca && matchStatus;
+    })
+    .sort((a, b) => {
+      const dataA = new Date(a.dtCriado).getTime();
+      const dataB = new Date(b.dtCriado).getTime();
+      return ordemData === "desc" ? dataB - dataA : dataA - dataB;
+    });
 
   const retornosPendentes = agendamentos.filter(a => a.pacienteId === pacienteSelecionado && a.status === "AguardandoRetorno");
 
@@ -589,15 +602,44 @@ export default function AgendamentoList() {
             <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
               Status da Agenda
             </h3>
-            <div className="relative w-full sm:w-64">
-              <svg className="absolute left-2.5 top-2.5 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-              <input
-                type="text"
-                placeholder="Filtrar por nome ou CPF..."
-                className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                value={filtroAgenda}
-                onChange={(e) => setFiltroAgenda(e.target.value)}
-              />
+            <div className="flex flex-row items-center gap-2 w-full sm:w-auto overflow-x-auto sm:overflow-visible pb-1 sm:pb-0">
+              {/* 1. Filtro por nome ou CPF */}
+              <div className="relative flex-grow sm:flex-none sm:w-64 min-w-[150px]">
+                <svg className="absolute left-2.5 top-2.5 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                <input
+                  type="text"
+                  placeholder="Nome ou CPF..."
+                  className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white"
+                  value={filtroAgenda}
+                  onChange={(e) => setFiltroAgenda(e.target.value)}
+                />
+              </div>
+
+              {/* 2. Filtro de Status */}
+              <div className="flex-shrink-0">
+                <select
+                  className="pl-3 pr-8 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white min-w-[120px] sm:min-w-[140px]"
+                  value={filtroStatus}
+                  onChange={(e) => setFiltroStatus(e.target.value)}
+                >
+                  <option value="Todos">Status</option>
+                  {Object.keys(MapNomesStatus).map(s => (
+                    <option key={s} value={s}>{MapNomesStatus[s]}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* 3. Ordenação por Data */}
+              <button
+                onClick={() => setOrdemData(prev => prev === "asc" ? "desc" : "asc")}
+                className="flex-shrink-0 flex items-center gap-1 px-3 py-2 border border-gray-300 rounded-md text-sm bg-white hover:bg-gray-50 transition-colors whitespace-nowrap"
+                title={ordemData === "desc" ? "Mais recentes primeiro" : "Mais antigos primeiro"}
+              >
+                <svg className={`w-4 h-4 text-gray-500 transition-transform ${ordemData === "asc" ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12"></path>
+                </svg>
+                <span className="font-semibold">{ordemData === "desc" ? "Recentes" : "Antigos"}</span>
+              </button>
             </div>
           </div>
 

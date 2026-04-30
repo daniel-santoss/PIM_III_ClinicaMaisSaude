@@ -14,5 +14,6 @@ namespace ClinicaMaisSaude.Application.DTOs.Agendamento
         public string TipoConsulta { get; set; } = string.Empty;
         public string Status { get; set; } = string.Empty;
         public Guid? AgendamentoOrigemId { get; set; }
+        public DateTime DtCriado { get; set; }
     }
 }
