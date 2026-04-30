@@ -54,8 +54,15 @@ namespace ClinicaMaisSaude.API.Controllers
 
             var tipoUsuario = User.FindFirstValue("TipoUsuario") ?? User.FindFirstValue(ClaimTypes.Role);
 
+            var isAdmin = User.FindFirstValue("IsAdmin") == "true";
+
             // Regra rigorosa de Data Privacy: Cada um enxerga exclusivamente seu quadrado
-            if (tipoUsuario == "Paciente")
+            // EXCETO o Administrador, que enxerga tudo.
+            if (isAdmin)
+            {
+                // Não aplica filtros
+            }
+            else if (tipoUsuario == "Paciente")
             {
                 var pacienteIdStr = User.FindFirstValue("PacienteId");
                 if (Guid.TryParse(pacienteIdStr, out var pacienteId))

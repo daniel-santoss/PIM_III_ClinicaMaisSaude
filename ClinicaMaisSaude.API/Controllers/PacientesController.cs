@@ -3,6 +3,7 @@ using ClinicaMaisSaude.Application.DTOs.Paciente;
 using ClinicaMaisSaude.Application.Interfaces;
 using ClinicaMaisSaude.Application.Services;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace ClinicaMaisSaude.API.Controllers
 {
@@ -33,7 +34,8 @@ namespace ClinicaMaisSaude.API.Controllers
         [HttpGet]
         public async Task<IActionResult> ObterTodos([FromQuery] string? nome, [FromQuery] string? cpf)
         {
-            var pacientes = await _pacienteService.ObterTodosAsync(nome, cpf);
+            var isAdmin = User.FindFirstValue("IsAdmin") == "true";
+            var pacientes = await _pacienteService.ObterTodosAsync(nome, cpf, isAdmin);
 
             return Ok(pacientes);
         }

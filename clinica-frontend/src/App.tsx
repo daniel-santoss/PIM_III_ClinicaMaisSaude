@@ -72,7 +72,7 @@ export default function App() {
                 : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50"
             }`}
             >
-            Pacientes
+            {isAdmin ? "Usuários" : "Pacientes"}
             </button>
         )}
         <button
@@ -95,7 +95,9 @@ export default function App() {
             <CadastroUsuario onUserCreated={() => setRecarregarUsuarios((prev) => prev + 1)} />
           </div>
 
-          <h2 className="text-xl font-semibold text-gray-800 mb-4">Pacientes Cadastrados</h2>
+          <h2 className="text-xl font-semibold text-gray-800 mb-4">
+            {isAdmin ? "Usuários Cadastrados" : "Pacientes Cadastrados"}
+          </h2>
           <PacienteList recarregarContador={recarregarUsuarios} />
         </>
       )}

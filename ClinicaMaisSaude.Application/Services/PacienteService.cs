@@ -11,10 +11,12 @@ namespace ClinicaMaisSaude.Application.Services
     public class PacienteService : IPacienteService
     {
         private readonly IPacienteRepository _repository;
+        private readonly IProfissionalRepository _profissionalRepository;
 
-        public PacienteService(IPacienteRepository pacienteRepository)
+        public PacienteService(IPacienteRepository pacienteRepository, IProfissionalRepository profissionalRepository)
         {
             _repository = pacienteRepository;
+            _profissionalRepository = profissionalRepository;
         }
 
         public async Task<PacienteResponse> AdicionarAsync(PacienteRequest request)
@@ -48,12 +50,10 @@ namespace ClinicaMaisSaude.Application.Services
         }
 
         // Adicione este método dentro da classe PacienteService
-        public async Task<IEnumerable<PacienteResponse>> ObterTodosAsync(string? nome = null, string? cpf = null)
+        public async Task<IEnumerable<PacienteResponse>> ObterTodosAsync(string? nome = null, string? cpf = null, bool incluirProfissionais = false)
         {
-            // 1. Busca todas as entidades de domínio no banco de dados (via Repository ou DbContext)
             var pacientes = await _repository.ObterTodosAsync(nome, cpf);
 
-            // 2. Transforma (Mapeia) a lista de Entidades 'Paciente' para uma lista de DTOs 'PacienteResponse'
             var resposta = pacientes.Select(p => new PacienteResponse
             {
                 Id = p.Id,
@@ -61,11 +61,40 @@ namespace ClinicaMaisSaude.Application.Services
                 Cpf = p.Cpf,
                 Telefone = p.Telefone,
                 Email = p.Email,
-                UsuarioId = p.UsuarioId
-            });
+                UsuarioId = p.UsuarioId,
+                Tipo = "Paciente"
+            }).ToList();
 
-            // 3. Retorna a lista pronta
-            return resposta;
+            if (incluirProfissionais)
+            {
+                var profissionais = await _profissionalRepository.ObterTodosAsync();
+                
+                // Filtrar por nome/cpf se os filtros foram passados
+                if (!string.IsNullOrWhiteSpace(nome))
+                {
+                    profissionais = profissionais.Where(p => p.Nome.Contains(nome, StringComparison.OrdinalIgnoreCase));
+                }
+                if (!string.IsNullOrWhiteSpace(cpf))
+                {
+                    profissionais = profissionais.Where(p => p.Usuario.Cpf.Contains(cpf));
+                }
+
+                foreach (var prof in profissionais)
+                {
+                    resposta.Add(new PacienteResponse
+                    {
+                        Id = prof.Id,
+                        Nome = prof.Nome,
+                        Cpf = prof.Usuario.Cpf,
+                        Telefone = "-", // Profissionais não têm telefone no perfil atual
+                        Email = prof.Usuario.Email,
+                        UsuarioId = prof.UsuarioId,
+                        Tipo = prof.TipoProfissional.ToString()
+                    });
+                }
+            }
+
+            return resposta.OrderBy(r => r.Nome);
         }
 
         public async Task<PacienteResponse> AtualizarAsync(Guid id, PacienteRequest request)
