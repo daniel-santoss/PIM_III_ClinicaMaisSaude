@@ -196,10 +196,9 @@ namespace ClinicaMaisSaude.Application.Services
                 throw new Exception("Agendamento não encontrado.");
 
             if (agendamento.Status == StatusAgendamento.Cancelado || 
-                agendamento.Status == StatusAgendamento.Finalizado || 
-                agendamento.Status == StatusAgendamento.Faltou)
+                agendamento.Status == StatusAgendamento.Finalizado)
             {
-                throw new Exception("Não é possível remarcar um agendamento cancelado, finalizado ou com falta registrada.");
+                throw new Exception("Não é possível remarcar um agendamento cancelado ou finalizado.");
             }
 
             if (request.NovaDataHora <= DateTime.Now)
