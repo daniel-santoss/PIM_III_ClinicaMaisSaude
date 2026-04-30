@@ -3,7 +3,6 @@ import PacienteList from "./components/PacienteList";
 import AgendamentoList from "./components/AgendamentoList";
 import Login from "./components/Login";
 import { CadastroUsuario } from "./components/CadastroUsuario";
-import { mascaraCpf } from "./utils/validators";
 
 interface PacienteRequest {
   nome: string;
@@ -39,6 +38,17 @@ export default function App() {
   const [recarregarUsuarios, setRecarregarUsuarios] = useState(0);
 
 
+
+  const [pacienteParaEditar, setPacienteParaEditar] = useState<any>(null);
+
+  useEffect(() => {
+    const handleEditar = (e: any) => {
+      setPacienteParaEditar(e.detail);
+      setAbaAtiva("pacientes");
+    };
+    window.addEventListener("editarPacienteGlobal", handleEditar);
+    return () => window.removeEventListener("editarPacienteGlobal", handleEditar);
+  }, []);
 
   if (!autenticado) {
     return <Login onLogado={() => {
@@ -98,7 +108,11 @@ export default function App() {
           <h2 className="text-xl font-semibold text-gray-800 mb-4">
             {isAdmin ? "Usuários Cadastrados" : "Pacientes Cadastrados"}
           </h2>
-          <PacienteList recarregarContador={recarregarUsuarios} />
+          <PacienteList 
+            recarregarContador={recarregarUsuarios} 
+            pacienteInicialEdicao={pacienteParaEditar}
+            onFinalizouEdicaoExterno={() => setPacienteParaEditar(null)}
+          />
         </>
       )}
 

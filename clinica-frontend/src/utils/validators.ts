@@ -25,3 +25,16 @@ export const isCpfValido = (cpfRaw: string): boolean => {
 export const isEmailValido = (email: string): boolean => {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 };
+
+export const mascaraTelefone = (valor: string): string => {
+  const nums = valor.replace(/\D/g, "");
+  if (nums.length <= 10) {
+    return nums
+      .replace(/(\d{2})(\d)/, "($1) $2")
+      .replace(/(\d{4})(\d{4})$/, "$1-$2");
+  } else {
+    return nums
+      .replace(/(\d{2})(\d)/, "($1) $2")
+      .replace(/(\d{5})(\d{4})$/, "$1-$2");
+  }
+};

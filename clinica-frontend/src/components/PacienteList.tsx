@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react";
+import { mascaraCpf, mascaraTelefone } from "../utils/validators";
 import type { PacienteResponse } from "../types/PacienteResponse";
 
 interface PacienteListProps {
   recarregarContador?: number;
+  pacienteInicialEdicao?: PacienteResponse | null;
+  onFinalizouEdicaoExterno?: () => void;
 }
 
 interface PacienteEdicao {
@@ -13,7 +16,11 @@ interface PacienteEdicao {
 }
 
 
-export default function PacienteList({ recarregarContador = 0 }: PacienteListProps) {
+export default function PacienteList({ 
+  recarregarContador = 0, 
+  pacienteInicialEdicao = null,
+  onFinalizouEdicaoExterno
+}: PacienteListProps) {
   const [pacientes, setPacientes] = useState<PacienteResponse[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
@@ -71,6 +78,13 @@ export default function PacienteList({ recarregarContador = 0 }: PacienteListPro
     return () => clearTimeout(timer);
   }, [recarregarContador, refreshInterno, buscaNome, buscaCpf]);
 
+  // Efeito para abrir edição externa (Vindo da Agenda por exemplo)
+  useEffect(() => {
+    if (pacienteInicialEdicao) {
+      abrirEdicao(pacienteInicialEdicao);
+    }
+  }, [pacienteInicialEdicao]);
+
   const abrirEdicao = (p: PacienteResponse) => {
     setEditandoId(p.id);
     setForm({ nome: p.nome, cpf: p.cpf, telefone: p.telefone, email: p.email });
@@ -78,6 +92,7 @@ export default function PacienteList({ recarregarContador = 0 }: PacienteListPro
 
   const fecharModal = () => {
     setEditandoId(null);
+    if (onFinalizouEdicaoExterno) onFinalizouEdicaoExterno();
   };
 
   const salvarEdicao = async () => {
@@ -302,8 +317,8 @@ export default function PacienteList({ recarregarContador = 0 }: PacienteListPro
                 .map((p) => (
                 <tr key={p.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-4 py-3 text-gray-800">{p.nome}</td>
-                  <td className="px-4 py-3 text-gray-600">{p.cpf}</td>
-                  <td className="px-4 py-3 text-gray-600">{p.telefone}</td>
+                  <td className="px-4 py-3 text-gray-600">{mascaraCpf(p.cpf)}</td>
+                  <td className="px-4 py-3 text-gray-600">{mascaraTelefone(p.telefone)}</td>
                   <td className="px-4 py-3 text-gray-600">{p.email}</td>
                   <td className="px-4 py-3">
                     <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
@@ -378,7 +393,7 @@ export default function PacienteList({ recarregarContador = 0 }: PacienteListPro
                   maxLength={15}
                   placeholder="Telefone"
                   value={form.telefone}
-                  onChange={(e) => setForm({ ...form, telefone: e.target.value })}
+                  onChange={(e) => setForm({ ...form, telefone: mascaraTelefone(e.target.value) })}
                 />
               </div>
               <div>
