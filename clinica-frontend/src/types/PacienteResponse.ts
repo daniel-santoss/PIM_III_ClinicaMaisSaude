@@ -6,4 +6,5 @@ export interface PacienteResponse {
   email: string;
   usuarioId?: string;
   tipo: string;
+  ultimoAcesso?: string;
 }

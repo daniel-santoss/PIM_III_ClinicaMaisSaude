@@ -55,6 +55,8 @@ export default function Login({ onLogado }: { onLogado: () => void }) {
       localStorage.setItem("authToken", data.token);
       localStorage.setItem("tipoUsuario", data.tipoUsuario);
       localStorage.setItem("isAdmin", data.isAdmin ? "true" : "false");
+      if (data.pacienteId) localStorage.setItem("pacienteId", data.pacienteId);
+      if (data.profissionalId) localStorage.setItem("profissionalId", data.profissionalId);
       onLogado();
 
     } catch (err: any) {

@@ -1,0 +1,27 @@
+// Fonte única de verdade para especialidades no front-end.
+// Quando o backend expor GET /api/Especialidades, este arquivo será substituído por fetch.
+export const ESPECIALIDADES = [
+  "Clínica Geral",
+  "Medicina de Família",
+  "Pediatria",
+  "Ginecologia e Obstetrícia",
+  "Cardiologia",
+  "Dermatologia",
+  "Endocrinologia",
+  "Gastroenterologia",
+  "Neurologia",
+  "Ortopedia e Traumatologia",
+  "Psiquiatria",
+  "Otorrinolaringologia",
+  "Oftalmologia",
+  "Urologia",
+  "Pneumologia",
+  "Reumatologia",
+  "Geriatria",
+  "Medicina do Trabalho",
+  "Medicina Esportiva",
+  "Acupuntura",
+  "Análises Clínicas",
+  "Radiologia",
+  "Diagnóstico por Imagem",
+] as const;

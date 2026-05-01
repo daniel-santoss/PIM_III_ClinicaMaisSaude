@@ -11,5 +11,6 @@ namespace ClinicaMaisSaude.Application.DTOs.Paciente
         public string Email { get; set; }
         public Guid? UsuarioId { get; set; }
         public string Tipo { get; set; } = "Paciente";
+        public DateTime? UltimoAcesso { get; set; }
     }
 }

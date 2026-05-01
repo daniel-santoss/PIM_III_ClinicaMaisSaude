@@ -31,6 +31,16 @@ namespace ClinicaMaisSaude.API.Controllers
             }
         }
 
+        [HttpGet("{id}")]
+        public async Task<IActionResult> ObterPorId(Guid id)
+        {
+            var paciente = await _pacienteService.ObterPorIdAsync(id);
+            if (paciente == null)
+                return NotFound("Paciente não encontrado.");
+
+            return Ok(paciente);
+        }
+
         [HttpGet]
         public async Task<IActionResult> ObterTodos([FromQuery] string? nome, [FromQuery] string? cpf)
         {

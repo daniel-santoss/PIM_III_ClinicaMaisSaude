@@ -10,6 +10,8 @@ namespace ClinicaMaisSaude.Application.Interfaces
     {
         Task<PacienteResponse> AdicionarAsync(PacienteRequest request);
 
+        Task<PacienteResponse?> ObterPorIdAsync(Guid id);
+
         Task<IEnumerable<PacienteResponse>> ObterTodosAsync(string? nome = null, string? cpf = null, bool incluirProfissionais = false);
 
         Task<PacienteResponse> AtualizarAsync(Guid id, PacienteRequest request);

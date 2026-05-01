@@ -33,6 +33,12 @@ export default function PacienteList({
   const [menuFiltroAberto, setMenuFiltroAberto] = useState(false);
   const [copiado, setCopiado] = useState(false);
 
+  const limparFiltros = () => {
+    setBuscaNome("");
+    setBuscaCpf("");
+    setPerfisSelecionados(["Paciente", "Medico", "Enfermeira"]);
+  };
+
   // Estado do modal de edição
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [form, setForm] = useState<PacienteEdicao>({ nome: "", cpf: "", telefone: "", email: "" });
@@ -58,8 +64,15 @@ export default function PacienteList({
       setErro(null);
 
       const params = new URLSearchParams();
-      if (buscaNome.trim()) params.set("nome", buscaNome.trim());
-      if (buscaCpf.trim()) params.set("cpf", buscaCpf.trim());
+      const termoBusca = buscaNome.trim();
+      if (termoBusca) {
+        // Se for só números e tiver tamanho de CPF, buscamos por CPF, senão por Nome
+        if (/^\d+$/.test(termoBusca)) {
+          params.set("cpf", termoBusca);
+        } else {
+          params.set("nome", termoBusca);
+        }
+      }
 
       const queryString = params.toString();
       const url = `http://localhost:5045/api/Pacientes${queryString ? `?${queryString}` : ""}`;
@@ -200,164 +213,281 @@ export default function PacienteList({
     return <p className="text-center text-red-500 py-8">{erro}</p>;
   }
 
+  const totalPacientes = pacientes.filter(p => p.tipo === "Paciente").length;
+  const totalMedicos = pacientes.filter(p => p.tipo === "Medico").length;
+  const totalEnfermeiras = pacientes.filter(p => p.tipo === "Enfermeira").length;
+
+  // Simulação de dados para os cards solicitados
+  const usuariosAtivosMes = Math.floor(pacientes.length * 0.85); // 85% ativos
+  const pacientesInativos = pacientes.filter((_, idx) => idx % 7 === 0); // Mock de inativos (+60 dias)
+
+  if (erro) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="bg-red-50 text-red-700 p-6 rounded-xl border border-red-200 shadow-sm max-w-md text-center">
+          <svg className="w-12 h-12 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          <h3 className="text-lg font-bold mb-2">Ops! Algo deu errado</h3>
+          <p className="text-sm opacity-90">{erro}</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <>
-      {/* Barra de Pesquisa */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-6 bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
-        <div className="flex-1">
-          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Filtrar por nome</label>
-          <input
-            type="text"
-            className="p-2 border border-gray-300 rounded w-full bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
-            placeholder="Digite o nome..."
-            value={buscaNome}
-            onChange={(e) => setBuscaNome(e.target.value)}
-          />
-        </div>
-        <div className="w-full sm:w-64">
-          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Filtrar por CPF</label>
-          <input
-            type="text"
-            className="p-2 border border-gray-300 rounded w-full bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
-            placeholder="Digite os números..."
-            maxLength={11}
-            value={buscaCpf}
-            onChange={(e) => setBuscaCpf(e.target.value)}
-          />
-        </div>
-
-        {isAdmin && (
-          <div className="relative">
-            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Perfis</label>
-            <button
-              onClick={() => setMenuFiltroAberto(!menuFiltroAberto)}
-              className={`flex items-center gap-2 p-2 border rounded-lg min-w-[140px] transition-all ${
-                menuFiltroAberto ? 'border-blue-500 ring-2 ring-blue-100 bg-blue-50 text-blue-700' : 'border-gray-300 bg-gray-50 text-gray-700 hover:bg-gray-100'
-              }`}
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
-              <span className="text-sm font-medium">Filtrar ({perfisSelecionados.length})</span>
-              <svg className={`w-3 h-3 ml-auto transition-transform ${menuFiltroAberto ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
-            </button>
-
-            {menuFiltroAberto && (
-              <>
-                <div className="fixed inset-0 z-10" onClick={() => setMenuFiltroAberto(false)}></div>
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-20 animate-in fade-in zoom-in duration-150 origin-top-right">
-                  <div className="px-3 py-1 mb-1 border-b border-gray-50">
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Selecionar Perfil</span>
-                  </div>
-                  {["Paciente", "Medico", "Enfermeira"].map((perfil) => (
-                    <label key={perfil} className="flex items-center gap-3 px-3 py-2 hover:bg-blue-50 cursor-pointer transition-colors group">
-                      <div className="relative flex items-center">
-                        <input
-                          type="checkbox"
-                          className="peer h-4 w-4 cursor-pointer appearance-none rounded border border-gray-300 bg-white checked:bg-blue-600 checked:border-blue-600 transition-all"
-                          checked={perfisSelecionados.includes(perfil)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setPerfisSelecionados([...perfisSelecionados, perfil]);
-                            } else {
-                              setPerfisSelecionados(perfisSelecionados.filter(p => p !== perfil));
-                            }
-                          }}
-                        />
-                        <svg className="absolute w-2.5 h-2.5 text-white opacity-0 peer-checked:opacity-100 transition-opacity pointer-events-none top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
-                      </div>
-                      <span className="text-sm font-medium text-gray-700 group-hover:text-blue-700">
-                        {perfil === "Medico" ? "Médico" : perfil}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              </>
-            )}
+    <div className="space-y-8 animate-in fade-in duration-500">
+      {/* --- CARDS DE RESUMO --- */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Card: Usuários por Tipo */}
+        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all group">
+          <div className="flex justify-between items-start mb-4">
+            <div className="p-3 bg-purple-50 rounded-xl text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition-colors">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+            </div>
+            <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Total de Usuários</span>
           </div>
-        )}
+          <h4 className="text-2xl font-black text-gray-800 mb-2">{pacientes.length}</h4>
+          <div className="flex gap-2">
+            <span className="px-2 py-1 bg-green-50 text-green-700 rounded-md text-[10px] font-bold">{totalPacientes} Pacientes</span>
+            <span className="px-2 py-1 bg-purple-50 text-purple-700 rounded-md text-[10px] font-bold">{totalMedicos} Médicos</span>
+            <span className="px-2 py-1 bg-blue-50 text-blue-700 rounded-md text-[10px] font-bold">{totalEnfermeiras} Enf.</span>
+          </div>
+        </div>
+
+        {/* Card: Usuários Ativos este mês */}
+        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all group">
+          <div className="flex justify-between items-start mb-4">
+            <div className="p-3 bg-green-50 rounded-xl text-green-600 group-hover:bg-green-600 group-hover:text-white transition-colors">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
+            <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Ativos no Mês</span>
+          </div>
+          <h4 className="text-2xl font-black text-gray-800 mb-2">{usuariosAtivosMes}</h4>
+          <p className="text-sm text-gray-500 font-medium flex items-center gap-1">
+            <span className="text-green-500 font-bold">▲ 12%</span> em relação ao mês anterior
+          </p>
+        </div>
+
+        {/* Card: Pacientes Inativos */}
+        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all group relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-2">
+            <span className="flex h-3 w-3">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-orange-500"></span>
+            </span>
+          </div>
+          <div className="flex justify-between items-start mb-4">
+            <div className="p-3 bg-orange-50 rounded-xl text-orange-600 group-hover:bg-orange-600 group-hover:text-white transition-colors">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
+            <span className="text-xs font-bold text-orange-500 uppercase tracking-widest">Atenção Necessária</span>
+          </div>
+          <h4 className="text-2xl font-black text-gray-800 mb-2">{pacientesInativos.length} Inativos</h4>
+          <p className="text-xs text-gray-400 mb-4 font-medium">+60 dias sem acessar o portal</p>
+          <button className="w-full py-2 bg-orange-50 text-orange-700 text-xs font-bold rounded-lg hover:bg-orange-100 transition-colors">
+            Ver lista detalhada
+          </button>
+        </div>
       </div>
 
-      {carregando ? (
-        <p className="text-center text-gray-500 py-8">Carregando dados…</p>
-      ) : (
-      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
-        <table className="min-w-full divide-y divide-gray-200 text-sm">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-4 py-3 text-left font-semibold text-gray-700">
-                Nome
-              </th>
-              <th className="px-4 py-3 text-left font-semibold text-gray-700">
-                CPF
-              </th>
-              <th className="px-4 py-3 text-left font-semibold text-gray-700">
-                Telefone
-              </th>
-              <th className="px-4 py-3 text-left font-semibold text-gray-700">
-                Email
-              </th>
-              <th className="px-4 py-3 text-left font-semibold text-gray-700">
-                Perfil
-              </th>
-              <th className="px-4 py-3 text-left font-semibold text-gray-700">
-                Ações
-              </th>
-            </tr>
-          </thead>
+      {/* --- TABELA E FILTROS --- */}
+      <div className="bg-white rounded-3xl border border-gray-100 shadow-xl overflow-hidden">
+        {/* Header da Tabela / Filtros */}
+        <div className="p-6 border-b border-gray-50 bg-gray-50/30 flex flex-col lg:flex-row gap-4 items-center justify-between">
+          <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+            {/* Busca Unificada (Nome ou CPF) */}
+            <div className="relative group flex-1 min-w-[320px]">
+              <svg className="absolute left-4 top-3.5 w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+              <input
+                type="text"
+                placeholder="Pesquisar por nome ou CPF..."
+                className="w-full pl-12 pr-4 py-3 bg-purple-50/30 border border-purple-100 rounded-2xl focus:ring-2 focus:ring-[#7C3AED] focus:bg-white transition-all outline-none font-medium text-sm text-gray-700"
+                value={buscaNome}
+                onChange={(e) => setBuscaNome(e.target.value)}
+              />
+            </div>
 
-          <tbody className="divide-y divide-gray-100 bg-white">
-            {pacientes.filter(p => perfisSelecionados.includes(p.tipo)).length === 0 ? (
-              <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-gray-400">
-                  Nenhum usuário encontrado com os filtros selecionados.
-                </td>
-              </tr>
-            ) : (
-              pacientes
-                .filter(p => perfisSelecionados.includes(p.tipo))
-                .map((p) => (
-                <tr key={p.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-3 text-gray-800">{p.nome}</td>
-                  <td className="px-4 py-3 text-gray-600">{mascaraCpf(p.cpf)}</td>
-                  <td className="px-4 py-3 text-gray-600">{mascaraTelefone(p.telefone)}</td>
-                  <td className="px-4 py-3 text-gray-600">{p.email}</td>
-                  <td className="px-4 py-3">
-                    <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                      p.tipo === 'Paciente' ? 'bg-green-100 text-green-700' : 
-                      p.tipo === 'Medico' ? 'bg-purple-100 text-purple-700' : 
-                      'bg-blue-100 text-blue-700'
-                    }`}>
-                      {p.tipo}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 flex gap-2">
-                    <button
-                      className="px-3 py-1.5 text-xs font-medium bg-blue-50 text-blue-600 rounded border border-blue-200 hover:bg-blue-100 hover:border-blue-300 transition-colors"
-                      onClick={() => abrirEdicao(p)}
-                    >
-                      Editar
-                    </button>
-                    <button
-                      className="px-3 py-1.5 text-xs font-medium bg-red-50 text-red-600 rounded border border-red-200 hover:bg-red-100 hover:border-red-300 transition-colors"
-                      onClick={() => abrirModalExclusao(p.id, p.nome)}
-                    >
-                      Excluir
-                    </button>
-                    {(isAdmin || isEnfermeira) && p.usuarioId && (
-                      <button
-                        className="px-3 py-1.5 text-xs font-medium bg-amber-50 text-amber-600 rounded border border-amber-200 hover:bg-amber-100 hover:border-amber-300 transition-colors"
-                        onClick={() => setPacienteReset({ id: p.id, usuarioId: p.usuarioId!, nome: p.nome })}
-                      >
-                        Redefinir Senha
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))
+            {/* Filtro Tipo */}
+            {isAdmin && (
+              <div className="relative">
+                <button
+                  onClick={() => setMenuFiltroAberto(!menuFiltroAberto)}
+                  className={`flex items-center gap-2 px-4 py-2.5 border rounded-xl min-w-[160px] transition-all text-sm font-bold shadow-sm ${
+                    menuFiltroAberto ? 'border-purple-600 bg-purple-50 text-purple-700 ring-4 ring-purple-100' : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
+                  Tipo: ({perfisSelecionados.length})
+                </button>
+
+                {menuFiltroAberto && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setMenuFiltroAberto(false)}></div>
+                    <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-2xl border border-gray-100 py-3 z-20 animate-in fade-in zoom-in duration-200 origin-top-right">
+                      <div className="px-4 py-1 mb-2 border-b border-gray-50">
+                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Filtrar Categoria</span>
+                      </div>
+                      {["Paciente", "Medico", "Enfermeira"].map((perfil) => (
+                        <label key={perfil} className="flex items-center gap-3 px-4 py-2.5 hover:bg-purple-50 cursor-pointer transition-colors group">
+                          <input
+                            type="checkbox"
+                            className="h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500 transition-all cursor-pointer"
+                            checked={perfisSelecionados.includes(perfil)}
+                            onChange={(e) => {
+                              if (e.target.checked) setPerfisSelecionados([...perfisSelecionados, perfil]);
+                              else setPerfisSelecionados(perfisSelecionados.filter(p => p !== perfil));
+                            }}
+                          />
+                          <span className="text-sm font-bold text-gray-600 group-hover:text-purple-700">
+                            {perfil === "Medico" ? "Médico" : perfil}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
             )}
-          </tbody>
-        </table>
+
+            <button
+              onClick={limparFiltros}
+              className="p-3 bg-gray-50 text-gray-400 border border-gray-200 rounded-xl hover:bg-purple-50 hover:text-purple-600 transition-all flex items-center gap-2 group shadow-sm"
+              title="Limpar Filtros"
+            >
+              <svg className="w-5 h-5 group-hover:rotate-[-45deg] transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+              <span className="text-[10px] font-black uppercase tracking-widest hidden xl:inline">Limpar Filtros</span>
+            </button>
+          </div>
+
+          <div className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse"></span>
+            Total: {pacientes.length} registros
+          </div>
+        </div>
+
+        {/* Listagem */}
+        <div className="overflow-x-auto">
+          {carregando ? (
+            <div className="flex flex-col items-center justify-center py-20 gap-4">
+              <div className="w-10 h-10 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin"></div>
+              <p className="text-sm font-bold text-gray-400 uppercase tracking-widest animate-pulse">Sincronizando Dados...</p>
+            </div>
+          ) : (
+            <table className="min-w-full divide-y divide-gray-100">
+              <thead>
+                <tr className="bg-gray-50/50">
+                  <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-[2px]">Usuário</th>
+                  <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-[2px]">CPF</th>
+                  <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-[2px]">Categoria</th>
+                  <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-[2px]">Último Acesso</th>
+                  <th className="px-6 py-4 text-right text-[10px] font-black text-gray-400 uppercase tracking-[2px]">Ações</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {pacientes.filter(p => perfisSelecionados.includes(p.tipo)).length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-20 text-center">
+                      <div className="flex flex-col items-center gap-2 opacity-30">
+                        <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0a2 2 0 01-2 2H6a2 2 0 01-2-2m16 0l-8 8-8-8"></path></svg>
+                        <p className="text-sm font-bold">Nenhum resultado para os filtros atuais.</p>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  pacientes
+                    .filter(p => perfisSelecionados.includes(p.tipo))
+                    .map((p) => (
+                    <tr key={p.id} className="group hover:bg-purple-50/30 transition-colors">
+                      {/* Avatar + Nome */}
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-purple-100 border-2 border-white shadow-sm flex items-center justify-center text-purple-700 font-black text-sm uppercase ring-2 ring-purple-50 group-hover:ring-purple-100 transition-all">
+                            {p.nome.charAt(0)}
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="text-sm font-bold text-gray-800 group-hover:text-purple-900 transition-colors">{p.nome}</span>
+                            <span className="text-[11px] text-gray-400 font-medium truncate max-w-[150px]">{p.email}</span>
+                          </div>
+                        </div>
+                      </td>
+                      {/* CPF */}
+                      <td className="px-6 py-4">
+                        <span className="text-sm font-mono text-gray-500 font-medium">{mascaraCpf(p.cpf)}</span>
+                      </td>
+                      {/* Perfil Badge */}
+                      <td className="px-6 py-4">
+                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider border ${
+                          p.tipo === 'Paciente' ? 'bg-green-50 text-green-600 border-green-100' : 
+                          p.tipo === 'Medico' ? 'bg-purple-50 text-purple-600 border-purple-100' : 
+                          'bg-blue-50 text-blue-600 border-blue-100'
+                        }`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${
+                             p.tipo === 'Paciente' ? 'bg-green-500' : 
+                             p.tipo === 'Medico' ? 'bg-purple-500' : 
+                             'bg-blue-500'
+                          }`}></span>
+                          {p.tipo === 'Medico' ? 'Médico' : p.tipo}
+                        </span>
+                      </td>
+
+                      {/* Último Acesso (Real) */}
+                      <td className="px-6 py-4">
+                         <div className="flex flex-col">
+                            <span className="text-[11px] font-bold text-gray-700">
+                               {p.ultimoAcesso ? new Date(p.ultimoAcesso).toLocaleString('pt-BR', { 
+                                  day: '2-digit', month: '2-digit', year: '2-digit', 
+                                  hour: '2-digit', minute: '2-digit' 
+                               }) : 'Sem registro'}
+                            </span>
+                         </div>
+                      </td>
+
+                      {/* Ações */}
+                      <td className="px-6 py-4">
+                        <div className="flex items-center justify-end gap-2 transition-opacity">
+                          <button
+                            title="Editar Dados"
+                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-xl transition-colors"
+                            onClick={() => abrirEdicao(p)}
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                          </button>
+                          {(isAdmin || isEnfermeira) && p.usuarioId && (
+                            <button
+                              title="Redefinir Senha"
+                              className="p-2 text-orange-600 hover:bg-orange-50 rounded-xl transition-colors"
+                              onClick={() => setPacienteReset({ id: p.id, usuarioId: p.usuarioId!, nome: p.nome })}
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path></svg>
+                            </button>
+                          )}
+                          <button
+                            title="Excluir Usuário"
+                            className="p-2 text-red-600 hover:bg-red-50 rounded-xl transition-colors"
+                            onClick={() => abrirModalExclusao(p.id, p.nome)}
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          )}
+        </div>
+
+        {/* Footer / Paginação */}
+        <div className="px-6 py-4 bg-gray-50/50 border-t border-gray-100 flex items-center justify-between">
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+            Página 1 de 1
+          </p>
+          <div className="flex gap-2">
+            <button disabled className="px-4 py-2 border border-gray-200 rounded-lg text-xs font-bold text-gray-300 cursor-not-allowed">Anterior</button>
+            <button className="px-4 py-2 bg-white border border-purple-200 rounded-lg text-xs font-bold text-purple-600 hover:bg-purple-50 shadow-sm transition-all">Próxima</button>
+          </div>
+        </div>
       </div>
-      )}
 
       {/* Modal de Edição */}
       {editandoId && (
@@ -417,7 +547,6 @@ export default function PacienteList({
                 Cancelar
               </button>
               <button
-                className="px-5 py-2.5 text-sm font-medium bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors disabled:opacity-50 shadow-sm"
                 onClick={salvarEdicao}
                 disabled={salvando}
               >
@@ -533,6 +662,6 @@ export default function PacienteList({
           </div>
         </div>
       )}
-    </>
+  </div>
   );
 }

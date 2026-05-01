@@ -4,6 +4,7 @@ using ClinicaMaisSaude.Domain.Entities;
 using ClinicaMaisSaude.Domain.Interfaces;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace ClinicaMaisSaude.Application.Services
@@ -49,6 +50,23 @@ namespace ClinicaMaisSaude.Application.Services
 
         }
 
+        public async Task<PacienteResponse?> ObterPorIdAsync(Guid id)
+        {
+            var paciente = await _repository.ObterPorIdAsync(id);
+            if (paciente == null) return null;
+
+            return new PacienteResponse
+            {
+                Id = paciente.Id,
+                Nome = paciente.Nome,
+                Cpf = paciente.Cpf,
+                Telefone = paciente.Telefone,
+                Email = paciente.Email,
+                UsuarioId = paciente.UsuarioId,
+                Tipo = "Paciente"
+            };
+        }
+
         // Adicione este método dentro da classe PacienteService
         public async Task<IEnumerable<PacienteResponse>> ObterTodosAsync(string? nome = null, string? cpf = null, bool incluirProfissionais = false)
         {
@@ -62,7 +80,8 @@ namespace ClinicaMaisSaude.Application.Services
                 Telefone = p.Telefone,
                 Email = p.Email,
                 UsuarioId = p.UsuarioId,
-                Tipo = "Paciente"
+                Tipo = "Paciente",
+                UltimoAcesso = p.Usuario?.UltimoAcesso
             }).ToList();
 
             if (incluirProfissionais)
@@ -89,7 +108,8 @@ namespace ClinicaMaisSaude.Application.Services
                         Telefone = "-", // Profissionais não têm telefone no perfil atual
                         Email = prof.Usuario.Email,
                         UsuarioId = prof.UsuarioId,
-                        Tipo = prof.TipoProfissional.ToString()
+                        Tipo = prof.TipoProfissional.ToString(),
+                        UltimoAcesso = prof.Usuario.UltimoAcesso
                     });
                 }
             }

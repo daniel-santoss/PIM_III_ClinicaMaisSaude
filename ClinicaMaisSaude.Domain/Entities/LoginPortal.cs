@@ -10,6 +10,7 @@ namespace ClinicaMaisSaude.Domain.Entities
         public string SenhaHash { get; private set; }
         public bool IsAdmin { get; private set; }
         public DateTime DtCriado { get; private set; }
+        public DateTime? UltimoAcesso { get; private set; }
 
         public Usuario(string email, string cpf, string senhaHash, bool isAdmin = false)
         {
@@ -34,6 +35,11 @@ namespace ClinicaMaisSaude.Domain.Entities
         public void AlterarSenha(string novoHash)
         {
             SenhaHash = novoHash;
+        }
+
+        public void AtualizarUltimoAcesso()
+        {
+            UltimoAcesso = DateTime.UtcNow;
         }
     }
 }
