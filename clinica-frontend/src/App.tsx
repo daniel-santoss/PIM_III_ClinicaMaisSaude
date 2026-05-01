@@ -166,7 +166,7 @@ export default function App() {
             </button>
             <div className="flex-1 overflow-y-auto custom-scrollbar pr-4 scroll-smooth">
               <div className="p-4 md:p-8">
-                {tipoUsuario === "Medico" ? <PerfilMedico /> : <PerfilPaciente />}
+                {tipoUsuario === "Medico" || tipoUsuario === "Enfermeira" ? <PerfilMedico /> : <PerfilPaciente />}
               </div>
             </div>
           </div>

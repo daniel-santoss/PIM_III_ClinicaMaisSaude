@@ -6,22 +6,24 @@ interface AgendamentoPacienteProps {
   onSucesso?: () => void;
 }
 
-export default function AgendamentoPaciente({ onSucesso }: AgendamentoPacienteProps) {  const [passo, setPasso] = useState(1);
+export default function AgendamentoPaciente({ onSucesso }: AgendamentoPacienteProps) {
+  const [passo, setPasso] = useState(1);
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [sucesso, setSucesso] = useState(false);
 
   // Estados do Agendamento
   const [sintomas, setSintomas] = useState("");
-  const [sugestaoIA, setSugestaoIA] = useState<{ tipo: string; especialidade: string } | null>(null);
+  const [sugestaoIA, setSugestaoIA] = useState<any>(null);
   const [analisandoIA, setAnalisandoIA] = useState(false);
   const [modoIA, setModoIA] = useState(false);
+  const [modalMensagem, setModalMensagem] = useState<string | null>(null);
 
   const [tipoProfissional, setTipoProfissional] = useState<number | null>(null); // 0: Enfermeira, 1: Medico
   const [tipoConsulta, setTipoConsulta] = useState<number>(3); // Default 3: Consulta Médica
   const [especialidade, setEspecialidade] = useState("");
   const [buscaEspecialidade, setBuscaEspecialidade] = useState("");
-  
+
   const [dataSelecionada, setDataSelecionada] = useState("");
   const [horarioSelecionado, setHorarioSelecionado] = useState("");
   const [horariosDisponiveis, setHorariosDisponiveis] = useState<string[]>([]);
@@ -33,29 +35,51 @@ export default function AgendamentoPaciente({ onSucesso }: AgendamentoPacientePr
   const pacienteId = localStorage.getItem("pacienteId");
   const token = localStorage.getItem("authToken");
 
-  // Simulação de IA
-  const analisarSintomas = () => {
+  const analisarSintomas = async () => {
     if (!sintomas.trim()) return;
     setAnalisandoIA(true);
-    setTimeout(() => {
-      // Lógica simples de "IA" para exemplo
-      if (sintomas.toLowerCase().includes("coração") || sintomas.toLowerCase().includes("peito")) {
-        setSugestaoIA({ tipo: "Consulta Médica", especialidade: "Cardiologia" });
-      } else if (sintomas.toLowerCase().includes("pele") || sintomas.toLowerCase().includes("mancha")) {
-        setSugestaoIA({ tipo: "Consulta Médica", especialidade: "Dermatologia" });
+    setSugestaoIA(null);
+
+    try {
+      const response = await fetch("http://localhost:5045/api/Consultas/sugerir-tipo", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ sintomas })
+      });
+
+      if (response.ok) {
+        const dados = await response.json();
+        setSugestaoIA(dados);
       } else {
-        setSugestaoIA({ tipo: "Consulta Médica", especialidade: "Clínico Geral" });
+        const erroMsg = await response.text();
+        setModalMensagem(erroMsg);
       }
+    } catch (e) {
+      setModalMensagem("Falha de conexão com a Inteligência Artificial.");
+    } finally {
       setAnalisandoIA(false);
-    }, 1500);
+    }
   };
 
   const usarSugestao = () => {
     if (sugestaoIA) {
-      setTipoProfissional(1);
-      setTipoConsulta(3);
+      // Converte os textos da IA para os Enums inteiros do front-end
+      let profInt = 1; // Médico
+      if (sugestaoIA.tipoProfissional === "Enfermeira") profInt = 0;
+
+      let consInt = 3; // Consulta Médica
+      if (sugestaoIA.tipoConsulta === "Triagem") consInt = 0;
+      else if (sugestaoIA.tipoConsulta === "Exame") consInt = 1;
+      else if (sugestaoIA.tipoConsulta === "Vacina") consInt = 2;
+      else if (sugestaoIA.tipoConsulta === "Retorno") consInt = 4;
+
+      setTipoProfissional(profInt);
+      setTipoConsulta(consInt);
       setEspecialidade(sugestaoIA.especialidade);
-      setPasso(3); // Pula para Data/Hora
+      setPasso(3); // Pula direto para a seleção de Data/Hora
     }
   };
 
@@ -117,15 +141,15 @@ export default function AgendamentoPaciente({ onSucesso }: AgendamentoPacientePr
       </div>
       <h2 className="text-3xl font-black text-gray-800 mb-2">Tudo Certo!</h2>
       <p className="text-gray-500 font-bold text-center uppercase tracking-widest text-xs mb-10">Consulta agendada com sucesso</p>
-      
+
       <div className="flex flex-col sm:flex-row gap-4 w-full max-w-md">
-        <button 
+        <button
           onClick={() => { setSucesso(false); setPasso(1); setSintomas(""); setHorarioSelecionado(""); setModoIA(false); }}
           className="flex-1 py-4 bg-gray-100 text-gray-600 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-gray-200 transition-all"
         >
           Novo Agendamento
         </button>
-        <button 
+        <button
           onClick={() => onSucesso?.()}
           className="flex-1 py-4 bg-[#7C3AED] text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-lg shadow-purple-100 hover:scale-105 transition-all"
         >
@@ -141,9 +165,8 @@ export default function AgendamentoPaciente({ onSucesso }: AgendamentoPacientePr
       <div className="flex items-center justify-between px-4 max-w-2xl mx-auto">
         {[1, 2, 3, 4].map(num => (
           <div key={num} className="flex flex-col items-center gap-2 relative">
-            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black transition-all duration-500 z-10 ${
-              passo >= num ? 'bg-[#7C3AED] text-white shadow-xl shadow-purple-200 scale-110' : 'bg-gray-100 text-gray-400'
-            }`}>
+            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black transition-all duration-500 z-10 ${passo >= num ? 'bg-[#7C3AED] text-white shadow-xl shadow-purple-200 scale-110' : 'bg-gray-100 text-gray-400'
+              }`}>
               {num}
             </div>
             <span className={`text-[9px] font-black uppercase tracking-tighter ${passo >= num ? 'text-purple-600' : 'text-gray-300'}`}>
@@ -151,10 +174,23 @@ export default function AgendamentoPaciente({ onSucesso }: AgendamentoPacientePr
             </span>
           </div>
         ))}
+        {/* Modal Mensagem de Erro (Estilo Reaproveitado) */}
+      {modalMensagem && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-gray-900/60 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-sm p-8 text-center border border-purple-50">
+            <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+            </div>
+            <h3 className="text-xl font-black text-gray-800 mb-2 uppercase tracking-tight">Aviso</h3>
+            <p className="text-gray-500 text-sm mb-8 font-medium leading-relaxed">{modalMensagem}</p>
+            <button className="w-full bg-[#7C3AED] text-white font-black py-4 rounded-2xl uppercase tracking-widest text-[10px] shadow-lg shadow-purple-100" onClick={() => setModalMensagem(null)}>Entendido</button>
+          </div>
+        </div>
+      )}
       </div>
 
       <div className="bg-white rounded-[3rem] p-10 shadow-2xl shadow-purple-100/50 border border-purple-50">
-        
+
         {/* ETAPA 1: ESCOLHA INICIAL */}
         {passo === 1 && (
           <div className="space-y-10 animate-in slide-in-from-right-8 duration-500">
@@ -166,8 +202,8 @@ export default function AgendamentoPaciente({ onSucesso }: AgendamentoPacientePr
             <div className="flex flex-col items-center gap-6">
               {!modoIA ? (
                 <div className="flex items-center gap-6 w-full max-w-xl">
-                  <button 
-                    onClick={() => setPasso(2)} 
+                  <button
+                    onClick={() => setPasso(2)}
                     className="flex-1 py-8 bg-slate-50 text-[#7C3AED] border-2 border-[#7C3AED]/10 rounded-[2.5rem] font-black text-xs uppercase tracking-widest hover:bg-[#F5F3FF] hover:border-[#7C3AED] transition-all shadow-sm flex flex-col items-center gap-4"
                   >
                     <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm">
@@ -188,14 +224,14 @@ export default function AgendamentoPaciente({ onSucesso }: AgendamentoPacientePr
               ) : (
                 <div className="w-full max-w-2xl space-y-6 animate-in zoom-in duration-300">
                   <p className="text-[10px] font-black text-purple-400 uppercase tracking-widest ml-1">Descreva seus sintomas</p>
-                  
+
                   <textarea
                     placeholder="Ex: Estou com uma dor persistente no peito que piora ao respirar fundo..."
                     className="w-full h-40 p-6 bg-gray-50 border-2 border-gray-100 rounded-[2rem] focus:ring-4 focus:ring-purple-100 focus:border-[#7C3AED] focus:bg-white transition-all outline-none font-bold text-gray-700 resize-none"
                     value={sintomas}
                     onChange={(e) => setSintomas(e.target.value)}
                   />
-                  
+
                   <div className="flex items-center gap-4">
                     <button
                       onClick={() => setModoIA(false)}
@@ -285,15 +321,14 @@ export default function AgendamentoPaciente({ onSucesso }: AgendamentoPacientePr
                     />
                     <svg className="w-5 h-5 absolute left-5 top-1/2 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                   </div>
-                  
+
                   <div className="grid grid-cols-2 gap-3 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
                     {ESPECIALIDADES.filter(e => e.toLowerCase().includes(buscaEspecialidade.toLowerCase())).map(e => (
                       <button
                         key={e}
                         onClick={() => setEspecialidade(e)}
-                        className={`p-4 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all border-2 ${
-                          especialidade === e ? 'bg-[#7C3AED] text-white border-[#7C3AED] shadow-lg shadow-purple-100' : 'bg-white text-gray-500 border-gray-100 hover:border-purple-200'
-                        }`}
+                        className={`p-4 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all border-2 ${especialidade === e ? 'bg-[#7C3AED] text-white border-[#7C3AED] shadow-lg shadow-purple-100' : 'bg-white text-gray-500 border-gray-100 hover:border-purple-200'
+                          }`}
                       >
                         {e}
                       </button>
@@ -306,7 +341,7 @@ export default function AgendamentoPaciente({ onSucesso }: AgendamentoPacientePr
             <div className="flex justify-between pt-4">
               <button onClick={() => setPasso(1)} className="px-10 py-4 text-gray-400 font-bold hover:text-gray-600 transition-colors">Voltar</button>
               <button
-                disabled={ (tipoConsulta >= 3 && !especialidade) }
+                disabled={(tipoConsulta >= 3 && !especialidade)}
                 onClick={() => setPasso(3)}
                 className="px-10 py-4 bg-[#7C3AED] text-white rounded-2xl font-black shadow-lg shadow-purple-200 hover:scale-105 transition-all disabled:opacity-50"
               >
@@ -351,25 +386,24 @@ export default function AgendamentoPaciente({ onSucesso }: AgendamentoPacientePr
                   </div>
                 ) : dataSelecionada ? (
                   horariosDisponiveis.length > 0 ? (
-                  <div className="grid grid-cols-3 gap-3">
-                    {horariosDisponiveis.map(h => {
-                      const isSelecionado = horarioSelecionado === h;
-                      
-                      return (
-                        <button
-                          key={h}
-                          onClick={() => setHorarioSelecionado(h)}
-                          className={`py-4 rounded-xl font-black text-[11px] transition-all border-2 shadow-sm ${
-                            isSelecionado 
-                              ? 'bg-green-500 text-white border-green-500 shadow-lg shadow-green-100 scale-105' 
-                              : 'bg-[#7C3AED] text-white border-[#7C3AED] hover:bg-[#6D28D9] hover:shadow-md'
-                          }`}
-                        >
-                          {h}
-                        </button>
-                      );
-                    })}
-                  </div>
+                    <div className="grid grid-cols-3 gap-3">
+                      {horariosDisponiveis.map(h => {
+                        const isSelecionado = horarioSelecionado === h;
+
+                        return (
+                          <button
+                            key={h}
+                            onClick={() => setHorarioSelecionado(h)}
+                            className={`py-4 rounded-xl font-black text-[11px] transition-all border-2 shadow-sm ${isSelecionado
+                                ? 'bg-green-500 text-white border-green-500 shadow-lg shadow-green-100 scale-105'
+                                : 'bg-[#7C3AED] text-white border-[#7C3AED] hover:bg-[#6D28D9] hover:shadow-md'
+                              }`}
+                          >
+                            {h}
+                          </button>
+                        );
+                      })}
+                    </div>
                   ) : (
                     <div className="p-10 bg-gray-50 rounded-[2rem] text-center border-2 border-dashed border-gray-200">
                       <p className="text-gray-400 text-[10px] font-black uppercase tracking-widest">Nenhum horário disponível nesta data</p>
@@ -409,7 +443,7 @@ export default function AgendamentoPaciente({ onSucesso }: AgendamentoPacientePr
             <div className="bg-white rounded-[2.5rem] shadow-2xl shadow-purple-100/30 border-4 border-purple-400 overflow-hidden">
               <div className="p-8 space-y-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  
+
                   {/* Bloco 1: O que e Quem */}
                   <div className="flex items-start gap-5">
                     <div className="w-14 h-14 bg-purple-50 rounded-2xl flex items-center justify-center text-[#7C3AED] shrink-0 border border-purple-100">
@@ -451,14 +485,14 @@ export default function AgendamentoPaciente({ onSucesso }: AgendamentoPacientePr
                   <div className="flex-1">
                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Relato de Sintomas / Observações</p>
                     <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 min-h-[60px]">
-                       <p className="text-sm font-medium text-gray-500 italic">
+                      <p className="text-sm font-medium text-gray-500 italic">
                         {sintomas ? `"${sintomas}"` : "Nenhuma observação adicional relatada."}
                       </p>
                     </div>
                   </div>
                 </div>
               </div>
-              
+
               <div className="bg-purple-50 p-6 flex items-center justify-center gap-3">
                 <svg className="w-5 h-5 text-purple-600" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zm-1 9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd"></path></svg>
                 <p className="text-[10px] font-black text-purple-600 uppercase tracking-widest">Confira tudo com atenção, pois esta ação é definitiva.</p>
@@ -466,8 +500,8 @@ export default function AgendamentoPaciente({ onSucesso }: AgendamentoPacientePr
             </div>
 
             <div className="flex flex-col sm:flex-row justify-between gap-4 pt-4">
-              <button 
-                onClick={() => setPasso(3)} 
+              <button
+                onClick={() => setPasso(3)}
                 className="px-10 py-5 bg-gray-100 text-gray-400 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-gray-200 hover:text-gray-600 transition-all"
               >
                 Voltar e Alterar
