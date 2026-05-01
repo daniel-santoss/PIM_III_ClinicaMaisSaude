@@ -9,5 +9,6 @@ namespace ClinicaMaisSaude.Application.DTOs.Agendamento
         public int TipoProfissional { get; set; }
         public int TipoConsulta { get; set; }
         public Guid? AgendamentoOrigemId { get; set; }
+        public int? EspecialidadeId { get; set; }
     }
 }

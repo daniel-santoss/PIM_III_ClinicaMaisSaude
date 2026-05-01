@@ -41,5 +41,10 @@ namespace ClinicaMaisSaude.Domain.Entities
         {
             UltimoAcesso = DateTime.UtcNow;
         }
+
+        public void AtualizarEmail(string novoEmail)
+        {
+            Email = novoEmail;
+        }
     }
 }

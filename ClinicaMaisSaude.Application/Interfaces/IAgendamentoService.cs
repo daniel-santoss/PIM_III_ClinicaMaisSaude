@@ -16,6 +16,7 @@ namespace ClinicaMaisSaude.Application.Interfaces
         Task<AgendamentoResponse> ObterPorIdAsync(Guid id);
         Task<AgendamentoResponse> RemarcarAsync(Guid id, RemarcarAgendamentoRequest request, Guid usuarioLogadoId);
         Task DeletarAsync(Guid id, Guid usuarioLogadoId);
+        Task MarcarResultadoDisponivelAsync(Guid id);
         Task<IEnumerable<AgendamentoHistoricoResponse>> ObterHistoricoAsync(Guid agendamentoId);
     }
 }

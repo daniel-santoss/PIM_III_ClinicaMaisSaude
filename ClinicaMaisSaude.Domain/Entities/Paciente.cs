@@ -45,6 +45,10 @@ namespace ClinicaMaisSaude.Domain.Entities
         {
             UsuarioId = usuarioId;
         }
+
+        public void AtualizarNome(string nome) => Nome = nome;
+        public void AtualizarEmail(string email) => Email = email;
+        public void AtualizarTelefone(string telefone) => Telefone = telefone;
     }
 }
 

@@ -16,6 +16,7 @@ namespace ClinicaMaisSaude.Infrastructure.Data
         public DbSet<Profissional> Profissionais { get; set; }
         public DbSet<StatusAgendamentoLookup> StatusAgendamentoLookup { get; set; }
         public DbSet<AgendamentoHistorico> AgendamentoHistoricos { get; set; }
+        public DbSet<ProfissionalEspecialidade> ProfissionalEspecialidades { get; set; }
 
         // Método que intercepta a criação das tabelas no SQL Server
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -57,6 +58,15 @@ namespace ClinicaMaisSaude.Infrastructure.Data
                 entidade.HasOne(h => h.Agendamento)
                     .WithMany()
                     .HasForeignKey(h => h.AgendamentoId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<ProfissionalEspecialidade>(entidade =>
+            {
+                entidade.HasKey(pe => new { pe.ProfissionalId, pe.EspecialidadeId });
+                entidade.HasOne(pe => pe.Profissional)
+                    .WithMany(p => p.Especialidades)
+                    .HasForeignKey(pe => pe.ProfissionalId)
                     .OnDelete(DeleteBehavior.Cascade);
             });
 
