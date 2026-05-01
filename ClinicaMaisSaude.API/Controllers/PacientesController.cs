@@ -77,5 +77,11 @@ namespace ClinicaMaisSaude.API.Controllers
                 return BadRequest(ex.Message);
             }
         }
+        [HttpGet("inativos")]
+        public async Task<IActionResult> ObterInativos([FromQuery] int dias = 60)
+        {
+            var pacientes = await _pacienteService.ObterInativosAsync(dias);
+            return Ok(pacientes);
+        }
     }
 }

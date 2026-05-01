@@ -187,5 +187,22 @@ namespace ClinicaMaisSaude.API.Controllers
                 return BadRequest(new { Mensagem = ex.Message });
             }
         }
+        [HttpPatch("{id}/resultado-disponivel")]
+        public async Task<IActionResult> MarcarResultadoDisponivel(Guid id)
+        {
+            try
+            {
+                var agendamento = await _agendamentoService.ObterPorIdAsync(id);
+                if (agendamento == null)
+                    return NotFound("Agendamento não encontrado.");
+
+                await _agendamentoService.MarcarResultadoDisponivelAsync(id);
+                return Ok(new { Mensagem = "Resultado marcado como disponível." });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { Mensagem = ex.Message });
+            }
+        }
     }
 }

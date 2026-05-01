@@ -13,11 +13,13 @@ namespace ClinicaMaisSaude.Application.Services
     {
         private readonly IPacienteRepository _repository;
         private readonly IProfissionalRepository _profissionalRepository;
+        private readonly IAgendamentoRepository _agendamentoRepository;
 
-        public PacienteService(IPacienteRepository pacienteRepository, IProfissionalRepository profissionalRepository)
+        public PacienteService(IPacienteRepository pacienteRepository, IProfissionalRepository profissionalRepository, IAgendamentoRepository agendamentoRepository)
         {
             _repository = pacienteRepository;
             _profissionalRepository = profissionalRepository;
+            _agendamentoRepository = agendamentoRepository;
         }
 
         public async Task<PacienteResponse> AdicionarAsync(PacienteRequest request)
@@ -152,6 +154,30 @@ namespace ClinicaMaisSaude.Application.Services
 
             paciente.Desativar();
             await _repository.AtualizarAsync(paciente);
+        }
+
+        public async Task<IEnumerable<PacienteResponse>> ObterInativosAsync(int dias)
+        {
+            var corte = DateTime.UtcNow.AddDays(-dias);
+            var todosPacientes = await _repository.ObterTodosAsync();
+            var todosAgendamentos = await _agendamentoRepository.ObterTodosAsync();
+
+            var inativos = todosPacientes
+                .Where(p => p.Ativo)
+                .Where(p => !todosAgendamentos.Any(a => a.PacienteId == p.Id && a.DtCriado >= corte))
+                .Select(p => new PacienteResponse
+                {
+                    Id = p.Id,
+                    Nome = p.Nome,
+                    Cpf = p.Cpf,
+                    Telefone = p.Telefone,
+                    Email = p.Email,
+                    UsuarioId = p.UsuarioId,
+                    Tipo = "Paciente"
+                })
+                .ToList();
+
+            return inativos;
         }
     }
 }

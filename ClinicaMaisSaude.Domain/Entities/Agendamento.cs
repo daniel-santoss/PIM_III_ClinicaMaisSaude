@@ -14,6 +14,7 @@ namespace ClinicaMaisSaude.Domain.Entities
         public StatusAgendamento Status { get; private set; }
         public Guid? AgendamentoOrigemId { get; private set; }
         public double ProbabilidadeFalta { get; private set; }
+        public bool ResultadoDisponivel { get; private set; }
         public DateTime DtCriado { get; private set; }
 
         public virtual Paciente Paciente { get; private set; }
@@ -30,6 +31,7 @@ namespace ClinicaMaisSaude.Domain.Entities
             AgendamentoOrigemId = agendamentoOrigemId;
             Status = StatusAgendamento.Agendado;
             ProbabilidadeFalta = 0;
+            ResultadoDisponivel = false;
             DtCriado = DateTime.UtcNow;
         }
 
@@ -41,6 +43,11 @@ namespace ClinicaMaisSaude.Domain.Entities
         public void AlterarDataHora(DateTime novaDataHora)
         {
             DataHoraConsulta = novaDataHora;
+        }
+
+        public void MarcarResultadoDisponivel()
+        {
+            ResultadoDisponivel = true;
         }
     }
 }

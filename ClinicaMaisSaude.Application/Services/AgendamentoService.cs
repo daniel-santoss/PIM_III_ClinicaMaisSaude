@@ -56,7 +56,7 @@ namespace ClinicaMaisSaude.Application.Services
                     throw new Exception("Retorno só pode ser agendado após uma consulta inicial pendente.");
             }
 
-            var profissionalDelegado = await DelegarProfissionalAsync(tipoProfissional, tipoConsulta, request.DataHoraConsulta, null);
+            var profissionalDelegado = await DelegarProfissionalAsync(tipoProfissional, tipoConsulta, request.DataHoraConsulta, null, request.EspecialidadeId);
             
             var agendamento = new Agendamento(
                 request.PacienteId,
@@ -115,7 +115,7 @@ namespace ClinicaMaisSaude.Application.Services
             var tipoProf = (TipoProfissional)request.TipoProfissional;
             var tipoCons = (TipoConsulta)request.TipoConsulta;
             
-            var profissionalDelegado = await DelegarProfissionalAsync(tipoProf, tipoCons, request.DataHoraConsulta, agendamento.Id);
+            var profissionalDelegado = await DelegarProfissionalAsync(tipoProf, tipoCons, request.DataHoraConsulta, agendamento.Id, null);
             
             agendamento.AlterarDataHora(request.DataHoraConsulta);
             // Aqui precisariamos atualizar o ProfissionalId caso fosse outro designado, mas deixaremos omitido no setter
@@ -319,11 +319,23 @@ namespace ClinicaMaisSaude.Application.Services
             return horarios;
         }
 
-        private async Task<Guid> DelegarProfissionalAsync(TipoProfissional tipo, TipoConsulta consulta, DateTime escopoHorario, Guid? ignorarAgendamentoId)
+        private async Task<Guid> DelegarProfissionalAsync(TipoProfissional tipo, TipoConsulta consulta, DateTime escopoHorario, Guid? ignorarAgendamentoId, int? especialidadeId)
         {
             var profissionais = await _profissionalRepository.ObterTodosPorTipoAsync(tipo);
             if (!profissionais.Any())
                 throw new Exception("Nenhum profissional deste tipo cadastrado no sistema.");
+
+            // F2: Filtra por especialidade quando informada (apenas para médicos)
+            if (especialidadeId.HasValue && tipo == TipoProfissional.Medico)
+            {
+                var comEspecialidade = profissionais
+                    .Where(p => p.Especialidades.Any(e => (int)e.EspecialidadeId == especialidadeId.Value))
+                    .ToList();
+
+                if (comEspecialidade.Any())
+                    profissionais = comEspecialidade;
+                // Se nenhum tem a especialidade, usa todos como fallback
+            }
 
             var duracaoEmMinutos = TipoConsultaDuracao.ObterDuracao(consulta);
             var terminoPrevisto = escopoHorario.AddMinutes(duracaoEmMinutos);
@@ -487,8 +499,25 @@ namespace ClinicaMaisSaude.Application.Services
                 TipoConsulta = a.TipoConsulta.ToString(),
                 Status = a.Status.ToString(),
                 AgendamentoOrigemId = a.AgendamentoOrigemId,
+                ResultadoDisponivel = a.ResultadoDisponivel,
                 DtCriado = a.DtCriado
             };
+        }
+
+        public async Task MarcarResultadoDisponivelAsync(Guid id)
+        {
+            var agendamento = (await _repository.ObterTodosAsync()).FirstOrDefault(a => a.Id == id);
+            if (agendamento == null)
+                throw new Exception("Agendamento não encontrado.");
+
+            if (agendamento.TipoConsulta != TipoConsulta.Exame)
+                throw new Exception("Apenas agendamentos do tipo Exame podem ter resultado marcado.");
+
+            if (agendamento.Status != StatusAgendamento.Finalizado)
+                throw new Exception("O exame precisa estar finalizado para marcar resultado disponível.");
+
+            agendamento.MarcarResultadoDisponivel();
+            await _repository.AtualizarAsync(agendamento);
         }
     }
 }

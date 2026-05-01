@@ -14,6 +14,7 @@ namespace ClinicaMaisSaude.Domain.Entities
         public DateTime DtCriado { get; private set; }
 
         public Usuario Usuario { get; private set; }
+        public ICollection<ProfissionalEspecialidade> Especialidades { get; private set; } = new List<ProfissionalEspecialidade>();
 
         protected Profissional() { } // EF Core
 

@@ -16,6 +16,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Ensina a API a ler a pasta Controllers
 builder.Services.AddControllers();
+builder.Services.AddHttpClient();
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddCors(options =>
 {

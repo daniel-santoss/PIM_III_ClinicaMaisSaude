@@ -17,6 +17,7 @@ namespace ClinicaMaisSaude.Application.Interfaces
         Task<PacienteResponse> AtualizarAsync(Guid id, PacienteRequest request);
 
         Task DesativarAsync(Guid id);
+        Task<IEnumerable<PacienteResponse>> ObterInativosAsync(int dias);
     }
 
 }
