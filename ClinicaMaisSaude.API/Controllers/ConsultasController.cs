@@ -40,18 +40,20 @@ namespace ClinicaMaisSaude.API.Controllers
             if (string.IsNullOrWhiteSpace(apiKey) || apiKey == "SUA_CHAVE_AQUI")
                 return StatusCode(503, "Serviço de IA não configurado. Contate o administrador.");
 
-            var prompt = $@"Você é um assistente de triagem médica de uma clínica.
-Com base nos sintomas descritos pelo paciente, sugira:
-1. O tipo de profissional mais adequado (Médico ou Enfermeira)
-2. A especialidade médica mais indicada (se for médico)
-3. O tipo de consulta recomendado
+            var prompt = $@"Triagem médica. Sintomas do paciente: '{request.Sintomas}'
+Retorne APENAS um JSON válido.
+REGRA CRÍTICA 1: Se os sintomas forem vagos, muito curtos, confusos ou houver qualquer dúvida, a 'especialidade' DEVE ser OBRIGATORIAMENTE 'Clínica Geral'.
+REGRA CRÍTICA 2: Seja extremamente direto na 'justificativa'. Você deve apenas informar o nome da especialidade.
+Especialidades válidas: Clínica Geral, Medicina de Família, Pediatria, Ginecologia e Obstetrícia, Cardiologia, Dermatologia, Endocrinologia, Gastroenterologia, Neurologia, Ortopedia e Traumatologia, Psiquiatria, Otorrinolaringologia, Oftalmologia, Urologia, Pneumologia, Reumatologia, Geriatria, Medicina do Trabalho, Medicina Esportiva, Acupuntura, Análises Clínicas, Radiologia, Diagnóstico por Imagem.
 
-Responda APENAS em JSON neste formato exato, sem markdown:
-{{""tipoProfissional"": ""Medico"" ou ""Enfermeira"", ""especialidade"": ""nome da especialidade"", ""tipoConsulta"": ""Triagem"" ou ""Exame"" ou ""Vacina"" ou ""Consulta Médica"", ""justificativa"": ""breve explicação""}}
-
-Especialidades disponíveis: Clínica Geral, Medicina de Família, Pediatria, Ginecologia e Obstetrícia, Cardiologia, Dermatologia, Endocrinologia, Gastroenterologia, Neurologia, Ortopedia e Traumatologia, Psiquiatria, Otorrinolaringologia, Oftalmologia, Urologia, Pneumologia, Reumatologia, Geriatria.
-
-Sintomas do paciente: {request.Sintomas}";
+Formato JSON exigido:
+{{
+  ""tipoProfissional"": ""Medico"" ou ""Enfermeira"",
+  ""especialidade"": ""Nome exato da lista"",
+  ""tipoConsulta"": ""Consulta Médica"", ""Triagem"", ""Exame"" ou ""Vacina"",
+  ""tipo"": ""Consulta Médica"", ""Triagem"", ""Exame"" ou ""Vacina"",
+  ""justificativa"": ""Nome da especialidade""
+}}";
 
             try
             {
@@ -66,8 +68,9 @@ Sintomas do paciente: {request.Sintomas}";
                     },
                     generationConfig = new
                     {
-                        temperature = 0.3,
-                        maxOutputTokens = 300
+                        temperature = 0.0,
+                        maxOutputTokens = 1200,
+                        responseMimeType = "application/json"
                     }
                 };
 
@@ -78,45 +81,41 @@ Sintomas do paciente: {request.Sintomas}";
                 var responseBody = await response.Content.ReadAsStringAsync();
 
                 if (!response.IsSuccessStatusCode)
-                    return StatusCode(502, $"Erro ao consultar serviço de IA. Status: {response.StatusCode}, Detalhes: {responseBody}");
+                {
+                    if (response.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
+                    {
+                        return StatusCode(429, "A triagem inteligente atingiu o limite de consultas gratuitas. Tente novamente mais tarde   .");
+                    }
+                    if (response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
+                    {
+                        return StatusCode(503, "O serviço de IA está temporariamente indisponível. Tente novamente mais tarde.");
+                    }
+
+                    return StatusCode(502, "Não foi possível conectar com a Inteligência Artificial no momento.");
+                }
 
                 Console.WriteLine("--- GEMINI RAW RESPONSE ---");
                 Console.WriteLine(responseBody);
                 Console.WriteLine("---------------------------");
 
-                // Extrai o texto da resposta do Gemini
                 using var doc = JsonDocument.Parse(responseBody);
-                var textoResposta = doc.RootElement
-                    .GetProperty("candidates")[0]
-                    .GetProperty("content")
-                    .GetProperty("parts")[0]
+                var candidate = doc.RootElement.GetProperty("candidates")[0];
+
+                // Validação segura de content e parts
+                if (!candidate.TryGetProperty("content", out var contentElement) ||
+                    !contentElement.TryGetProperty("parts", out var partsElement) ||
+                    partsElement.GetArrayLength() == 0)
+                {
+                    var finishReason = candidate.TryGetProperty("finishReason", out var fr) ? fr.GetString() : "Desconhecido";
+                    return StatusCode(502, $"A IA não retornou texto válido. Motivo: {finishReason}");
+                }
+
+                var textoResposta = partsElement[0]
                     .GetProperty("text")
                     .GetString();
 
-                // Limpa possíveis marcações markdown e extrai apenas o bloco JSON
-                var textoLimpo = textoResposta ?? "";
-                var startIndex = textoLimpo.IndexOf('{');
-                var endIndex = textoLimpo.LastIndexOf('}');
-                
-                if (startIndex != -1 && endIndex != -1 && endIndex > startIndex)
-                {
-                    textoLimpo = textoLimpo.Substring(startIndex, endIndex - startIndex + 1);
-                }
-                else
-                {
-                    throw new JsonException("A resposta não continha um objeto JSON válido.");
-                }
-
-                Console.WriteLine("--- GEMINI CLEANED TEXT ---");
-                Console.WriteLine(textoLimpo);
-                Console.WriteLine("---------------------------");
-
-                // Valida se é JSON válido com mais tolerância
-                var options = new JsonDocumentOptions { AllowTrailingCommas = true };
-                using var parsed = JsonDocument.Parse(textoLimpo!, options);
-                
                 var serializeOptions = new JsonSerializerOptions { AllowTrailingCommas = true, ReadCommentHandling = JsonCommentHandling.Skip };
-                return Ok(JsonSerializer.Deserialize<object>(textoLimpo!, serializeOptions));
+                return Ok(JsonSerializer.Deserialize<object>(textoResposta!, serializeOptions));
             }
             catch (Exception ex)
             {
