@@ -21,6 +21,13 @@ export function CadastroUsuario({ onUserCreated }: { onUserCreated?: () => void 
 
   const [loading, setLoading] = useState(false);
   const [mensagem, setMensagem] = useState<{ texto: string; erro: boolean } | null>(null);
+  const [dropdownAberto, setDropdownAberto] = useState(false);
+
+  const opcoesPerfil = [
+    { id: 'Paciente', nome: 'Paciente' },
+    { id: 'Enfermeira', nome: 'Enfermeira' },
+    { id: 'Medico', nome: 'Médico' },
+  ];
 
 
 
@@ -91,8 +98,8 @@ export function CadastroUsuario({ onUserCreated }: { onUserCreated?: () => void 
               required
               value={nome}
               onChange={(e) => setNome(e.target.value)}
-              className="w-full border border-gray-300 rounded p-2 focus:ring-2 focus:ring-blue-500 outline-none"
-              placeholder="Digite o nome"
+              className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-[#7C3AED] focus:border-transparent outline-none transition-all"
+              placeholder="Digite o nome completo"
             />
           </div>
           <div>
@@ -102,7 +109,7 @@ export function CadastroUsuario({ onUserCreated }: { onUserCreated?: () => void 
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full border border-gray-300 rounded p-2 focus:ring-2 focus:ring-blue-500 outline-none"
+              className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-[#7C3AED] focus:border-transparent outline-none transition-all"
               placeholder="exemplo@email.com"
             />
           </div>
@@ -117,7 +124,7 @@ export function CadastroUsuario({ onUserCreated }: { onUserCreated?: () => void 
               maxLength={14}
               value={cpf}
               onChange={(e) => setCpf(mascaraCpf(e.target.value))}
-              className="w-full border border-gray-300 rounded p-2 focus:ring-2 focus:ring-blue-500 outline-none"
+              className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-[#7C3AED] focus:border-transparent outline-none transition-all"
               placeholder="000.000.000-00"
             />
           </div>
@@ -128,27 +135,65 @@ export function CadastroUsuario({ onUserCreated }: { onUserCreated?: () => void 
               required
               value={senha}
               onChange={(e) => setSenha(e.target.value)}
-              className="w-full border border-gray-300 rounded p-2 focus:ring-2 focus:ring-blue-500 outline-none"
+              className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-[#7C3AED] focus:border-transparent outline-none transition-all"
               placeholder="******"
             />
           </div>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de Perfil *</label>
-          <select
-            value={tipoUsuario}
-            onChange={(e) => setTipoUsuario(e.target.value)}
-            className="w-full border border-gray-300 rounded p-2 bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+        <div className="relative">
+          <label className="block text-sm font-black text-gray-700 mb-2 uppercase tracking-wide">Tipo de Perfil *</label>
+          <button
+            type="button"
+            onClick={() => setDropdownAberto(!dropdownAberto)}
+            className="w-full flex items-center justify-between border border-gray-300 rounded-xl p-3 bg-white focus:ring-2 focus:ring-[#7C3AED] focus:border-transparent outline-none transition-all text-left shadow-sm"
           >
-            <option value="Paciente">Paciente</option>
-            <option value="Enfermeira">Enfermeira</option>
-            <option value="Medico">Médico</option>
-          </select>
+            <span className="font-bold text-sm text-gray-700">
+              {opcoesPerfil.find(o => o.id === tipoUsuario)?.nome}
+            </span>
+            <svg 
+              className={`w-5 h-5 text-gray-400 transition-transform ${dropdownAberto ? 'rotate-180' : ''}`} 
+              fill="none" stroke="currentColor" viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="19 9l-7 7-7-7" />
+            </svg>
+          </button>
+
+          {dropdownAberto && (
+            <>
+              <div 
+                className="fixed inset-0 z-10" 
+                onClick={() => setDropdownAberto(false)}
+              ></div>
+              <div className="absolute left-0 right-0 mt-2 bg-white border border-gray-100 rounded-2xl shadow-2xl z-20 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                {opcoesPerfil.map((opcao) => (
+                  <div
+                    key={opcao.id}
+                    onClick={() => {
+                      setTipoUsuario(opcao.id);
+                      setDropdownAberto(false);
+                    }}
+                    className={`px-4 py-3 cursor-pointer transition-colors flex items-center justify-between ${
+                      tipoUsuario === opcao.id 
+                        ? 'bg-[#7C3AED] text-white' 
+                        : 'text-gray-700 hover:bg-purple-50'
+                    }`}
+                  >
+                    <span className="font-bold text-sm">{opcao.nome}</span>
+                    {tipoUsuario === opcao.id && (
+                      <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
         </div>
 
         {tipoUsuario === "Medico" && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 bg-blue-50 p-4 rounded border border-blue-100">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 bg-purple-50/50 p-5 rounded-2xl border border-purple-100">
             <div>
               <label className="block text-sm font-medium text-blue-800 mb-1">CRM (6 dígitos numéricos) *</label>
               <input
@@ -157,7 +202,7 @@ export function CadastroUsuario({ onUserCreated }: { onUserCreated?: () => void 
                 maxLength={6}
                 value={crm}
                 onChange={(e) => setCrm(e.target.value)}
-                className="w-full border border-blue-300 rounded p-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-full border border-purple-200 rounded-xl p-3 focus:ring-2 focus:ring-[#7C3AED] focus:border-transparent outline-none transition-all"
                 placeholder="Ex: 123456"
               />
             </div>
@@ -167,7 +212,7 @@ export function CadastroUsuario({ onUserCreated }: { onUserCreated?: () => void 
                 required
                 value={ufCrm}
                 onChange={(e) => setUfCrm(e.target.value)}
-                className="w-full border border-blue-300 rounded p-2 bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-full border border-purple-200 rounded-xl p-3 bg-white focus:ring-2 focus:ring-[#7C3AED] focus:border-transparent outline-none transition-all cursor-pointer"
               >
                 <option value="">Selecione...</option>
                 <option value="AC">AC</option>
@@ -206,9 +251,9 @@ export function CadastroUsuario({ onUserCreated }: { onUserCreated?: () => void 
           <button
             type="submit"
             disabled={loading}
-            className={`w-full text-white font-bold py-3 rounded transition-colors ${loading ? "bg-blue-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700 shadow"}`}
+            className={`w-full text-white font-black uppercase tracking-wider py-3 rounded-xl transition-all ${loading ? "bg-purple-300 cursor-not-allowed" : "bg-[#7C3AED] hover:bg-[#6D28D9] hover:scale-[1.01] active:scale-[0.99] shadow-lg shadow-purple-200"}`}
           >
-            {loading ? "Cadastrando..." : "Registrar Usuário"}
+            {loading ? "Processando..." : "Registrar Usuário"}
           </button>
         </div>
       </form>

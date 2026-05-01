@@ -46,6 +46,9 @@ namespace ClinicaMaisSaude.API.Services
                 throw new Exception("Credenciais inválidas.");
             }
 
+            usuario.AtualizarUltimoAcesso();
+            await _context.SaveChangesAsync();
+
             var perfilProfissional = await _context.Profissionais.FirstOrDefaultAsync(p => p.UsuarioId == usuario.Id);
             var perfilPaciente = await _context.Pacientes.FirstOrDefaultAsync(p => p.UsuarioId == usuario.Id);
 
@@ -99,6 +102,7 @@ namespace ClinicaMaisSaude.API.Services
                 UsuarioId = usuario.Id,
                 TipoUsuario = tipoUsuarioStr,
                 PacienteId = pacienteId,
+                ProfissionalId = perfilProfissional?.Id,
                 IsAdmin = usuario.IsAdmin
             };
         }

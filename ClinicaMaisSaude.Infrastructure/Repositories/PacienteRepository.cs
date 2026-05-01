@@ -37,6 +37,7 @@ namespace ClinicaMaisSaude.Infrastructure.Repositories
         {
             var query = _context.Pacientes
                                 .AsNoTracking()
+                                .Include(p => p.Usuario)
                                 .Where(p => p.Ativo);
 
             if (!string.IsNullOrWhiteSpace(nome))
