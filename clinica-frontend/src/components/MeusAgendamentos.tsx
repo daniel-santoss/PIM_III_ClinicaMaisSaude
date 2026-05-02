@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Plus, User, Calendar } from 'lucide-react';
 
 interface MeusAgendamentosProps {
   onNovoAgendamento: () => void;
@@ -52,7 +53,7 @@ export default function MeusAgendamentos({ onNovoAgendamento }: MeusAgendamentos
           onClick={onNovoAgendamento}
           className="px-6 py-3 bg-[#7C3AED] text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-purple-100 hover:scale-105 transition-all flex items-center gap-2 w-fit"
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4"></path></svg>
+          <Plus className="w-4 h-4" strokeWidth={3} />
           Novo Agendamento
         </button>
       </div>
@@ -82,7 +83,7 @@ export default function MeusAgendamentos({ onNovoAgendamento }: MeusAgendamentos
               <div className="space-y-4">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 bg-purple-50 rounded-2xl flex items-center justify-center text-[#7C3AED] group-hover:bg-[#7C3AED] group-hover:text-white transition-all">
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                    <User className="w-6 h-6" />
                   </div>
                   <div>
                     <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Profissional</p>
@@ -105,7 +106,7 @@ export default function MeusAgendamentos({ onNovoAgendamento }: MeusAgendamentos
       ) : (
         <div className="text-center py-20 bg-white rounded-[3rem] border-2 border-dashed border-gray-100">
           <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6">
-            <svg className="w-10 h-10 text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+            <Calendar className="w-10 h-10 text-gray-200" />
           </div>
           <h3 className="text-xl font-black text-gray-800 mb-2">Nenhum agendamento encontrado</h3>
           <p className="text-gray-400 text-sm font-medium mb-8">Você ainda não possui consultas marcadas no sistema.</p>

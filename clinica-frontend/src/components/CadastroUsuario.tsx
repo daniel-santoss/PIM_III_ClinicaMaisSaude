@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import type { FormEvent } from "react";
 import { mascaraCpf } from "../utils/validators";
+import { ChevronDown, Check } from 'lucide-react';
 
 interface UsuarioInfo {
   id: string;
@@ -151,12 +152,7 @@ export function CadastroUsuario({ onUserCreated }: { onUserCreated?: () => void 
             <span className="font-bold text-sm text-gray-700">
               {opcoesPerfil.find(o => o.id === tipoUsuario)?.nome}
             </span>
-            <svg 
-              className={`w-5 h-5 text-gray-400 transition-transform ${dropdownAberto ? 'rotate-180' : ''}`} 
-              fill="none" stroke="currentColor" viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="19 9l-7 7-7-7" />
-            </svg>
+            <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform ${dropdownAberto ? 'rotate-180' : ''}`} />
           </button>
 
           {dropdownAberto && (
@@ -181,9 +177,7 @@ export function CadastroUsuario({ onUserCreated }: { onUserCreated?: () => void 
                   >
                     <span className="font-bold text-sm">{opcao.nome}</span>
                     {tipoUsuario === opcao.id && (
-                      <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
+                      <Check className="w-5 h-5 text-white" />
                     )}
                   </div>
                 ))}

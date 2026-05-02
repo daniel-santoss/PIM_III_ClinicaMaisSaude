@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { mascaraCpf } from "../utils/validators";
 import { ESPECIALIDADES } from "../constants/especialidades";
+import { Check, AlertTriangle, Sliders, Zap, CheckCircle, Search, User, Calendar, MessageSquare, AlertCircle } from 'lucide-react';
 
 interface AgendamentoPacienteProps {
   onSucesso?: () => void;
@@ -137,7 +138,7 @@ export default function AgendamentoPaciente({ onSucesso }: AgendamentoPacientePr
   if (sucesso) return (
     <div className="flex flex-col items-center justify-center py-20 animate-in zoom-in duration-500">
       <div className="w-24 h-24 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-6 shadow-xl shadow-green-100 ring-8 ring-green-50">
-        <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
+        <Check className="w-12 h-12" strokeWidth={3} />
       </div>
       <h2 className="text-3xl font-black text-gray-800 mb-2">Tudo Certo!</h2>
       <p className="text-gray-500 font-bold text-center uppercase tracking-widest text-xs mb-10">Consulta agendada com sucesso</p>
@@ -179,7 +180,7 @@ export default function AgendamentoPaciente({ onSucesso }: AgendamentoPacientePr
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-gray-900/60 backdrop-blur-sm p-4">
           <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-sm p-8 text-center border border-purple-50">
             <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+              <AlertTriangle className="w-8 h-8" />
             </div>
             <h3 className="text-xl font-black text-gray-800 mb-2 uppercase tracking-tight">Aviso</h3>
             <p className="text-gray-500 text-sm mb-8 font-medium leading-relaxed">{modalMensagem}</p>
@@ -207,7 +208,7 @@ export default function AgendamentoPaciente({ onSucesso }: AgendamentoPacientePr
                     className="flex-1 py-8 bg-slate-50 text-[#7C3AED] border-2 border-[#7C3AED]/10 rounded-[2.5rem] font-black text-xs uppercase tracking-widest hover:bg-[#F5F3FF] hover:border-[#7C3AED] transition-all shadow-sm flex flex-col items-center gap-4"
                   >
                     <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm">
-                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
+                      <Sliders className="w-6 h-6" />
                     </div>
                     Escolher Manualmente
                   </button>
@@ -216,7 +217,7 @@ export default function AgendamentoPaciente({ onSucesso }: AgendamentoPacientePr
                     className="flex-1 py-8 bg-gradient-to-br from-[#7C3AED] to-[#5B21B6] text-white rounded-[2.5rem] font-black text-xs uppercase tracking-widest shadow-[0_15px_30px_-5px_rgba(124,58,237,0.4)] hover:scale-105 active:scale-95 transition-all flex flex-col items-center gap-4"
                   >
                     <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
-                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                      <Zap className="w-6 h-6" strokeWidth={2.5} />
                     </div>
                     Ajuda com IA
                   </button>
@@ -248,7 +249,7 @@ export default function AgendamentoPaciente({ onSucesso }: AgendamentoPacientePr
                         <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                       ) : (
                         <>
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                          <Zap className="w-5 h-5" strokeWidth={2.5} />
                           Analisar com IA
                         </>
                       )}
@@ -259,7 +260,7 @@ export default function AgendamentoPaciente({ onSucesso }: AgendamentoPacientePr
                     <div className="p-8 bg-purple-50 rounded-[2.5rem] border-2 border-purple-100 animate-in zoom-in duration-300 space-y-4">
                       <div className="flex items-start gap-4">
                         <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-purple-600 shadow-sm shrink-0">
-                          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                          <CheckCircle className="w-6 h-6" />
                         </div>
                         <div>
                           <p className="text-[10px] font-black text-purple-400 uppercase tracking-widest mb-1">Recomendamos:</p>
@@ -319,7 +320,7 @@ export default function AgendamentoPaciente({ onSucesso }: AgendamentoPacientePr
                       value={buscaEspecialidade}
                       onChange={(e) => setBuscaEspecialidade(e.target.value)}
                     />
-                    <svg className="w-5 h-5 absolute left-5 top-1/2 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    <Search className="w-5 h-5 absolute left-5 top-1/2 -translate-y-1/2 text-gray-400" strokeWidth={2.5} />
                   </div>
 
                   <div className="grid grid-cols-2 gap-3 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
@@ -447,7 +448,7 @@ export default function AgendamentoPaciente({ onSucesso }: AgendamentoPacientePr
                   {/* Bloco 1: O que e Quem */}
                   <div className="flex items-start gap-5">
                     <div className="w-14 h-14 bg-purple-50 rounded-2xl flex items-center justify-center text-[#7C3AED] shrink-0 border border-purple-100">
-                      <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                      <User className="w-7 h-7" />
                     </div>
                     <div>
                       <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Especialidade e Profissional</p>
@@ -463,7 +464,7 @@ export default function AgendamentoPaciente({ onSucesso }: AgendamentoPacientePr
                   {/* Bloco 2: Quando */}
                   <div className="flex items-start gap-5">
                     <div className="w-14 h-14 bg-purple-50 rounded-2xl flex items-center justify-center text-[#7C3AED] shrink-0 border border-purple-100">
-                      <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                      <Calendar className="w-7 h-7" />
                     </div>
                     <div>
                       <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Data e Horário</p>
@@ -480,7 +481,7 @@ export default function AgendamentoPaciente({ onSucesso }: AgendamentoPacientePr
                 {/* Bloco 3: Notas */}
                 <div className="flex items-start gap-5">
                   <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 shrink-0 border border-gray-100">
-                    <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"></path></svg>
+                    <MessageSquare className="w-7 h-7" />
                   </div>
                   <div className="flex-1">
                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Relato de Sintomas / Observações</p>
@@ -494,7 +495,7 @@ export default function AgendamentoPaciente({ onSucesso }: AgendamentoPacientePr
               </div>
 
               <div className="bg-purple-50 p-6 flex items-center justify-center gap-3">
-                <svg className="w-5 h-5 text-purple-600" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zm-1 9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd"></path></svg>
+                <AlertCircle className="w-5 h-5 text-purple-600" />
                 <p className="text-[10px] font-black text-purple-600 uppercase tracking-widest">Confira tudo com atenção, pois esta ação é definitiva.</p>
               </div>
             </div>
@@ -515,7 +516,7 @@ export default function AgendamentoPaciente({ onSucesso }: AgendamentoPacientePr
                   <div className="w-6 h-6 border-4 border-white/30 border-t-white rounded-full animate-spin"></div>
                 ) : (
                   <>
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <CheckCircle className="w-5 h-5" strokeWidth={2.5} />
                     Confirmar Agendamento Agora
                   </>
                 )}
