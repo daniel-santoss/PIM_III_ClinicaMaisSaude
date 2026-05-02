@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { mascaraCpf, mascaraTelefone } from "../utils/validators";
+import { AlertCircle, Users, CheckCircle, Clock, Search, Filter, RefreshCw, Inbox, Pencil, Key, Trash, AlertTriangle, Check, Copy } from 'lucide-react';
 import type { PacienteResponse } from "../types/PacienteResponse";
 
 interface PacienteListProps {
@@ -225,7 +226,7 @@ export default function PacienteList({
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="bg-red-50 text-red-700 p-6 rounded-xl border border-red-200 shadow-sm max-w-md text-center">
-          <svg className="w-12 h-12 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          <AlertCircle className="w-12 h-12 mx-auto mb-4" />
           <h3 className="text-lg font-bold mb-2">Ops! Algo deu errado</h3>
           <p className="text-sm opacity-90">{erro}</p>
         </div>
@@ -241,7 +242,7 @@ export default function PacienteList({
         <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all group">
           <div className="flex justify-between items-start mb-4">
             <div className="p-3 bg-purple-50 rounded-xl text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition-colors">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+              <Users className="w-6 h-6" />
             </div>
             <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Total de Usuários</span>
           </div>
@@ -257,7 +258,7 @@ export default function PacienteList({
         <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all group">
           <div className="flex justify-between items-start mb-4">
             <div className="p-3 bg-green-50 rounded-xl text-green-600 group-hover:bg-green-600 group-hover:text-white transition-colors">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+              <CheckCircle className="w-6 h-6" />
             </div>
             <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Ativos no Mês</span>
           </div>
@@ -277,7 +278,7 @@ export default function PacienteList({
           </div>
           <div className="flex justify-between items-start mb-4">
             <div className="p-3 bg-orange-50 rounded-xl text-orange-600 group-hover:bg-orange-600 group-hover:text-white transition-colors">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+              <Clock className="w-6 h-6" />
             </div>
             <span className="text-xs font-bold text-orange-500 uppercase tracking-widest">Atenção Necessária</span>
           </div>
@@ -296,7 +297,7 @@ export default function PacienteList({
           <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
             {/* Busca Unificada (Nome ou CPF) */}
             <div className="relative group flex-1 min-w-[320px]">
-              <svg className="absolute left-4 top-3.5 w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+              <Search className="absolute left-4 top-3.5 w-5 h-5 text-purple-400" />
               <input
                 type="text"
                 placeholder="Pesquisar por nome ou CPF..."
@@ -315,7 +316,7 @@ export default function PacienteList({
                     menuFiltroAberto ? 'border-purple-600 bg-purple-50 text-purple-700 ring-4 ring-purple-100' : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
                   }`}
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
+                  <Filter className="w-4 h-4" />
                   Tipo: ({perfisSelecionados.length})
                 </button>
 
@@ -353,7 +354,7 @@ export default function PacienteList({
               className="p-3 bg-gray-50 text-gray-400 border border-gray-200 rounded-xl hover:bg-purple-50 hover:text-purple-600 transition-all flex items-center gap-2 group shadow-sm"
               title="Limpar Filtros"
             >
-              <svg className="w-5 h-5 group-hover:rotate-[-45deg] transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+              <RefreshCw className="w-5 h-5 group-hover:rotate-[-45deg] transition-transform duration-300" />
               <span className="text-[10px] font-black uppercase tracking-widest hidden xl:inline">Limpar Filtros</span>
             </button>
           </div>
@@ -387,7 +388,7 @@ export default function PacienteList({
                   <tr>
                     <td colSpan={5} className="px-6 py-20 text-center">
                       <div className="flex flex-col items-center gap-2 opacity-30">
-                        <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0a2 2 0 01-2 2H6a2 2 0 01-2-2m16 0l-8 8-8-8"></path></svg>
+                        <Inbox className="w-12 h-12" />
                         <p className="text-sm font-bold">Nenhum resultado para os filtros atuais.</p>
                       </div>
                     </td>
@@ -449,7 +450,7 @@ export default function PacienteList({
                             className="p-2 text-blue-600 hover:bg-blue-50 rounded-xl transition-colors"
                             onClick={() => abrirEdicao(p)}
                           >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                            <Pencil className="w-4 h-4" />
                           </button>
                           {(isAdmin || isEnfermeira) && p.usuarioId && (
                             <button
@@ -457,7 +458,7 @@ export default function PacienteList({
                               className="p-2 text-orange-600 hover:bg-orange-50 rounded-xl transition-colors"
                               onClick={() => setPacienteReset({ id: p.id, usuarioId: p.usuarioId!, nome: p.nome })}
                             >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path></svg>
+                              <Key className="w-4 h-4" />
                             </button>
                           )}
                           <button
@@ -465,7 +466,7 @@ export default function PacienteList({
                             className="p-2 text-red-600 hover:bg-red-50 rounded-xl transition-colors"
                             onClick={() => abrirModalExclusao(p.id, p.nome)}
                           >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            <Trash className="w-4 h-4" />
                           </button>
                         </div>
                       </td>
@@ -562,9 +563,7 @@ export default function PacienteList({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-sm p-6">
             <div className="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 rounded-full mb-4">
-              <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
-              </svg>
+              <AlertTriangle className="w-6 h-6 text-red-600" />
             </div>
             
             <h3 className="text-lg font-bold text-gray-900 text-center mb-2">Excluir Paciente</h3>
@@ -617,9 +616,9 @@ export default function PacienteList({
                     className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-amber-600 hover:bg-amber-100 rounded-md transition-all active:scale-95"
                   >
                     {copiado ? (
-                      <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
+                      <Check className="w-5 h-5 text-green-600" />
                     ) : (
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
+                      <Copy className="w-5 h-5" />
                     )}
                   </button>
                   {copiado && (

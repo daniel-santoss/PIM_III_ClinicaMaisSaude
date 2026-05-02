@@ -1,4 +1,4 @@
-import { Settings, User, LogOut } from 'lucide-react';
+import { Settings, User, LogOut, X } from 'lucide-react';
 import { useState, useEffect } from "react";
 import PacienteList from "./components/PacienteList";
 import AgendamentoList from "./components/AgendamentoList";
@@ -30,10 +30,10 @@ export default function App() {
     const tipo = localStorage.getItem("tipoUsuario");
     const admin = localStorage.getItem("isAdmin") === "true";
     if (token) {
-        setAutenticado(true);
-        setTipoUsuario(tipo || "Paciente");
-        setIsAdmin(admin);
-        setAbaAtiva(tipo === "Paciente" ? "agendamentos" : "pacientes");
+      setAutenticado(true);
+      setTipoUsuario(tipo || "Paciente");
+      setIsAdmin(admin);
+      setAbaAtiva(tipo === "Paciente" ? "agendamentos" : "pacientes");
     }
   }, []);
 
@@ -62,12 +62,12 @@ export default function App() {
 
   if (!autenticado) {
     return <Login onLogado={() => {
-        setAutenticado(true);
-        const tipo = localStorage.getItem("tipoUsuario");
-        const admin = localStorage.getItem("isAdmin") === "true";
-        setTipoUsuario(tipo || "Paciente");
-        setIsAdmin(admin);
-        setAbaAtiva(tipo === "Paciente" ? "agendamentos" : "pacientes");
+      setAutenticado(true);
+      const tipo = localStorage.getItem("tipoUsuario");
+      const admin = localStorage.getItem("isAdmin") === "true";
+      setTipoUsuario(tipo || "Paciente");
+      setIsAdmin(admin);
+      setAbaAtiva(tipo === "Paciente" ? "agendamentos" : "pacientes");
     }} />
   }
 
@@ -75,13 +75,13 @@ export default function App() {
     <div className="max-w-6xl mx-auto p-4 md:p-8 bg-gray-50 min-h-screen">
       <div className="flex justify-between items-center mb-6 border-b pb-4 border-gray-200">
         <h1 className="text-3xl font-bold text-gray-800">Clínica Mais Saúde</h1>
-       <div className="relative">
+        <div className="relative">
           <button
             onClick={() => setMenuDropdownAberto(!menuDropdownAberto)}
             className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-xl transition-all border border-gray-200 bg-white shadow-sm font-bold text-sm"
           >
             Configurações
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="lucide lucide-settings-icon lucide-settings"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/></svg>
+            <Settings size={20} />
           </button>
 
           {menuDropdownAberto && (
@@ -94,7 +94,7 @@ export default function App() {
                       onClick={() => { setModalPerfilAberto(true); setMenuDropdownAberto(false); }}
                       className="w-full text-left px-3 py-2.5 text-sm font-bold text-gray-700 hover:bg-gray-50 rounded-xl transition-colors flex items-center gap-3"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="lucide lucide-user-icon lucide-user"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                      <User size={20} />
                       Meu Perfil
                     </button>
                   </li>
@@ -103,7 +103,7 @@ export default function App() {
                       onClick={handleLogout}
                       className="w-full text-left px-3 py-2.5 text-sm font-bold text-red-600 hover:bg-red-50 rounded-xl transition-colors flex items-center gap-3"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="lucide lucide-square-arrow-right-exit-icon lucide-square-arrow-right-exit"><path d="M10 12h11"/><path d="m17 16 4-4-4-4"/><path d="M21 6.344V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-1.344"/></svg>
+                      <LogOut size={20} />
                       Sair
                     </button>
                   </li>
@@ -113,28 +113,26 @@ export default function App() {
           )}
         </div>
       </div>
-      
+
       {/* Abas de Navegação */}
       <div className="flex space-x-1 border-b border-gray-200 mb-8">
         {tipoUsuario !== "Paciente" && (
-            <button
+          <button
             onClick={() => setAbaAtiva("pacientes")}
-            className={`px-6 py-2.5 text-sm font-semibold transition-colors border-b-2 ${
-                abaAtiva === "pacientes"
+            className={`px-6 py-2.5 text-sm font-semibold transition-colors border-b-2 ${abaAtiva === "pacientes"
                 ? "border-blue-600 text-blue-600 bg-blue-50/50"
                 : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50"
-            }`}
-            >
+              }`}
+          >
             {isAdmin ? "Usuários" : "Pacientes"}
-            </button>
+          </button>
         )}
         <button
           onClick={() => setAbaAtiva("agendamentos")}
-          className={`px-6 py-2.5 text-sm font-semibold transition-colors border-b-2 ${
-            abaAtiva === "agendamentos"
+          className={`px-6 py-2.5 text-sm font-semibold transition-colors border-b-2 ${abaAtiva === "agendamentos"
               ? "border-blue-600 text-blue-600 bg-blue-50/50"
               : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50"
-          }`}
+            }`}
         >
           Agendamentos
         </button>
@@ -161,8 +159,8 @@ export default function App() {
           <h2 className="text-xl font-semibold text-gray-800 mb-4">
             {isAdmin ? "Usuários Cadastrados" : "Pacientes Cadastrados"}
           </h2>
-          <PacienteList 
-            recarregarContador={recarregarUsuarios} 
+          <PacienteList
+            recarregarContador={recarregarUsuarios}
             pacienteInicialEdicao={pacienteParaEditar}
             onFinalizouEdicaoExterno={() => setPacienteParaEditar(null)}
           />
@@ -184,11 +182,11 @@ export default function App() {
       {modalPerfilAberto && (
         <div className="fixed inset-0 z-[150] flex items-center justify-center bg-gray-900/60 backdrop-blur-md p-4">
           <div className="bg-white w-full max-w-xl max-h-[90vh] rounded-[2.5rem] shadow-2xl relative flex flex-col p-2">
-            <button 
+            <button
               onClick={() => setModalPerfilAberto(false)}
               className="absolute right-8 top-8 p-3 bg-white text-gray-400 hover:text-red-500 rounded-2xl shadow-md transition-all z-[160]"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
+              <X className="w-6 h-6" strokeWidth={2.5} />
             </button>
             <div className="flex-1 overflow-y-auto custom-scrollbar pr-4 scroll-smooth">
               <div className="p-4 md:p-8">

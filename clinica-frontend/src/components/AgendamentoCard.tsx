@@ -1,5 +1,6 @@
 import type { PacienteResponse } from "../types/PacienteResponse";
 import { mascaraCpf } from "../utils/validators";
+import { User, Clock, Calendar } from 'lucide-react';
 
 const MapNomesStatus: Record<string, string> = {
   "Agendado": "Agendado",
@@ -54,15 +55,15 @@ export default function AgendamentoCard({
           <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">{dia}</span>
         </div>
         <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider border ${agenda.status === 'Finalizado' ? 'bg-green-50 text-green-600 border-green-100' :
-            agenda.status === 'Faltou' ? 'bg-red-50 text-red-600 border-red-100' :
-              agenda.status === 'Cancelado' ? 'bg-gray-50 text-gray-400 border-gray-100' :
-                agenda.status === 'EmAtendimento' ? 'bg-amber-50 text-amber-600 border-amber-100' :
-                  'bg-purple-50 text-purple-600 border-purple-100'
+          agenda.status === 'Faltou' ? 'bg-red-50 text-red-600 border-red-100' :
+            agenda.status === 'Cancelado' ? 'bg-gray-50 text-gray-400 border-gray-100' :
+              agenda.status === 'EmAtendimento' ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                'bg-purple-50 text-purple-600 border-purple-100'
           }`}>
           <span className={`w-1.5 h-1.5 rounded-full ${agenda.status === 'EmAtendimento' ? 'animate-pulse' : ''} ${agenda.status === 'Finalizado' ? 'bg-green-500' :
-              agenda.status === 'Faltou' ? 'bg-red-500' :
-                agenda.status === 'EmAtendimento' ? 'bg-amber-500' :
-                  'bg-purple-500'
+            agenda.status === 'Faltou' ? 'bg-red-500' :
+              agenda.status === 'EmAtendimento' ? 'bg-amber-500' :
+                'bg-purple-500'
             }`}></span>
           {MapNomesStatus[agenda.status] || agenda.status}
         </span>
@@ -83,7 +84,7 @@ export default function AgendamentoCard({
         <div className="flex items-center justify-between p-3 bg-purple-50/50 rounded-2xl border border-purple-50">
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 bg-white rounded-lg flex items-center justify-center text-[#7C3AED] shadow-sm">
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+              <User className="w-3.5 h-3.5" strokeWidth={2.5} />
             </div>
             <span className="text-[10px] font-black text-purple-600 uppercase tracking-tight">{agenda.tipoProfissional}</span>
           </div>
@@ -105,9 +106,9 @@ export default function AgendamentoCard({
       {/* Rodapé: Ações */}
       <div className="px-6 py-4 border-t border-purple-50 flex items-center justify-between bg-purple-50/10">
         <div className="flex gap-1">
-          <button title="Histórico" onClick={() => onHistorico(agenda.id)} className="p-2 text-gray-400 hover:bg-white hover:text-purple-600 rounded-xl transition-all shadow-sm hover:shadow-md"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></button>
+          <button title="Histórico" onClick={() => onHistorico(agenda.id)} className="p-2 text-gray-400 hover:bg-white hover:text-purple-600 rounded-xl transition-all shadow-sm hover:shadow-md"><Clock className="w-5 h-5" strokeWidth={2} /></button>
           {podeRemarcar && (
-            <button title="Remarcar" onClick={() => onRemarcar(agenda)} className="p-2 text-purple-600 hover:bg-white rounded-xl transition-all shadow-sm hover:shadow-md"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg></button>
+            <button title="Remarcar" onClick={() => onRemarcar(agenda)} className="p-2 text-purple-600 hover:bg-white rounded-xl transition-all shadow-sm hover:shadow-md"><Calendar className="w-5 h-5" strokeWidth={2} /></button>
           )}
         </div>
 

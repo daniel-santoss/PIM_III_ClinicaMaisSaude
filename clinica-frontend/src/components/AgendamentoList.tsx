@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { mascaraCpf, mascaraTelefone } from "../utils/validators";
+import { AlertTriangle, Calendar, TrendingUp, AlertCircle, BarChart3, Plus, User, X, FileText, Mail, Phone, Pencil } from 'lucide-react';
 import type { PacienteResponse } from "../types/PacienteResponse";
 import AgendamentoCard from "./AgendamentoCard";
 import AgendamentoFiltros from "./AgendamentoFiltros";
@@ -178,7 +179,7 @@ export default function AgendamentoList() {
   if (erro) return (
     <div className="flex flex-col items-center justify-center py-20">
       <div className="bg-red-50 p-6 rounded-3xl border border-red-100 text-center max-w-md">
-        <svg className="w-12 h-12 text-red-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+        <AlertTriangle className="w-12 h-12 text-red-400 mx-auto mb-4" />
         <h3 className="text-lg font-bold text-red-800 mb-1">Ops! Algo deu errado</h3>
         <p className="text-red-600 text-sm">{erro}</p>
         <button onClick={() => setRefreshContador(v => v + 1)} className="mt-4 px-6 py-2 bg-red-600 text-white rounded-xl font-bold text-sm hover:bg-red-700 transition-all">Tentar Novamente</button>
@@ -201,14 +202,14 @@ export default function AgendamentoList() {
           <div className="bg-white p-6 rounded-[2.5rem] shadow-xl shadow-purple-100/20 border border-purple-50 group hover:scale-[1.02] transition-all duration-300">
             <div className="flex items-center justify-between mb-4">
               <div className="p-3 bg-purple-100 rounded-2xl text-purple-600 group-hover:bg-[#7C3AED] group-hover:text-white transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="lucide lucide-calendar-icon lucide-calendar"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg>
+                <Calendar className="w-6 h-6" />
               </div>
               <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Atendimentos Hoje</span>
             </div>
             <div className="flex items-end gap-3">
               <span className="text-4xl font-black text-gray-800 leading-none">{atendimentosHoje}</span>
               <div className="flex items-center gap-1 mb-1 px-2 py-0.5 bg-green-100 text-green-600 rounded-full text-[10px] font-black">
-                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M12 7a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0V8.414l-4.293 4.293a1 1 0 01-1.414 0L8 10.414l-4.293 4.293a1 1 0 01-1.414-1.414l5-5a1 1 0 011.414 0L11 10.586 14.586 7H12z" clipRule="evenodd"></path></svg>
+                <TrendingUp className="w-3 h-3" />
                 <span>+12%</span>
               </div>
             </div>
@@ -216,7 +217,7 @@ export default function AgendamentoList() {
           <div className="bg-white p-6 rounded-[2.5rem] shadow-xl shadow-orange-100/20 border border-orange-50 group hover:scale-[1.02] transition-all duration-300">
             <div className="flex items-center justify-between mb-4">
               <div className="p-3 bg-orange-100 rounded-2xl text-orange-600 group-hover:bg-orange-500 group-hover:text-white transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="lucide lucide-circle-alert-icon lucide-circle-alert"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
+                <AlertCircle className="w-6 h-6" />
               </div>
               <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Absenteísmo (Semana)</span>
             </div>
@@ -228,8 +229,8 @@ export default function AgendamentoList() {
           <div className="bg-white p-6 rounded-[2.5rem] shadow-xl shadow-blue-100/20 border border-blue-50 group hover:scale-[1.02] transition-all duration-300">
             <div className="flex items-center justify-between mb-4">
               <div className="p-3 bg-blue-100 rounded-2xl text-blue-600 group-hover:bg-blue-500 group-hover:text-white transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="lucide lucide-chart-no-axes-column-increasing-icon lucide-chart-no-axes-column-increasing"><path d="M5 21v-6"/><path d="M12 21V9"/><path d="M19 21V3"/></svg>            </div>
-            <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Distribuição Mensal</span>
+                <BarChart3 className="w-6 h-6" />            </div>
+              <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Distribuição Mensal</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden flex">
@@ -278,13 +279,13 @@ export default function AgendamentoList() {
           )}
         </div>
 
-     {/* FAB */}
+        {/* FAB */}
         {(tipoUsuario !== "Medico" || isAdmin) && (
           <button
             onClick={() => setModalNovoAgendamento(true)}
             className="fixed bottom-8 right-8 w-16 h-16 bg-[#7C3AED] text-white rounded-full shadow-2xl shadow-purple-400/50 flex items-center justify-center hover:scale-110 active:scale-95 transition-all z-40 group"
           >
-            <svg className="w-8 h-8 group-hover:rotate-90 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4"></path></svg>
+            <Plus className="w-8 h-8 group-hover:rotate-90 transition-transform duration-300" strokeWidth={3} />
             <span className="absolute right-20 bg-gray-900 text-white text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">Novo Agendamento</span>
           </button>
         )}
@@ -323,7 +324,7 @@ export default function AgendamentoList() {
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-gray-900/60 backdrop-blur-sm p-4">
           <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-sm p-8 text-center border border-purple-50">
             <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+              <AlertTriangle className="w-8 h-8" />
             </div>
             <h3 className="text-xl font-black text-gray-800 mb-2 uppercase tracking-tight">Aviso</h3>
             <p className="text-gray-500 text-sm mb-8 font-medium leading-relaxed">{modalMensagem}</p>
@@ -354,11 +355,11 @@ export default function AgendamentoList() {
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden border border-purple-100">
             <div className="bg-purple-600 p-4 text-white flex justify-between items-center">
               <h3 className="text-lg font-bold flex items-center gap-2">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                <User className="w-5 h-5" />
                 Dados do Paciente
               </h3>
               <button onClick={() => setPacienteDetalhesModal(null)} className="hover:bg-purple-500 p-1 rounded-full transition-colors">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                <X className="w-6 h-6" />
               </button>
             </div>
             <div className="p-6 space-y-4">
@@ -373,15 +374,15 @@ export default function AgendamentoList() {
               </div>
               <div className="grid grid-cols-1 gap-y-4">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-gray-50 rounded-lg text-gray-400"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 012-2h2a2 2 0 012 2v1m-4 0a1 1 0 011 1v3M6 7H6a1 1 0 011-1h2a1 1 0 011 1v3a1 1 0 001 1h2a1 1 0 001-1V7a1 1 0 011-1h2a1 1 0 011 1v3a1 1 0 001 1h2a1 1 0 001-1V7"></path></svg></div>
+                  <div className="p-2 bg-gray-50 rounded-lg text-gray-400"><FileText className="w-5 h-5" /></div>
                   <div><p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">CPF</p><p className="text-sm font-medium text-gray-700">{mascaraCpf(pacienteDetalhesModal.cpf)}</p></div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-gray-50 rounded-lg text-gray-400"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg></div>
+                  <div className="p-2 bg-gray-50 rounded-lg text-gray-400"><Mail className="w-5 h-5" /></div>
                   <div><p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">E-mail</p><p className="text-sm font-medium text-gray-700">{pacienteDetalhesModal.email || 'Não informado'}</p></div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-gray-50 rounded-lg text-gray-400"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg></div>
+                  <div className="p-2 bg-gray-50 rounded-lg text-gray-400"><Phone className="w-5 h-5" /></div>
                   <div><p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Telefone</p><p className="text-sm font-medium text-gray-700">{mascaraTelefone(pacienteDetalhesModal.telefone)}</p></div>
                 </div>
               </div>
@@ -390,7 +391,7 @@ export default function AgendamentoList() {
                   onClick={() => { setPacienteDetalhesModal(null); window.dispatchEvent(new CustomEvent("editarPacienteGlobal", { detail: pacienteDetalhesModal })); }}
                   className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition-all shadow-md active:scale-95 flex items-center justify-center gap-2"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                  <Pencil className="w-4 h-4" />
                   Editar Dados
                 </button>
                 <button onClick={() => setPacienteDetalhesModal(null)} className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-3 rounded-lg transition-all active:scale-95">Fechar Detalhes</button>
