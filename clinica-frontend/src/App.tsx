@@ -44,6 +44,7 @@ export default function App() {
     localStorage.removeItem("pacienteId");
     localStorage.removeItem("profissionalId");
     setAutenticado(false);
+    setMenuDropdownAberto(false);
   };
   const [recarregarUsuarios, setRecarregarUsuarios] = useState(0);
 
