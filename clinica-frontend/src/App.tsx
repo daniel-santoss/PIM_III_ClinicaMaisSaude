@@ -1,3 +1,4 @@
+import { Settings, User, LogOut } from 'lucide-react';
 import { useState, useEffect } from "react";
 import PacienteList from "./components/PacienteList";
 import AgendamentoList from "./components/AgendamentoList";
@@ -22,6 +23,7 @@ export default function App() {
   const [abaAtiva, setAbaAtiva] = useState<"pacientes" | "agendamentos" | "cadastro">("agendamentos");
   const [viewPaciente, setViewPaciente] = useState<"novo" | "lista">("novo");
   const [modalPerfilAberto, setModalPerfilAberto] = useState(false);
+  const [menuDropdownAberto, setMenuDropdownAberto] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("authToken");
@@ -73,18 +75,42 @@ export default function App() {
     <div className="max-w-6xl mx-auto p-4 md:p-8 bg-gray-50 min-h-screen">
       <div className="flex justify-between items-center mb-6 border-b pb-4 border-gray-200">
         <h1 className="text-3xl font-bold text-gray-800">Clínica Mais Saúde</h1>
-        <div className="flex items-center gap-4">
-            <span className="text-sm font-medium text-gray-600 border px-3 py-1 rounded bg-white">Perfil: {tipoUsuario}</span>
-            {(tipoUsuario === "Paciente" || tipoUsuario === "Medico") && (
-              <button 
-                onClick={() => setModalPerfilAberto(true)}
-                className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-xl transition-all"
-                title="Configurações e Perfil"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-              </button>
-            )}
-            <button onClick={handleLogout} className="text-sm text-red-600 hover:text-red-800 font-medium">Sair</button>
+       <div className="relative">
+          <button
+            onClick={() => setMenuDropdownAberto(!menuDropdownAberto)}
+            className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-xl transition-all border border-gray-200 bg-white shadow-sm font-bold text-sm"
+          >
+            Configurações
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="lucide lucide-settings-icon lucide-settings"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+
+          {menuDropdownAberto && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setMenuDropdownAberto(false)}></div>
+              <div className="absolute right-0 mt-2 w-60 bg-white border border-gray-100 rounded-2xl shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 p-2">
+                <ul className="flex flex-col gap-1">
+                  <li>
+                    <button
+                      onClick={() => { setModalPerfilAberto(true); setMenuDropdownAberto(false); }}
+                      className="w-full text-left px-3 py-2.5 text-sm font-bold text-gray-700 hover:bg-gray-50 rounded-xl transition-colors flex items-center gap-3"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="lucide lucide-user-icon lucide-user"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                      Meu Perfil
+                    </button>
+                  </li>
+                  <li>
+                    <button
+                      onClick={handleLogout}
+                      className="w-full text-left px-3 py-2.5 text-sm font-bold text-red-600 hover:bg-red-50 rounded-xl transition-colors flex items-center gap-3"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="lucide lucide-square-arrow-right-exit-icon lucide-square-arrow-right-exit"><path d="M10 12h11"/><path d="m17 16 4-4-4-4"/><path d="M21 6.344V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-1.344"/></svg>
+                      Sair
+                    </button>
+                  </li>
+                </ul>
+              </div>
+            </>
+          )}
         </div>
       </div>
       

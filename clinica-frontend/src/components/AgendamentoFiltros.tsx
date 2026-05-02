@@ -1,3 +1,4 @@
+import { Calendar, AlertCircle, BarChart2, TrendingUp, Search, ArrowDownUp, RotateCcw } from "lucide-react";
 const MapNomesStatus: Record<string, string> = {
   "Agendado": "Agendado",
   "EmAtendimento": "Em Atendimento",
@@ -34,7 +35,7 @@ export default function AgendamentoFiltros({
   return (
     <div className="bg-white p-4 rounded-3xl shadow-lg border border-purple-50 flex flex-wrap items-center gap-4">
       <div className="relative flex-1 min-w-[280px]">
-        <svg className="absolute left-4 top-3.5 w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="absolute left-4 top-3.5 w-5 h-5 text-purple-600 lucide lucide-search-icon lucide-search"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
         <input
           type="text"
           placeholder="Pesquisar por paciente ou CPF..."
@@ -68,14 +69,14 @@ export default function AgendamentoFiltros({
           className="p-3 bg-white border border-gray-200 rounded-2xl hover:bg-purple-50 transition-colors text-purple-600"
           title="Inverter Ordem"
         >
-          <svg className={`w-6 h-6 transition-transform duration-500 ${ordemData === 'asc' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12"></path></svg>
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className={`w-6 h-6 transition-transform duration-500 ${ordemData === 'asc' ? 'rotate-180' : ''}`}><path d="m3 16 4 4 4-4"/><path d="M7 20V4"/><path d="M11 4h10"/><path d="M11 8h7"/><path d="M11 12h4"/></svg>
         </button>
         <button
           onClick={limparFiltros}
           className="p-3 bg-gray-50 text-gray-400 border border-gray-200 rounded-2xl hover:bg-purple-50 hover:text-purple-600 transition-all flex items-center gap-2 group shadow-sm"
           title="Limpar Filtros"
         >
-          <svg className="w-5 h-5 group-hover:rotate-[-45deg] transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="lucide lucide-refresh-cw-icon lucide-refresh-cw"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
           <span className="text-[10px] font-black uppercase tracking-widest hidden lg:inline">Limpar Filtros</span>
         </button>
       </div>

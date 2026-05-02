@@ -67,6 +67,9 @@ export default function AgendamentoList() {
   const [filtroDataConsulta, setFiltroDataConsulta] = useState("");
   const [ordemData, setOrdemData] = useState<"asc" | "desc">("desc");
 
+  const tipoUsuario = localStorage.getItem("tipoUsuario");
+  const isAdmin = localStorage.getItem("isAdmin") === "true";
+
   const limparFiltros = () => { setFiltroAgenda(""); setFiltroStatus("Todos"); setFiltroDataConsulta(""); };
 
   useEffect(() => { carregarDados(); }, [refreshContador]);
@@ -198,7 +201,7 @@ export default function AgendamentoList() {
           <div className="bg-white p-6 rounded-[2.5rem] shadow-xl shadow-purple-100/20 border border-purple-50 group hover:scale-[1.02] transition-all duration-300">
             <div className="flex items-center justify-between mb-4">
               <div className="p-3 bg-purple-100 rounded-2xl text-purple-600 group-hover:bg-[#7C3AED] group-hover:text-white transition-colors">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="lucide lucide-calendar-icon lucide-calendar"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg>
               </div>
               <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Atendimentos Hoje</span>
             </div>
@@ -213,7 +216,7 @@ export default function AgendamentoList() {
           <div className="bg-white p-6 rounded-[2.5rem] shadow-xl shadow-orange-100/20 border border-orange-50 group hover:scale-[1.02] transition-all duration-300">
             <div className="flex items-center justify-between mb-4">
               <div className="p-3 bg-orange-100 rounded-2xl text-orange-600 group-hover:bg-orange-500 group-hover:text-white transition-colors">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="lucide lucide-circle-alert-icon lucide-circle-alert"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
               </div>
               <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Absenteísmo (Semana)</span>
             </div>
@@ -225,9 +228,8 @@ export default function AgendamentoList() {
           <div className="bg-white p-6 rounded-[2.5rem] shadow-xl shadow-blue-100/20 border border-blue-50 group hover:scale-[1.02] transition-all duration-300">
             <div className="flex items-center justify-between mb-4">
               <div className="p-3 bg-blue-100 rounded-2xl text-blue-600 group-hover:bg-blue-500 group-hover:text-white transition-colors">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
-              </div>
-              <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Distribuição Mensal</span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="lucide lucide-chart-no-axes-column-increasing-icon lucide-chart-no-axes-column-increasing"><path d="M5 21v-6"/><path d="M12 21V9"/><path d="M19 21V3"/></svg>            </div>
+            <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Distribuição Mensal</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden flex">
@@ -276,14 +278,16 @@ export default function AgendamentoList() {
           )}
         </div>
 
-        {/* FAB */}
-        <button
-          onClick={() => setModalNovoAgendamento(true)}
-          className="fixed bottom-8 right-8 w-16 h-16 bg-[#7C3AED] text-white rounded-full shadow-2xl shadow-purple-400/50 flex items-center justify-center hover:scale-110 active:scale-95 transition-all z-40 group"
-        >
-          <svg className="w-8 h-8 group-hover:rotate-90 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4"></path></svg>
-          <span className="absolute right-20 bg-gray-900 text-white text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">Novo Agendamento</span>
-        </button>
+     {/* FAB */}
+        {(tipoUsuario !== "Medico" || isAdmin) && (
+          <button
+            onClick={() => setModalNovoAgendamento(true)}
+            className="fixed bottom-8 right-8 w-16 h-16 bg-[#7C3AED] text-white rounded-full shadow-2xl shadow-purple-400/50 flex items-center justify-center hover:scale-110 active:scale-95 transition-all z-40 group"
+          >
+            <svg className="w-8 h-8 group-hover:rotate-90 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4"></path></svg>
+            <span className="absolute right-20 bg-gray-900 text-white text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">Novo Agendamento</span>
+          </button>
+        )}
       </div>
 
       {/* Modais via componentes extraidos */}
