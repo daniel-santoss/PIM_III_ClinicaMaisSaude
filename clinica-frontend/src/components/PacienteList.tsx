@@ -218,9 +218,27 @@ export default function PacienteList({
   const totalMedicos = pacientes.filter(p => p.tipo === "Medico").length;
   const totalEnfermeiras = pacientes.filter(p => p.tipo === "Enfermeira").length;
 
-  // Simulação de dados para os cards solicitados
-  const usuariosAtivosMes = Math.floor(pacientes.length * 0.85); // 85% ativos
-  const pacientesInativos = pacientes.filter((_, idx) => idx % 7 === 0); // Mock de inativos (+60 dias)
+  const trintaDiasAtras = new Date();
+  trintaDiasAtras.setDate(trintaDiasAtras.getDate() - 30);
+  
+  const sessentaDiasAtras = new Date();
+  sessentaDiasAtras.setDate(sessentaDiasAtras.getDate() - 60);
+
+  const getRealDate = (dateStr?: string) => {
+    if (!dateStr) return null;
+    return new Date(dateStr.endsWith('Z') ? dateStr : dateStr + 'Z');
+  };
+
+  const usuariosAtivosMes = pacientes.filter(p => {
+    const data = getRealDate(p.ultimoAcesso);
+    return data && data >= trintaDiasAtras;
+  }).length;
+
+  const pacientesInativos = pacientes.filter(p => {
+    if (p.tipo !== "Paciente") return false;
+    const data = getRealDate(p.ultimoAcesso);
+    return !data || data < sessentaDiasAtras;
+  });
 
   if (erro) {
     return (
@@ -250,7 +268,7 @@ export default function PacienteList({
           <div className="flex gap-2">
             <span className="px-2 py-1 bg-green-50 text-green-700 rounded-md text-[10px] font-bold">{totalPacientes} Pacientes</span>
             <span className="px-2 py-1 bg-purple-50 text-purple-700 rounded-md text-[10px] font-bold">{totalMedicos} Médicos</span>
-            <span className="px-2 py-1 bg-blue-50 text-blue-700 rounded-md text-[10px] font-bold">{totalEnfermeiras} Enf.</span>
+            <span className="px-2 py-1 bg-blue-50 text-blue-700 rounded-md text-[10px] font-bold">{totalEnfermeiras} Enfermeiras</span>
           </div>
         </div>
 
@@ -264,23 +282,18 @@ export default function PacienteList({
           </div>
           <h4 className="text-2xl font-black text-gray-800 mb-2">{usuariosAtivosMes}</h4>
           <p className="text-sm text-gray-500 font-medium flex items-center gap-1">
-            <span className="text-green-500 font-bold">▲ 12%</span> em relação ao mês anterior
+            Logaram nos últimos 30 dias
           </p>
         </div>
 
         {/* Card: Pacientes Inativos */}
         <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all group relative overflow-hidden">
           <div className="absolute top-0 right-0 p-2">
-            <span className="flex h-3 w-3">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-orange-500"></span>
-            </span>
           </div>
           <div className="flex justify-between items-start mb-4">
             <div className="p-3 bg-orange-50 rounded-xl text-orange-600 group-hover:bg-orange-600 group-hover:text-white transition-colors">
               <Clock className="w-6 h-6" />
             </div>
-            <span className="text-xs font-bold text-orange-500 uppercase tracking-widest">Atenção Necessária</span>
           </div>
           <h4 className="text-2xl font-black text-gray-800 mb-2">{pacientesInativos.length} Inativos</h4>
           <p className="text-xs text-gray-400 mb-4 font-medium">+60 dias sem acessar o portal</p>
@@ -434,7 +447,7 @@ export default function PacienteList({
                       <td className="px-6 py-4">
                          <div className="flex flex-col">
                             <span className="text-[11px] font-bold text-gray-700">
-                               {p.ultimoAcesso ? new Date(p.ultimoAcesso).toLocaleString('pt-BR', { 
+                               {p.ultimoAcesso ? getRealDate(p.ultimoAcesso)!.toLocaleString('pt-BR', { 
                                   day: '2-digit', month: '2-digit', year: '2-digit', 
                                   hour: '2-digit', minute: '2-digit' 
                                }) : 'Sem registro'}
