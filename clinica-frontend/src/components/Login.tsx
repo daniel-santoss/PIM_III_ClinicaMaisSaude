@@ -8,6 +8,7 @@ export default function Login({ onLogado }: { onLogado: () => void }) {
   const [erro, setErro] = useState("");
   const [carregando, setCarregando] = useState(false);
   const [mostrarSenha, setMostrarSenha] = useState(false);
+  const [modalEsqueciSenha, setModalEsqueciSenha] = useState(false);
 
   const [isCpfMask, setIsCpfMask] = useState(false);
 
@@ -144,16 +145,45 @@ export default function Login({ onLogado }: { onLogado: () => void }) {
             </button>
           </div>
 
-          <div className="text-center pt-4">
+         <div className="text-center pt-4">
             <button
               type="button"
+              onClick={() => setModalEsqueciSenha(true)}
               className="text-xs font-bold text-[#7C3AED] hover:text-[#6D28D9] underline underline-offset-4 transition-colors"
             >
               Esqueci minha senha
             </button>
           </div>
         </form>
-      </div>
+     </div>
+
+      {/* Modal Esqueci a Senha */}
+      {modalEsqueciSenha && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-gray-900/60 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-sm p-8 text-center border border-purple-50 animate-in zoom-in duration-200">
+            <div className="w-16 h-16 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+            </div>
+            <h3 className="text-xl font-black text-gray-800 mb-4 uppercase tracking-tight">Recuperar Senha</h3>
+            
+            <div className="text-left bg-gray-50 p-4 rounded-xl mb-6 space-y-3 border border-gray-100">
+              <div>
+                <span className="text-[10px] font-black text-purple-600 uppercase tracking-widest block mb-1">Se você é Paciente:</span>
+                <p className="text-sm font-medium text-gray-600">Ligue para a recepção no número <br/><strong className="text-gray-800">(11) 99999-9999</strong>.</p>
+              </div>
+              <div className="h-px bg-gray-200 w-full"></div>
+              <div>
+                <span className="text-[10px] font-black text-purple-600 uppercase tracking-widest block mb-1">Se você é Funcionário:</span>
+                <p className="text-sm font-medium text-gray-600">Entre em contato com o administrador do sistema o mais rápido possível.</p>
+              </div>
+            </div>
+
+            <button className="w-full bg-[#7C3AED] text-white font-black py-4 rounded-2xl uppercase tracking-widest text-[10px] shadow-lg shadow-purple-100 hover:bg-[#6D28D9] transition-all active:scale-95" onClick={() => setModalEsqueciSenha(false)}>
+              Entendido
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

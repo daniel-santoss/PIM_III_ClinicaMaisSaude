@@ -27,7 +27,14 @@ namespace ClinicaMaisSaude.API.Controllers
             try
             {
                 var tipoUsuario = User.FindFirstValue("TipoUsuario") ?? User.FindFirstValue(ClaimTypes.Role);
-                
+                var isAdmin = User.FindFirstValue("IsAdmin") == "true";
+
+                // Bloqueia a criação por médicos, exceto o Admin
+                if (tipoUsuario == "Medico" && !isAdmin)
+                {
+                    return StatusCode(403, "Médicos não têm permissão para agendar consultas. Apenas Enfermeiras e Pacientes.");
+                }
+
                 if (tipoUsuario == "Paciente")
                 {
                     var pacienteIdToken = User.FindFirstValue("PacienteId");
@@ -56,8 +63,6 @@ namespace ClinicaMaisSaude.API.Controllers
 
             var isAdmin = User.FindFirstValue("IsAdmin") == "true";
 
-            // Regra rigorosa de Data Privacy: Cada um enxerga exclusivamente seu quadrado
-            // EXCETO o Administrador, que enxerga tudo.
             if (isAdmin)
             {
                 // Não aplica filtros
@@ -178,7 +183,6 @@ namespace ClinicaMaisSaude.API.Controllers
         {
             try
             {
-                // Aqui podemos adicionar verificação se o paciente está consultando o próprio histórico, se necessário.
                 var historico = await _agendamentoService.ObterHistoricoAsync(id);
                 return Ok(historico);
             }
