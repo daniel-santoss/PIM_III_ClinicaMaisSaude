@@ -1,16 +1,7 @@
 import type { PacienteResponse } from "../types/PacienteResponse";
 import { mascaraCpf } from "../utils/validators";
+import { MapNomesStatus } from "../constants/statusMap";
 import { User, Clock, Calendar } from 'lucide-react';
-
-const MapNomesStatus: Record<string, string> = {
-  "Agendado": "Agendado",
-  "EmAtendimento": "Em Atendimento",
-  "AguardandoRetorno": "Aguardando Retorno",
-  "RetornoAgendado": "Retorno Agendado",
-  "Finalizado": "Finalizado",
-  "Faltou": "Faltou",
-  "Cancelado": "Cancelado"
-};
 
 interface AgendamentoCardProps {
   agenda: {

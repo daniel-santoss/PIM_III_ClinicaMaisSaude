@@ -1,3 +1,4 @@
+import { API_URL } from "../constants/api";
 import { useState, useEffect } from "react";
 import type { FormEvent } from "react";
 import { mascaraCpf } from "../utils/validators";
@@ -40,11 +41,11 @@ export function CadastroUsuario({ onUserCreated }: { onUserCreated?: () => void 
     const token = localStorage.getItem("authToken");
 
     try {
-      const response = await fetch("http://localhost:5045/api/LoginPortal/cadastro", {
+      const response = await fetch(`${API_URL}/api/LoginPortal/cadastro`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           nome,

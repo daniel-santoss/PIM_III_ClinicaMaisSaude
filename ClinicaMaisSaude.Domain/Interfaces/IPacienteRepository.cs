@@ -11,5 +11,6 @@ namespace ClinicaMaisSaude.Domain.Interfaces
         Task<Paciente?> ObterPorCpfAsync(string cpf);
         Task<Paciente?> ObterPorIdAsync(Guid id);
         Task AtualizarAsync(Paciente paciente);
+        Task<(IEnumerable<Paciente> Items, int TotalCount)> ObterTodosPaginadoAsync(string? nome, string? cpf, int page, int pageSize);
     }
 }

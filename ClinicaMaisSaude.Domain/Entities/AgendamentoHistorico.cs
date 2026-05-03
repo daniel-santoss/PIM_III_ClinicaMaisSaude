@@ -39,7 +39,7 @@ namespace ClinicaMaisSaude.Domain.Entities
             DataNova = dataNova;
             Observacao = observacao;
             RealizadoPor = realizadoPor;
-            Dt_Criado = DateTime.Now;
+            Dt_Criado = DateTime.UtcNow;
         }
     }
 }

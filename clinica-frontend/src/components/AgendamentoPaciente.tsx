@@ -1,3 +1,4 @@
+import { API_URL } from "../constants/api";
 import { useEffect, useState } from "react";
 import { mascaraCpf } from "../utils/validators";
 import { ESPECIALIDADES } from "../constants/especialidades";
@@ -24,6 +25,8 @@ export default function AgendamentoPaciente({ onSucesso }: AgendamentoPacientePr
   const [tipoConsulta, setTipoConsulta] = useState<number>(3); // Default 3: Consulta Médica
   const [especialidade, setEspecialidade] = useState("");
   const [buscaEspecialidade, setBuscaEspecialidade] = useState("");
+  const [listaEspecialidades, setListaEspecialidades] = useState<{id: number, nome: string}[]>([]);
+  const [especialidadesDisponiveis, setEspecialidadesDisponiveis] = useState<number[]>([]);
 
   const [dataSelecionada, setDataSelecionada] = useState("");
   const [horarioSelecionado, setHorarioSelecionado] = useState("");
@@ -42,11 +45,11 @@ export default function AgendamentoPaciente({ onSucesso }: AgendamentoPacientePr
     setSugestaoIA(null);
 
     try {
-      const response = await fetch("http://localhost:5045/api/Consultas/sugerir-tipo", {
+      const response = await fetch(`${API_URL}/api/Consultas/sugerir-tipo`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
+          Authorization: `Bearer ${token}`
         },
         body: JSON.stringify({ sintomas })
       });
@@ -84,13 +87,39 @@ export default function AgendamentoPaciente({ onSucesso }: AgendamentoPacientePr
     }
   };
 
+  useEffect(() => {
+    fetch(`${API_URL}/api/Especialidades/lista`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : [])
+      .then(setListaEspecialidades)
+      .catch(() => {});
+
+    fetch(`${API_URL}/api/Especialidades/disponiveis`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : [])
+      .then(setEspecialidadesDisponiveis)
+      .catch(() => {});
+
+    fetch(`${API_URL}/api/Agendamentos`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : [])
+      .then(setAgendamentosAnteriores)
+      .catch(() => {});
+  }, [token]);
+
   // Buscar horários
   useEffect(() => {
     const fetchHorarios = async () => {
       if (!dataSelecionada || tipoConsulta === null) return;
       setCarregandoHorarios(true);
       try {
-        const res = await fetch(`http://localhost:5045/api/Agendamentos/horarios-disponiveis?data=${dataSelecionada}&tipoConsulta=${tipoConsulta}`, {
+        let queryParams = `?data=${dataSelecionada}&tipoConsulta=${tipoConsulta}`;
+        
+        if (tipoConsulta === 3 && especialidade) {
+           const esp = listaEspecialidades.find(e => e.nome.toLowerCase() === especialidade.toLowerCase());
+           if (esp) queryParams += `&especialidadeId=${esp.id}`;
+        } else if (tipoConsulta === 4 && origemId) {
+           queryParams += `&origemId=${origemId}`;
+        }
+        
+        const res = await fetch(`${API_URL}/api/Agendamentos/horarios-disponiveis${queryParams}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (res.ok) setHorariosDisponiveis(await res.json());
@@ -101,13 +130,19 @@ export default function AgendamentoPaciente({ onSucesso }: AgendamentoPacientePr
       }
     };
     fetchHorarios();
-  }, [dataSelecionada, tipoConsulta, token]);
+  }, [dataSelecionada, tipoConsulta, especialidade, origemId, listaEspecialidades, token]);
 
   const finalizarAgendamento = async () => {
     setCarregando(true);
     setErro(null);
     try {
-      const response = await fetch("http://localhost:5045/api/Agendamentos", {
+      let espId = null;
+      if (tipoConsulta === 3 && especialidade) {
+        const esp = listaEspecialidades.find(e => e.nome.toLowerCase() === especialidade.toLowerCase());
+        if (esp) espId = esp.id;
+      }
+
+      const response = await fetch(`${API_URL}/api/Agendamentos`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify({
@@ -116,6 +151,7 @@ export default function AgendamentoPaciente({ onSucesso }: AgendamentoPacientePr
           tipoProfissional: tipoProfissional ?? 1,
           tipoConsulta,
           agendamentoOrigemId: origemId || null,
+          especialidadeId: espId,
           observacao: sintomas // Usando sintomas como observação
         })
       });
@@ -299,6 +335,9 @@ export default function AgendamentoPaciente({ onSucesso }: AgendamentoPacientePr
                     const val = Number(e.target.value);
                     setTipoConsulta(val);
                     setTipoProfissional(val >= 3 ? 1 : 0);
+                    if (val < 3) {
+                      setEspecialidade("");
+                    }
                   }}
                   className="w-full p-5 bg-gray-50 border-2 border-gray-100 rounded-[1.5rem] focus:ring-4 focus:ring-purple-100 focus:border-[#7C3AED] outline-none font-bold text-gray-700 transition-all"
                 >
@@ -309,32 +348,83 @@ export default function AgendamentoPaciente({ onSucesso }: AgendamentoPacientePr
                 </select>
               </div>
 
-              {(tipoConsulta === 3 || tipoConsulta === 4) && (
-                <div className="space-y-4 animate-in fade-in duration-500">
-                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 ml-1">Especialidade Médica</label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      placeholder="Buscar especialidade..."
-                      className="w-full p-5 bg-gray-50 border-2 border-gray-100 rounded-[1.5rem] focus:ring-4 focus:ring-purple-100 focus:border-[#7C3AED] outline-none font-bold text-gray-700 transition-all pl-12"
-                      value={buscaEspecialidade}
-                      onChange={(e) => setBuscaEspecialidade(e.target.value)}
-                    />
-                    <Search className="w-5 h-5 absolute left-5 top-1/2 -translate-y-1/2 text-gray-400" strokeWidth={2.5} />
-                  </div>
+              {tipoConsulta === 3 && (() => {
+                const filtradas = ESPECIALIDADES.filter(e => e.toLowerCase().includes(buscaEspecialidade.toLowerCase()));
+                const temIndisponivel = filtradas.some(e => {
+                  const espObj = listaEspecialidades.find(le => le.nome.toLowerCase() === e.toLowerCase());
+                  return !(espObj ? especialidadesDisponiveis.includes(espObj.id) : false);
+                });
 
-                  <div className="grid grid-cols-2 gap-3 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
-                    {ESPECIALIDADES.filter(e => e.toLowerCase().includes(buscaEspecialidade.toLowerCase())).map(e => (
-                      <button
-                        key={e}
-                        onClick={() => setEspecialidade(e)}
-                        className={`p-4 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all border-2 ${especialidade === e ? 'bg-[#7C3AED] text-white border-[#7C3AED] shadow-lg shadow-purple-100' : 'bg-white text-gray-500 border-gray-100 hover:border-purple-200'
-                          }`}
-                      >
-                        {e}
-                      </button>
-                    ))}
+                return (
+                  <div className="space-y-4 animate-in fade-in duration-500">
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 ml-1">Especialidade Médica</label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="Buscar especialidade..."
+                        className="w-full p-5 bg-gray-50 border-2 border-gray-100 rounded-[1.5rem] focus:ring-4 focus:ring-purple-100 focus:border-[#7C3AED] outline-none font-bold text-gray-700 transition-all pl-12"
+                        value={buscaEspecialidade}
+                        onChange={(e) => setBuscaEspecialidade(e.target.value)}
+                      />
+                      <Search className="w-5 h-5 absolute left-5 top-1/2 -translate-y-1/2 text-gray-400" strokeWidth={2.5} />
+                    </div>
+                    
+                    {temIndisponivel && (
+                      <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-100 text-red-500 rounded-xl text-[10px] font-black uppercase tracking-widest">
+                        <AlertTriangle className="w-4 h-4 shrink-0" />
+                        <span>As especialidades marcadas não possuem médicos disponíveis no momento.</span>
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-2 gap-3 max-h-48 overflow-y-auto pr-2 custom-scrollbar mt-4">
+                        {filtradas.map(e => {
+                          const espObj = listaEspecialidades.find(le => le.nome.toLowerCase() === e.toLowerCase());
+                          const isDisponivel = espObj ? especialidadesDisponiveis.includes(espObj.id) : false;
+                          
+                          return (
+                            <button
+                              key={e}
+                              disabled={!isDisponivel}
+                              onClick={() => setEspecialidade(e)}
+                              className={`p-4 rounded-2xl border-2 text-[10px] font-black uppercase tracking-widest transition-all text-center flex flex-row items-center justify-center gap-2 ${
+                                !isDisponivel 
+                                  ? 'border-red-100 bg-red-50 text-red-400 opacity-70 cursor-not-allowed'
+                                  : especialidade === e
+                                  ? 'border-[#7C3AED] bg-purple-50 text-[#7C3AED]'
+                                  : 'border-gray-100 hover:border-purple-200 text-gray-500 hover:text-[#7C3AED] bg-white'
+                              }`}
+                            >
+                              <span>{e}</span>
+                              {!isDisponivel && <AlertTriangle className="w-4 h-4 text-red-500 shrink-0" />}
+                            </button>
+                          );
+                        })}
+                    </div>
                   </div>
+                );
+              })()}
+
+              {tipoConsulta === 4 && (
+                <div className="space-y-4 animate-in fade-in duration-500">
+                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 ml-1">Consulta de Origem</label>
+                  <select
+                    value={origemId}
+                    onChange={(e) => setOrigemId(e.target.value)}
+                    className="w-full p-5 bg-purple-50 border-2 border-purple-100 rounded-[1.5rem] focus:ring-4 focus:ring-purple-200 focus:border-[#7C3AED] outline-none font-bold text-[#7C3AED] transition-all"
+                  >
+                    <option value="">Selecione a consulta anterior...</option>
+                    {agendamentosAnteriores
+                      .filter(a => a.status === "AguardandoRetorno")
+                      .map(a => (
+                        <option key={a.id} value={a.id}>
+                          {new Date(a.dataHoraConsulta).toLocaleDateString('pt-BR')} - {a.tipoConsulta} ({a.nomeProfissional})
+                        </option>
+                      ))
+                    }
+                  </select>
+                  {agendamentosAnteriores.filter(a => a.status === "AguardandoRetorno").length === 0 && (
+                    <p className="text-[10px] text-red-500 font-bold ml-1 uppercase tracking-tighter">Você não tem nenhuma consulta pendente de retorno.</p>
+                  )}
                 </div>
               )}
             </div>
@@ -342,7 +432,7 @@ export default function AgendamentoPaciente({ onSucesso }: AgendamentoPacientePr
             <div className="flex justify-between pt-4">
               <button onClick={() => setPasso(1)} className="px-10 py-4 text-gray-400 font-bold hover:text-gray-600 transition-colors">Voltar</button>
               <button
-                disabled={(tipoConsulta >= 3 && !especialidade)}
+                disabled={(tipoConsulta === 3 && !especialidade) || (tipoConsulta === 4 && !origemId)}
                 onClick={() => setPasso(3)}
                 className="px-10 py-4 bg-[#7C3AED] text-white rounded-2xl font-black shadow-lg shadow-purple-200 hover:scale-105 transition-all disabled:opacity-50"
               >
@@ -406,8 +496,12 @@ export default function AgendamentoPaciente({ onSucesso }: AgendamentoPacientePr
                       })}
                     </div>
                   ) : (
-                    <div className="p-10 bg-gray-50 rounded-[2rem] text-center border-2 border-dashed border-gray-200">
-                      <p className="text-gray-400 text-[10px] font-black uppercase tracking-widest">Nenhum horário disponível nesta data</p>
+                    <div className="col-span-3 p-6 flex flex-col items-center justify-center text-center bg-orange-50 border border-orange-100 rounded-[2rem]">
+                      <AlertTriangle className="w-8 h-8 text-orange-400 mb-2" />
+                      <p className="text-xs font-black text-orange-600 uppercase tracking-widest">Nenhum horário disponível</p>
+                      <p className="text-[10px] text-orange-500 font-medium mt-1">
+                        Não há médicos desta especialidade disponíveis na data informada.
+                      </p>
                     </div>
                   )
                 ) : (

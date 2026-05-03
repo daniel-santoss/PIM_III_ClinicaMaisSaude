@@ -55,12 +55,11 @@ namespace ClinicaMaisSaude.API.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> ObterTodos()
+        public async Task<IActionResult> ObterTodos([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
         {
-            var agendamentos = await _agendamentoService.ObterTodosAsync();
+            var result = await _agendamentoService.ObterTodosPaginadoAsync(page, pageSize);
 
             var tipoUsuario = User.FindFirstValue("TipoUsuario") ?? User.FindFirstValue(ClaimTypes.Role);
-
             var isAdmin = User.FindFirstValue("IsAdmin") == "true";
 
             if (isAdmin)
@@ -72,7 +71,7 @@ namespace ClinicaMaisSaude.API.Controllers
                 var pacienteIdStr = User.FindFirstValue("PacienteId");
                 if (Guid.TryParse(pacienteIdStr, out var pacienteId))
                 {
-                    agendamentos = agendamentos.Where(a => a.PacienteId == pacienteId);
+                    result.Items = result.Items.Where(a => a.PacienteId == pacienteId).ToList();
                 }
             }
             else if (tipoUsuario == "Medico" || tipoUsuario == "Enfermeira")
@@ -80,19 +79,19 @@ namespace ClinicaMaisSaude.API.Controllers
                 var profissionalIdStr = User.FindFirstValue("ProfissionalId");
                 if (Guid.TryParse(profissionalIdStr, out var profissionalId))
                 {
-                    agendamentos = agendamentos.Where(a => a.ProfissionalId == profissionalId);
+                    result.Items = result.Items.Where(a => a.ProfissionalId == profissionalId).ToList();
                 }
             }
 
-            return Ok(agendamentos);
+            return Ok(result);
         }
 
         [HttpGet("horarios-disponiveis")]
-        public async Task<IActionResult> ObterHorariosDisponiveis([FromQuery] DateTime data, [FromQuery] int tipoConsulta)
+        public async Task<IActionResult> ObterHorariosDisponiveis([FromQuery] DateTime data, [FromQuery] int tipoConsulta, [FromQuery] int? especialidadeId = null, [FromQuery] Guid? origemId = null)
         {
             try
             {
-                var horarios = await _agendamentoService.ObterHorariosDisponiveisAsync(data, tipoConsulta);
+                var horarios = await _agendamentoService.ObterHorariosDisponiveisAsync(data, tipoConsulta, especialidadeId, origemId);
                 return Ok(horarios);
             }
             catch (Exception ex)

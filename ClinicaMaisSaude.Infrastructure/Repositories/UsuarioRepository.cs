@@ -25,15 +25,15 @@ namespace ClinicaMaisSaude.Infrastructure.Repositories
         public async Task<string> ObterNomeUsuarioAsync(Guid id)
         {
             // 1. Verificar se é um profissional
-            var profissional = await _context.Profissionais.FirstOrDefaultAsync(p => p.UsuarioId == id);
+            var profissional = await _context.Profissionais.AsNoTracking().FirstOrDefaultAsync(p => p.UsuarioId == id);
             if (profissional != null) return profissional.Nome;
 
             // 2. Verificar se é um paciente
-            var paciente = await _context.Pacientes.FirstOrDefaultAsync(p => p.UsuarioId == id);
+            var paciente = await _context.Pacientes.AsNoTracking().FirstOrDefaultAsync(p => p.UsuarioId == id);
             if (paciente != null) return paciente.Nome;
 
             // 3. Verificar se é admin puro
-            var usuario = await _context.Usuarios.FindAsync(id);
+            var usuario = await _context.Usuarios.AsNoTracking().FirstOrDefaultAsync(u => u.Id == id);
             if (usuario != null && usuario.IsAdmin) return "Administrador";
 
             return "Sistema";

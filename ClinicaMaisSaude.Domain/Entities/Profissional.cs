@@ -40,5 +40,12 @@ namespace ClinicaMaisSaude.Domain.Entities
             UfCrm = ufCrm;
             DtCriado = dtCriado;
         }
+
+        public void AtualizarNome(string nome)
+        {
+            if (string.IsNullOrWhiteSpace(nome))
+                throw new ArgumentException("O nome não pode ser vazio.", nameof(nome));
+            Nome = nome;
+        }
     }
 }

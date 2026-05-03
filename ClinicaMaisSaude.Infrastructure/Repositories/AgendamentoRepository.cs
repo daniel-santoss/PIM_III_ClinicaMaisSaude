@@ -26,7 +26,9 @@ namespace ClinicaMaisSaude.Infrastructure.Repositories
         }
         public async Task<Agendamento?> ObterPorIdAsync(Guid id)
         {
-            return await _context.Agendamentos.FindAsync(id);
+            return await _context.Agendamentos
+                .Include(a => a.Paciente)
+                .FirstOrDefaultAsync(a => a.Id == id);
         }
 
         public async Task AtualizarAsync(Agendamento agendamento)
@@ -50,6 +52,19 @@ namespace ClinicaMaisSaude.Infrastructure.Repositories
                 .AsNoTracking()
                 .Include(a => a.Paciente)
                 .ToListAsync();
+        }
+
+        public async Task<(IEnumerable<Agendamento> Items, int TotalCount)> ObterTodosPaginadoAsync(int page, int pageSize)
+        {
+            var query = _context.Agendamentos
+                                .AsNoTracking()
+                                .Include(a => a.Paciente)
+                                .OrderByDescending(a => a.DataHoraConsulta);
+
+            var totalCount = await query.CountAsync();
+            var items = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
+
+            return (items, totalCount);
         }
 
         public async Task DeletarAsync(Agendamento agendamento)

@@ -1,16 +1,10 @@
+import { API_URL } from "../constants/api";
 import { useEffect, useState } from "react";
 import { mascaraCpf } from "../utils/validators";
+import { obterMinDate } from "../utils/dates";
 import type { PacienteResponse } from "../types/PacienteResponse";
 import type { AgendamentoResponse } from "./AgendamentoList";
-import { X, Lightbulb } from 'lucide-react';
-
-function obterMinDate(): string {
-  const agora = new Date();
-  const ano = agora.getFullYear();
-  const mes = String(agora.getMonth() + 1).padStart(2, "0");
-  const dia = String(agora.getDate()).padStart(2, "0");
-  return `${ano}-${mes}-${dia}`;
-}
+import { X, Lightbulb, AlertTriangle } from 'lucide-react';
 
 interface AgendamentoFormCriarProps {
   pacientes: PacienteResponse[];
@@ -39,6 +33,7 @@ export default function AgendamentoFormCriar({
   const [origemId, setOrigemId] = useState("");
   const [especialidadeId, setEspecialidadeId] = useState<number | null>(null);
   const [listaEspecialidades, setListaEspecialidades] = useState<{id: number, nome: string}[]>([]);
+  const [especialidadesDisponiveis, setEspecialidadesDisponiveis] = useState<number[]>([]);
   const [sintomas, setSintomas] = useState("");
   const [sugestaoIA, setSugestaoIA] = useState<any>(null);
   const [carregandoIA, setCarregandoIA] = useState(false);
@@ -51,9 +46,14 @@ export default function AgendamentoFormCriar({
   useEffect(() => {
     if (tipoProfissional === 1 && listaEspecialidades.length === 0) {
       const token = localStorage.getItem("authToken");
-      fetch("http://localhost:5045/api/Especialidades/lista", { headers: { Authorization: `Bearer ${token}` } })
+      fetch(`${API_URL}/api/Especialidades/lista`, { headers: { Authorization: `Bearer ${token}` } })
         .then(r => r.ok ? r.json() : [])
         .then(setListaEspecialidades)
+        .catch(() => {});
+
+      fetch(`${API_URL}/api/Especialidades/disponiveis`, { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => r.ok ? r.json() : [])
+        .then(setEspecialidadesDisponiveis)
         .catch(() => {});
     }
   }, [tipoProfissional]);
@@ -68,7 +68,14 @@ export default function AgendamentoFormCriar({
       setCarregandoHorarios(true);
       try {
         const token = localStorage.getItem("authToken");
-        const res = await fetch(`http://localhost:5045/api/Agendamentos/horarios-disponiveis?data=${dataSelecionada}&tipoConsulta=${tipoConsulta}`, {
+        let queryParams = `?data=${dataSelecionada}&tipoConsulta=${tipoConsulta}`;
+        if (tipoConsulta === 3 && especialidadeId) {
+          queryParams += `&especialidadeId=${especialidadeId}`;
+        } else if (tipoConsulta === 4 && origemId) {
+          queryParams += `&origemId=${origemId}`;
+        }
+
+        const res = await fetch(`${API_URL}/api/Agendamentos/horarios-disponiveis${queryParams}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (res.ok) {
@@ -81,13 +88,18 @@ export default function AgendamentoFormCriar({
       }
     };
     fetchHorarios();
-  }, [dataSelecionada, tipoConsulta]);
+  }, [dataSelecionada, tipoConsulta, especialidadeId, origemId]);
 
   const pacientesFiltrados = pacientes.filter(p => p.nome.toLowerCase().includes(buscaPaciente.toLowerCase()) || p.cpf.includes(buscaPaciente));
 
   const criarAgendamento = async () => {
     if (!pacienteSelecionado || !dataSelecionada || !horarioSelecionado) {
       onMensagem("Por favor, preencha todos os campos e selecione um horário.");
+      return;
+    }
+
+    if (tipoProfissional === 1 && tipoConsulta === 3 && !especialidadeId) {
+      onMensagem("Selecione uma especialidade médica para prosseguir.");
       return;
     }
 
@@ -100,7 +112,7 @@ export default function AgendamentoFormCriar({
 
     try {
       const token = localStorage.getItem("authToken");
-      const response = await fetch("http://localhost:5045/api/Agendamentos", {
+      const response = await fetch(`${API_URL}/api/Agendamentos`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify({
@@ -161,7 +173,7 @@ export default function AgendamentoFormCriar({
                     setCarregandoIA(true); setSugestaoIA(null);
                     try {
                       const token = localStorage.getItem("authToken");
-                      const res = await fetch("http://localhost:5045/api/Consultas/sugerir-tipo", {
+                      const res = await fetch(`${API_URL}/api/Consultas/sugerir-tipo`, {
                         method: "POST",
                         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
                         body: JSON.stringify({ sintomas })
@@ -271,19 +283,39 @@ export default function AgendamentoFormCriar({
               </div>
             </div>
 
-            {tipoProfissional === 1 && (
+            {tipoProfissional === 1 && tipoConsulta !== 4 && (
               <div className="animate-in fade-in slide-in-from-top-2 duration-300">
-                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Especialidade Médica (Opcional)</label>
-                <select
-                  className="w-full p-4 border border-gray-200 rounded-2xl bg-gray-50 focus:ring-2 focus:ring-[#7C3AED] focus:bg-white outline-none font-bold text-sm"
-                  value={especialidadeId ?? ""}
-                  onChange={(e) => setEspecialidadeId(e.target.value ? Number(e.target.value) : null)}
-                >
-                  <option value="">Qualquer especialidade</option>
-                  {listaEspecialidades.map(e => (
-                    <option key={e.id} value={e.id}>{e.nome}</option>
-                  ))}
-                </select>
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Especialidade Médica</label>
+                {listaEspecialidades.some(e => !especialidadesDisponiveis.includes(e.id)) && (
+                  <div className="flex items-center gap-2 p-2.5 mb-3 bg-red-50 border border-red-100 text-red-500 rounded-xl text-[9px] font-bold uppercase tracking-widest">
+                    <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                    <span>Especialidades com ⚠ não possuem médicos no momento.</span>
+                  </div>
+                )}
+                <div className="grid grid-cols-2 gap-2 max-h-36 overflow-y-auto pr-1 custom-scrollbar">
+                  {listaEspecialidades.map(e => {
+                    const disponivel = especialidadesDisponiveis.includes(e.id);
+                    const selecionado = especialidadeId === e.id;
+                    return (
+                      <button
+                        key={e.id}
+                        type="button"
+                        disabled={!disponivel}
+                        onClick={() => setEspecialidadeId(e.id)}
+                        className={`py-2.5 px-3 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1.5 ${
+                          !disponivel
+                            ? 'border-red-100 bg-red-50 text-red-300 cursor-not-allowed'
+                            : selecionado
+                            ? 'border-[#7C3AED] bg-[#7C3AED] text-white shadow-lg shadow-purple-100'
+                            : 'border-gray-200 bg-white text-gray-600 hover:border-purple-300 hover:bg-purple-50'
+                        }`}
+                      >
+                        {e.nome}
+                        {!disponivel && <AlertTriangle className="w-3 h-3 text-red-400" />}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             )}
 
@@ -297,7 +329,7 @@ export default function AgendamentoFormCriar({
                 >
                   <option value="">Selecione a consulta anterior...</option>
                   {agendamentos
-                    .filter(a => a.pacienteId === pacienteSelecionado && a.status === "Finalizado")
+                    .filter(a => a.pacienteId === pacienteSelecionado && a.status === "AguardandoRetorno")
                     .map(a => (
                       <option key={a.id} value={a.id}>
                         {new Date(a.dataHoraConsulta).toLocaleDateString('pt-BR')} - {a.tipoConsulta} ({a.nomeProfissional})
@@ -305,8 +337,8 @@ export default function AgendamentoFormCriar({
                     ))
                   }
                 </select>
-                {agendamentos.filter(a => a.pacienteId === pacienteSelecionado && a.status === "Finalizado").length === 0 && (
-                  <p className="mt-2 text-[10px] text-red-400 font-bold ml-1 uppercase tracking-tighter">Nenhuma consulta finalizada encontrada para este paciente.</p>
+                {agendamentos.filter(a => a.pacienteId === pacienteSelecionado && a.status === "AguardandoRetorno").length === 0 && (
+                  <p className="mt-2 text-[10px] text-red-400 font-bold ml-1 uppercase tracking-tighter">Nenhuma consulta pendente de retorno para este paciente.</p>
                 )}
               </div>
             )}
@@ -325,19 +357,33 @@ export default function AgendamentoFormCriar({
               <div className="col-span-2 md:col-span-1">
                 <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 ml-1">Horário Selecionado: <span className="text-[#7C3AED]">{horarioSelecionado || '...'}</span></label>
                 <div className="grid grid-cols-4 gap-2 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
-                  {horariosDisponiveis.map(h => (
-                    <button
-                      key={h}
-                      type="button"
-                      onClick={() => setHorarioSelecionado(h)}
-                      className={`py-2.5 text-[11px] font-black rounded-xl border transition-all ${horarioSelecionado === h
-                          ? 'bg-[#7C3AED] text-white border-[#7C3AED] shadow-lg shadow-purple-100'
-                          : 'bg-white text-gray-600 border-gray-200 hover:border-purple-300 hover:bg-purple-50'
-                        }`}
-                    >
-                      {h}
-                    </button>
-                  ))}
+                  {carregandoHorarios ? (
+                    <div className="col-span-4 p-4 flex justify-center">
+                      <div className="w-5 h-5 border-2 border-purple-200 border-t-[#7C3AED] rounded-full animate-spin"></div>
+                    </div>
+                  ) : dataSelecionada && horariosDisponiveis.length === 0 ? (
+                    <div className="col-span-4 p-4 flex flex-col items-center justify-center text-center bg-orange-50 border border-orange-100 rounded-2xl">
+                      <AlertTriangle className="w-8 h-8 text-orange-400 mb-2" />
+                      <p className="text-xs font-bold text-orange-600">Nenhum horário disponível.</p>
+                      <p className="text-[10px] text-orange-500 font-medium mt-1">
+                        Não há médicos desta especialidade disponíveis na data informada.
+                      </p>
+                    </div>
+                  ) : (
+                    horariosDisponiveis.map(h => (
+                      <button
+                        key={h}
+                        type="button"
+                        onClick={() => setHorarioSelecionado(h)}
+                        className={`py-2.5 text-[11px] font-black rounded-xl border transition-all ${horarioSelecionado === h
+                            ? 'bg-[#7C3AED] text-white border-[#7C3AED] shadow-lg shadow-purple-100'
+                            : 'bg-white text-gray-600 border-gray-200 hover:border-purple-300 hover:bg-purple-50'
+                          }`}
+                      >
+                        {h}
+                      </button>
+                    ))
+                  )}
                 </div>
               </div>
             </div>
