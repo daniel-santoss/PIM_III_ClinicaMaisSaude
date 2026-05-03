@@ -1,3 +1,4 @@
+import { API_URL } from "../constants/api";
 import { useEffect, useState } from "react";
 import { mascaraCpf, mascaraTelefone } from "../utils/validators";
 import { AlertTriangle, Calendar, TrendingUp, AlertCircle, BarChart3, Plus, User, X, FileText, Mail, Phone, Pencil } from 'lucide-react';
@@ -71,9 +72,14 @@ export default function AgendamentoList() {
   const tipoUsuario = localStorage.getItem("tipoUsuario");
   const isAdmin = localStorage.getItem("isAdmin") === "true";
 
-  const limparFiltros = () => { setFiltroAgenda(""); setFiltroStatus("Todos"); setFiltroDataConsulta(""); };
+  const [page, setPage] = useState(1);
+  const pageSize = 20;
+  const [totalCount, setTotalCount] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
 
-  useEffect(() => { carregarDados(); }, [refreshContador]);
+  const limparFiltros = () => { setFiltroAgenda(""); setFiltroStatus("Todos"); setFiltroDataConsulta(""); setPage(1); };
+
+  useEffect(() => { carregarDados(); }, [refreshContador, page]);
 
   const carregarDados = async () => {
     setCarregando(true);
@@ -82,12 +88,24 @@ export default function AgendamentoList() {
       const token = localStorage.getItem("authToken");
       const headers = { "Authorization": `Bearer ${token}` };
       const [resA, resP] = await Promise.all([
-        fetch("http://localhost:5045/api/Agendamentos", { headers }),
-        fetch("http://localhost:5045/api/Pacientes", { headers })
+        fetch(`${API_URL}/api/Agendamentos?page=${page}&pageSize=${pageSize}`, { headers }),
+        fetch(`${API_URL}/api/Pacientes?pageSize=10000`, { headers }) // Busca lista grande para o dropdown do Form
       ]);
       if (!resA.ok || !resP.ok) throw new Error("Erro ao carregar dados do servidor.");
-      setAgendamentos(await resA.json());
-      setPacientes(await resP.json());
+      
+      const dataA = await resA.json();
+      if (dataA.items) {
+          setAgendamentos(dataA.items);
+          setTotalCount(dataA.totalCount);
+          setTotalPages(dataA.totalPages || Math.ceil(dataA.totalCount / pageSize));
+      } else {
+          setAgendamentos(dataA);
+          setTotalCount(dataA.length);
+          setTotalPages(1);
+      }
+      
+      const dataP = await resP.json();
+      setPacientes(dataP.items ? dataP.items : dataP);
     } catch (err: any) { setErro(err.message); }
     finally { setCarregando(false); }
   };
@@ -97,7 +115,7 @@ export default function AgendamentoList() {
     setCancelando(true);
     try {
       const token = localStorage.getItem("authToken");
-      const response = await fetch(`http://localhost:5045/api/Agendamentos/${cancelarAlvo.id}/status`, {
+      const response = await fetch(`${API_URL}/api/Agendamentos/${cancelarAlvo.id}/status`, {
         method: "PATCH", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify(EnumStatusUrl["Cancelado"])
       });
@@ -113,7 +131,7 @@ export default function AgendamentoList() {
     if (valorEnum === undefined) return;
     try {
       const token = localStorage.getItem("authToken");
-      const response = await fetch(`http://localhost:5045/api/Agendamentos/${id}/status`, {
+      const response = await fetch(`${API_URL}/api/Agendamentos/${id}/status`, {
         method: "PATCH", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify(valorEnum)
       });
@@ -126,7 +144,7 @@ export default function AgendamentoList() {
     setHistoricoLoading(true); setModalHistoricoAberto(true); setHistoricoAtual([]);
     try {
       const token = localStorage.getItem("authToken");
-      const resp = await fetch(`http://localhost:5045/api/Agendamentos/${agendamentoId}/historico`, {
+      const resp = await fetch(`${API_URL}/api/Agendamentos/${agendamentoId}/historico`, {
         headers: { "Authorization": `Bearer ${token}` }
       });
       if (resp.ok) { setHistoricoAtual(await resp.json()); }
@@ -163,6 +181,11 @@ export default function AgendamentoList() {
       const dB = new Date(b.dataHoraConsulta).getTime();
       return ordemData === "desc" ? dB - dA : dA - dB;
     });
+
+  // Reset page to 1 when search filters change
+  useEffect(() => {
+    setPage(1);
+  }, [filtroAgenda, filtroStatus, filtroDataConsulta]);
 
   const hoje = new Date().toISOString().split('T')[0];
   const atendimentosHoje = agendamentos.filter(a => a.dataHoraConsulta.startsWith(hoje)).length;
@@ -276,6 +299,58 @@ export default function AgendamentoList() {
                 onHistorico={abrirHistorico}
               />
             ))
+          )}
+        </div>
+
+        {/* Footer / Paginação */}
+        <div className="px-6 py-4 bg-gray-50/80 rounded-2xl border border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4 mt-6">
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+            Exibindo {agendamentos.length} de {totalCount} {totalCount === 1 ? "resultado" : "resultados"}
+          </p>
+          
+          {totalPages > 1 && (
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="px-3 py-1 text-sm font-bold border border-gray-200 rounded-lg text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white hover:text-purple-600 transition-colors bg-white shadow-sm"
+              >
+                Anterior
+              </button>
+              
+              <div className="flex items-center gap-1">
+                {Array.from({ length: totalPages }).map((_, i) => {
+                  const pNum = i + 1;
+                  if (pNum === 1 || pNum === totalPages || (pNum >= page - 1 && pNum <= page + 1)) {
+                    return (
+                      <button
+                        key={pNum}
+                        onClick={() => setPage(pNum)}
+                        className={`w-8 h-8 flex items-center justify-center text-xs font-bold rounded-lg transition-colors border shadow-sm ${
+                          page === pNum 
+                            ? 'bg-purple-600 text-white border-purple-600 shadow-purple-200' 
+                            : 'bg-white text-gray-600 border-gray-200 hover:bg-purple-50 hover:text-purple-600 hover:border-purple-200'
+                        }`}
+                      >
+                        {pNum}
+                      </button>
+                    );
+                  }
+                  if (pNum === page - 2 || pNum === page + 2) {
+                    return <span key={pNum} className="text-gray-400 text-xs px-1">...</span>;
+                  }
+                  return null;
+                })}
+              </div>
+
+              <button 
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                className="px-3 py-1 text-sm font-bold border border-gray-200 rounded-lg text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white hover:text-purple-600 transition-colors bg-white shadow-sm"
+              >
+                Próximo
+              </button>
+            </div>
           )}
         </div>
 

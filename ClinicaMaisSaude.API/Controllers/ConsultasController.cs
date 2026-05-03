@@ -1,6 +1,6 @@
+using ClinicaMaisSaude.Application.DTOs.Consulta;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 
@@ -13,16 +13,13 @@ namespace ClinicaMaisSaude.API.Controllers
     {
         private readonly IConfiguration _config;
         private readonly IHttpClientFactory _httpClientFactory;
+        private readonly ILogger<ConsultasController> _logger;
 
-        public ConsultasController(IConfiguration config, IHttpClientFactory httpClientFactory)
+        public ConsultasController(IConfiguration config, IHttpClientFactory httpClientFactory, ILogger<ConsultasController> logger)
         {
             _config = config;
             _httpClientFactory = httpClientFactory;
-        }
-
-        public class SugerirTipoRequest
-        {
-            public string Sintomas { get; set; } = "";
+            _logger = logger;
         }
 
         [HttpPost("sugerir-tipo")]
@@ -94,9 +91,7 @@ Formato JSON exigido:
                     return StatusCode(502, "Não foi possível conectar com a Inteligência Artificial no momento.");
                 }
 
-                Console.WriteLine("--- GEMINI RAW RESPONSE ---");
-                Console.WriteLine(responseBody);
-                Console.WriteLine("---------------------------");
+                _logger.LogDebug("Gemini raw response: {ResponseBody}", responseBody);
 
                 using var doc = JsonDocument.Parse(responseBody);
                 var candidate = doc.RootElement.GetProperty("candidates")[0];
@@ -119,7 +114,7 @@ Formato JSON exigido:
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erro inesperado ao processar IA: {ex.Message}");
+                _logger.LogError(ex, "Erro inesperado ao processar IA");
                 return StatusCode(502, "A IA não conseguiu analisar os sintomas corretamente ou a resposta foi bloqueada.");
             }
         }

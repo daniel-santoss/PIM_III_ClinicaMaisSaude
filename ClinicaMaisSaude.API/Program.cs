@@ -1,6 +1,6 @@
 using ClinicaMaisSaude.Application.Interfaces;
 using ClinicaMaisSaude.Application.Services;
-using ClinicaMaisSaude.API.Services;
+using ClinicaMaisSaude.Infrastructure.Services;
 using ClinicaMaisSaude.Application.Validators;
 using ClinicaMaisSaude.Domain.Interfaces;
 using ClinicaMaisSaude.Infrastructure.Data;
@@ -36,7 +36,7 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<ClinicaDbContext>(options => options.UseSqlServer(connectionString));
 
 // Configuração do JWT Authentication
-var secretKey = builder.Configuration["JwtConfig:Secret"] ?? "minha-chave-super-secreta-pim-iii-123456789!?";
+var secretKey = builder.Configuration["JwtConfig:Secret"] ?? throw new InvalidOperationException("JwtConfig:Secret não configurado. Defina em appsettings.json ou User Secrets.");
 builder.Services.AddAuthentication(x =>
 {
     x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -64,6 +64,9 @@ builder.Services.AddScoped<IPacienteService, PacienteService>();
 builder.Services.AddScoped<IAgendamentoService, AgendamentoService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ICadastroService, CadastroService>();
+builder.Services.AddScoped<IEspecialidadeService, EspecialidadeService>();
+builder.Services.AddScoped<IPerfilService, PerfilService>();
+builder.Services.AddScoped<IProfissionalService, ProfissionalService>();
 
 var app = builder.Build();
 

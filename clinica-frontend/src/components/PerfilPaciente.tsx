@@ -1,3 +1,4 @@
+import { API_URL } from "../constants/api";
 import { useEffect, useState } from "react";
 import { mascaraCpf, mascaraTelefone } from "../utils/validators";
 import { AlertTriangle } from "lucide-react";
@@ -19,7 +20,7 @@ export default function PerfilPaciente() {
   useEffect(() => {
     const carregarDados = async () => {
       try {
-        const res = await fetch(`http://localhost:5045/api/Pacientes/${pacienteId}`, {
+        const res = await fetch(`${API_URL}/api/Pacientes/${pacienteId}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (res.ok) {
@@ -50,7 +51,7 @@ export default function PerfilPaciente() {
     if (!novaSenha || !senhaAtual) return setModalMensagem("Preencha todos os campos.");
 
     try {
-      const res = await fetch("http://localhost:5045/api/Perfil/senha", {
+      const res = await fetch(`${API_URL}/api/Perfil/senha`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ senhaAtual, novaSenha })
@@ -158,7 +159,7 @@ export default function PerfilPaciente() {
             <h3 className="text-lg font-bold text-gray-800 mb-2">Apagar conta?</h3>
             <p className="text-gray-400 text-xs mb-8">Esta ação removerá todos os seus dados e não pode ser desfeita.</p>
             <div className="flex flex-col gap-2">
-              <button className="w-full py-3.5 bg-red-500 text-white font-bold rounded-xl text-xs uppercase shadow-lg shadow-red-100">Confirmar</button>
+              <button disabled title="Funcionalidade em desenvolvimento" className="w-full py-3.5 bg-red-300 text-white font-bold rounded-xl text-xs uppercase cursor-not-allowed opacity-60">Confirmar (em breve)</button>
               <button onClick={() => setModalExcluir(false)} className="w-full py-3 text-gray-400 font-bold text-xs uppercase">Voltar</button>
             </div>
           </div>

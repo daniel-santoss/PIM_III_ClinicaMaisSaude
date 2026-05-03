@@ -15,7 +15,7 @@ using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ClinicaMaisSaude.API.Services
+namespace ClinicaMaisSaude.Infrastructure.Services
 {
     public class AuthService : IAuthService
     {
@@ -66,7 +66,7 @@ namespace ClinicaMaisSaude.API.Services
             }
 
             var tokenHandler = new JwtSecurityTokenHandler();
-            var secretKey = _configuration["JwtConfig:Secret"] ?? "minha-chave-super-secreta-pim-iii-123456789!?";
+            var secretKey = _configuration["JwtConfig:Secret"] ?? throw new InvalidOperationException("JwtConfig:Secret não configurado.");
             var key = Encoding.ASCII.GetBytes(secretKey);
 
             var claims = new List<Claim>

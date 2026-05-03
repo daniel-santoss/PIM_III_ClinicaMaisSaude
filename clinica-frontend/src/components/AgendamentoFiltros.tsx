@@ -1,13 +1,5 @@
 import { Search, ArrowDownUp, RefreshCw } from "lucide-react";
-const MapNomesStatus: Record<string, string> = {
-  "Agendado": "Agendado",
-  "EmAtendimento": "Em Atendimento",
-  "AguardandoRetorno": "Aguardando Retorno",
-  "RetornoAgendado": "Retorno Agendado",
-  "Finalizado": "Finalizado",
-  "Faltou": "Faltou",
-  "Cancelado": "Cancelado"
-};
+import { MapNomesStatus } from "../constants/statusMap";
 
 interface AgendamentoFiltrosProps {
   filtroAgenda: string;

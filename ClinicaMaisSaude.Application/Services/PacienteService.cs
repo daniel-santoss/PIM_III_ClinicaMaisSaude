@@ -119,6 +119,70 @@ namespace ClinicaMaisSaude.Application.Services
             return resposta.OrderBy(r => r.Nome);
         }
 
+        public async Task<DTOs.PagedResult<PacienteResponse>> ObterTodosPaginadoAsync(string? nome, string? cpf, bool incluirProfissionais, int page, int pageSize)
+        {
+            var (items, totalCount) = await _repository.ObterTodosPaginadoAsync(nome, cpf, page, pageSize);
+
+            var resposta = items.Select(p => new PacienteResponse
+            {
+                Id = p.Id,
+                Nome = p.Nome,
+                Cpf = p.Cpf,
+                Telefone = p.Telefone,
+                Email = p.Email,
+                UsuarioId = p.UsuarioId,
+                Tipo = "Paciente",
+                UltimoAcesso = p.Usuario?.UltimoAcesso
+            }).ToList();
+
+            if (incluirProfissionais)
+            {
+                var profissionais = await _profissionalRepository.ObterTodosAsync();
+
+                if (!string.IsNullOrWhiteSpace(nome))
+                    profissionais = profissionais.Where(p => p.Nome.Contains(nome, StringComparison.OrdinalIgnoreCase));
+                if (!string.IsNullOrWhiteSpace(cpf))
+                    profissionais = profissionais.Where(p => p.Usuario.Cpf.Contains(cpf));
+
+                foreach (var prof in profissionais)
+                {
+                    resposta.Add(new PacienteResponse
+                    {
+                        Id = prof.Id,
+                        Nome = prof.Nome,
+                        Cpf = prof.Usuario.Cpf,
+                        Telefone = "-",
+                        Email = prof.Usuario.Email,
+                        UsuarioId = prof.UsuarioId,
+                        Tipo = prof.TipoProfissional.ToString(),
+                        UltimoAcesso = prof.Usuario.UltimoAcesso
+                    });
+                }
+                
+                // Recalculate if we added profissionais
+                totalCount += profissionais.Count();
+            }
+
+            // Client requests sorted by name
+            resposta = resposta.OrderBy(r => r.Nome).ToList();
+
+            // Apply pagination limit again in memory if we merged profissionais
+            if (incluirProfissionais && resposta.Count > pageSize)
+            {
+                 // Since we fetched professionals separately, the page skip/take must be done on the merged list.
+                 // This is a tradeoff for merging two separate repositories into one response.
+                 resposta = resposta.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+            }
+
+            return new DTOs.PagedResult<PacienteResponse>
+            {
+                Items = resposta,
+                TotalCount = totalCount,
+                Page = page,
+                PageSize = pageSize
+            };
+        }
+
         public async Task<PacienteResponse> AtualizarAsync(Guid id, PacienteRequest request)
         {
             var paciente = await _repository.ObterPorIdAsync(id);

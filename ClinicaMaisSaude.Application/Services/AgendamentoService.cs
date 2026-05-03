@@ -42,7 +42,7 @@ namespace ClinicaMaisSaude.Application.Services
 
             ValidarCriacao(tipoProfissional, tipoConsulta);
 
-            if (request.DataHoraConsulta <= DateTime.Now)
+            if (request.DataHoraConsulta <= DateTime.UtcNow)
                 throw new Exception("Não é possível agendar em datas passadas.");
 
             if (tipoConsulta == TipoConsulta.Retorno)
@@ -56,7 +56,23 @@ namespace ClinicaMaisSaude.Application.Services
                     throw new Exception("Retorno só pode ser agendado após uma consulta inicial pendente.");
             }
 
-            var profissionalDelegado = await DelegarProfissionalAsync(tipoProfissional, tipoConsulta, request.DataHoraConsulta, null, request.EspecialidadeId);
+            Agendamento? origem = null;
+            Guid profissionalDelegado;
+            if (tipoConsulta == TipoConsulta.Retorno && request.AgendamentoOrigemId.HasValue)
+            {
+                origem = await _repository.ObterPorIdAsync(request.AgendamentoOrigemId.Value);
+                if (origem == null) throw new Exception("Agendamento de origem inválido.");
+                
+                bool temConflito = await ExisteConflito(origem.ProfissionalId, request.DataHoraConsulta, tipoConsulta, null);
+                if (temConflito) {
+                    throw new Exception("O profissional responsável pela sua consulta de origem não tem disponibilidade neste horário.");
+                }
+                profissionalDelegado = origem.ProfissionalId;
+            }
+            else
+            {
+                profissionalDelegado = await DelegarProfissionalAsync(tipoProfissional, tipoConsulta, request.DataHoraConsulta, null, request.EspecialidadeId);
+            }
             
             var agendamento = new Agendamento(
                 request.PacienteId,
@@ -77,24 +93,20 @@ namespace ClinicaMaisSaude.Application.Services
             );
             await _repository.AdicionarHistoricoAsync(historico);
 
-            if (tipoConsulta == TipoConsulta.Retorno && request.AgendamentoOrigemId.HasValue)
+            if (tipoConsulta == TipoConsulta.Retorno && origem != null && origem.Status == StatusAgendamento.AguardandoRetorno)
             {
-                var origem = await _repository.ObterPorIdAsync(request.AgendamentoOrigemId.Value);
-                if (origem != null && origem.Status == StatusAgendamento.AguardandoRetorno)
-                {
-                    origem.AlterarStatus(StatusAgendamento.RetornoAgendado);
-                    await _repository.AtualizarAsync(origem);
+                origem.AlterarStatus(StatusAgendamento.RetornoAgendado);
+                await _repository.AtualizarAsync(origem);
 
-                    var historicoOrigem = new AgendamentoHistorico(
-                        origem.Id,
-                        TipoEventoHistorico.MudancaStatus,
-                        usuarioLogadoId,
-                        statusAnterior: StatusAgendamento.AguardandoRetorno,
-                        statusNovo: StatusAgendamento.RetornoAgendado,
-                        observacao: "Agendamento de retorno vinculado."
-                    );
-                    await _repository.AdicionarHistoricoAsync(historicoOrigem);
-                }
+                var historicoOrigem = new AgendamentoHistorico(
+                    origem.Id,
+                    TipoEventoHistorico.MudancaStatus,
+                    usuarioLogadoId,
+                    statusAnterior: StatusAgendamento.AguardandoRetorno,
+                    statusNovo: StatusAgendamento.RetornoAgendado,
+                    observacao: "Agendamento de retorno vinculado."
+                );
+                await _repository.AdicionarHistoricoAsync(historicoOrigem);
             }
 
             var profissional = await _profissionalRepository.ObterPorIdAsync(agendamento.ProfissionalId);
@@ -108,7 +120,7 @@ namespace ClinicaMaisSaude.Application.Services
             if (agendamento == null)
                 throw new Exception("Agendamento não encontrado.");
 
-            if (request.DataHoraConsulta <= DateTime.Now)
+            if (request.DataHoraConsulta <= DateTime.UtcNow)
                 throw new Exception("Não é permitido reagendar para datas/horários passados.");
 
             // Na atualização, tenta remanejar dentro do mesmo perfil se o dia/hora mudou, ou mantém se não houver conflito
@@ -201,7 +213,7 @@ namespace ClinicaMaisSaude.Application.Services
                 throw new Exception("Não é possível remarcar um agendamento cancelado ou finalizado.");
             }
 
-            if (request.NovaDataHora <= DateTime.Now)
+            if (request.NovaDataHora <= DateTime.UtcNow)
                 throw new Exception("Não é permitido remarcar para datas/horários passados.");
 
             bool temConflito = await ExisteConflito(agendamento.ProfissionalId, request.NovaDataHora, agendamento.TipoConsulta, agendamento.Id);
@@ -253,7 +265,36 @@ namespace ClinicaMaisSaude.Application.Services
             });
         }
 
-        public async Task<List<string>> ObterHorariosDisponiveisAsync(DateTime data, int tipoConsultaInt)
+        public async Task<DTOs.PagedResult<AgendamentoResponse>> ObterTodosPaginadoAsync(int page, int pageSize)
+        {
+            var (items, totalCount) = await _repository.ObterTodosPaginadoAsync(page, pageSize);
+            var profissionais = await _profissionalRepository.ObterTodosAsync();
+            var profDict = profissionais.ToDictionary(p => p.Id, p => p.Nome);
+
+            var responses = items.Select(a => new AgendamentoResponse
+            {
+                Id = a.Id,
+                PacienteId = a.PacienteId,
+                PacienteNome = a.Paciente?.Nome ?? "N/A",
+                ProfissionalId = a.ProfissionalId,
+                NomeProfissional = profDict.ContainsKey(a.ProfissionalId) ? profDict[a.ProfissionalId] : "N/A",
+                DataHoraConsulta = a.DataHoraConsulta,
+                TipoProfissional = a.TipoProfissional.ToString(),
+                TipoConsulta = a.TipoConsulta.ToString(),
+                Status = a.Status.ToString(),
+                AgendamentoOrigemId = a.AgendamentoOrigemId
+            });
+
+            return new DTOs.PagedResult<AgendamentoResponse>
+            {
+                Items = responses,
+                TotalCount = totalCount,
+                Page = page,
+                PageSize = pageSize
+            };
+        }
+
+        public async Task<List<string>> ObterHorariosDisponiveisAsync(DateTime data, int tipoConsultaInt, int? especialidadeId = null, Guid? origemId = null)
         {
             var tipoConsulta = (TipoConsulta)tipoConsultaInt;
             var duracao = TipoConsultaDuracao.ObterDuracao(tipoConsulta);
@@ -274,6 +315,26 @@ namespace ClinicaMaisSaude.Application.Services
                 : TipoProfissional.Enfermeira;
 
             var profissionais = await _profissionalRepository.ObterTodosPorTipoAsync(tipoProfissionalNecessario);
+            
+            if (origemId.HasValue && tipoConsulta == TipoConsulta.Retorno)
+            {
+                var origem = await _repository.ObterPorIdAsync(origemId.Value);
+                if (origem != null && origem.Status == StatusAgendamento.AguardandoRetorno)
+                {
+                    profissionais = profissionais.Where(p => p.Id == origem.ProfissionalId).ToList();
+                }
+                else
+                {
+                    return horarios;
+                }
+            }
+            else if (especialidadeId.HasValue && tipoProfissionalNecessario == TipoProfissional.Medico)
+            {
+                profissionais = profissionais
+                    .Where(p => p.Especialidades.Any(e => (int)e.EspecialidadeId == especialidadeId.Value))
+                    .ToList();
+            }
+
             if (!profissionais.Any())
                 return horarios;
 
@@ -291,7 +352,7 @@ namespace ClinicaMaisSaude.Application.Services
 
                 var dataHoraSlot = data.Date.Add(horarioAtual);
 
-                if (dataHoraSlot <= DateTime.Now)
+                if (dataHoraSlot <= DateTime.UtcNow)
                 {
                     horarioAtual = horarioAtual.Add(TimeSpan.FromMinutes(duracao));
                     continue;
@@ -334,7 +395,8 @@ namespace ClinicaMaisSaude.Application.Services
 
                 if (comEspecialidade.Any())
                     profissionais = comEspecialidade;
-                // Se nenhum tem a especialidade, usa todos como fallback
+                else
+                    throw new Exception("Nenhum médico com a especialidade solicitada encontrado.");
             }
 
             var duracaoEmMinutos = TipoConsultaDuracao.ObterDuracao(consulta);
@@ -444,13 +506,13 @@ namespace ClinicaMaisSaude.Application.Services
             if (novoStatus == StatusAgendamento.EmAtendimento)
             {
                 var limiteMinimo = agendamento.DataHoraConsulta.AddMinutes(-15);
-                if (DateTime.Now < limiteMinimo)
+                if (DateTime.UtcNow < limiteMinimo)
                 {
                     throw new Exception("Só é possível iniciar o atendimento a partir de 15 minutos antes do horário agendado.");
                 }
             }
 
-            if (novoStatus == StatusAgendamento.Faltou && agendamento.DataHoraConsulta > DateTime.Now)
+            if (novoStatus == StatusAgendamento.Faltou && agendamento.DataHoraConsulta > DateTime.UtcNow)
             {
                 throw new Exception("Não é possível registrar falta em agendamento futuro.");
             }

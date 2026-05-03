@@ -1,15 +1,6 @@
 import type { AgendamentoHistoricoResponse } from "./AgendamentoList";
+import { MapNomesStatus } from "../constants/statusMap";
 import { X, User } from 'lucide-react';
-
-const MapNomesStatus: Record<string, string> = {
-  "Agendado": "Agendado",
-  "EmAtendimento": "Em Atendimento",
-  "AguardandoRetorno": "Aguardando Retorno",
-  "RetornoAgendado": "Retorno Agendado",
-  "Finalizado": "Finalizado",
-  "Faltou": "Faltou",
-  "Cancelado": "Cancelado"
-};
 
 interface ModalHistoricoProps {
   historico: AgendamentoHistoricoResponse[];

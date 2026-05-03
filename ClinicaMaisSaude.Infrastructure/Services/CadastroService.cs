@@ -9,7 +9,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace ClinicaMaisSaude.API.Services
+namespace ClinicaMaisSaude.Infrastructure.Services
 {
     public class CadastroService : ICadastroService
     {
@@ -82,9 +82,9 @@ namespace ClinicaMaisSaude.API.Services
 
         public async Task<IEnumerable<UsuarioResponse>> ListarUsuariosAsync()
         {
-            var usuarios = await _context.Usuarios.ToListAsync();
-            var profissionais = await _context.Profissionais.ToListAsync();
-            var pacientes = await _context.Pacientes.ToListAsync();
+            var usuarios = await _context.Usuarios.AsNoTracking().ToListAsync();
+            var profissionais = await _context.Profissionais.AsNoTracking().ToListAsync();
+            var pacientes = await _context.Pacientes.AsNoTracking().ToListAsync();
 
             var resposta = new List<UsuarioResponse>();
 
@@ -130,8 +130,7 @@ namespace ClinicaMaisSaude.API.Services
 
             var senhaHash = BCrypt.Net.BCrypt.HashPassword(novaSenha);
             usuario.AlterarSenha(senhaHash);
-            
-            _context.Usuarios.Update(usuario);
+
             await _context.SaveChangesAsync();
 
             return new CadastroResult { Sucesso = true, Mensagem = "Senha redefinida com sucesso." };

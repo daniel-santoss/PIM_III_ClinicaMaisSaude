@@ -23,7 +23,9 @@ namespace ClinicaMaisSaude.Infrastructure.Repositories
         }
         public async Task<Paciente?> ObterPorIdAsync(Guid id)
         {
-            return await _context.Pacientes.FindAsync(id);
+            return await _context.Pacientes
+                .Include(p => p.Usuario)
+                .FirstOrDefaultAsync(p => p.Id == id);
         }
 
         public async Task<Paciente?> ObterPorCpfAsync(string cpf)
@@ -47,6 +49,27 @@ namespace ClinicaMaisSaude.Infrastructure.Repositories
                 query = query.Where(p => p.Cpf.StartsWith(cpf));
 
             return await query.ToListAsync();
+        }
+
+        public async Task<(IEnumerable<Paciente> Items, int TotalCount)> ObterTodosPaginadoAsync(string? nome, string? cpf, int page, int pageSize)
+        {
+            var query = _context.Pacientes
+                                .AsNoTracking()
+                                .Include(p => p.Usuario)
+                                .Where(p => p.Ativo);
+
+            if (!string.IsNullOrWhiteSpace(nome))
+                query = query.Where(p => p.Nome.Contains(nome));
+
+            if (!string.IsNullOrWhiteSpace(cpf))
+                query = query.Where(p => p.Cpf.StartsWith(cpf));
+
+            query = query.OrderBy(p => p.Nome);
+
+            var totalCount = await query.CountAsync();
+            var items = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
+
+            return (items, totalCount);
         }
 
         public async Task AtualizarAsync(Paciente paciente)

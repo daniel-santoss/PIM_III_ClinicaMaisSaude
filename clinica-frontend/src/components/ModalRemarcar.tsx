@@ -1,13 +1,7 @@
+import { API_URL } from "../constants/api";
 import { useEffect, useState } from "react";
+import { obterMinDate } from "../utils/dates";
 import { AlertCircle } from 'lucide-react';
-
-function obterMinDate(): string {
-  const agora = new Date();
-  const ano = agora.getFullYear();
-  const mes = String(agora.getMonth() + 1).padStart(2, "0");
-  const dia = String(agora.getDate()).padStart(2, "0");
-  return `${ano}-${mes}-${dia}`;
-}
 
 interface ModalRemarcarProps {
   agenda: {
@@ -54,7 +48,7 @@ export default function ModalRemarcar({ agenda, onFechar, onSucesso, onMensagem 
         else if (agenda.tipoConsulta === "Consulta Médica" || agenda.tipoConsulta === "ConsultaMédica") tipoConsultaInt = 3;
         else if (agenda.tipoConsulta === "Retorno") tipoConsultaInt = 4;
 
-        const res = await fetch(`http://localhost:5045/api/Agendamentos/horarios-disponiveis?data=${alterarDataSomente}&tipoConsulta=${tipoConsultaInt}`, {
+        const res = await fetch(`${API_URL}/api/Agendamentos/horarios-disponiveis?data=${alterarDataSomente}&tipoConsulta=${tipoConsultaInt}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (res.ok) {
@@ -90,7 +84,7 @@ export default function ModalRemarcar({ agenda, onFechar, onSucesso, onMensagem 
         return;
       }
 
-      const response = await fetch(`http://localhost:5045/api/Agendamentos/${agenda.id}/remarcar`, {
+      const response = await fetch(`${API_URL}/api/Agendamentos/${agenda.id}/remarcar`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify({

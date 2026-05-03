@@ -88,9 +88,4 @@ namespace ClinicaMaisSaude.API.Controllers
             return Ok(new { Mensagem = resultado.Mensagem });
         }
     }
-
-    public class ResetSenhaRequest
-    {
-        public string NovaSenha { get; set; }
-    }
 }

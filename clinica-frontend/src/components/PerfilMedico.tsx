@@ -1,3 +1,4 @@
+import { API_URL } from "../constants/api";
 import { useEffect, useState } from "react";
 import { ESPECIALIDADES } from "../constants/especialidades";
 import { mascaraCpf } from "../utils/validators";
@@ -29,8 +30,8 @@ export default function PerfilMedico() {
   const carregar = async () => {
     try {
       const [resPerfil, resEsp] = await Promise.all([
-        fetch("http://localhost:5045/api/Perfil", { headers: { Authorization: `Bearer ${token}` } }),
-        isEnfermeira ? Promise.resolve(null) : fetch("http://localhost:5045/api/Especialidades/minhas", { headers: { Authorization: `Bearer ${token}` } })
+        fetch(`${API_URL}/api/Perfil`, { headers: { Authorization: `Bearer ${token}` } }),
+        isEnfermeira ? Promise.resolve(null) : fetch(`${API_URL}/api/Especialidades/minhas`, { headers: { Authorization: `Bearer ${token}` } })
       ]);
       if (resPerfil.ok) {
         const dados = await resPerfil.json();
@@ -61,7 +62,7 @@ export default function PerfilMedico() {
   const salvarEspecialidades = async () => {
     setSalvando(true);
     try {
-      const res = await fetch("http://localhost:5045/api/Especialidades/minhas", {
+      const res = await fetch(`${API_URL}/api/Especialidades/minhas`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify(especialidades.map(e => e.id))
@@ -74,7 +75,7 @@ export default function PerfilMedico() {
   const salvarPerfil = async () => {
     setSalvandoPerfil(true);
     try {
-      const res = await fetch("http://localhost:5045/api/Perfil", {
+      const res = await fetch(`${API_URL}/api/Perfil`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify(formEdit)
@@ -110,7 +111,7 @@ export default function PerfilMedico() {
     if (senhaAtual === novaSenha) return setModalMensagem("A nova senha não pode ser igual a senha atual!");
 
     try {
-      const res = await fetch("http://localhost:5045/api/Perfil/senha", {
+      const res = await fetch(`${API_URL}/api/Perfil/senha`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ senhaAtual, novaSenha })

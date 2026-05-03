@@ -1,3 +1,4 @@
+import { API_URL } from "../constants/api";
 import { useEffect, useState } from "react";
 import { mascaraCpf, mascaraTelefone } from "../utils/validators";
 import { AlertCircle, Users, CheckCircle, Clock, Search, Filter, RefreshCw, Inbox, Pencil, Key, Trash, AlertTriangle, Check, Copy } from 'lucide-react';
@@ -33,6 +34,7 @@ export default function PacienteList({
   const [perfisSelecionados, setPerfisSelecionados] = useState<string[]>(["Paciente", "Medico", "Enfermeira"]);
   const [menuFiltroAberto, setMenuFiltroAberto] = useState(false);
   const [copiado, setCopiado] = useState(false);
+  const [modalMensagem, setModalMensagem] = useState<string | null>(null);
 
   const limparFiltros = () => {
     setBuscaNome("");
@@ -59,15 +61,22 @@ export default function PacienteList({
   const isAdmin = localStorage.getItem("isAdmin") === "true";
   const isEnfermeira = localStorage.getItem("tipoUsuario") === "Enfermeira";
 
+  const [page, setPage] = useState(1);
+  const pageSize = 20;
+  const [totalCount, setTotalCount] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+
   useEffect(() => {
     const timer = setTimeout(() => {
       setCarregando(true);
       setErro(null);
 
       const params = new URLSearchParams();
+      params.set("page", page.toString());
+      params.set("pageSize", pageSize.toString());
+
       const termoBusca = buscaNome.trim();
       if (termoBusca) {
-        // Se for só números e tiver tamanho de CPF, buscamos por CPF, senão por Nome
         if (/^\d+$/.test(termoBusca)) {
           params.set("cpf", termoBusca);
         } else {
@@ -76,7 +85,7 @@ export default function PacienteList({
       }
 
       const queryString = params.toString();
-      const url = `http://localhost:5045/api/Pacientes${queryString ? `?${queryString}` : ""}`;
+      const url = `${API_URL}/api/Pacientes${queryString ? `?${queryString}` : ""}`;
 
       const token = localStorage.getItem("authToken");
       fetch(url, { headers: { 'Authorization': `Bearer ${token}` } })
@@ -84,13 +93,30 @@ export default function PacienteList({
           if (!res.ok) throw new Error(`Erro ao buscar pacientes: ${res.status}`);
           return res.json();
         })
-        .then((data: PacienteResponse[]) => setPacientes(data))
+        .then((data: any) => {
+            // API Paginada retorna { items, totalCount, page, pageSize, totalPages }
+            if (data.items) {
+                setPacientes(data.items);
+                setTotalCount(data.totalCount);
+                setTotalPages(data.totalPages || Math.ceil(data.totalCount / pageSize));
+            } else {
+                // Caso fallback temporário se bater em endpoint velho
+                setPacientes(data);
+                setTotalCount(data.length);
+                setTotalPages(1);
+            }
+        })
         .catch((err: Error) => setErro(err.message))
         .finally(() => setCarregando(false));
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [recarregarContador, refreshInterno, buscaNome, buscaCpf]);
+  }, [recarregarContador, refreshInterno, buscaNome, buscaCpf, page]);
+
+  // Reset page to 1 when search filters change
+  useEffect(() => {
+    setPage(1);
+  }, [buscaNome, buscaCpf, perfisSelecionados]);
 
   // Efeito para abrir edição externa (Vindo da Agenda por exemplo)
   useEffect(() => {
@@ -114,20 +140,20 @@ export default function PacienteList({
     setSalvando(true);
     try {
       const token = localStorage.getItem("authToken");
-      const response = await fetch(`http://localhost:5045/api/Pacientes/${editandoId}`, {
+      const response = await fetch(`${API_URL}/api/Pacientes/${editandoId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify(form),
       });
       if (!response.ok) {
         const erro = await response.text();
-        alert(erro);
+        setModalMensagem(erro);
         return;
       }
       fecharModal();
       setRefreshInterno((prev) => prev + 1);
     } catch (err) {
-      alert("Erro ao salvar edição.");
+      setModalMensagem("Erro ao salvar edição.");
     } finally {
       setSalvando(false);
     }
@@ -146,19 +172,19 @@ export default function PacienteList({
     setExcluindoLoader(true);
     try {
       const token = localStorage.getItem("authToken");
-      const response = await fetch(`http://localhost:5045/api/Pacientes/${excluindoPaciente.id}`, {
+      const response = await fetch(`${API_URL}/api/Pacientes/${excluindoPaciente.id}`, {
         method: "DELETE",
         headers: { "Authorization": `Bearer ${token}` }
       });
       if (!response.ok) {
         const erro = await response.text();
-        alert(erro);
+        setModalMensagem(erro);
         return;
       }
       setExcluindoPaciente(null);
       setRefreshInterno((prev) => prev + 1);
     } catch (err) {
-      alert("Erro ao excluir paciente.");
+      setModalMensagem("Erro ao excluir paciente.");
     } finally {
       setExcluindoLoader(false);
     }
@@ -171,7 +197,7 @@ export default function PacienteList({
     setResetMensagem(null);
     try {
       const token = localStorage.getItem("authToken");
-      const response = await fetch(`http://localhost:5045/api/LoginPortal/${pacienteReset.usuarioId}/reset-senha`, {
+      const response = await fetch(`${API_URL}/api/LoginPortal/${pacienteReset.usuarioId}/reset-senha`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -297,9 +323,6 @@ export default function PacienteList({
           </div>
           <h4 className="text-2xl font-black text-gray-800 mb-2">{pacientesInativos.length} Inativos</h4>
           <p className="text-xs text-gray-400 mb-4 font-medium">+60 dias sem acessar o portal</p>
-          <button className="w-full py-2 bg-orange-50 text-orange-700 text-xs font-bold rounded-lg hover:bg-orange-100 transition-colors">
-            Ver lista detalhada
-          </button>
         </div>
       </div>
 
@@ -491,15 +514,58 @@ export default function PacienteList({
           )}
         </div>
 
-        {/* Footer / Paginação */}
-        <div className="px-6 py-4 bg-gray-50/50 border-t border-gray-100 flex items-center justify-between">
+        {/* Footer / Contagem e Paginação */}
+        <div className="px-6 py-4 bg-gray-50/50 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">
-            Página 1 de 1
+            Exibindo {pacientes.length} de {totalCount} {totalCount === 1 ? "resultado" : "resultados"}
           </p>
-          <div className="flex gap-2">
-            <button disabled className="px-4 py-2 border border-gray-200 rounded-lg text-xs font-bold text-gray-300 cursor-not-allowed">Anterior</button>
-            <button className="px-4 py-2 bg-white border border-purple-200 rounded-lg text-xs font-bold text-purple-600 hover:bg-purple-50 shadow-sm transition-all">Próxima</button>
-          </div>
+          
+          {totalPages > 1 && (
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="px-3 py-1 text-sm font-bold border border-gray-200 rounded-lg text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white hover:text-purple-600 transition-colors bg-gray-50"
+              >
+                Anterior
+              </button>
+              
+              <div className="flex items-center gap-1">
+                {Array.from({ length: totalPages }).map((_, i) => {
+                  const pNum = i + 1;
+                  // Show max 5 page numbers: first, last, current, current-1, current+1
+                  if (pNum === 1 || pNum === totalPages || (pNum >= page - 1 && pNum <= page + 1)) {
+                    return (
+                      <button
+                        key={pNum}
+                        onClick={() => setPage(pNum)}
+                        className={`w-8 h-8 flex items-center justify-center text-xs font-bold rounded-lg transition-colors border ${
+                          page === pNum 
+                            ? 'bg-purple-600 text-white border-purple-600 shadow-md shadow-purple-200' 
+                            : 'bg-white text-gray-600 border-gray-200 hover:bg-purple-50 hover:text-purple-600 hover:border-purple-200'
+                        }`}
+                      >
+                        {pNum}
+                      </button>
+                    );
+                  }
+                  // Ellipsis
+                  if (pNum === page - 2 || pNum === page + 2) {
+                    return <span key={pNum} className="text-gray-400 text-xs px-1">...</span>;
+                  }
+                  return null;
+                })}
+              </div>
+
+              <button 
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                className="px-3 py-1 text-sm font-bold border border-gray-200 rounded-lg text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white hover:text-purple-600 transition-colors bg-gray-50"
+              >
+                Próximo
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -671,6 +737,20 @@ export default function PacienteList({
             >
               {senhaExibida ? "Fechar" : "Cancelar"}
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Mensagem Estilizado (substitui alert nativo) */}
+      {modalMensagem && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center bg-gray-900/60 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-sm p-8 text-center border border-purple-50 animate-in zoom-in duration-200">
+            <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <AlertTriangle className="w-8 h-8" />
+            </div>
+            <h3 className="text-xl font-black text-gray-800 mb-2 uppercase tracking-tight">Aviso</h3>
+            <p className="text-gray-500 text-sm mb-8 font-medium leading-relaxed">{modalMensagem}</p>
+            <button className="w-full bg-[#7C3AED] text-white font-black py-4 rounded-2xl uppercase tracking-widest text-[10px] shadow-lg shadow-purple-100" onClick={() => setModalMensagem(null)}>Entendido</button>
           </div>
         </div>
       )}

@@ -1,12 +1,25 @@
+import { API_URL } from "../constants/api";
 import { useEffect, useState } from "react";
+import { MapNomesStatus } from "../constants/statusMap";
 import { Plus, User, Calendar } from 'lucide-react';
+
+interface AgendamentoItem {
+  id: string;
+  pacienteId: string;
+  pacienteNome: string;
+  dataHoraConsulta: string;
+  tipoConsulta: string;
+  status: string;
+  nomeProfissional: string;
+  observacao?: string;
+}
 
 interface MeusAgendamentosProps {
   onNovoAgendamento: () => void;
 }
 
 export default function MeusAgendamentos({ onNovoAgendamento }: MeusAgendamentosProps) {
-  const [agendamentos, setAgendamentos] = useState<any[]>([]);
+  const [agendamentos, setAgendamentos] = useState<AgendamentoItem[]>([]);
   const [carregando, setCarregando] = useState(true);
   const pacienteId = localStorage.getItem("pacienteId");
   const token = localStorage.getItem("authToken");
@@ -14,7 +27,7 @@ export default function MeusAgendamentos({ onNovoAgendamento }: MeusAgendamentos
   const carregarAgendamentos = async () => {
     setCarregando(true);
     try {
-      const res = await fetch("http://localhost:5045/api/Agendamentos", {
+      const res = await fetch(`${API_URL}/api/Agendamentos`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
@@ -32,11 +45,15 @@ export default function MeusAgendamentos({ onNovoAgendamento }: MeusAgendamentos
     carregarAgendamentos();
   }, [pacienteId, token]);
 
+
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "Pendente": return "bg-amber-50 text-amber-600 border-amber-100";
-      case "Confirmado": return "bg-green-50 text-green-600 border-green-100";
-      case "Finalizado": return "bg-blue-50 text-blue-600 border-blue-100";
+      case "Agendado": return "bg-purple-50 text-purple-600 border-purple-100";
+      case "EmAtendimento": return "bg-amber-50 text-amber-600 border-amber-100";
+      case "AguardandoRetorno": return "bg-sky-50 text-sky-600 border-sky-100";
+      case "RetornoAgendado": return "bg-indigo-50 text-indigo-600 border-indigo-100";
+      case "Finalizado": return "bg-green-50 text-green-600 border-green-100";
+      case "Faltou": return "bg-orange-50 text-orange-600 border-orange-100";
       case "Cancelado": return "bg-red-50 text-red-600 border-red-100";
       default: return "bg-gray-50 text-gray-600 border-gray-100";
     }
@@ -70,7 +87,7 @@ export default function MeusAgendamentos({ onNovoAgendamento }: MeusAgendamentos
               <div className="p-6">
                 <div className="flex justify-between items-start mb-6">
                 <div className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border ${getStatusColor(a.status)}`}>
-                  {a.status}
+                  {MapNomesStatus[a.status] || a.status}
                 </div>
                 <div className="text-right">
                   <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Data e Hora</p>

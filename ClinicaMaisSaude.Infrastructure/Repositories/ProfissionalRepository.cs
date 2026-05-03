@@ -32,6 +32,7 @@ namespace ClinicaMaisSaude.Infrastructure.Repositories
         public async Task<Profissional?> ObterPorIdAsync(Guid id)
         {
             return await _context.Profissionais
+                .AsNoTracking()
                 .Include(p => p.Usuario)
                 .FirstOrDefaultAsync(p => p.Id == id);
         }
