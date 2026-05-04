@@ -21,7 +21,7 @@ O projeto adota uma arquitetura full-stack moderna e escalável, fundamentada no
 - **Lucide React:** Iconografia leve e escalável.
 
 ## 🚀 Minha Contribuição e Resultados Alcançados
-Atuei como Desenvolvedor e Engenheiro de Software na resolução de dívidas técnicas críticas, elevando o projeto do nível conceitual a uma aplicação pronta para produção:
+Atuei na resolução de dívidas técnicas críticas, elevando o projeto do nível conceitual a uma aplicação pronta para produção:
 
 1. **Implementação de Paginação Server-Side Otimizada:** 
    - Substituição da paginação simulada (feita na memória do cliente) por paginação nativa de banco de dados (`.Skip()` e `.Take()`).
