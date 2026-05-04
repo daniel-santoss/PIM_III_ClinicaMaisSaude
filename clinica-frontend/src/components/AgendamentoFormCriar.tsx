@@ -4,7 +4,7 @@ import { mascaraCpf } from "../utils/validators";
 import { obterMinDate } from "../utils/dates";
 import type { PacienteResponse } from "../types/PacienteResponse";
 import type { AgendamentoResponse } from "./AgendamentoList";
-import { X, Lightbulb, AlertTriangle } from 'lucide-react';
+import { X, Lightbulb, AlertTriangle, ShieldAlert } from 'lucide-react';
 
 interface AgendamentoFormCriarProps {
   pacientes: PacienteResponse[];
@@ -37,6 +37,7 @@ export default function AgendamentoFormCriar({
   const [sintomas, setSintomas] = useState("");
   const [sugestaoIA, setSugestaoIA] = useState<any>(null);
   const [carregandoIA, setCarregandoIA] = useState(false);
+  const [violacao, setViolacao] = useState(false);
 
   useEffect(() => {
     setTipoConsulta(tipoProfissional === 0 ? 0 : 3);
@@ -138,6 +139,28 @@ export default function AgendamentoFormCriar({
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-purple-900/40 backdrop-blur-sm animate-in fade-in duration-300">
+      {violacao && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-red-900/90 backdrop-blur-md p-4 animate-in fade-in duration-300">
+          <div className="bg-white rounded-[2.5rem] shadow-2xl shadow-red-900/50 w-full max-w-xl p-10 text-center border-4 border-red-500">
+            <div className="w-24 h-24 bg-red-100 text-red-600 rounded-[2rem] flex items-center justify-center mx-auto mb-8">
+              <ShieldAlert className="w-14 h-14" />
+            </div>
+            <h3 className="text-3xl font-black text-red-700 mb-4 uppercase tracking-tight">Violação de Segurança</h3>
+            <div className="text-red-900 text-xs sm:text-sm mb-10 font-bold leading-relaxed text-left space-y-4">
+              <p>
+                Detectamos uma tentativa deliberada de obtenção de credenciais privadas e ativos de domínio por meio da Inteligência Artificial do sistema. Esta conduta configura Invasão de Dispositivo Informático, conforme o Art. 154-A do Código Penal (Lei 12.737/2012) e violação dos princípios de segurança e confidencialidade da Lei Geral de Proteção de Dados (Lei 13.709/2018 - LGPD).
+              </p>
+              <p className="text-red-800 uppercase tracking-widest text-[10px] sm:text-xs">Informamos que:</p>
+              <ul className="list-disc pl-6 space-y-2">
+                <li>Sua conta foi permanentemente bloqueada.</li>
+                <li>O log completo desta interação e evidências técnicas de acesso foram encaminhados ao Administrador do Sistema.</li>
+                <li>O incidente foi formalmente registrado para medidas judiciais e administrativas cabíveis.</li>
+              </ul>
+            </div>
+            <button className="w-full bg-red-600 hover:bg-red-700 text-white font-black py-5 rounded-2xl uppercase tracking-widest text-xs shadow-lg shadow-red-200 transition-colors" onClick={() => setViolacao(false)}>Entendido</button>
+          </div>
+        </div>
+      )}
       <div className="bg-white w-full max-w-xl rounded-[3rem] shadow-2xl overflow-hidden border border-purple-100">
         <div className="p-8 border-b border-purple-50 flex items-center justify-between bg-purple-50/30">
           <div>
@@ -157,14 +180,19 @@ export default function AgendamentoFormCriar({
                 <Lightbulb className="w-5 h-5 text-indigo-500" />
                 <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Triagem Inteligente (IA)</span>
               </div>
-              <textarea
-                className="w-full p-3 bg-white border border-indigo-100 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-400 transition-all resize-none"
-                rows={2}
-                placeholder="Descreva os sintomas do paciente para sugestão automática..."
-                value={sintomas}
-                onChange={(e) => setSintomas(e.target.value)}
-                maxLength={500}
-              />
+              <div className="relative">
+                <textarea
+                  className="w-full p-3 bg-white border border-indigo-100 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-400 transition-all resize-none pr-16"
+                  rows={2}
+                  placeholder="Descreva os sintomas do paciente para sugestão automática..."
+                  value={sintomas}
+                  onChange={(e) => setSintomas(e.target.value)}
+                  maxLength={300}
+                />
+                <span className="absolute bottom-2.5 right-3 text-[10px] font-black text-indigo-300 bg-white/80 px-1 rounded">
+                  {sintomas.length}/300
+                </span>
+              </div>
               <div className="flex items-center gap-3">
                 <button
                   type="button"
@@ -180,6 +208,10 @@ export default function AgendamentoFormCriar({
                       });
                       if (res.ok) {
                         const dados = await res.json();
+                        if (dados.justificativa?.includes("Detectamos uma tentativa deliberada")) {
+                          setViolacao(true);
+                          return;
+                        }
                         setSugestaoIA(dados);
                         // Auto-preencher
                         if (dados.tipoProfissional === "Medico") { setTipoProfissional(1); }
