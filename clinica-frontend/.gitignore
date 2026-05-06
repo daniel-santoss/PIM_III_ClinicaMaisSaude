@@ -23,6 +23,8 @@ dist-ssr
 *.sln
 *.sw?
 
+**/appsettings.Development.json
+
 # Env files
 .env
 .env.*
