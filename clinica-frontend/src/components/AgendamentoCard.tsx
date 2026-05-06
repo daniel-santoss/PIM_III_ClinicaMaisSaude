@@ -1,6 +1,6 @@
 import type { PacienteResponse } from "../types/PacienteResponse";
 import { mascaraCpf } from "../utils/validators";
-import { MapNomesStatus } from "../constants/statusMap";
+import { MapNomesStatus, MapNomesTipoConsulta, MapNomesEspecialidade } from "../constants/statusMap";
 import { User, Clock, Calendar } from 'lucide-react';
 
 interface AgendamentoCardProps {
@@ -13,6 +13,7 @@ interface AgendamentoCardProps {
     tipoConsulta: string;
     status: string;
     nomeProfissional: string;
+    especialidade?: string;
   };
   opcoesValidas: string[];
   podeCancelar: boolean;
@@ -68,7 +69,10 @@ export default function AgendamentoCard({
           </div>
           <div className="flex flex-col">
             <h4 className="text-sm font-black text-gray-800 leading-tight group-hover:text-[#7C3AED] transition-colors">{agenda.pacienteNome}</h4>
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mt-0.5">{agenda.tipoConsulta}</span>
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mt-0.5">
+              {MapNomesTipoConsulta[agenda.tipoConsulta] || agenda.tipoConsulta}
+              {agenda.tipoConsulta === "ConsultaMedica" && agenda.especialidade ? ` - ${MapNomesEspecialidade[agenda.especialidade] || agenda.especialidade}` : ""}
+            </span>
           </div>
         </div>
 

@@ -250,39 +250,51 @@ namespace ClinicaMaisSaude.Application.Services
             var profissionais = await _profissionalRepository.ObterTodosAsync();
             var profDict = profissionais.ToDictionary(p => p.Id, p => p.Nome);
 
-            return agendamentos.Select(a => new AgendamentoResponse
-            {
-                Id = a.Id,
-                PacienteId = a.PacienteId,
-                PacienteNome = a.Paciente?.Nome ?? "N/A",
-                ProfissionalId = a.ProfissionalId,
-                NomeProfissional = profDict.ContainsKey(a.ProfissionalId) ? profDict[a.ProfissionalId] : "N/A",
-                DataHoraConsulta = a.DataHoraConsulta,
-                TipoProfissional = a.TipoProfissional.ToString(),
-                TipoConsulta = a.TipoConsulta.ToString(),
-                Status = a.Status.ToString(),
-                AgendamentoOrigemId = a.AgendamentoOrigemId
+            return agendamentos.Select(a => {
+                var prof = profissionais.FirstOrDefault(p => p.Id == a.ProfissionalId);
+                var esp = prof?.Especialidades.FirstOrDefault()?.EspecialidadeId.ToString() ?? "";
+                
+                return new AgendamentoResponse
+                {
+                    Id = a.Id,
+                    PacienteId = a.PacienteId,
+                    PacienteNome = a.Paciente?.Nome ?? "N/A",
+                    ProfissionalId = a.ProfissionalId,
+                    NomeProfissional = prof?.Nome ?? "N/A",
+                    DataHoraConsulta = a.DataHoraConsulta,
+                    TipoProfissional = a.TipoProfissional.ToString(),
+                    TipoConsulta = a.TipoConsulta.ToString(),
+                    Especialidade = esp,
+                    Status = a.Status.ToString(),
+                    AgendamentoOrigemId = a.AgendamentoOrigemId
+                };
             });
         }
 
-        public async Task<DTOs.PagedResult<AgendamentoResponse>> ObterTodosPaginadoAsync(int page, int pageSize)
+        public async Task<DTOs.PagedResult<AgendamentoResponse>> ObterTodosPaginadoAsync(int page, int pageSize, Guid? profissionalId = null, Guid? pacienteId = null)
         {
-            var (items, totalCount) = await _repository.ObterTodosPaginadoAsync(page, pageSize);
+            var (items, totalCount) = await _repository.ObterTodosPaginadoAsync(page, pageSize, profissionalId, pacienteId);
             var profissionais = await _profissionalRepository.ObterTodosAsync();
             var profDict = profissionais.ToDictionary(p => p.Id, p => p.Nome);
 
-            var responses = items.Select(a => new AgendamentoResponse
-            {
-                Id = a.Id,
-                PacienteId = a.PacienteId,
-                PacienteNome = a.Paciente?.Nome ?? "N/A",
-                ProfissionalId = a.ProfissionalId,
-                NomeProfissional = profDict.ContainsKey(a.ProfissionalId) ? profDict[a.ProfissionalId] : "N/A",
-                DataHoraConsulta = a.DataHoraConsulta,
-                TipoProfissional = a.TipoProfissional.ToString(),
-                TipoConsulta = a.TipoConsulta.ToString(),
-                Status = a.Status.ToString(),
-                AgendamentoOrigemId = a.AgendamentoOrigemId
+            var responses = items.Select(a => {
+                var prof = profissionais.FirstOrDefault(p => p.Id == a.ProfissionalId);
+                var esp = prof?.Especialidades.FirstOrDefault()?.EspecialidadeId.ToString() ?? "";
+
+                return new AgendamentoResponse
+                {
+                    Id = a.Id,
+                    PacienteId = a.PacienteId,
+                    PacienteNome = a.Paciente?.Nome ?? "N/A",
+                    ProfissionalId = a.ProfissionalId,
+                    NomeProfissional = prof?.Nome ?? "N/A",
+                    DataHoraConsulta = a.DataHoraConsulta,
+                    TipoProfissional = a.TipoProfissional.ToString(),
+                    TipoConsulta = a.TipoConsulta.ToString(),
+                    Especialidade = esp,
+                    Status = a.Status.ToString(),
+                    AgendamentoOrigemId = a.AgendamentoOrigemId
+                };
             });
 
             return new DTOs.PagedResult<AgendamentoResponse>
@@ -350,7 +362,7 @@ namespace ClinicaMaisSaude.Application.Services
                     continue;
                 }
 
-                var dataHoraSlot = data.Date.Add(horarioAtual);
+                var dataHoraSlot = DateTime.SpecifyKind(data.Date.Add(horarioAtual), DateTimeKind.Utc);
 
                 if (dataHoraSlot <= DateTime.UtcNow)
                 {
@@ -559,6 +571,7 @@ namespace ClinicaMaisSaude.Application.Services
                 DataHoraConsulta = a.DataHoraConsulta,
                 TipoProfissional = a.TipoProfissional.ToString(),
                 TipoConsulta = a.TipoConsulta.ToString(),
+                Especialidade = "", // Se precisar preencher aqui, faria uma busca extra, mas para a lista já é o suficiente.
                 Status = a.Status.ToString(),
                 AgendamentoOrigemId = a.AgendamentoOrigemId,
                 ResultadoDisponivel = a.ResultadoDisponivel,

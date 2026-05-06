@@ -104,8 +104,8 @@ export default function AgendamentoPaciente({ onSucesso }: AgendamentoPacientePr
       .catch(() => {});
 
     fetch(`${API_URL}/api/Agendamentos`, { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.ok ? r.json() : [])
-      .then(setAgendamentosAnteriores)
+      .then(r => r.ok ? r.json() : { items: [] })
+      .then(data => setAgendamentosAnteriores(data.items ?? data))
       .catch(() => {});
   }, [token]);
 
@@ -152,7 +152,7 @@ export default function AgendamentoPaciente({ onSucesso }: AgendamentoPacientePr
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify({
           pacienteId,
-          dataHoraConsulta: `${dataSelecionada}T${horarioSelecionado}:00`,
+          dataHoraConsulta: `${dataSelecionada}T${horarioSelecionado}:00-03:00`,
           tipoProfissional: tipoProfissional ?? 1,
           tipoConsulta,
           agendamentoOrigemId: origemId || null,

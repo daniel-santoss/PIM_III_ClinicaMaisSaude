@@ -54,12 +54,20 @@ namespace ClinicaMaisSaude.Infrastructure.Repositories
                 .ToListAsync();
         }
 
-        public async Task<(IEnumerable<Agendamento> Items, int TotalCount)> ObterTodosPaginadoAsync(int page, int pageSize)
+        public async Task<(IEnumerable<Agendamento> Items, int TotalCount)> ObterTodosPaginadoAsync(int page, int pageSize, Guid? profissionalId = null, Guid? pacienteId = null)
         {
             var query = _context.Agendamentos
                                 .AsNoTracking()
                                 .Include(a => a.Paciente)
-                                .OrderByDescending(a => a.DataHoraConsulta);
+                                .AsQueryable();
+
+            if (profissionalId.HasValue)
+                query = query.Where(a => a.ProfissionalId == profissionalId.Value);
+
+            if (pacienteId.HasValue)
+                query = query.Where(a => a.PacienteId == pacienteId.Value);
+
+            query = query.OrderByDescending(a => a.DataHoraConsulta);
 
             var totalCount = await query.CountAsync();
             var items = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();

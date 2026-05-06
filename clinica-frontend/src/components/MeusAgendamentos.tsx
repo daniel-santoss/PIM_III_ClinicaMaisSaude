@@ -1,6 +1,6 @@
 import { API_URL } from "../constants/api";
 import { useEffect, useState } from "react";
-import { MapNomesStatus } from "../constants/statusMap";
+import { MapNomesStatus, MapNomesTipoConsulta, MapNomesEspecialidade } from "../constants/statusMap";
 import { Plus, User, Calendar } from 'lucide-react';
 
 interface AgendamentoItem {
@@ -11,6 +11,7 @@ interface AgendamentoItem {
   tipoConsulta: string;
   status: string;
   nomeProfissional: string;
+  especialidade?: string;
   observacao?: string;
 }
 
@@ -32,7 +33,8 @@ export default function MeusAgendamentos({ onNovoAgendamento }: MeusAgendamentos
       });
       if (res.ok) {
         const dados = await res.json();
-        setAgendamentos(dados.sort((a: any, b: any) => new Date(b.dataHoraConsulta).getTime() - new Date(a.dataHoraConsulta).getTime()));
+        const lista = dados.items ?? dados;
+        setAgendamentos(lista.sort((a: any, b: any) => new Date(b.dataHoraConsulta).getTime() - new Date(a.dataHoraConsulta).getTime()));
       }
     } catch (e) {
       console.error(e);
@@ -105,7 +107,10 @@ export default function MeusAgendamentos({ onNovoAgendamento }: MeusAgendamentos
                   <div>
                     <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Profissional</p>
                     <p className="text-md font-black text-gray-800">{a.nomeProfissional}</p>
-                    <p className="text-xs font-bold text-purple-600">{a.tipoConsulta}</p>
+                    <p className="text-xs font-bold text-purple-600">
+                      {MapNomesTipoConsulta[a.tipoConsulta] || a.tipoConsulta}
+                      {a.tipoConsulta === "ConsultaMedica" && a.especialidade ? ` - ${MapNomesEspecialidade[a.especialidade] || a.especialidade}` : ""}
+                    </p>
                   </div>
                 </div>
                 

@@ -57,32 +57,27 @@ namespace ClinicaMaisSaude.API.Controllers
         [HttpGet]
         public async Task<IActionResult> ObterTodos([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
         {
-            var result = await _agendamentoService.ObterTodosPaginadoAsync(page, pageSize);
-
             var tipoUsuario = User.FindFirstValue("TipoUsuario") ?? User.FindFirstValue(ClaimTypes.Role);
             var isAdmin = User.FindFirstValue("IsAdmin") == "true";
 
-            if (isAdmin)
-            {
-                // Não aplica filtros
-            }
-            else if (tipoUsuario == "Paciente")
+            Guid? filtroProf = null;
+            Guid? filtroPac = null;
+
+            if (!isAdmin && tipoUsuario == "Paciente")
             {
                 var pacienteIdStr = User.FindFirstValue("PacienteId");
                 if (Guid.TryParse(pacienteIdStr, out var pacienteId))
-                {
-                    result.Items = result.Items.Where(a => a.PacienteId == pacienteId).ToList();
-                }
+                    filtroPac = pacienteId;
             }
-            else if (tipoUsuario == "Medico" || tipoUsuario == "Enfermeira")
+            else if (!isAdmin && tipoUsuario == "Medico")
             {
                 var profissionalIdStr = User.FindFirstValue("ProfissionalId");
                 if (Guid.TryParse(profissionalIdStr, out var profissionalId))
-                {
-                    result.Items = result.Items.Where(a => a.ProfissionalId == profissionalId).ToList();
-                }
+                    filtroProf = profissionalId;
             }
+            // Enfermeira e Admin: sem filtro, veem tudo
 
+            var result = await _agendamentoService.ObterTodosPaginadoAsync(page, pageSize, filtroProf, filtroPac);
             return Ok(result);
         }
 

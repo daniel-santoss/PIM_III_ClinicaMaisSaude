@@ -65,7 +65,7 @@ export default function ModalRemarcar({ agenda, onFechar, onSucesso, onMensagem 
 
   const confirmarAlteracaoHora = async () => {
     if (!alterarDataSomente || !alterarHorarioSelecionado) return;
-    const dataHoraUnida = `${alterarDataSomente}T${alterarHorarioSelecionado}:00`;
+    const dataHoraUnida = `${alterarDataSomente}T${alterarHorarioSelecionado}:00-03:00`;
     setAlterando(true);
     try {
       const token = localStorage.getItem("authToken");

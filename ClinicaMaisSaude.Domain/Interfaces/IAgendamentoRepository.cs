@@ -16,7 +16,7 @@ namespace ClinicaMaisSaude.Domain.Interfaces
 
         // IEnumerable -> Lista somente leitura
         Task<IEnumerable<Agendamento>> ObterTodosAsync();
-        Task<(IEnumerable<Agendamento> Items, int TotalCount)> ObterTodosPaginadoAsync(int page, int pageSize);
+        Task<(IEnumerable<Agendamento> Items, int TotalCount)> ObterTodosPaginadoAsync(int page, int pageSize, Guid? profissionalId = null, Guid? pacienteId = null);
         Task<IEnumerable<Agendamento>> ObterAgendamentosDoDiaAsync(DateTime date);
 
         Task DeletarAsync(Agendamento agendamento);

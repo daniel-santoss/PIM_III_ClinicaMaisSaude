@@ -42,6 +42,7 @@ namespace ClinicaMaisSaude.Infrastructure.Repositories
             return await _context.Profissionais
                 .AsNoTracking()
                 .Include(p => p.Usuario)
+                .Include(p => p.Especialidades)
                 .ToListAsync();
         }
     }

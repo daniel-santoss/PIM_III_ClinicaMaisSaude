@@ -109,7 +109,7 @@ export default function AgendamentoFormCriar({
       return;
     }
 
-    const dataHoraUnida = `${dataSelecionada}T${horarioSelecionado}:00`;
+    const dataHoraUnida = `${dataSelecionada}T${horarioSelecionado}:00-03:00`;
 
     try {
       const token = localStorage.getItem("authToken");
