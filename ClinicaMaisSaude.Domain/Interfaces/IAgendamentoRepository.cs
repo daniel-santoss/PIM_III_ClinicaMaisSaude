@@ -18,6 +18,8 @@ namespace ClinicaMaisSaude.Domain.Interfaces
         Task<IEnumerable<Agendamento>> ObterTodosAsync();
         Task<(IEnumerable<Agendamento> Items, int TotalCount)> ObterTodosPaginadoAsync(int page, int pageSize, Guid? profissionalId = null, Guid? pacienteId = null);
         Task<IEnumerable<Agendamento>> ObterAgendamentosDoDiaAsync(DateTime date);
+        Task<IEnumerable<Agendamento>> ObterTodosPorPacienteIdAsync(Guid pacienteId);
+        Task<IEnumerable<AgendamentoHistorico>> ObterHistoricoPorPacienteIdAsync(Guid pacienteId);
 
         Task DeletarAsync(Agendamento agendamento);
         Task<bool> ExisteAgendamentoNoHorarioAsync(Guid profissionalId, DateTime dataHora);

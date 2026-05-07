@@ -14,10 +14,12 @@ interface AgendamentoCardProps {
     status: string;
     nomeProfissional: string;
     especialidade?: string;
+    nivelProbabilidadeFalta?: string;
   };
   opcoesValidas: string[];
   podeCancelar: boolean;
   podeRemarcar: boolean;
+  tipoUsuarioLogado: string | null;
   onAlterarStatus: (id: string, novoStatus: string) => void;
   onCancelar: (id: string, nome: string) => void;
   onRemarcar: (agenda: any) => void;
@@ -33,6 +35,7 @@ export default function AgendamentoCard({
   onCancelar,
   onRemarcar,
   onHistorico,
+  tipoUsuarioLogado,
 }: AgendamentoCardProps) {
   const dataObj = new Date(agenda.dataHoraConsulta);
   const dia = dataObj.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' });
@@ -44,7 +47,18 @@ export default function AgendamentoCard({
       <div className="p-6 pb-4 flex justify-between items-start">
         <div className="flex flex-col">
           <span className="text-2xl font-black text-[#7C3AED] leading-none">{hora}</span>
-          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">{dia}</span>
+          <div className="flex items-center gap-2 mt-1">
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{dia}</span>
+            {(tipoUsuarioLogado === "Medico" || tipoUsuarioLogado === "Enfermeira") && agenda.nivelProbabilidadeFalta && agenda.status === "Agendado" && (
+              <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
+                agenda.nivelProbabilidadeFalta === "Alta" ? "bg-red-100 text-red-600" :
+                agenda.nivelProbabilidadeFalta === "Média" ? "bg-amber-100 text-amber-600" :
+                "bg-green-100 text-green-600"
+              }`}>
+                Risco {agenda.nivelProbabilidadeFalta}
+              </span>
+            )}
+          </div>
         </div>
         <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider border ${agenda.status === 'Finalizado' ? 'bg-green-50 text-green-600 border-green-100' :
           agenda.status === 'Faltou' ? 'bg-red-50 text-red-600 border-red-100' :

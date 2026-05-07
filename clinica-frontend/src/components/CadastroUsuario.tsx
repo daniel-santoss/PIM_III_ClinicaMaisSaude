@@ -20,6 +20,7 @@ export function CadastroUsuario({ onUserCreated }: { onUserCreated?: () => void 
   const [tipoUsuario, setTipoUsuario] = useState("Paciente");
   const [crm, setCrm] = useState("");
   const [ufCrm, setUfCrm] = useState("");
+  const [temProblemaMemoria, setTemProblemaMemoria] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [mensagem, setMensagem] = useState<{ texto: string; erro: boolean } | null>(null);
@@ -55,6 +56,7 @@ export function CadastroUsuario({ onUserCreated }: { onUserCreated?: () => void 
           tipoUsuario,
           crm: tipoUsuario === "Medico" ? crm : null,
           ufCrm: tipoUsuario === "Medico" ? ufCrm : null,
+          temProblemaMemoria: tipoUsuario === "Paciente" ? temProblemaMemoria : false,
         }),
       });
 
@@ -69,6 +71,7 @@ export function CadastroUsuario({ onUserCreated }: { onUserCreated?: () => void 
         setCpf("");
         setSenha("");
         setUfCrm("");
+        setTemProblemaMemoria(false);
         if (onUserCreated) onUserCreated();
       }
     } catch (err) {
@@ -239,6 +242,21 @@ export function CadastroUsuario({ onUserCreated }: { onUserCreated?: () => void 
                 <option value="TO">TO</option>
               </select>
             </div>
+          </div>
+        )}
+
+        {tipoUsuario === "Paciente" && (
+          <div className="flex items-center gap-3 bg-purple-50/50 p-4 rounded-xl border border-purple-100">
+            <input
+              type="checkbox"
+              id="problemaMemoria"
+              checked={temProblemaMemoria}
+              onChange={(e) => setTemProblemaMemoria(e.target.checked)}
+              className="w-5 h-5 text-[#7C3AED] rounded border-purple-300 focus:ring-[#7C3AED] focus:ring-2 outline-none transition-all cursor-pointer"
+            />
+            <label htmlFor="problemaMemoria" className="text-sm font-bold text-gray-700 cursor-pointer">
+              Paciente possui problema de memória?
+            </label>
           </div>
         )}
 

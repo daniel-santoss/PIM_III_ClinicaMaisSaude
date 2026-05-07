@@ -11,5 +11,6 @@ namespace ClinicaMaisSaude.Application.DTOs.Auth
         public string TipoUsuario { get; set; } = string.Empty; // Enfermeira | Medico | Paciente
         public string? UfCrm { get; set; }
         public string? Crm { get; set; }
+        public bool TemProblemaMemoria { get; set; }
     }
 }

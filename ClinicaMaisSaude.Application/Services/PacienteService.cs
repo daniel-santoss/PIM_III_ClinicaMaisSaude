@@ -35,7 +35,8 @@ namespace ClinicaMaisSaude.Application.Services
                 request.Nome,
                 request.Cpf.Replace(".", "").Replace("-", ""),
                 request.Telefone.Replace("(", "").Replace(")", "").Replace("-", "").Replace(" ", ""),
-                request.Email);
+                request.Email,
+                request.TemProblemaMemoria);
             
             await _repository.AdicionarAsync(paciente);
 
@@ -46,6 +47,7 @@ namespace ClinicaMaisSaude.Application.Services
                 Cpf = paciente.Cpf,
                 Telefone = paciente.Telefone,
                 Email = paciente.Email,
+                TemProblemaMemoria = paciente.TemProblemaMemoria,
                 UsuarioId = paciente.UsuarioId
             };
 
@@ -64,6 +66,7 @@ namespace ClinicaMaisSaude.Application.Services
                 Cpf = paciente.Cpf,
                 Telefone = paciente.Telefone,
                 Email = paciente.Email,
+                TemProblemaMemoria = paciente.TemProblemaMemoria,
                 UsuarioId = paciente.UsuarioId,
                 Tipo = "Paciente"
             };
@@ -81,6 +84,7 @@ namespace ClinicaMaisSaude.Application.Services
                 Cpf = p.Cpf,
                 Telefone = p.Telefone,
                 Email = p.Email,
+                TemProblemaMemoria = p.TemProblemaMemoria,
                 UsuarioId = p.UsuarioId,
                 Tipo = "Paciente",
                 UltimoAcesso = p.Usuario?.UltimoAcesso
@@ -130,6 +134,7 @@ namespace ClinicaMaisSaude.Application.Services
                 Cpf = p.Cpf,
                 Telefone = p.Telefone,
                 Email = p.Email,
+                TemProblemaMemoria = p.TemProblemaMemoria,
                 UsuarioId = p.UsuarioId,
                 Tipo = "Paciente",
                 UltimoAcesso = p.Usuario?.UltimoAcesso
@@ -194,7 +199,8 @@ namespace ClinicaMaisSaude.Application.Services
                 request.Nome,
                 paciente.Cpf,
                 request.Telefone.Replace("(", "").Replace(")", "").Replace("-", "").Replace(" ", ""),
-                request.Email);
+                request.Email,
+                request.TemProblemaMemoria);
 
             await _repository.AtualizarAsync(paciente);
 
@@ -205,6 +211,7 @@ namespace ClinicaMaisSaude.Application.Services
                 Cpf = paciente.Cpf,
                 Telefone = paciente.Telefone,
                 Email = paciente.Email,
+                TemProblemaMemoria = paciente.TemProblemaMemoria,
                 UsuarioId = paciente.UsuarioId
             };
         }

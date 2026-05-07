@@ -19,6 +19,25 @@ namespace ClinicaMaisSaude.Infrastructure.Repositories
             _context = context;
         }
 
+        public async Task<IEnumerable<Agendamento>> ObterTodosPorPacienteIdAsync(Guid pacienteId)
+        {
+            return await _context.Agendamentos
+                .AsNoTracking()
+                .Where(a => a.PacienteId == pacienteId)
+                .OrderByDescending(a => a.DataHoraConsulta)
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<AgendamentoHistorico>> ObterHistoricoPorPacienteIdAsync(Guid pacienteId)
+        {
+            return await _context.AgendamentoHistoricos
+                .AsNoTracking()
+                .Include(h => h.Agendamento)
+                .Where(h => h.Agendamento.PacienteId == pacienteId)
+                .OrderBy(h => h.Dt_Criado)
+                .ToListAsync();
+        }
+
         public async Task AdicionarAsync(Agendamento agendamento)
         {
             await _context.Agendamentos.AddAsync(agendamento);

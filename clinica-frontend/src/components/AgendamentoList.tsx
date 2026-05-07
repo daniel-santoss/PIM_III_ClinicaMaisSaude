@@ -21,6 +21,7 @@ export interface AgendamentoResponse {
   agendamentoOrigemId?: string;
   nomeProfissional: string;
   dtCriado: string;
+  nivelProbabilidadeFalta?: string;
 }
 
 export interface AgendamentoHistoricoResponse {
@@ -67,6 +68,7 @@ export default function AgendamentoList() {
   const [filtroAgenda, setFiltroAgenda] = useState("");
   const [filtroStatus, setFiltroStatus] = useState("Todos");
   const [filtroDataConsulta, setFiltroDataConsulta] = useState("");
+  const [filtroRiscoApenas, setFiltroRiscoApenas] = useState(false);
   const [ordemData, setOrdemData] = useState<"asc" | "desc">("desc");
 
   const tipoUsuario = localStorage.getItem("tipoUsuario");
@@ -77,7 +79,7 @@ export default function AgendamentoList() {
   const [totalCount, setTotalCount] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
 
-  const limparFiltros = () => { setFiltroAgenda(""); setFiltroStatus("Todos"); setFiltroDataConsulta(""); setPage(1); };
+  const limparFiltros = () => { setFiltroAgenda(""); setFiltroStatus("Todos"); setFiltroDataConsulta(""); setFiltroRiscoApenas(false); setPage(1); };
 
   useEffect(() => { carregarDados(); }, [refreshContador, page]);
 
@@ -153,13 +155,21 @@ export default function AgendamentoList() {
     finally { setHistoricoLoading(false); }
   };
 
-  const obterOpcoesPermitidas = (statusAtual: string, tipoConsulta: string): string[] => {
+  const obterOpcoesPermitidas = (statusAtual: string, tipoConsulta: string, dataHoraConsulta: string): string[] => {
+    if (tipoUsuario === "Paciente") return [];
+
+    const hojeStr = new Date().toISOString().split('T')[0];
+    const dataConsultaStr = new Date(dataHoraConsulta).toISOString().split('T')[0];
+    const ehHojeOuPassado = dataConsultaStr <= hojeStr;
+
     switch (statusAtual) {
-      case "Agendado": return ["EmAtendimento", "Faltou"];
+      case "Agendado": 
+        return ehHojeOuPassado ? ["EmAtendimento", "Faltou"] : [];
       case "EmAtendimento":
-        return tipoConsulta === "ConsultaMédica" || tipoConsulta === "Consulta Médica" ? ["AguardandoRetorno", "Finalizado"] : ["Finalizado"];
+        return tipoConsulta === "ConsultaMédica" || tipoConsulta === "Consulta Médica" || tipoConsulta === "ConsultaMedica" ? ["AguardandoRetorno", "Finalizado"] : ["Finalizado"];
       case "AguardandoRetorno": return [];
-      case "RetornoAgendado": return ["Finalizado", "Faltou"];
+      case "RetornoAgendado": 
+        return ehHojeOuPassado ? ["Finalizado", "Faltou"] : [];
       default: return [];
     }
   };
@@ -171,7 +181,8 @@ export default function AgendamentoList() {
       const matchBusca = a.pacienteNome.toLowerCase().includes(filtroAgenda.toLowerCase()) || cpf.includes(filtroAgenda);
       const matchStatus = filtroStatus === "Todos" || a.status === filtroStatus;
       const matchData = !filtroDataConsulta || a.dataHoraConsulta.startsWith(filtroDataConsulta);
-      return matchBusca && matchStatus && matchData;
+      const matchRisco = !filtroRiscoApenas || (a.nivelProbabilidadeFalta === "Alta" || a.nivelProbabilidadeFalta === "Média");
+      return matchBusca && matchStatus && matchData && matchRisco;
     })
     .sort((a, b) => {
       const pA = StatusPriority[a.status] || 99;
@@ -199,6 +210,10 @@ export default function AgendamentoList() {
     faltas: agendamentos.filter(a => a.status === "Faltou").length
   };
 
+  const agendamentosHoje = agendamentos.filter(a => a.dataHoraConsulta.startsWith(hoje) && a.status === "Agendado");
+  const riscoAltoHoje = agendamentosHoje.filter(a => a.nivelProbabilidadeFalta === "Alta").length;
+  const riscoMedioHoje = agendamentosHoje.filter(a => a.nivelProbabilidadeFalta === "Média").length;
+
   if (erro) return (
     <div className="flex flex-col items-center justify-center py-20">
       <div className="bg-red-50 p-6 rounded-3xl border border-red-100 text-center max-w-md">
@@ -221,7 +236,7 @@ export default function AgendamentoList() {
     <>
       <div className="space-y-8 animate-in fade-in duration-700">
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <div className="bg-white p-6 rounded-[2.5rem] shadow-xl shadow-purple-100/20 border border-purple-50 group hover:scale-[1.02] transition-all duration-300">
             <div className="flex items-center justify-between mb-4">
               <div className="p-3 bg-purple-100 rounded-2xl text-purple-600 group-hover:bg-[#7C3AED] group-hover:text-white transition-colors">
@@ -268,6 +283,36 @@ export default function AgendamentoList() {
               <div className="flex flex-col items-center"><span className="text-[9px] font-black text-orange-600 uppercase">Faltas</span><span className="text-xs font-black text-gray-700">{statusResumo.faltas}</span></div>
             </div>
           </div>
+          {(isAdmin || tipoUsuario === "Medico" || tipoUsuario === "Enfermeira") && (
+            <button 
+              onClick={() => {
+                const novoEstado = !filtroRiscoApenas;
+                setFiltroRiscoApenas(novoEstado);
+                if (novoEstado) {
+                  setFiltroDataConsulta(hoje);
+                  setFiltroStatus("Agendado");
+                } else {
+                  limparFiltros();
+                }
+              }}
+              className={`text-left p-6 rounded-[2.5rem] shadow-xl transition-all duration-300 group hover:scale-[1.02] ${
+                filtroRiscoApenas 
+                  ? 'bg-red-50 border-2 border-red-400 shadow-red-200' 
+                  : 'bg-white border border-red-50 shadow-red-100/20'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-3 bg-red-100 rounded-2xl text-red-600 group-hover:bg-red-500 group-hover:text-white transition-colors">
+                  <AlertTriangle className="w-6 h-6" />
+                </div>
+                <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Risco de Falta (Hoje)</span>
+              </div>
+              <div className="flex items-end gap-3">
+                <span className="text-4xl font-black text-gray-800 leading-none">{riscoAltoHoje + riscoMedioHoje}</span>
+                <span className="text-[10px] font-bold text-red-400 mb-1">{riscoAltoHoje} Alto, {riscoMedioHoje} Médio</span>
+              </div>
+            </button>
+          )}
         </div>
 
         {/* Filtros */}
@@ -290,13 +335,14 @@ export default function AgendamentoList() {
               <AgendamentoCard
                 key={agenda.id}
                 agenda={agenda}
-                opcoesValidas={obterOpcoesPermitidas(agenda.status, agenda.tipoConsulta)}
+                opcoesValidas={obterOpcoesPermitidas(agenda.status, agenda.tipoConsulta, agenda.dataHoraConsulta)}
                 podeCancelar={agenda.status === "Agendado" || agenda.status === "RetornoAgendado"}
                 podeRemarcar={agenda.status !== "Finalizado" && agenda.status !== "Cancelado"}
                 onAlterarStatus={alterarStatus}
                 onCancelar={(id, nome) => setCancelarAlvo({ id, nome })}
                 onRemarcar={(a) => setAlterarAlvo(a)}
                 onHistorico={abrirHistorico}
+                tipoUsuarioLogado={tipoUsuario}
               />
             ))
           )}

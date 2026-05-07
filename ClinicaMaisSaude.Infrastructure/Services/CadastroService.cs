@@ -61,7 +61,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             // Criação do perfil associado
             if (request.TipoUsuario == "Paciente")
             {
-                var paciente = new Paciente(request.Nome, cpfLimpo, "00000000000", request.Email);
+                var paciente = new Paciente(request.Nome, cpfLimpo, "00000000000", request.Email, request.TemProblemaMemoria);
                 paciente.VincularUsuario(novoUsuario.Id);
                 _context.Pacientes.Add(paciente);
             }

@@ -30,6 +30,7 @@ namespace ClinicaMaisSaude.Infrastructure.Data
                 entidade.Property(p => p.Telefone).HasColumnType("varchar(11)").IsRequired();
                 entidade.Property(p => p.Email).HasMaxLength(150).IsRequired();
                 entidade.Property(p => p.Ativo).HasDefaultValue(true);
+                entidade.Property(p => p.TemProblemaMemoria).HasDefaultValue(false);
                 entidade.Property(p => p.DtCriado).HasColumnName("Dt_Criado");
             });
 

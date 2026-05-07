@@ -14,6 +14,10 @@ export default function PerfilPaciente() {
   const [confirmarSenha, setConfirmarSenha] = useState("");
   const [modalMensagem, setModalMensagem] = useState<string | null>(null);
 
+  const [editMode, setEditMode] = useState(false);
+  const [editData, setEditData] = useState<any>(null);
+  const [salvando, setSalvando] = useState(false);
+
   const pacienteId = localStorage.getItem("pacienteId");
   const token = localStorage.getItem("authToken");
 
@@ -26,6 +30,12 @@ export default function PerfilPaciente() {
         if (res.ok) {
           const dados = await res.json();
           setPaciente(dados);
+          setEditData({
+            nome: dados.nome,
+            telefone: dados.telefone,
+            email: dados.email,
+            temProblemaMemoria: dados.temProblemaMemoria || false
+          });
         }
       } catch (e) {
         console.error(e);
@@ -67,6 +77,35 @@ export default function PerfilPaciente() {
     } catch (e) { setModalMensagem("Erro de conexão."); }
   };
 
+  const salvarPerfil = async () => {
+    setSalvando(true);
+    try {
+      const res = await fetch(`${API_URL}/api/Pacientes/${pacienteId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          nome: editData.nome,
+          cpf: paciente.cpf,
+          telefone: editData.telefone,
+          email: editData.email,
+          temProblemaMemoria: editData.temProblemaMemoria
+        })
+      });
+
+      if (res.ok) {
+        setPaciente({ ...paciente, ...editData });
+        setEditMode(false);
+        setModalMensagem("Perfil atualizado com sucesso!");
+      } else {
+        setModalMensagem(await res.text() || "Erro ao salvar perfil.");
+      }
+    } catch (e) {
+      setModalMensagem("Erro de conexão.");
+    } finally {
+      setSalvando(false);
+    }
+  };
+
   return (
     <div className="animate-in fade-in slide-in-from-top-4 duration-500 w-full px-4">
       {/* Perfil Header */}
@@ -92,23 +131,64 @@ export default function PerfilPaciente() {
       </div>
 
       {/* Lista de Dados Simples */}
-      <div className="space-y-1 bg-white rounded-3xl border border-gray-100 overflow-hidden shadow-sm">
-        <div className="px-6 py-4 flex flex-col gap-1 hover:bg-gray-50 transition-colors">
+      <div className="space-y-1 bg-white rounded-3xl border border-gray-100 overflow-hidden shadow-sm relative">
+        {!editMode && (
+          <button onClick={() => setEditMode(true)} className="absolute top-4 right-6 text-xs font-bold text-[#7C3AED] hover:underline uppercase tracking-wider">Editar</button>
+        )}
+        
+        <div className="px-6 py-4 flex flex-col gap-1 border-gray-50 transition-colors">
           <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Nome Completo</span>
-          <span className="text-sm font-bold text-gray-800">{paciente?.nome}</span>
+          {editMode ? (
+            <input type="text" value={editData.nome} onChange={e => setEditData({...editData, nome: e.target.value})} className="border border-gray-200 rounded-lg p-2 text-sm mt-1 focus:ring-2 focus:ring-[#7C3AED] outline-none" />
+          ) : (
+            <span className="text-sm font-bold text-gray-800">{paciente?.nome}</span>
+          )}
         </div>
-        <div className="px-6 py-4 flex flex-col gap-1 border-t border-gray-50 hover:bg-gray-50 transition-colors">
-          <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">CPF</span>
+        <div className="px-6 py-4 flex flex-col gap-1 border-t border-gray-50 transition-colors bg-gray-50/50">
+          <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">CPF <span className="lowercase normal-case font-normal text-xs text-gray-400">(Não editável)</span></span>
           <span className="text-sm font-bold text-gray-800">{mascaraCpf(paciente?.cpf)}</span>
         </div>
-        <div className="px-6 py-4 flex flex-col gap-1 border-t border-gray-50 hover:bg-gray-50 transition-colors">
+        <div className="px-6 py-4 flex flex-col gap-1 border-t border-gray-50 transition-colors">
           <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Telefone</span>
-          <span className="text-sm font-bold text-gray-800">{mascaraTelefone(paciente?.telefone)}</span>
+          {editMode ? (
+            <input type="text" value={editData.telefone} onChange={e => setEditData({...editData, telefone: mascaraTelefone(e.target.value)})} className="border border-gray-200 rounded-lg p-2 text-sm mt-1 focus:ring-2 focus:ring-[#7C3AED] outline-none" />
+          ) : (
+            <span className="text-sm font-bold text-gray-800">{mascaraTelefone(paciente?.telefone)}</span>
+          )}
         </div>
-        <div className="px-6 py-4 flex flex-col gap-1 border-t border-gray-50 hover:bg-gray-50 transition-colors">
+        <div className="px-6 py-4 flex flex-col gap-1 border-t border-gray-50 transition-colors">
           <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">E-mail</span>
-          <span className="text-sm font-bold text-gray-800">{paciente?.email}</span>
+          {editMode ? (
+            <input type="email" value={editData.email} onChange={e => setEditData({...editData, email: e.target.value})} className="border border-gray-200 rounded-lg p-2 text-sm mt-1 focus:ring-2 focus:ring-[#7C3AED] outline-none" />
+          ) : (
+            <span className="text-sm font-bold text-gray-800">{paciente?.email}</span>
+          )}
         </div>
+        <div className="px-6 py-4 flex items-center justify-between border-t border-gray-50 transition-colors">
+          <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Paciente possui problema de memória?</span>
+          {editMode ? (
+            <input type="checkbox" checked={editData.temProblemaMemoria} onChange={e => setEditData({...editData, temProblemaMemoria: e.target.checked})} className="w-5 h-5 text-[#7C3AED] rounded border-gray-300 focus:ring-[#7C3AED] focus:ring-2 outline-none cursor-pointer" />
+          ) : (
+            <span className="text-sm font-bold text-gray-800">{paciente?.temProblemaMemoria ? "Sim" : "Não"}</span>
+          )}
+        </div>
+
+        {editMode && (
+          <div className="px-6 py-4 bg-purple-50/50 flex gap-3 border-t border-purple-100">
+            <button onClick={() => {
+              setEditMode(false);
+              setEditData({
+                nome: paciente.nome,
+                telefone: paciente.telefone,
+                email: paciente.email,
+                temProblemaMemoria: paciente.temProblemaMemoria || false
+              });
+            }} className="flex-1 py-2.5 text-gray-500 font-bold text-xs uppercase hover:bg-gray-100 rounded-xl transition-colors">Cancelar</button>
+            <button onClick={salvarPerfil} disabled={salvando} className="flex-1 py-2.5 bg-[#7C3AED] text-white rounded-xl font-bold text-xs uppercase shadow-md shadow-purple-200 hover:bg-[#6D28D9] transition-colors disabled:opacity-50">
+              {salvando ? "Salvando..." : "Salvar Alterações"}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Ações */}
@@ -121,7 +201,7 @@ export default function PerfilPaciente() {
         </button>
 
         <p className="text-sm font-bold text-gray-400 text-center px-6 py-4 leading-relaxed italic">
-          Dados cadastrais só podem ser alterados presencialmente na recepção mediante a apresentação de um documento com foto.
+          O seu CPF só pode ser alterado presencialmente na recepção mediante a apresentação de um documento com foto.
         </p>
       </div>
 

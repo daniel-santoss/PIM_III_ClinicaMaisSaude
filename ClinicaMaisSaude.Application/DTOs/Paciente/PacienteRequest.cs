@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -10,5 +10,6 @@ namespace ClinicaMaisSaude.Application.DTOs.Paciente
         public string Cpf { get; set; }
         public string Telefone { get; set; }
         public string Email { get; set; }
+        public bool TemProblemaMemoria { get; set; }
     }
 }

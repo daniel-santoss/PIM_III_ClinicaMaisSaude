@@ -15,10 +15,12 @@ namespace ClinicaMaisSaude.API.Controllers
     public class AgendamentosController : ControllerBase
     {
         private readonly IAgendamentoService _agendamentoService;
+        private readonly IProbabilidadeFaltaService _probabilidadeFaltaService;
 
-        public AgendamentosController(IAgendamentoService agendamentoService)
+        public AgendamentosController(IAgendamentoService agendamentoService, IProbabilidadeFaltaService probabilidadeFaltaService)
         {
             _agendamentoService = agendamentoService;
+            _probabilidadeFaltaService = probabilidadeFaltaService;
         }
 
         [HttpPost]
@@ -196,6 +198,30 @@ namespace ClinicaMaisSaude.API.Controllers
 
                 await _agendamentoService.MarcarResultadoDisponivelAsync(id);
                 return Ok(new { Mensagem = "Resultado marcado como disponível." });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { Mensagem = ex.Message });
+            }
+        }
+
+        [HttpGet("{agendamentoId}/probabilidade-falta")]
+        public async Task<IActionResult> ObterProbabilidadeFalta(Guid agendamentoId)
+        {
+            try
+            {
+                var agendamento = await _agendamentoService.ObterPorIdAsync(agendamentoId);
+                if (agendamento == null)
+                    return NotFound("Agendamento não encontrado.");
+
+                var (probabilidade, nivel) = await _probabilidadeFaltaService.CalcularProbabilidadeAsync(agendamento.PacienteId, agendamento.DataHoraConsulta);
+
+                return Ok(new
+                {
+                    AgendamentoId = agendamentoId,
+                    Probabilidade = probabilidade,
+                    Nivel = nivel
+                });
             }
             catch (Exception ex)
             {

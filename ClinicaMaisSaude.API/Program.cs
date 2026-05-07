@@ -64,6 +64,7 @@ builder.Services.AddScoped<IPacienteService, PacienteService>();
 builder.Services.AddScoped<IAgendamentoService, AgendamentoService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ICadastroService, CadastroService>();
+builder.Services.AddScoped<IProbabilidadeFaltaService, ProbabilidadeFaltaService>();
 builder.Services.AddScoped<IEspecialidadeService, EspecialidadeService>();
 builder.Services.AddScoped<IPerfilService, PerfilService>();
 builder.Services.AddScoped<IProfissionalService, ProfissionalService>();
