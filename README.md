@@ -62,14 +62,6 @@ Migração de interações síncronas para fluxos assíncronos fluidos.
 
 ---
 
-## ⚙️ Como Executar
+## 👤 Autor
 
-### Pré-requisitos
-- .NET 10 SDK
-- Node.js (v18+)
-- SQL Server
-
-### Passo a Passo
-1. **Clone o repositório:**
-   ```bash
-   git clone [https://github.com/seu-usuario/clinica-mais-saude.git](https://github.com/seu-usuario/clinica-mais-saude.git)
+**Daniel Vinicius Carvalho dos Santos**
