@@ -53,11 +53,13 @@ export default function Login({ onLogado }: { onLogado: () => void }) {
       });
 
       if (!response.ok) {
-        throw new Error("Credenciais inválidas");
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.message || "Credenciais inválidas");
       }
 
       const data = await response.json();
       localStorage.setItem("authToken", data.token);
+      if (data.refreshToken) localStorage.setItem("refreshToken", data.refreshToken);
       localStorage.setItem("tipoUsuario", data.tipoUsuario);
       localStorage.setItem("isAdmin", data.isAdmin ? "true" : "false");
       if (data.pacienteId) localStorage.setItem("pacienteId", data.pacienteId);
@@ -75,7 +77,6 @@ export default function Login({ onLogado }: { onLogado: () => void }) {
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center items-center p-4">
       <div className="bg-white rounded-[2rem] shadow-xl w-full max-w-md p-8 md:p-10 border border-gray-100">
         <div className="text-center mb-8">
-          {/* Logo PNG */}
           <img
             src={logoPng}
             alt="Logo Clínica Mais Saúde"

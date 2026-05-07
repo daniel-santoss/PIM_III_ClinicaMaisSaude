@@ -12,11 +12,13 @@ namespace ClinicaMaisSaude.Domain.Entities
         public string Email { get; private set; }
         public bool Ativo { get; private set; }
         public bool TemProblemaMemoria { get; private set; }
-        public Guid? UsuarioId { get; private set; } // Vincula o acesso do paciente ao sistema de autenticação
+        public Guid? UsuarioId { get; private set; }
         public DateTime DtCriado { get; private set; }
+        public DateTime? BloqueadoIAAte { get; private set; }
         
         public virtual Usuario Usuario { get; private set; }
         public virtual ICollection<Agendamento> Agendamentos { get; private set; } = new List<Agendamento>();
+        public virtual ICollection<AbusoIA> Abusos { get; private set; } = new List<AbusoIA>();
 
         public Paciente(string nome, string cpf, string telefone, string email, bool temProblemaMemoria = false)
         {
@@ -28,6 +30,7 @@ namespace ClinicaMaisSaude.Domain.Entities
             Ativo = true;
             TemProblemaMemoria = temProblemaMemoria;
             DtCriado = DateTime.UtcNow;
+            BloqueadoIAAte = null;
         }
 
         public void Atualizar(string nome, string cpf, string telefone, string email, bool temProblemaMemoria)
@@ -42,6 +45,26 @@ namespace ClinicaMaisSaude.Domain.Entities
         public void Desativar()
         {
             Ativo = false;
+        }
+
+        public void RegistrarAbuso(TipoAbuso tipoAbuso, string texto)
+        {
+            Abusos.Add(new AbusoIA(Id, tipoAbuso, texto));
+
+            int totalAbusos = Abusos.Count;
+            if (totalAbusos == 2)
+            {
+                BloqueadoIAAte = DateTime.UtcNow.AddDays(1);
+            }
+            else if (totalAbusos >= 3)
+            {
+                BloqueadoIAAte = DateTime.UtcNow.AddDays(7);
+            }
+        }
+
+        public bool IsIABloqueada()
+        {
+            return BloqueadoIAAte.HasValue && BloqueadoIAAte.Value > DateTime.UtcNow;
         }
 
         public void VincularUsuario(Guid usuarioId)

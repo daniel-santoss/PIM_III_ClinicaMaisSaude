@@ -41,10 +41,26 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                 throw new Exception("Credenciais inválidas.");
             }
 
+            if (usuario.IsBloqueado() && !usuario.IsAdmin)
+            {
+                var minutosRestantes = (int)Math.Ceiling((usuario.BloqueadoAte!.Value - DateTime.UtcNow).TotalMinutes);
+                throw new Exception($"Conta bloqueada. Tente novamente em {minutosRestantes} minuto(s).");
+            }
+
             if (!BCrypt.Net.BCrypt.Verify(request.Senha, usuario.SenhaHash.Trim()))
             {
+                usuario.RegistrarFalhaLogin();
+                await _context.SaveChangesAsync();
+
+                if (usuario.IsBloqueado() && !usuario.IsAdmin)
+                {
+                    throw new Exception("Conta bloqueada por excesso de tentativas. Tente novamente em 15 minutos.");
+                }
+
                 throw new Exception("Credenciais inválidas.");
             }
+
+            usuario.RegistrarSucessoLogin();
 
             usuario.AtualizarUltimoAcesso();
             await _context.SaveChangesAsync();
@@ -74,7 +90,8 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                 new Claim(ClaimTypes.NameIdentifier, usuario.Id.ToString()),
                 new Claim(ClaimTypes.Role, tipoUsuarioStr),
                 new Claim("TipoUsuario", tipoUsuarioStr),
-                new Claim("IsAdmin", usuario.IsAdmin.ToString().ToLower())
+                new Claim("IsAdmin", usuario.IsAdmin.ToString().ToLower()),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
 
             if (pacienteId.HasValue)
@@ -90,15 +107,113 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(claims),
-                Expires = DateTime.UtcNow.AddHours(8),
+                Expires = DateTime.UtcNow.AddHours(3),
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
             };
 
             var token = tokenHandler.CreateToken(tokenDescriptor);
 
+            var jwtToken = tokenHandler.WriteToken(token);
+            var refreshToken = new RefreshToken
+            {
+                Token = Guid.NewGuid().ToString() + Guid.NewGuid().ToString(),
+                JwtId = token.Id,
+                IsUsed = false,
+                IsRevoked = false,
+                UsuarioId = usuario.Id,
+                AddedDate = DateTime.UtcNow,
+                ExpiryDate = DateTime.UtcNow.AddDays(7)
+            };
+
+            await _context.RefreshTokens.AddAsync(refreshToken);
+            await _context.SaveChangesAsync();
+
             return new LoginResponse
             {
-                Token = tokenHandler.WriteToken(token),
+                Token = jwtToken,
+                RefreshToken = refreshToken.Token,
+                UsuarioId = usuario.Id,
+                TipoUsuario = tipoUsuarioStr,
+                PacienteId = pacienteId,
+                ProfissionalId = perfilProfissional?.Id,
+                IsAdmin = usuario.IsAdmin
+            };
+        }
+
+        public async Task<LoginResponse> RefreshTokenAsync(RefreshTokenRequest request)
+        {
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var secretKey = _configuration["JwtConfig:Secret"] ?? throw new InvalidOperationException("JwtConfig:Secret não configurado.");
+            var key = Encoding.ASCII.GetBytes(secretKey);
+
+            var storedToken = await _context.RefreshTokens.FirstOrDefaultAsync(x => x.Token == request.RefreshToken);
+
+            if (storedToken == null) throw new Exception("Refresh token não existe.");
+            if (storedToken.IsUsed) throw new Exception("Refresh token já foi utilizado.");
+            if (storedToken.IsRevoked) throw new Exception("Refresh token foi revogado.");
+            if (storedToken.ExpiryDate < DateTime.UtcNow) throw new Exception("Refresh token expirado.");
+
+            storedToken.IsUsed = true;
+            _context.RefreshTokens.Update(storedToken);
+            await _context.SaveChangesAsync();
+
+            var usuario = await _context.Usuarios.FirstOrDefaultAsync(u => u.Id == storedToken.UsuarioId);
+            if (usuario == null) throw new Exception("Usuário não encontrado.");
+
+            var perfilProfissional = await _context.Profissionais.FirstOrDefaultAsync(p => p.UsuarioId == usuario.Id);
+            var perfilPaciente = await _context.Pacientes.FirstOrDefaultAsync(p => p.UsuarioId == usuario.Id);
+
+            string tipoUsuarioStr = "Admin";
+            Guid? pacienteId = null;
+
+            if (perfilProfissional != null)
+                tipoUsuarioStr = perfilProfissional.TipoProfissional.ToString();
+            else if (perfilPaciente != null)
+            {
+                tipoUsuarioStr = "Paciente";
+                pacienteId = perfilPaciente.Id;
+            }
+
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.NameIdentifier, usuario.Id.ToString()),
+                new Claim(ClaimTypes.Role, tipoUsuarioStr),
+                new Claim("TipoUsuario", tipoUsuarioStr),
+                new Claim("IsAdmin", usuario.IsAdmin.ToString().ToLower()),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+            };
+
+            if (pacienteId.HasValue) claims.Add(new Claim("PacienteId", pacienteId.Value.ToString()));
+            if (perfilProfissional != null) claims.Add(new Claim("ProfissionalId", perfilProfissional.Id.ToString()));
+
+            var tokenDescriptor = new SecurityTokenDescriptor
+            {
+                Subject = new ClaimsIdentity(claims),
+                Expires = DateTime.UtcNow.AddHours(3),
+                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+            };
+
+            var token = tokenHandler.CreateToken(tokenDescriptor);
+            var jwtToken = tokenHandler.WriteToken(token);
+
+            var refreshToken = new RefreshToken
+            {
+                Token = Guid.NewGuid().ToString() + Guid.NewGuid().ToString(),
+                JwtId = token.Id,
+                IsUsed = false,
+                IsRevoked = false,
+                UsuarioId = usuario.Id,
+                AddedDate = DateTime.UtcNow,
+                ExpiryDate = DateTime.UtcNow.AddDays(7)
+            };
+
+            await _context.RefreshTokens.AddAsync(refreshToken);
+            await _context.SaveChangesAsync();
+
+            return new LoginResponse
+            {
+                Token = jwtToken,
+                RefreshToken = refreshToken.Token,
                 UsuarioId = usuario.Id,
                 TipoUsuario = tipoUsuarioStr,
                 PacienteId = pacienteId,

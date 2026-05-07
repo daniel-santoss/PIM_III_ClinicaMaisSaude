@@ -87,5 +87,6 @@ namespace ClinicaMaisSaude.API.Controllers
 
             return Ok(new { Mensagem = resultado.Mensagem });
         }
+
     }
 }

@@ -17,6 +17,8 @@ namespace ClinicaMaisSaude.Infrastructure.Data
         public DbSet<StatusAgendamentoLookup> StatusAgendamentoLookup { get; set; }
         public DbSet<AgendamentoHistorico> AgendamentoHistoricos { get; set; }
         public DbSet<ProfissionalEspecialidade> ProfissionalEspecialidades { get; set; }
+        public DbSet<AbusoIA> AbusosIA { get; set; } = null!;
+        public DbSet<RefreshToken> RefreshTokens { get; set; } = null!;
 
         // Método que intercepta a criação das tabelas no SQL Server
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -68,6 +70,31 @@ namespace ClinicaMaisSaude.Infrastructure.Data
                 entidade.HasOne(pe => pe.Profissional)
                     .WithMany(p => p.Especialidades)
                     .HasForeignKey(pe => pe.ProfissionalId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<AbusoIA>(entidade =>
+            {
+                entidade.HasKey(a => a.Id);
+                entidade.Property(a => a.TipoAbuso).IsRequired();
+                entidade.Property(a => a.TextoInserido).IsRequired().HasMaxLength(500);
+                entidade.Property(a => a.DtCriado).HasColumnName("Dt_Criado");
+
+                entidade.HasOne(a => a.Paciente)
+                    .WithMany(p => p.Abusos)
+                    .HasForeignKey(a => a.PacienteId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<RefreshToken>(entidade =>
+            {
+                entidade.ToTable("RefreshTokens");
+                entidade.HasKey(r => r.Id);
+                entidade.Property(r => r.Token).IsRequired().HasMaxLength(255);
+                entidade.Property(r => r.JwtId).IsRequired().HasMaxLength(255);
+                entidade.HasOne(r => r.Usuario)
+                    .WithMany()
+                    .HasForeignKey(r => r.UsuarioId)
                     .OnDelete(DeleteBehavior.Cascade);
             });
 

@@ -6,5 +6,6 @@ namespace ClinicaMaisSaude.Application.Interfaces
     public interface IAuthService
     {
         Task<LoginResponse> AutenticarAsync(LoginRequest request);
+        Task<LoginResponse> RefreshTokenAsync(RefreshTokenRequest request);
     }
 }

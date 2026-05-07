@@ -1,16 +1,9 @@
 import { API_URL } from "../constants/api";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import type { FormEvent } from "react";
 import { mascaraCpf } from "../utils/validators";
 import { ChevronDown, Check } from 'lucide-react';
 
-interface UsuarioInfo {
-  id: string;
-  nome: string;
-  email: string;
-  cpf: string;
-  tipoUsuario: string;
-}
 
 export function CadastroUsuario({ onUserCreated }: { onUserCreated?: () => void }) {
   const [nome, setNome] = useState("");

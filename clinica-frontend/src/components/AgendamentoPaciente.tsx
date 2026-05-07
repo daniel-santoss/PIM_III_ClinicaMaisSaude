@@ -1,6 +1,6 @@
 import { API_URL } from "../constants/api";
 import { useEffect, useState } from "react";
-import { mascaraCpf } from "../utils/validators";
+
 import { ESPECIALIDADES } from "../constants/especialidades";
 import { Check, AlertTriangle, Sliders, Zap, CheckCircle, Search, User, Calendar, MessageSquare, AlertCircle, ShieldAlert } from 'lucide-react';
 
@@ -226,6 +226,12 @@ export default function AgendamentoPaciente({ onSucesso }: AgendamentoPacientePr
             <h3 className="text-xl font-black text-gray-800 mb-2 uppercase tracking-tight">Aviso</h3>
             <p className="text-gray-500 text-sm mb-8 font-medium leading-relaxed">{modalMensagem}</p>
             <button className="w-full bg-[#7C3AED] text-white font-black py-4 rounded-2xl uppercase tracking-widest text-[10px] shadow-lg shadow-purple-100" onClick={() => setModalMensagem(null)}>Entendido</button>
+            <a 
+              href={`mailto:suporte@clinicamaissaude.com?subject=Solicita%C3%A7%C3%A3o%20de%20revis%C3%A3o%20de%20bloqueio%20-%20${localStorage.getItem("userName") || "[Seu Nome]"}`}
+              className="w-full block mt-3 bg-gray-100 hover:bg-gray-200 text-gray-600 font-black py-4 rounded-2xl uppercase tracking-widest text-[10px] shadow-sm transition-colors"
+            >
+              Acredito que isso é um erro
+            </a>
           </div>
         </div>
       )}
@@ -249,6 +255,12 @@ export default function AgendamentoPaciente({ onSucesso }: AgendamentoPacientePr
               </ul>
             </div>
             <button className="w-full bg-red-600 hover:bg-red-700 text-white font-black py-5 rounded-2xl uppercase tracking-widest text-xs shadow-lg shadow-red-200 transition-colors" onClick={() => setViolacao(false)}>Entendido</button>
+            <a 
+              href={`mailto:suporte@clinicamaissaude.com?subject=Solicita%C3%A7%C3%A3o%20de%20revis%C3%A3o%20de%20bloqueio%20-%20${localStorage.getItem("userName") || "[Seu Nome]"}`}
+              className="w-full block mt-3 bg-white hover:bg-gray-50 border-2 border-gray-200 text-gray-600 font-black py-4 rounded-2xl uppercase tracking-widest text-[10px] shadow-sm transition-colors"
+            >
+              Acredito que isso é um erro
+            </a>
           </div>
         </div>
       )}

@@ -1,7 +1,7 @@
 import { API_URL } from "../constants/api";
 import { useEffect, useState } from "react";
 import { mascaraCpf, mascaraTelefone } from "../utils/validators";
-import { AlertCircle, Users, CheckCircle, Clock, Search, Filter, RefreshCw, Inbox, Pencil, Key, Trash, AlertTriangle, Check, Copy } from 'lucide-react';
+import { AlertCircle, Users, CheckCircle, Clock, Search, Filter, RefreshCw, Inbox, Pencil, Key, Trash, AlertTriangle, Check, Copy, X } from 'lucide-react';
 import type { PacienteResponse } from "../types/PacienteResponse";
 
 interface PacienteListProps {
@@ -28,7 +28,6 @@ export default function PacienteList({
   const [erro, setErro] = useState<string | null>(null);
   const [refreshInterno, setRefreshInterno] = useState(0);
 
-  // Estado de busca
   const [buscaNome, setBuscaNome] = useState("");
   const [buscaCpf, setBuscaCpf] = useState("");
   const [perfisSelecionados, setPerfisSelecionados] = useState<string[]>(["Paciente", "Medico", "Enfermeira"]);
@@ -42,16 +41,13 @@ export default function PacienteList({
     setPerfisSelecionados(["Paciente", "Medico", "Enfermeira"]);
   };
 
-  // Estado do modal de edição
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [form, setForm] = useState<PacienteEdicao>({ nome: "", cpf: "", telefone: "", email: "" });
   const [salvando, setSalvando] = useState(false);
 
-  // Estado do modal de exclusão
   const [excluindoPaciente, setExcluindoPaciente] = useState<{ id: string, nome: string } | null>(null);
   const [excluindoLoader, setExcluindoLoader] = useState(false);
 
-  // Estado do modal de reset de senha
   const [pacienteReset, setPacienteReset] = useState<{ id: string, usuarioId: string, nome: string } | null>(null);
   const [novaSenhaReset, setNovaSenhaReset] = useState("");
   const [senhaExibida, setSenhaExibida] = useState<string | null>(null);
@@ -60,6 +56,9 @@ export default function PacienteList({
 
   const isAdmin = localStorage.getItem("isAdmin") === "true";
   const isEnfermeira = localStorage.getItem("tipoUsuario") === "Enfermeira";
+
+  const [abusos, setAbusos] = useState<any[]>([]);
+  const [modalAbusosAberto, setModalAbusosAberto] = useState(false);
 
   const [page, setPage] = useState(1);
   const pageSize = 20;
@@ -88,23 +87,34 @@ export default function PacienteList({
       const url = `${API_URL}/api/Pacientes${queryString ? `?${queryString}` : ""}`;
 
       const token = localStorage.getItem("authToken");
-      fetch(url, { headers: { 'Authorization': `Bearer ${token}` } })
-        .then((res) => {
-          if (!res.ok) throw new Error(`Erro ao buscar pacientes: ${res.status}`);
-          return res.json();
+      
+      const promises = [
+        fetch(url, { headers: { 'Authorization': `Bearer ${token}` } }).then(r => {
+           if (!r.ok) throw new Error(`Erro ao buscar pacientes: ${r.status}`);
+           return r.json();
         })
-        .then((data: any) => {
-            // API Paginada retorna { items, totalCount, page, pageSize, totalPages }
+      ];
+
+      if (isAdmin) {
+        promises.push(
+          fetch(`${API_URL}/api/Consultas/abusos`, { headers: { 'Authorization': `Bearer ${token}` } })
+            .then(r => r.ok ? r.json() : [])
+            .catch(() => [])
+        );
+      }
+
+      Promise.all(promises)
+        .then(([data, abusosData]) => {
             if (data.items) {
                 setPacientes(data.items);
                 setTotalCount(data.totalCount);
                 setTotalPages(data.totalPages || Math.ceil(data.totalCount / pageSize));
             } else {
-                // Caso fallback temporário se bater em endpoint velho
                 setPacientes(data);
                 setTotalCount(data.length);
                 setTotalPages(1);
             }
+            if (abusosData) setAbusos(abusosData);
         })
         .catch((err: Error) => setErro(err.message))
         .finally(() => setCarregando(false));
@@ -281,7 +291,7 @@ export default function PacienteList({
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       {/* --- CARDS DE RESUMO --- */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className={`grid grid-cols-1 md:grid-cols-${isAdmin ? '4' : '3'} gap-6`}>
         {/* Card: Usuários por Tipo */}
         <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all group">
           <div className="flex justify-between items-start mb-4">
@@ -324,6 +334,23 @@ export default function PacienteList({
           <h4 className="text-2xl font-black text-gray-800 mb-2">{pacientesInativos.length} Inativos</h4>
           <p className="text-xs text-gray-400 mb-4 font-medium">+60 dias sem acessar o portal</p>
         </div>
+
+        {/* Card: Abusos IA */}
+        {isAdmin && (
+          <div 
+            onClick={() => setModalAbusosAberto(true)}
+            className="bg-white p-6 rounded-2xl border border-red-100 shadow-sm hover:shadow-xl hover:border-red-200 transition-all cursor-pointer group"
+          >
+            <div className="flex justify-between items-start mb-4">
+              <div className="p-3 bg-red-50 rounded-xl text-red-600 group-hover:bg-red-600 group-hover:text-white transition-colors">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+              <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Abusos IA</span>
+            </div>
+            <h4 className="text-2xl font-black text-red-600 mb-2">{abusos.length} Registros</h4>
+            <p className="text-xs text-gray-500 font-medium">Violações de injeção ou uso indevido</p>
+          </div>
+        )}
       </div>
 
       {/* --- TABELA E FILTROS --- */}
@@ -751,6 +778,68 @@ export default function PacienteList({
             <h3 className="text-xl font-black text-gray-800 mb-2 uppercase tracking-tight">Aviso</h3>
             <p className="text-gray-500 text-sm mb-8 font-medium leading-relaxed">{modalMensagem}</p>
             <button className="w-full bg-[#7C3AED] text-white font-black py-4 rounded-2xl uppercase tracking-widest text-[10px] shadow-lg shadow-purple-100" onClick={() => setModalMensagem(null)}>Entendido</button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Lista de Abusos IA */}
+      {modalAbusosAberto && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl overflow-hidden border border-red-100 flex flex-col max-h-[90vh]">
+            <div className="bg-red-600 p-4 text-white flex justify-between items-center">
+              <h3 className="text-lg font-bold flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5" />
+                Registros de Abuso da IA
+              </h3>
+              <button onClick={() => setModalAbusosAberto(false)} className="hover:bg-red-500 p-1 rounded-full transition-colors">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-auto p-0">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50 sticky top-0">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-wider">Paciente</th>
+                    <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-wider">Tipo Abuso</th>
+                    <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-wider">Texto Inserido</th>
+                    <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-wider">Data</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {abusos.length === 0 ? (
+                    <tr><td colSpan={4} className="px-6 py-8 text-center text-gray-500">Nenhum abuso registrado.</td></tr>
+                  ) : abusos.map(abuso => (
+                    <tr key={abuso.id} className="hover:bg-red-50/30">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {abuso.pacienteNome}<br/>
+                        <span className="text-xs text-gray-400">{mascaraCpf(abuso.pacienteCpf)}</span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`px-2 py-1 inline-flex text-[10px] leading-5 font-bold rounded-full ${
+                          abuso.tipoAbuso === "Injecao" ? "bg-red-100 text-red-800" : "bg-orange-100 text-orange-800"
+                        }`}>
+                          {abuso.tipoAbuso}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate" title={abuso.textoInserido}>
+                        {abuso.textoInserido}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {new Date(abuso.dtCriado).toLocaleString('pt-BR')}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="p-4 border-t border-gray-100 text-right bg-gray-50">
+              <button 
+                onClick={() => setModalAbusosAberto(false)}
+                className="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold rounded-lg transition-colors"
+              >
+                Fechar
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -4,6 +4,7 @@ using ClinicaMaisSaude.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ClinicaMaisSaude.Infrastructure.Migrations
 {
     [DbContext(typeof(ClinicaDbContext))]
-    partial class ClinicaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260507005022_BloqueioTentativasLogin")]
+    partial class BloqueioTentativasLogin
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -21,34 +24,6 @@ namespace ClinicaMaisSaude.Infrastructure.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
-
-            modelBuilder.Entity("ClinicaMaisSaude.Domain.Entities.AbusoIA", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("DtCriado")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("Dt_Criado");
-
-                    b.Property<Guid>("PacienteId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("TextoInserido")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<int>("TipoAbuso")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PacienteId");
-
-                    b.ToTable("AbusosIA");
-                });
 
             modelBuilder.Entity("ClinicaMaisSaude.Domain.Entities.Agendamento", b =>
                 {
@@ -144,9 +119,6 @@ namespace ClinicaMaisSaude.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
                         .HasDefaultValue(true);
-
-                    b.Property<DateTime?>("BloqueadoIAAte")
-                        .HasColumnType("datetime2");
 
                     b.Property<string>("Cpf")
                         .IsRequired()
@@ -244,44 +216,6 @@ namespace ClinicaMaisSaude.Infrastructure.Migrations
                     b.HasKey("ProfissionalId", "EspecialidadeId");
 
                     b.ToTable("ProfissionalEspecialidades");
-                });
-
-            modelBuilder.Entity("ClinicaMaisSaude.Domain.Entities.RefreshToken", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("AddedDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("ExpiryDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsRevoked")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsUsed")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("JwtId")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
-
-                    b.Property<string>("Token")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
-
-                    b.Property<Guid>("UsuarioId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UsuarioId");
-
-                    b.ToTable("RefreshTokens", (string)null);
                 });
 
             modelBuilder.Entity("ClinicaMaisSaude.Domain.Entities.StatusAgendamentoLookup", b =>
@@ -408,17 +342,6 @@ namespace ClinicaMaisSaude.Infrastructure.Migrations
                         });
                 });
 
-            modelBuilder.Entity("ClinicaMaisSaude.Domain.Entities.AbusoIA", b =>
-                {
-                    b.HasOne("ClinicaMaisSaude.Domain.Entities.Paciente", "Paciente")
-                        .WithMany("Abusos")
-                        .HasForeignKey("PacienteId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Paciente");
-                });
-
             modelBuilder.Entity("ClinicaMaisSaude.Domain.Entities.Agendamento", b =>
                 {
                     b.HasOne("ClinicaMaisSaude.Domain.Entities.Paciente", "Paciente")
@@ -472,21 +395,8 @@ namespace ClinicaMaisSaude.Infrastructure.Migrations
                     b.Navigation("Profissional");
                 });
 
-            modelBuilder.Entity("ClinicaMaisSaude.Domain.Entities.RefreshToken", b =>
-                {
-                    b.HasOne("ClinicaMaisSaude.Domain.Entities.Usuario", "Usuario")
-                        .WithMany()
-                        .HasForeignKey("UsuarioId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Usuario");
-                });
-
             modelBuilder.Entity("ClinicaMaisSaude.Domain.Entities.Paciente", b =>
                 {
-                    b.Navigation("Abusos");
-
                     b.Navigation("Agendamentos");
                 });
 

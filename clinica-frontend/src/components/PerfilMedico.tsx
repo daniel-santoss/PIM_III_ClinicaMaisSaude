@@ -16,7 +16,7 @@ export default function PerfilMedico() {
   const [modalSenha, setModalSenha] = useState(false);
   const [formEdit, setFormEdit] = useState({ nome: "", email: "" });
   const [salvandoPerfil, setSalvandoPerfil] = useState(false);
-  const [mensagem, setMensagem] = useState<{ tipo: "sucesso" | "erro", texto: string } | null>(null);
+
 
   const [senhaAtual, setSenhaAtual] = useState("");
   const [novaSenha, setNovaSenha] = useState("");

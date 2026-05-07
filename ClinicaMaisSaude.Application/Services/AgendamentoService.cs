@@ -131,16 +131,12 @@ namespace ClinicaMaisSaude.Application.Services
             if (request.DataHoraConsulta <= DateTime.UtcNow)
                 throw new Exception("Não é permitido reagendar para datas/horários passados.");
 
-            // Na atualização, tenta remanejar dentro do mesmo perfil se o dia/hora mudou, ou mantém se não houver conflito
             var tipoProf = (TipoProfissional)request.TipoProfissional;
             var tipoCons = (TipoConsulta)request.TipoConsulta;
             
             var profissionalDelegado = await DelegarProfissionalAsync(tipoProf, tipoCons, request.DataHoraConsulta, agendamento.Id, null);
             
             agendamento.AlterarDataHora(request.DataHoraConsulta);
-            // Aqui precisariamos atualizar o ProfissionalId caso fosse outro designado, mas deixaremos omitido no setter
-            // Se necessário, uma propriedade AlterarProfissional() seria chamada aqui. Por enquando alteramos apenas dataHora.
-            // Para mantermos consistencia, ignoraremos a delegação no Reagendamento sem setter, mas avisamos conflito:
             var conflitoOriginal = await ExisteConflito(agendamento.ProfissionalId, request.DataHoraConsulta, tipoCons, agendamento.Id);
             if(conflitoOriginal)
             {
@@ -480,7 +476,6 @@ namespace ClinicaMaisSaude.Application.Services
             if (!candidatos.Any())
                 throw new Exception("Nenhum profissional disponível neste horário. Tente outro horário.");
 
-            // Retorna o Id do que tem menos carga
             return candidatos.OrderBy(c => c.Cargas).First().ProfissionalId;
         }
 
@@ -558,7 +553,6 @@ namespace ClinicaMaisSaude.Application.Services
                 throw new Exception($"Transição de '{atual}' para '{novoStatus}' não é permitida.");
             }
 
-            // Regra: só pode iniciar atendimento 15 minutos antes do horário da consulta
             if (novoStatus == StatusAgendamento.EmAtendimento)
             {
                 var limiteMinimo = agendamento.DataHoraConsulta.AddMinutes(-15);

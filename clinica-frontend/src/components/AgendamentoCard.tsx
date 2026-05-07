@@ -1,5 +1,4 @@
-import type { PacienteResponse } from "../types/PacienteResponse";
-import { mascaraCpf } from "../utils/validators";
+
 import { MapNomesStatus, MapNomesTipoConsulta, MapNomesEspecialidade } from "../constants/statusMap";
 import { User, Clock, Calendar } from 'lucide-react';
 

@@ -16,5 +16,12 @@ namespace ClinicaMaisSaude.Application.DTOs.Auth
         public Guid? PacienteId { get; set; }
         public Guid? ProfissionalId { get; set; }
         public bool IsAdmin { get; set; }
+        public string RefreshToken { get; set; } = string.Empty;
+    }
+
+    public class RefreshTokenRequest
+    {
+        public string Token { get; set; } = string.Empty;
+        public string RefreshToken { get; set; } = string.Empty;
     }
 }

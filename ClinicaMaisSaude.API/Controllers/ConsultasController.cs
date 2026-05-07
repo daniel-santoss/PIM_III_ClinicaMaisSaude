@@ -4,6 +4,10 @@ using Microsoft.AspNetCore.Mvc;
 using System.Text;
 using System.Text.Json;
 
+using ClinicaMaisSaude.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
+using ClinicaMaisSaude.Domain.Entities;
+
 namespace ClinicaMaisSaude.API.Controllers
 {
     [ApiController]
@@ -14,17 +18,33 @@ namespace ClinicaMaisSaude.API.Controllers
         private readonly IConfiguration _config;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILogger<ConsultasController> _logger;
+        private readonly ClinicaDbContext _context;
 
-        public ConsultasController(IConfiguration config, IHttpClientFactory httpClientFactory, ILogger<ConsultasController> logger)
+        public ConsultasController(IConfiguration config, IHttpClientFactory httpClientFactory, ILogger<ConsultasController> logger, ClinicaDbContext context)
         {
             _config = config;
             _httpClientFactory = httpClientFactory;
             _logger = logger;
+            _context = context;
         }
 
         [HttpPost("sugerir-tipo")]
         public async Task<IActionResult> SugerirTipo([FromBody] SugerirTipoRequest request)
         {
+            var pacienteIdClaim = User.FindFirst("PacienteId")?.Value;
+            if (string.IsNullOrEmpty(pacienteIdClaim) || !Guid.TryParse(pacienteIdClaim, out var pacienteId))
+                return Unauthorized("Usuário não é um paciente válido.");
+
+            var paciente = await _context.Pacientes.Include(p => p.Abusos).FirstOrDefaultAsync(p => p.Id == pacienteId);
+            if (paciente == null)
+                return NotFound("Paciente não encontrado.");
+
+            if (paciente.IsIABloqueada())
+            {
+                var dataBloqueio = paciente.BloqueadoIAAte!.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm");
+                return StatusCode(403, $"Acesso à IA bloqueado até {dataBloqueio}. Se acha que é um erro, entre em contato: suporte@clinicamaissaude.com");
+            }
+
             if (string.IsNullOrWhiteSpace(request.Sintomas) || request.Sintomas.Length < 10)
                 return BadRequest("Descreva os sintomas com pelo menos 10 caracteres.");
 
@@ -105,7 +125,6 @@ Formato:
                 using var doc = JsonDocument.Parse(responseBody);
                 var candidate = doc.RootElement.GetProperty("candidates")[0];
 
-                // Validação segura de content e parts
                 if (!candidate.TryGetProperty("content", out var contentElement) ||
                     !contentElement.TryGetProperty("parts", out var partsElement) ||
                     partsElement.GetArrayLength() == 0)
@@ -118,6 +137,17 @@ Formato:
                     .GetProperty("text")
                     .GetString();
 
+                if (textoResposta != null && textoResposta.Contains("Detectamos uma tentativa deliberada"))
+                {
+                    paciente.RegistrarAbuso(TipoAbuso.Injecao, request.Sintomas);
+                    await _context.SaveChangesAsync();
+                }
+                else if (textoResposta != null && textoResposta.Contains("Sintomas inválidos"))
+                {
+                    paciente.RegistrarAbuso(TipoAbuso.UsoIndevido, request.Sintomas);
+                    await _context.SaveChangesAsync();
+                }
+
                 var serializeOptions = new JsonSerializerOptions { AllowTrailingCommas = true, ReadCommentHandling = JsonCommentHandling.Skip };
                 return Ok(JsonSerializer.Deserialize<object>(textoResposta!, serializeOptions));
             }
@@ -126,6 +156,30 @@ Formato:
                 _logger.LogError(ex, "Erro inesperado ao processar IA");
                 return StatusCode(502, "A IA não conseguiu analisar os sintomas corretamente ou a resposta foi bloqueada.");
             }
+        }
+
+        [HttpGet("abusos")]
+        [Authorize]
+        public async Task<IActionResult> GetAbusos()
+        {
+            var adminClaim = User.FindFirst("IsAdmin")?.Value;
+            if (adminClaim != "True") return Forbid("Apenas administradores podem ver os abusos.");
+
+            var abusos = await _context.AbusosIA
+                .Include(a => a.Paciente)
+                .Select(a => new
+                {
+                    a.Id,
+                    PacienteNome = a.Paciente.Nome,
+                    PacienteCpf = a.Paciente.Cpf,
+                    TipoAbuso = a.TipoAbuso.ToString(),
+                    a.TextoInserido,
+                    a.DtCriado
+                })
+                .OrderByDescending(a => a.DtCriado)
+                .ToListAsync();
+
+            return Ok(abusos);
         }
     }
 }
