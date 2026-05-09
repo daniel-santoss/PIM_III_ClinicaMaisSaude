@@ -1,6 +1,6 @@
 # 🏥 Clínica Mais Saúde — Sistema de Gestão Inteligente
 
-![Status](https://img.shields.io/badge/STATUS-EM%20DESENVOLVIMENTO-0078D4?style=for-the-badge)
+![Status](https://img.shields.io/badge/STATUS-EM%20DESENVOLVIMENTO-0078D4?style=for-the-badge)<br>
 ![.NET](https://img.shields.io/badge/.NET-10-512BD4?style=for-the-badge&logo=dotnet&logoColor=white)
 ![React](https://img.shields.io/badge/REACT-19-61DAFB?style=for-the-badge&logo=react&logoColor=white)
 ![Architecture](https://img.shields.io/badge/ARCHITECTURE-CLEAN%20ARCHITECTURE-A4C639?style=for-the-badge)
