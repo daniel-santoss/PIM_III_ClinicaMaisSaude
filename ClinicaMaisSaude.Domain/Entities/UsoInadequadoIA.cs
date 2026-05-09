@@ -2,29 +2,29 @@ using System;
 
 namespace ClinicaMaisSaude.Domain.Entities
 {
-    public enum TipoAbuso
+    public enum TipoViolacao
     {
         Injecao = 1,
         UsoIndevido = 2
     }
 
-    public class AbusoIA
+    public class UsoInadequadoIA
     {
         public Guid Id { get; private set; }
         public Guid PacienteId { get; private set; }
-        public TipoAbuso TipoAbuso { get; private set; }
+        public TipoViolacao TipoViolacao { get; private set; }
         public string TextoInserido { get; private set; }
         public DateTime DtCriado { get; private set; }
 
         public virtual Paciente Paciente { get; private set; }
 
-        protected AbusoIA() { } // EF Core
+        protected UsoInadequadoIA() { } // EF Core
 
-        public AbusoIA(Guid pacienteId, TipoAbuso tipoAbuso, string textoInserido)
+        public UsoInadequadoIA(Guid pacienteId, TipoViolacao tipoViolacao, string textoInserido)
         {
             Id = Guid.NewGuid();
             PacienteId = pacienteId;
-            TipoAbuso = tipoAbuso;
+            TipoViolacao = tipoViolacao;
             TextoInserido = textoInserido;
             DtCriado = DateTime.UtcNow;
         }

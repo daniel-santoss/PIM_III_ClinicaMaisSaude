@@ -1,4 +1,4 @@
-import { API_URL } from "../constants/api";
+import { API_URL, ADMIN_EMAIL, MAX_PROMPT_LENGTH } from "../constants/api";
 import { useEffect, useState } from "react";
 
 import { ESPECIALIDADES } from "../constants/especialidades";
@@ -227,7 +227,7 @@ export default function AgendamentoPaciente({ onSucesso }: AgendamentoPacientePr
             <p className="text-gray-500 text-sm mb-8 font-medium leading-relaxed">{modalMensagem}</p>
             <button className="w-full bg-[#7C3AED] text-white font-black py-4 rounded-2xl uppercase tracking-widest text-[10px] shadow-lg shadow-purple-100" onClick={() => setModalMensagem(null)}>Entendido</button>
             <a 
-              href={`mailto:suporte@clinicamaissaude.com?subject=Solicita%C3%A7%C3%A3o%20de%20revis%C3%A3o%20de%20bloqueio%20-%20${localStorage.getItem("userName") || "[Seu Nome]"}`}
+              href={`mailto:${ADMIN_EMAIL}?subject=Solicita%C3%A7%C3%A3o%20de%20revis%C3%A3o%20de%20bloqueio%20-%20${localStorage.getItem("userName") || "[Seu Nome]"}`}
               className="w-full block mt-3 bg-gray-100 hover:bg-gray-200 text-gray-600 font-black py-4 rounded-2xl uppercase tracking-widest text-[10px] shadow-sm transition-colors"
             >
               Acredito que isso é um erro
@@ -254,9 +254,9 @@ export default function AgendamentoPaciente({ onSucesso }: AgendamentoPacientePr
                 <li>O incidente foi formalmente registrado para medidas judiciais e administrativas cabíveis.</li>
               </ul>
             </div>
-            <button className="w-full bg-red-600 hover:bg-red-700 text-white font-black py-5 rounded-2xl uppercase tracking-widest text-xs shadow-lg shadow-red-200 transition-colors" onClick={() => setViolacao(false)}>Entendido</button>
+            <button className="w-full bg-red-600 hover:bg-red-700 text-white font-black py-5 rounded-2xl uppercase tracking-widest text-xs shadow-lg shadow-red-200 transition-colors" onClick={() => { setViolacao(false); localStorage.clear(); window.location.href = "/"; }}>Entendido</button>
             <a 
-              href={`mailto:suporte@clinicamaissaude.com?subject=Solicita%C3%A7%C3%A3o%20de%20revis%C3%A3o%20de%20bloqueio%20-%20${localStorage.getItem("userName") || "[Seu Nome]"}`}
+              href={`mailto:${ADMIN_EMAIL}?subject=Solicita%C3%A7%C3%A3o%20de%20revis%C3%A3o%20de%20bloqueio%20-%20${localStorage.getItem("userName") || "[Seu Nome]"}`}
               className="w-full block mt-3 bg-white hover:bg-gray-50 border-2 border-gray-200 text-gray-600 font-black py-4 rounded-2xl uppercase tracking-widest text-[10px] shadow-sm transition-colors"
             >
               Acredito que isso é um erro
@@ -308,10 +308,10 @@ export default function AgendamentoPaciente({ onSucesso }: AgendamentoPacientePr
                       className="w-full h-40 p-6 bg-gray-50 border-2 border-gray-100 rounded-[2rem] focus:ring-4 focus:ring-purple-100 focus:border-[#7C3AED] focus:bg-white transition-all outline-none font-bold text-gray-700 resize-none pr-16 pb-10"
                       value={sintomas}
                       onChange={(e) => setSintomas(e.target.value)}
-                      maxLength={300}
+                      maxLength={MAX_PROMPT_LENGTH}
                     />
                     <span className="absolute bottom-6 right-6 text-[10px] font-black text-purple-300 bg-white/80 px-2 py-0.5 rounded-lg shadow-sm">
-                      {sintomas.length}/300
+                      {sintomas.length}/{MAX_PROMPT_LENGTH}
                     </span>
                   </div>
 

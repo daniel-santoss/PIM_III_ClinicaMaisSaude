@@ -32,17 +32,26 @@ namespace ClinicaMaisSaude.API.Controllers
         public async Task<IActionResult> SugerirTipo([FromBody] SugerirTipoRequest request)
         {
             var pacienteIdClaim = User.FindFirst("PacienteId")?.Value;
-            if (string.IsNullOrEmpty(pacienteIdClaim) || !Guid.TryParse(pacienteIdClaim, out var pacienteId))
-                return Unauthorized("Usuário não é um paciente válido.");
+            var tipoUsuario = User.FindFirst("TipoUsuario")?.Value;
+            var isAdmin = User.FindFirst("IsAdmin")?.Value?.ToLower() == "true";
 
-            var paciente = await _context.Pacientes.Include(p => p.Abusos).FirstOrDefaultAsync(p => p.Id == pacienteId);
-            if (paciente == null)
-                return NotFound("Paciente não encontrado.");
+            Paciente? paciente = null;
 
-            if (paciente.IsIABloqueada())
+            if (!string.IsNullOrEmpty(pacienteIdClaim) && Guid.TryParse(pacienteIdClaim, out var pId))
             {
-                var dataBloqueio = paciente.BloqueadoIAAte!.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm");
-                return StatusCode(403, $"Acesso à IA bloqueado até {dataBloqueio}. Se acha que é um erro, entre em contato: suporte@clinicamaissaude.com");
+                paciente = await _context.Pacientes.Include(p => p.Violacoes).FirstOrDefaultAsync(p => p.Id == pId);
+                if (paciente == null)
+                    return NotFound("Paciente não encontrado.");
+
+                if (paciente.IsIABloqueada())
+                {
+                    var dataBloqueio = paciente.BloqueadoIAAte!.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm");
+                    return StatusCode(403, $"Acesso à IA bloqueado até {dataBloqueio}. Se acha que é um erro, entre em contato: suporte@clinicamaissaude.com");
+                }
+            }
+            else if (tipoUsuario != "Enfermeira" && tipoUsuario != "Medico" && !isAdmin)
+            {
+                return Unauthorized("Usuário não é um paciente válido.");
             }
 
             if (string.IsNullOrWhiteSpace(request.Sintomas) || request.Sintomas.Length < 10)
@@ -58,7 +67,7 @@ namespace ClinicaMaisSaude.API.Controllers
                 return StatusCode(503, "Serviço de IA não configurado. Contate o administrador.");
 
             var sintomasLimpos = request.Sintomas.Trim().Replace("\r", " ").Replace("\n", " ");
-            var userPrompt = $"Sintomas do paciente: <<<{sintomasLimpos}>>>";
+            var userPrompt = $"Sintomas do paciente: \"{sintomasLimpos}\"";
 
             var systemPrompt = @"Triagem médica. 
 Retorne APENAS um JSON válido.
@@ -110,7 +119,7 @@ Formato:
                 {
                     if (response.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
                     {
-                        return StatusCode(429, "A triagem inteligente atingiu o limite de consultas gratuitas. Tente novamente mais tarde   .");
+                        return StatusCode(429, "A triagem inteligente atingiu o limite de consultas gratuitas. Tente novamente mais tarde.");
                     }
                     if (response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
                     {
@@ -133,19 +142,50 @@ Formato:
                     return StatusCode(502, $"A IA não retornou texto válido. Motivo: {finishReason}");
                 }
 
-                var textoResposta = partsElement[0]
-                    .GetProperty("text")
-                    .GetString();
+                var textoResposta = partsElement[0].GetProperty("text").GetString();
 
-                if (textoResposta != null && textoResposta.Contains("Detectamos uma tentativa deliberada"))
+                if (textoResposta != null)
                 {
-                    paciente.RegistrarAbuso(TipoAbuso.Injecao, request.Sintomas);
-                    await _context.SaveChangesAsync();
+                    textoResposta = textoResposta.Trim();
+                    if (textoResposta.StartsWith("```json", StringComparison.OrdinalIgnoreCase))
+                    {
+                        textoResposta = textoResposta.Substring(7);
+                        if (textoResposta.EndsWith("```"))
+                            textoResposta = textoResposta.Substring(0, textoResposta.Length - 3);
+                        textoResposta = textoResposta.Trim();
+                    }
+                    else if (textoResposta.StartsWith("```"))
+                    {
+                        textoResposta = textoResposta.Substring(3);
+                        if (textoResposta.EndsWith("```"))
+                            textoResposta = textoResposta.Substring(0, textoResposta.Length - 3);
+                        textoResposta = textoResposta.Trim();
+                    }
                 }
-                else if (textoResposta != null && textoResposta.Contains("Sintomas inválidos"))
+
+                if (paciente != null)
                 {
-                    paciente.RegistrarAbuso(TipoAbuso.UsoIndevido, request.Sintomas);
-                    await _context.SaveChangesAsync();
+                    if (textoResposta != null && textoResposta.Contains("Detectamos uma tentativa deliberada"))
+                    {
+                        var novaViolacao = paciente.RegistrarViolacao(TipoViolacao.Injecao, request.Sintomas);
+                        _context.Entry(novaViolacao).State = EntityState.Added;
+                        
+                        if (paciente.UsuarioId.HasValue)
+                        {
+                            var usuario = await _context.Usuarios.FirstOrDefaultAsync(u => u.Id == paciente.UsuarioId.Value);
+                            usuario?.BloquearPermanentemente();
+                        }
+
+                        await _context.SaveChangesAsync();
+                        return Ok(new { justificativa = textoResposta });
+                    }
+                    else if (textoResposta != null && textoResposta.Contains("Sintomas inválidos"))
+                    {
+                        var novaViolacao = paciente.RegistrarViolacao(TipoViolacao.UsoIndevido, request.Sintomas);
+                        _context.Entry(novaViolacao).State = EntityState.Added;
+                        await _context.SaveChangesAsync();
+                        return Ok(new { justificativa = textoResposta });
+                    }
                 }
 
                 var serializeOptions = new JsonSerializerOptions { AllowTrailingCommas = true, ReadCommentHandling = JsonCommentHandling.Skip };
@@ -154,32 +194,49 @@ Formato:
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Erro inesperado ao processar IA");
-                return StatusCode(502, "A IA não conseguiu analisar os sintomas corretamente ou a resposta foi bloqueada.");
+                return StatusCode(502, $"DB Error: {ex.InnerException?.Message ?? ex.Message}");
             }
         }
 
-        [HttpGet("abusos")]
+        [HttpGet("violacoes")]
         [Authorize]
-        public async Task<IActionResult> GetAbusos()
+        public async Task<IActionResult> GetViolacoes()
         {
             var adminClaim = User.FindFirst("IsAdmin")?.Value;
-            if (adminClaim != "True") return Forbid("Apenas administradores podem ver os abusos.");
+            if (adminClaim?.ToLower() != "true") return Forbid("Apenas administradores podem ver as violações.");
 
-            var abusos = await _context.AbusosIA
+            var violacoes = await _context.ViolacoesIA
                 .Include(a => a.Paciente)
                 .Select(a => new
                 {
                     a.Id,
                     PacienteNome = a.Paciente.Nome,
                     PacienteCpf = a.Paciente.Cpf,
-                    TipoAbuso = a.TipoAbuso.ToString(),
+                    TipoViolacao = a.TipoViolacao.ToString(),
                     a.TextoInserido,
                     a.DtCriado
                 })
                 .OrderByDescending(a => a.DtCriado)
                 .ToListAsync();
 
-            return Ok(abusos);
+            return Ok(violacoes);
+        }
+
+        [HttpGet("violacoes-debug")]
+        public async Task<IActionResult> GetViolacoesDebug()
+        {
+            var violacoes = await _context.ViolacoesIA
+                .Select(a => new
+                {
+                    a.Id,
+                    a.PacienteId,
+                    TipoViolacao = a.TipoViolacao.ToString(),
+                    a.TextoInserido,
+                    a.DtCriado
+                })
+                .ToListAsync();
+
+            return Ok(violacoes);
         }
     }
 }

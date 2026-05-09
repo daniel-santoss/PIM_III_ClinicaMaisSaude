@@ -1,4 +1,4 @@
-import { API_URL } from "../constants/api";
+import { API_URL, MAX_PROMPT_LENGTH } from "../constants/api";
 import { useEffect, useState } from "react";
 import { mascaraCpf } from "../utils/validators";
 import { obterMinDate } from "../utils/dates";
@@ -157,7 +157,7 @@ export default function AgendamentoFormCriar({
                 <li>O incidente foi formalmente registrado para medidas judiciais e administrativas cabíveis.</li>
               </ul>
             </div>
-            <button className="w-full bg-red-600 hover:bg-red-700 text-white font-black py-5 rounded-2xl uppercase tracking-widest text-xs shadow-lg shadow-red-200 transition-colors" onClick={() => setViolacao(false)}>Entendido</button>
+            <button className="w-full bg-red-600 hover:bg-red-700 text-white font-black py-5 rounded-2xl uppercase tracking-widest text-xs shadow-lg shadow-red-200 transition-colors" onClick={() => { setViolacao(false); localStorage.clear(); window.location.href = "/"; }}>Entendido</button>
           </div>
         </div>
       )}
@@ -187,10 +187,10 @@ export default function AgendamentoFormCriar({
                   placeholder="Descreva os sintomas do paciente para sugestão automática..."
                   value={sintomas}
                   onChange={(e) => setSintomas(e.target.value)}
-                  maxLength={300}
+                  maxLength={MAX_PROMPT_LENGTH}
                 />
                 <span className="absolute bottom-2.5 right-3 text-[10px] font-black text-indigo-300 bg-white/80 px-1 rounded">
-                  {sintomas.length}/300
+                  {sintomas.length}/{MAX_PROMPT_LENGTH}
                 </span>
               </div>
               <div className="flex items-center gap-3">

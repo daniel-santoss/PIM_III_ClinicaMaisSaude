@@ -15,10 +15,10 @@ namespace ClinicaMaisSaude.Domain.Entities
         public Guid? UsuarioId { get; private set; }
         public DateTime DtCriado { get; private set; }
         public DateTime? BloqueadoIAAte { get; private set; }
-        
+
         public virtual Usuario Usuario { get; private set; }
         public virtual ICollection<Agendamento> Agendamentos { get; private set; } = new List<Agendamento>();
-        public virtual ICollection<AbusoIA> Abusos { get; private set; } = new List<AbusoIA>();
+        public virtual ICollection<UsoInadequadoIA> Violacoes { get; private set; } = new List<UsoInadequadoIA>();
 
         public Paciente(string nome, string cpf, string telefone, string email, bool temProblemaMemoria = false)
         {
@@ -47,19 +47,22 @@ namespace ClinicaMaisSaude.Domain.Entities
             Ativo = false;
         }
 
-        public void RegistrarAbuso(TipoAbuso tipoAbuso, string texto)
+        public UsoInadequadoIA RegistrarViolacao(TipoViolacao tipoViolacao, string texto)
         {
-            Abusos.Add(new AbusoIA(Id, tipoAbuso, texto));
+            var novaViolacao = new UsoInadequadoIA(Id, tipoViolacao, texto);
+            Violacoes.Add(novaViolacao);
 
-            int totalAbusos = Abusos.Count;
-            if (totalAbusos == 2)
+            int totalViolacoes = Violacoes.Count;
+            if (totalViolacoes == 2)
             {
                 BloqueadoIAAte = DateTime.UtcNow.AddDays(1);
             }
-            else if (totalAbusos >= 3)
+            else if (totalViolacoes >= 3)
             {
                 BloqueadoIAAte = DateTime.UtcNow.AddDays(7);
             }
+            
+            return novaViolacao;
         }
 
         public bool IsIABloqueada()

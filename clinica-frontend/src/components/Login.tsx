@@ -1,4 +1,4 @@
-import { API_URL } from "../constants/api";
+import { API_URL, ADMIN_EMAIL, CLINIC_NAME, CLINIC_PHONE } from "../constants/api";
 import { useState } from "react";
 import { isCpfValido, isEmailValido, mascaraCpf } from "../utils/validators";
 import logoPng from "../assets/logo_clinica.png";
@@ -79,11 +79,11 @@ export default function Login({ onLogado }: { onLogado: () => void }) {
         <div className="text-center mb-8">
           <img
             src={logoPng}
-            alt="Logo Clínica Mais Saúde"
+            alt={`Logo ${CLINIC_NAME}`}
             className="h-20 mx-auto mb-4 object-contain"
           />
           <h2 className="text-2xl md:text-3xl font-black text-[#7C3AED] tracking-tight">
-            Clínica Mais Saúde
+            {CLINIC_NAME}
           </h2>
           <p className="mt-2 text-sm font-medium text-gray-500">
             Faça login para acessar sua conta
@@ -132,11 +132,22 @@ export default function Login({ onLogado }: { onLogado: () => void }) {
             </div>
           </div>
 
-          {erro && (
+          {erro && erro.startsWith("PERMANENT_BAN:") ? (
+            <div className="text-red-700 text-xs font-bold text-center bg-red-50 p-4 rounded-xl border border-red-200 shadow-sm flex flex-col items-center gap-2">
+              <span className="text-sm">🚫 {erro.replace("PERMANENT_BAN:", "")}</span>
+              <button 
+                type="button" 
+                onClick={() => window.location.href = `mailto:${ADMIN_EMAIL}?subject=Revisão de Banimento de Conta&body=Olá, gostaria de solicitar a revisão do banimento da minha conta.`}
+                className="mt-1 px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors uppercase tracking-wider text-[10px]"
+              >
+                Se achar que isso é um erro, entre em contato
+              </button>
+            </div>
+          ) : erro ? (
             <div className="text-red-500 text-xs font-bold text-center bg-red-50 py-2 rounded-lg border border-red-100">
               {erro}
             </div>
-          )}
+          ) : null}
 
           <div className="pt-2">
             <button
@@ -172,7 +183,7 @@ export default function Login({ onLogado }: { onLogado: () => void }) {
             <div className="text-left bg-gray-50 p-4 rounded-xl mb-6 space-y-3 border border-gray-100">
               <div>
                 <span className="text-[10px] font-black text-purple-600 uppercase tracking-widest block mb-1">Se você é Paciente:</span>
-                <p className="text-sm font-medium text-gray-600">Ligue para a recepção no número <br /><strong className="text-gray-800">(11) 99999-9999</strong>.</p>
+                <p className="text-sm font-medium text-gray-600">Ligue para a recepção no número <br /><strong className="text-gray-800">{CLINIC_PHONE}</strong>.</p>
               </div>
               <div className="h-px bg-gray-200 w-full"></div>
               <div>

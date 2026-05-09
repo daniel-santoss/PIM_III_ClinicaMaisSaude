@@ -73,5 +73,10 @@ namespace ClinicaMaisSaude.Domain.Entities
         {
             return BloqueadoAte.HasValue && BloqueadoAte.Value > DateTime.UtcNow;
         }
+
+        public void BloquearPermanentemente()
+        {
+            BloqueadoAte = DateTime.UtcNow.AddYears(100);
+        }
     }
 }

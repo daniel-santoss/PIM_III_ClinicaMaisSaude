@@ -44,6 +44,13 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             if (usuario.IsBloqueado() && !usuario.IsAdmin)
             {
                 var minutosRestantes = (int)Math.Ceiling((usuario.BloqueadoAte!.Value - DateTime.UtcNow).TotalMinutes);
+                
+                // Se o bloqueio for de 100 anos (bloqueio permanente)
+                if (minutosRestantes > 50000000) 
+                {
+                    throw new Exception("PERMANENT_BAN:Sua conta foi banida permanentemente devido a violações graves das políticas de segurança.");
+                }
+
                 throw new Exception($"Conta bloqueada. Tente novamente em {minutosRestantes} minuto(s).");
             }
 

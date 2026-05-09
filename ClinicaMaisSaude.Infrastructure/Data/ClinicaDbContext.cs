@@ -17,12 +17,14 @@ namespace ClinicaMaisSaude.Infrastructure.Data
         public DbSet<StatusAgendamentoLookup> StatusAgendamentoLookup { get; set; }
         public DbSet<AgendamentoHistorico> AgendamentoHistoricos { get; set; }
         public DbSet<ProfissionalEspecialidade> ProfissionalEspecialidades { get; set; }
-        public DbSet<AbusoIA> AbusosIA { get; set; } = null!;
+        public DbSet<UsoInadequadoIA> ViolacoesIA { get; set; } = null!;
         public DbSet<RefreshToken> RefreshTokens { get; set; } = null!;
 
         // Método que intercepta a criação das tabelas no SQL Server
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            modelBuilder.Entity<UsoInadequadoIA>().ToTable("UsoInadequadoIA");
+
             base.OnModelCreating(modelBuilder);
 
             modelBuilder.Entity<Paciente>(entidade =>
@@ -73,15 +75,16 @@ namespace ClinicaMaisSaude.Infrastructure.Data
                     .OnDelete(DeleteBehavior.Cascade);
             });
 
-            modelBuilder.Entity<AbusoIA>(entidade =>
+            modelBuilder.Entity<UsoInadequadoIA>(entidade =>
             {
+                entidade.ToTable("UsoInadequadoIA");
                 entidade.HasKey(a => a.Id);
-                entidade.Property(a => a.TipoAbuso).IsRequired();
+                entidade.Property(a => a.TipoViolacao).IsRequired();
                 entidade.Property(a => a.TextoInserido).IsRequired().HasMaxLength(500);
                 entidade.Property(a => a.DtCriado).HasColumnName("Dt_Criado");
 
                 entidade.HasOne(a => a.Paciente)
-                    .WithMany(p => p.Abusos)
+                    .WithMany(p => p.Violacoes)
                     .HasForeignKey(a => a.PacienteId)
                     .OnDelete(DeleteBehavior.Cascade);
             });
@@ -113,11 +116,11 @@ namespace ClinicaMaisSaude.Infrastructure.Data
                 // SEED do Admin
                 var adminId = Guid.Parse("11111111-1111-1111-1111-111111111111");
                 entidade.HasData(new Usuario(
-                    adminId, 
-                    "admin@clinicamaissaude.com.br", 
-                    "00000000000", 
+                    adminId,
+                    "admin@clinicamaissaude.com.br",
+                    "00000000000",
                     "$2a$11$DaDuHHaqAhlkdCbeVcw6l.ttRvVjLZ8AnOcXvugreEbhe0C1K1YPK", // admin123
-                    true, 
+                    true,
                     new DateTime(2026, 04, 26, 0, 0, 0, DateTimeKind.Utc)
                 ));
             });

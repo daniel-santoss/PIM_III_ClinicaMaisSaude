@@ -1,4 +1,5 @@
 import { Settings, User, LogOut, X } from 'lucide-react';
+import { CLINIC_NAME } from "./constants/api";
 import { useState, useEffect } from "react";
 import PacienteList from "./components/PacienteList";
 import AgendamentoList from "./components/AgendamentoList";
@@ -8,13 +9,14 @@ import AgendamentoPaciente from "./components/AgendamentoPaciente";
 import MeusAgendamentos from "./components/MeusAgendamentos";
 import PerfilPaciente from "./components/PerfilPaciente";
 import PerfilMedico from "./components/PerfilMedico";
+import ViolacoesList from "./components/ViolacoesList";
 import type { PacienteResponse } from "./types/PacienteResponse";
 
 export default function App() {
   const [autenticado, setAutenticado] = useState(false);
   const [tipoUsuario, setTipoUsuario] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
-  const [abaAtiva, setAbaAtiva] = useState<"pacientes" | "agendamentos" | "cadastro">("agendamentos");
+  const [abaAtiva, setAbaAtiva] = useState<"pacientes" | "agendamentos" | "cadastro" | "violacoes">("agendamentos");
   const [viewPaciente, setViewPaciente] = useState<"novo" | "lista">("novo");
   const [modalPerfilAberto, setModalPerfilAberto] = useState(false);
   const [menuDropdownAberto, setMenuDropdownAberto] = useState(false);
@@ -67,7 +69,7 @@ export default function App() {
   return (
     <div className="max-w-6xl mx-auto p-4 md:p-8 bg-gray-50 min-h-screen">
       <header className="flex justify-between items-center mb-6 border-b pb-4 border-gray-200">
-        <h1 className="text-3xl font-bold text-gray-800">Clínica Mais Saúde</h1>
+        <h1 className="text-3xl font-bold text-gray-800">{CLINIC_NAME}</h1>
         <div className="relative">
           <button
             onClick={() => setMenuDropdownAberto(!menuDropdownAberto)}
@@ -131,6 +133,18 @@ export default function App() {
           Agendamentos
         </button>
 
+        {isAdmin && (
+          <button
+            onClick={() => setAbaAtiva("violacoes")}
+            className={`px-6 py-2.5 text-sm font-semibold transition-colors border-b-2 ${abaAtiva === "violacoes"
+                ? "border-red-600 text-red-600 bg-red-50/50"
+                : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+              }`}
+          >
+            Violações IA
+          </button>
+        )}
+
         {tipoUsuario === "Paciente" && (
           <div className="ml-auto flex gap-2">
             <button
@@ -144,6 +158,12 @@ export default function App() {
       </nav>
 
       <main>
+        {abaAtiva === "violacoes" && (
+          <section aria-label="Auditoria de IA">
+            <ViolacoesList />
+          </section>
+        )}
+
         {/* Conteúdo da Aba: Pacientes */}
         {abaAtiva === "pacientes" && (
           <section aria-label="Gerenciamento de pacientes">

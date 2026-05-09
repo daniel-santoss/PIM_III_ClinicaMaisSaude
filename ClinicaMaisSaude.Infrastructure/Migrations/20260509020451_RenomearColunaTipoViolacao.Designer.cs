@@ -4,6 +4,7 @@ using ClinicaMaisSaude.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ClinicaMaisSaude.Infrastructure.Migrations
 {
     [DbContext(typeof(ClinicaDbContext))]
-    partial class ClinicaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260509020451_RenomearColunaTipoViolacao")]
+    partial class RenomearColunaTipoViolacao
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -344,7 +347,7 @@ namespace ClinicaMaisSaude.Infrastructure.Migrations
 
                     b.HasIndex("PacienteId");
 
-                    b.ToTable("UsoInadequadoIA", (string)null);
+                    b.ToTable("AbusosIA", (string)null);
                 });
 
             modelBuilder.Entity("ClinicaMaisSaude.Domain.Entities.Usuario", b =>
