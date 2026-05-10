@@ -243,7 +243,20 @@ Formato:
 
             if (paciente == null) return NotFound("Paciente não encontrado.");
 
+            // Limpa o bloqueio de IA e agenda o aviso ao paciente
             paciente.RemoverPenalidade();
+
+            // Se o paciente possuir um login vinculado, também desbloqueio o acesso ao sistema
+            // (necessário para violações Graves que chamam BloquearPermanentemente no Usuario)
+            if (paciente.UsuarioId.HasValue)
+            {
+                var usuario = await _context.Usuarios.FindAsync(paciente.UsuarioId.Value);
+                if (usuario != null && usuario.IsBloqueado())
+                {
+                    usuario.DesbloquearConta();
+                }
+            }
+
             await _context.SaveChangesAsync();
 
             return Ok(new { Mensagem = $"Penalidade de IA removida para {paciente.Nome}. Ele será notificado no próximo login." });

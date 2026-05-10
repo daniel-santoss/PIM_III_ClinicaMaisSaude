@@ -78,5 +78,12 @@ namespace ClinicaMaisSaude.Domain.Entities
         {
             BloqueadoAte = DateTime.UtcNow.AddYears(100);
         }
+
+        /// <summary>Chamado pelo admin ao remover penalidade — libera o acesso ao login</summary>
+        public void DesbloquearConta()
+        {
+            BloqueadoAte = null;
+            TentativasLogin = 0;
+        }
     }
 }
