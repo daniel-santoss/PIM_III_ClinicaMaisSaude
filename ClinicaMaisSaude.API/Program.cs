@@ -4,6 +4,8 @@ using ClinicaMaisSaude.Infrastructure.Services;
 using ClinicaMaisSaude.Application.Validators;
 using ClinicaMaisSaude.Domain.Interfaces;
 using ClinicaMaisSaude.Infrastructure.Data;
+using ClinicaMaisSaude.API.Services;
+using ClinicaMaisSaude.API.Converters;
 using ClinicaMaisSaude.Infrastructure.Repositories;
 using FluentValidation;
 using FluentValidation.AspNetCore;
@@ -15,7 +17,13 @@ using System.Text;
 var builder = WebApplication.CreateBuilder(args);
 
 // Ensina a API a ler a pasta Controllers
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        // Garante que todas as datas sejam serializadas com sufixo 'Z' (UTC)
+        // para que o JavaScript as interprete corretamente como UTC e converta ao fuso local
+        options.JsonSerializerOptions.Converters.Add(new UtcDateTimeJsonConverter());
+    });
 builder.Services.AddHttpClient();
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddCors(options =>
@@ -68,6 +76,10 @@ builder.Services.AddScoped<IProbabilidadeFaltaService, ProbabilidadeFaltaService
 builder.Services.AddScoped<IEspecialidadeService, EspecialidadeService>();
 builder.Services.AddScoped<IPerfilService, PerfilService>();
 builder.Services.AddScoped<IProfissionalService, ProfissionalService>();
+builder.Services.AddScoped<INotificacaoRepository, NotificacaoRepository>();
+builder.Services.AddScoped<INotificacaoService, NotificacaoService>();
+
+builder.Services.AddHostedService<NotificacaoBackgroundService>();
 
 var app = builder.Build();
 

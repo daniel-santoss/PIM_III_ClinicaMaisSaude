@@ -19,19 +19,22 @@ namespace ClinicaMaisSaude.Application.Services
         private readonly IProfissionalRepository _profissionalRepository;
         private readonly IUsuarioRepository _usuarioRepository;
         private readonly IProbabilidadeFaltaService _probabilidadeFaltaService;
+        private readonly INotificacaoRepository _notificacaoRepository;
 
         public AgendamentoService(
             IAgendamentoRepository repository, 
             IPacienteRepository pacienteRepository,
             IProfissionalRepository profissionalRepository,
             IUsuarioRepository usuarioRepository,
-            IProbabilidadeFaltaService probabilidadeFaltaService)
+            IProbabilidadeFaltaService probabilidadeFaltaService,
+            INotificacaoRepository notificacaoRepository)
         {
             _repository = repository;
             _pacienteRepository = pacienteRepository;
             _profissionalRepository = profissionalRepository;
             _usuarioRepository = usuarioRepository;
             _probabilidadeFaltaService = probabilidadeFaltaService;
+            _notificacaoRepository = notificacaoRepository;
         }
 
         public async Task<AgendamentoResponse> AdicionarAsync(AgendamentoRequest request, Guid usuarioLogadoId)
@@ -114,6 +117,26 @@ namespace ClinicaMaisSaude.Application.Services
 
             var profissional = await _profissionalRepository.ObterPorIdAsync(agendamento.ProfissionalId);
             var profissionalNome = profissional?.Nome ?? "N/A";
+            
+            if (profissional != null)
+            {
+                var msgProf = tipoConsulta == TipoConsulta.Retorno 
+                    ? $"Retorno de {paciente.Nome} agendado para {agendamento.DataHoraConsulta:dd/MM/yyyy HH:mm}."
+                    : $"Nova consulta de {paciente.Nome} agendada para {agendamento.DataHoraConsulta:dd/MM/yyyy HH:mm}.";
+                
+                var notifProfissional = new Notificacao(profissional.UsuarioId, "Novo Agendamento", msgProf, agendamento.Id);
+                await _notificacaoRepository.AdicionarAsync(notifProfissional);
+            }
+
+            if (paciente.UsuarioId.HasValue)
+            {
+                var msgPac = tipoConsulta == TipoConsulta.Retorno 
+                    ? $"Seu retorno com {profissionalNome} foi agendado para {agendamento.DataHoraConsulta:dd/MM/yyyy HH:mm}."
+                    : $"Sua consulta com {profissionalNome} foi agendada para {agendamento.DataHoraConsulta:dd/MM/yyyy HH:mm}.";
+
+                var notifPaciente = new Notificacao(paciente.UsuarioId.Value, "Consulta Agendada", msgPac, agendamento.Id);
+                await _notificacaoRepository.AdicionarAsync(notifPaciente);
+            }
             
             var response = MapearResponse(agendamento, paciente.Nome, profissionalNome);
             var (_, nivel) = await _probabilidadeFaltaService.CalcularProbabilidadeAsync(agendamento.PacienteId, agendamento.DataHoraConsulta);
@@ -631,6 +654,17 @@ namespace ClinicaMaisSaude.Application.Services
 
             agendamento.MarcarResultadoDisponivel();
             await _repository.AtualizarAsync(agendamento);
+
+            var paciente = await _pacienteRepository.ObterPorIdAsync(agendamento.PacienteId);
+            if (paciente != null && paciente.UsuarioId.HasValue)
+            {
+                var notif = new Notificacao(
+                    paciente.UsuarioId.Value, 
+                    "Resultado de Exame", 
+                    $"O resultado do seu exame de {agendamento.DataHoraConsulta:dd/MM/yyyy} já está disponível.", 
+                    agendamento.Id);
+                await _notificacaoRepository.AdicionarAsync(notif);
+            }
         }
     }
 }

@@ -19,6 +19,7 @@ namespace ClinicaMaisSaude.Infrastructure.Data
         public DbSet<ProfissionalEspecialidade> ProfissionalEspecialidades { get; set; }
         public DbSet<UsoInadequadoIA> ViolacoesIA { get; set; } = null!;
         public DbSet<RefreshToken> RefreshTokens { get; set; } = null!;
+        public DbSet<Notificacao> Notificacoes { get; set; } = null!;
 
         // Método que intercepta a criação das tabelas no SQL Server
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -45,6 +46,9 @@ namespace ClinicaMaisSaude.Infrastructure.Data
                 entidade.Property(a => a.TipoProfissional).IsRequired();
                 entidade.Property(a => a.TipoConsulta).IsRequired();
                 entidade.Property(a => a.Status).IsRequired();
+                entidade.Property(a => a.NotificacaoPendenteGerada).HasDefaultValue(false);
+                entidade.Property(a => a.LembreteManhaEnviado).HasDefaultValue(false);
+                entidade.Property(a => a.LembreteDuasHorasEnviado).HasDefaultValue(false);
                 entidade.Property(a => a.DtCriado).HasColumnName("Dt_Criado");
 
                 entidade.HasOne(a => a.Paciente)
@@ -99,6 +103,26 @@ namespace ClinicaMaisSaude.Infrastructure.Data
                     .WithMany()
                     .HasForeignKey(r => r.UsuarioId)
                     .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<Notificacao>(entidade =>
+            {
+                entidade.ToTable("Notificacoes");
+                entidade.HasKey(n => n.Id);
+                entidade.Property(n => n.Titulo).IsRequired().HasMaxLength(150);
+                entidade.Property(n => n.Mensagem).IsRequired().HasMaxLength(500);
+                entidade.Property(n => n.Lida).HasDefaultValue(false);
+                entidade.Property(n => n.DtCriado).HasColumnName("Dt_Criado");
+
+                entidade.HasOne<Usuario>()
+                    .WithMany()
+                    .HasForeignKey(n => n.UsuarioId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entidade.HasOne<Agendamento>()
+                    .WithMany()
+                    .HasForeignKey(n => n.AgendamentoId)
+                    .OnDelete(DeleteBehavior.SetNull);
             });
 
             modelBuilder.Entity<Usuario>(entidade =>

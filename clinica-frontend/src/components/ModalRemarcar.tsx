@@ -2,6 +2,7 @@ import { API_URL } from "../constants/api";
 import { useEffect, useState } from "react";
 import { obterMinDate } from "../utils/dates";
 import { AlertCircle } from 'lucide-react';
+import { useScrollBlock } from "../hooks/useScrollBlock";
 
 interface ModalRemarcarProps {
   agenda: {
@@ -23,6 +24,8 @@ export default function ModalRemarcar({ agenda, onFechar, onSucesso, onMensagem 
   const [carregandoHorarios, setCarregandoHorarios] = useState(false);
   const [alterando, setAlterando] = useState(false);
   const [focoObservacao, setFocoObservacao] = useState(false);
+
+  useScrollBlock(true);
 
   useEffect(() => {
     const d = new Date(agenda.dataHoraConsulta);

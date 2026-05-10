@@ -45,7 +45,10 @@ namespace ClinicaMaisSaude.API.Controllers
 
                 if (paciente.IsIABloqueada())
                 {
-                    var dataBloqueio = paciente.BloqueadoIAAte!.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm");
+                    var brasilia = TimeZoneInfo.FindSystemTimeZoneById(
+                        OperatingSystem.IsWindows() ? "E. South America Standard Time" : "America/Sao_Paulo"
+                    );
+                    var dataBloqueio = TimeZoneInfo.ConvertTimeFromUtc(paciente.BloqueadoIAAte!.Value, brasilia).ToString("dd/MM/yyyy HH:mm");
                     return StatusCode(403, $"Acesso à IA bloqueado até {dataBloqueio}. Se acha que é um erro, entre em contato: suporte@clinicamaissaude.com");
                 }
             }
@@ -184,7 +187,8 @@ Formato:
                         var novaViolacao = paciente.RegistrarViolacao(TipoViolacao.UsoIndevido, request.Sintomas);
                         _context.Entry(novaViolacao).State = EntityState.Added;
                         await _context.SaveChangesAsync();
-                        return Ok(new { justificativa = textoResposta });
+                        // Retorna 400 para que o frontend exiba aviso ao paciente
+                        return BadRequest("Seus sintomas não estão relacionados à saúde. Por favor, descreva uma queixa médica real para prosseguir.");
                     }
                 }
 
@@ -210,16 +214,39 @@ Formato:
                 .Select(a => new
                 {
                     a.Id,
+                    a.PacienteId,
                     PacienteNome = a.Paciente.Nome,
                     PacienteCpf = a.Paciente.Cpf,
                     TipoViolacao = a.TipoViolacao.ToString(),
                     a.TextoInserido,
-                    a.DtCriado
+                    a.DtCriado,
+                    // Campos do estado de penalidade do paciente (para o botão ser correto após reload)
+                    PenalidadeRemovidaAguardandoLogin = a.Paciente.PenalidadeRemovidaAvisar,
+                    IABloqueadaAte = a.Paciente.BloqueadoIAAte
                 })
                 .OrderByDescending(a => a.DtCriado)
                 .ToListAsync();
 
             return Ok(violacoes);
+        }
+
+        [HttpDelete("violacoes/{pacienteId}/penalidade")]
+        [Authorize]
+        public async Task<IActionResult> RemoverPenalidade(Guid pacienteId)
+        {
+            var adminClaim = User.FindFirst("IsAdmin")?.Value;
+            if (adminClaim?.ToLower() != "true") return Forbid("Apenas administradores podem remover penalidades.");
+
+            var paciente = await _context.Pacientes
+                .Include(p => p.Violacoes)
+                .FirstOrDefaultAsync(p => p.Id == pacienteId);
+
+            if (paciente == null) return NotFound("Paciente não encontrado.");
+
+            paciente.RemoverPenalidade();
+            await _context.SaveChangesAsync();
+
+            return Ok(new { Mensagem = $"Penalidade de IA removida para {paciente.Nome}. Ele será notificado no próximo login." });
         }
 
         [HttpGet("violacoes-debug")]

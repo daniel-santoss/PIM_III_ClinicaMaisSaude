@@ -1,6 +1,7 @@
 
+import { useEffect, useRef } from 'react';
 import { MapNomesStatus, MapNomesTipoConsulta, MapNomesEspecialidade } from "../constants/statusMap";
-import { User, Clock, Calendar } from 'lucide-react';
+import { User, Clock, Calendar, Stethoscope } from 'lucide-react';
 
 interface AgendamentoCardProps {
   agenda: {
@@ -15,14 +16,15 @@ interface AgendamentoCardProps {
     especialidade?: string;
     nivelProbabilidadeFalta?: string;
   };
+  highlighted?: boolean;
   opcoesValidas: string[];
   podeCancelar: boolean;
   podeRemarcar: boolean;
   tipoUsuarioLogado: string | null;
-  onAlterarStatus: (id: string, novoStatus: string) => void;
-  onCancelar: (id: string, nome: string) => void;
-  onRemarcar: (agenda: any) => void;
-  onHistorico: (id: string) => void;
+  onAlterarStatus?: (id: string, novoStatus: string) => void;
+  onCancelar?: (id: string, nome: string) => void;
+  onRemarcar?: (agenda: any) => void;
+  onHistorico?: (id: string) => void;
 }
 
 export default function AgendamentoCard({
@@ -35,99 +37,151 @@ export default function AgendamentoCard({
   onRemarcar,
   onHistorico,
   tipoUsuarioLogado,
+  highlighted = false,
 }: AgendamentoCardProps) {
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (highlighted && cardRef.current) {
+      // Pequeno delay para garantir que a aba já está renderizada
+      const timer = setTimeout(() => {
+        cardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [highlighted]);
   const dataObj = new Date(agenda.dataHoraConsulta);
   const dia = dataObj.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' });
   const hora = dataObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
+  const duasHorasAtras = new Date();
+  duasHorasAtras.setHours(duasHorasAtras.getHours() - 2);
+  const isPendenteAtualizacao = dataObj < duasHorasAtras && (agenda.status === 'Agendado' || agenda.status === 'EmAtendimento');
+
   return (
-    <div className="bg-white rounded-[2rem] shadow-xl shadow-purple-100/30 border-4 border-purple-400 overflow-hidden hover:scale-[1.02] transition-all duration-300 flex flex-col group">
+    <div
+      ref={cardRef}
+      className={`bg-white rounded-2xl shadow-sm border flex flex-col h-full min-h-[280px] transition-all duration-500 ${
+        highlighted
+          ? 'border-purple-400 shadow-lg shadow-purple-200/60 ring-2 ring-purple-300 card-highlight'
+          : 'border-gray-200'
+      }`}
+    >
       {/* Cabeçalho do Card: Horário e Status */}
       <div className="p-6 pb-4 flex justify-between items-start">
         <div className="flex flex-col">
-          <span className="text-2xl font-black text-[#7C3AED] leading-none">{hora}</span>
-          <div className="flex items-center gap-2 mt-1">
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{dia}</span>
-            {(tipoUsuarioLogado === "Medico" || tipoUsuarioLogado === "Enfermeira") && agenda.nivelProbabilidadeFalta && agenda.status === "Agendado" && (
-              <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
-                agenda.nivelProbabilidadeFalta === "Alta" ? "bg-red-100 text-red-600" :
-                agenda.nivelProbabilidadeFalta === "Média" ? "bg-amber-100 text-amber-600" :
-                "bg-green-100 text-green-600"
-              }`}>
-                Risco {agenda.nivelProbabilidadeFalta}
-              </span>
-            )}
-          </div>
+          <span className="text-3xl font-bold text-[#7C3AED] leading-none">{hora}</span>
+          <span className="text-xs font-medium text-gray-500 uppercase mt-2 tracking-wide">{dia}</span>
         </div>
-        <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider border ${agenda.status === 'Finalizado' ? 'bg-green-50 text-green-600 border-green-100' :
-          agenda.status === 'Faltou' ? 'bg-red-50 text-red-600 border-red-100' :
-            agenda.status === 'Cancelado' ? 'bg-gray-50 text-gray-400 border-gray-100' :
-              agenda.status === 'EmAtendimento' ? 'bg-amber-50 text-amber-600 border-amber-100' :
-                'bg-purple-50 text-purple-600 border-purple-100'
-          }`}>
-          <span className={`w-1.5 h-1.5 rounded-full ${agenda.status === 'EmAtendimento' ? 'animate-pulse' : ''} ${agenda.status === 'Finalizado' ? 'bg-green-500' :
-            agenda.status === 'Faltou' ? 'bg-red-500' :
-              agenda.status === 'EmAtendimento' ? 'bg-amber-500' :
-                'bg-purple-500'
-            }`}></span>
-          {MapNomesStatus[agenda.status] || agenda.status}
-        </span>
+        
+        {/* Status Badges */}
+        <div className="flex flex-col items-end gap-2">
+          <span className={`inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider text-white ${
+              agenda.status === 'Agendado' ? 'bg-[#3B82F6]' :
+              agenda.status === 'EmAtendimento' ? 'bg-[#F59E0B]' :
+              agenda.status === 'AguardandoRetorno' ? 'bg-[#F97316]' :
+              agenda.status === 'RetornoAgendado' ? 'bg-[#7C3AED]' :
+              agenda.status === 'Finalizado' ? 'bg-[#10B981]' :
+              agenda.status === 'Cancelado' ? 'bg-[#6B7280]' :
+              agenda.status === 'Faltou' ? 'bg-[#EF4444]' :
+              'bg-[#7C3AED]'
+            }`}>
+            {MapNomesStatus[agenda.status] || agenda.status}
+          </span>
+          {isPendenteAtualizacao && (
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-amber-100 text-amber-700">
+              Pendente de atualização
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Corpo do Card: Paciente e Profissional */}
-      <div className="px-6 py-4 flex-1">
-        <div className="flex items-center gap-4 mb-4">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white font-black text-lg shadow-lg shadow-purple-100">
-            {agenda.pacienteNome.charAt(0)}
+      <div className="px-6 py-4 flex-1 flex flex-col justify-center">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-full bg-[#7C3AED] flex items-center justify-center text-white font-bold text-xl shrink-0">
+            {agenda.pacienteNome.charAt(0).toUpperCase()}
           </div>
           <div className="flex flex-col">
-            <h4 className="text-sm font-black text-gray-800 leading-tight group-hover:text-[#7C3AED] transition-colors">{agenda.pacienteNome}</h4>
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mt-0.5">
+            <div className="flex items-center gap-2">
+              <h4 className="text-lg font-bold text-gray-900 leading-tight">{agenda.pacienteNome}</h4>
+              {(tipoUsuarioLogado === "Medico" || tipoUsuarioLogado === "Enfermeira") && agenda.nivelProbabilidadeFalta && (agenda.status === "Agendado" || agenda.status === "RetornoAgendado") && (
+                <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider flex items-center gap-1 ${
+                  agenda.nivelProbabilidadeFalta === "Alta" ? "bg-red-100 text-red-700" :
+                  agenda.nivelProbabilidadeFalta === "Média" ? "bg-amber-100 text-amber-700" :
+                  "bg-green-100 text-green-700"
+                }`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${
+                    agenda.nivelProbabilidadeFalta === "Alta" ? "bg-red-500" :
+                    agenda.nivelProbabilidadeFalta === "Média" ? "bg-amber-500" :
+                    "bg-green-500"
+                  }`}></span>
+                  Risco {agenda.nivelProbabilidadeFalta}
+                </span>
+              )}
+            </div>
+            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider mt-1">
               {MapNomesTipoConsulta[agenda.tipoConsulta] || agenda.tipoConsulta}
               {agenda.tipoConsulta === "ConsultaMedica" && agenda.especialidade ? ` - ${MapNomesEspecialidade[agenda.especialidade] || agenda.especialidade}` : ""}
             </span>
           </div>
         </div>
+      </div>
 
-        <div className="flex items-center justify-between p-3 bg-purple-50/50 rounded-2xl border border-purple-50">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-white rounded-lg flex items-center justify-center text-[#7C3AED] shadow-sm">
-              <User className="w-3.5 h-3.5" strokeWidth={2.5} />
-            </div>
-            <span className="text-[10px] font-black text-purple-600 uppercase tracking-tight">{agenda.tipoProfissional}</span>
-          </div>
-          {opcoesValidas.length > 0 && (
-            <select
-              className="text-[9px] font-black uppercase tracking-tighter border border-purple-100 rounded-lg p-1 bg-white text-purple-600 focus:ring-2 focus:ring-purple-400 outline-none transition-all cursor-pointer"
-              value={agenda.status}
-              onChange={(e) => onAlterarStatus(agenda.id, e.target.value)}
-            >
-              <option value={agenda.status} disabled>Mudar Status</option>
-              {opcoesValidas.map(op => (
-                <option key={op} value={op}>{MapNomesStatus[op]}</option>
-              ))}
-            </select>
-          )}
+      {/* Separador e Profissional */}
+      <div className="px-6 py-4 border-t border-gray-100 flex items-center gap-3">
+        <div className="w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center text-[#7C3AED] shrink-0">
+          <Stethoscope className="w-4 h-4" />
+        </div>
+        <div className="flex flex-col">
+          <span className="text-sm font-bold text-gray-800">{agenda.nomeProfissional}</span>
+          <span className="text-xs font-semibold text-gray-500">{agenda.tipoProfissional === 'Medico' ? 'Médico' : agenda.tipoProfissional}</span>
         </div>
       </div>
 
       {/* Rodapé: Ações */}
-      <div className="px-6 py-4 border-t border-purple-50 flex items-center justify-between bg-purple-50/10">
-        <div className="flex gap-1">
-          <button title="Histórico" onClick={() => onHistorico(agenda.id)} className="p-2 text-gray-400 hover:bg-white hover:text-purple-600 rounded-xl transition-all shadow-sm hover:shadow-md"><Clock className="w-5 h-5" strokeWidth={2} /></button>
-          {podeRemarcar && (
-            <button title="Remarcar" onClick={() => onRemarcar(agenda)} className="p-2 text-purple-600 hover:bg-white rounded-xl transition-all shadow-sm hover:shadow-md"><Calendar className="w-5 h-5" strokeWidth={2} /></button>
+      <div className="px-5 py-4 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex gap-2 shrink-0">
+          {onHistorico && (
+            <button title="Histórico" onClick={() => onHistorico(agenda.id)} className="p-2 border border-gray-200 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors">
+              <Clock className="w-4 h-4" />
+            </button>
+          )}
+          {podeRemarcar && onRemarcar && (
+            <button title="Remarcar" onClick={() => onRemarcar(agenda)} className="p-2 border border-gray-200 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors">
+              <Calendar className="w-4 h-4" />
+            </button>
           )}
         </div>
 
-        {podeCancelar && (
-          <button
-            onClick={() => onCancelar(agenda.id, agenda.pacienteNome)}
-            className="px-4 py-2 bg-red-50 text-red-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-red-600 hover:text-white transition-all shadow-sm active:scale-95"
-          >
-            Cancelar
-          </button>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          {opcoesValidas.length > 0 && onAlterarStatus && (
+            <div className="relative">
+              <select
+                className="appearance-none bg-white text-[#7C3AED] border border-[#7C3AED] text-xs font-bold py-2 pl-3 pr-7 rounded-lg cursor-pointer outline-none hover:bg-[#F5F3FF] transition-colors"
+                value={agenda.status}
+                onChange={(e) => onAlterarStatus(agenda.id, e.target.value)}
+              >
+                <option value={agenda.status} disabled>Status</option>
+                {opcoesValidas.map(op => (
+                  <option key={op} value={op}>{MapNomesStatus[op]}</option>
+                ))}
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2 text-[#7C3AED]">
+                <svg className="fill-current h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+              </div>
+            </div>
+          )}
+
+          {podeCancelar && onCancelar && (
+            <button
+              onClick={() => onCancelar(agenda.id, agenda.pacienteNome)}
+              className="text-xs font-bold bg-red-500 text-white px-3 py-2 rounded-lg hover:bg-red-600 transition-colors shadow-sm whitespace-nowrap"
+            >
+              Cancelar
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

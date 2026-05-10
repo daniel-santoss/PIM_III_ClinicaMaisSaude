@@ -75,6 +75,15 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             var perfilProfissional = await _context.Profissionais.FirstOrDefaultAsync(p => p.UsuarioId == usuario.Id);
             var perfilPaciente = await _context.Pacientes.FirstOrDefaultAsync(p => p.UsuarioId == usuario.Id);
 
+            // Verificar e consumir flag de penalidade removida
+            bool penalidadeRemovida = false;
+            if (perfilPaciente?.PenalidadeRemovidaAvisar == true)
+            {
+                penalidadeRemovida = true;
+                perfilPaciente.ConsumarAvisoPenalidade();
+                await _context.SaveChangesAsync();
+            }
+
             string tipoUsuarioStr = "Admin";
             Guid? pacienteId = null;
 
@@ -143,7 +152,8 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                 TipoUsuario = tipoUsuarioStr,
                 PacienteId = pacienteId,
                 ProfissionalId = perfilProfissional?.Id,
-                IsAdmin = usuario.IsAdmin
+                IsAdmin = usuario.IsAdmin,
+                PenalidadeRemovida = penalidadeRemovida
             };
         }
 

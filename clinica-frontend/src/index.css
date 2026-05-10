@@ -20,3 +20,14 @@
     border: 3px solid transparent;
   }
 }
+
+@keyframes card-pulse-highlight {
+  0%   { box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.5), 0 8px 24px rgba(124, 58, 237, 0.25); background-color: #f5f3ff; }
+  20%  { box-shadow: 0 0 0 8px rgba(124, 58, 237, 0.2), 0 8px 24px rgba(124, 58, 237, 0.25); background-color: #ede9fe; }
+  80%  { box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.1), 0 8px 24px rgba(124, 58, 237, 0.1); background-color: #f5f3ff; }
+  100% { box-shadow: none; background-color: white; }
+}
+
+.card-highlight {
+  animation: card-pulse-highlight 5s ease-out forwards;
+}

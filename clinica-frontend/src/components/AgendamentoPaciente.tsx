@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 
 import { ESPECIALIDADES } from "../constants/especialidades";
 import { Check, AlertTriangle, Sliders, Zap, CheckCircle, Search, User, Calendar, MessageSquare, AlertCircle, ShieldAlert } from 'lucide-react';
+import { useScrollBlock } from "../hooks/useScrollBlock";
 
 interface AgendamentoPacienteProps {
   onSucesso?: () => void;
@@ -21,6 +22,8 @@ export default function AgendamentoPaciente({ onSucesso }: AgendamentoPacientePr
   const [modoIA, setModoIA] = useState(false);
   const [modalMensagem, setModalMensagem] = useState<string | null>(null);
   const [violacao, setViolacao] = useState(false);
+
+  useScrollBlock(!!(modalMensagem || violacao));
 
   const [tipoProfissional, setTipoProfissional] = useState<number | null>(null); // 0: Enfermeira, 1: Medico
   const [tipoConsulta, setTipoConsulta] = useState<number>(3); // Default 3: Consulta Médica

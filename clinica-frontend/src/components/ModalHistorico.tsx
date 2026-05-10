@@ -1,6 +1,7 @@
 import type { AgendamentoHistoricoResponse } from "./AgendamentoList";
 import { MapNomesStatus } from "../constants/statusMap";
 import { X, User } from 'lucide-react';
+import { useScrollBlock } from "../hooks/useScrollBlock";
 
 interface ModalHistoricoProps {
   historico: AgendamentoHistoricoResponse[];
@@ -9,6 +10,8 @@ interface ModalHistoricoProps {
 }
 
 export default function ModalHistorico({ historico, loading, onFechar }: ModalHistoricoProps) {
+  useScrollBlock(true);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-lg p-6 max-h-[80vh] flex flex-col">
@@ -28,46 +31,46 @@ export default function ModalHistorico({ historico, loading, onFechar }: ModalHi
             <div className="relative border-l-2 border-gray-200 ml-3 space-y-6 pb-4 mt-2">
               {historico.map((h) => (
                 <div key={h.id} className="relative pl-6">
-                  <span className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-blue-500 border-2 border-white shadow"></span>
+                  <span className="absolute -left-[9px] top-1.5 w-4 h-4 rounded-full bg-blue-500 border-2 border-white shadow"></span>
                   <div className="flex flex-col">
-                    <span className="text-xs font-bold text-gray-400 mb-0.5">
-                      {new Date(h.dtCriado).toLocaleString('pt-BR')}
+                    <span className="text-sm font-bold text-gray-400 mb-0.5">
+                      {new Date(h.dtCriado).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}
                     </span>
-                    <h4 className="text-sm font-bold text-gray-800">
+                    <h4 className="text-base font-bold text-gray-800">
                       {h.tipoEvento}
                     </h4>
 
                     {h.tipoEvento === "MudancaStatus" && (
-                      <div className="text-sm text-gray-600 mt-1">
+                      <div className="text-base text-gray-600 mt-1">
                         Status: <span className="font-semibold text-gray-700">{MapNomesStatus[h.statusAnterior || ""] || h.statusAnterior || "-"}</span> → <span className="font-semibold text-blue-600">{MapNomesStatus[h.statusNovo || ""] || h.statusNovo}</span>
                       </div>
                     )}
 
                     {h.tipoEvento === "Remarcacao" && (
-                      <div className="text-sm text-gray-600 mt-1">
-                        Data: <span className="font-semibold text-gray-700">{h.dataAnterior ? new Date(h.dataAnterior).toLocaleString('pt-BR') : "-"}</span> → <span className="font-semibold text-blue-600">{h.dataNova ? new Date(h.dataNova).toLocaleString('pt-BR') : "-"}</span>
+                      <div className="text-base text-gray-600 mt-1">
+                        Data: <span className="font-semibold text-gray-700">{h.dataAnterior ? new Date(h.dataAnterior).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }) : "-"}</span> → <span className="font-semibold text-blue-600">{h.dataNova ? new Date(h.dataNova).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }) : "-"}</span>
                       </div>
                     )}
 
                     {h.tipoEvento === "Cancelamento" && (
-                      <div className="text-sm text-red-600 mt-1 font-medium">
+                      <div className="text-base text-red-600 mt-1 font-medium">
                         Agendamento Cancelado
                       </div>
                     )}
 
                     {h.tipoEvento === "Criacao" && (
-                      <div className="text-sm text-green-600 mt-1 font-medium">
+                      <div className="text-base text-green-600 mt-1 font-medium">
                         Consulta agendada no sistema
                       </div>
                     )}
 
-                    <div className="text-[10px] text-gray-400 mt-2 italic flex items-center gap-1">
-                      <User className="w-3 h-3" />
+                    <div className="text-xs text-gray-400 mt-2 italic flex items-center gap-1">
+                      <User className="w-3.5 h-3.5" />
                       Realizado por: {h.nomeRealizadoPor}
                     </div>
 
                     {h.observacao && (
-                      <div className="mt-2 text-sm text-gray-700 bg-amber-50 p-2 rounded border border-amber-100">
+                      <div className="mt-2 text-base text-gray-700 bg-amber-50 p-3 rounded border border-amber-100">
                         <span className="font-semibold text-amber-700 block mb-1">Observação:</span> {h.observacao}
                       </div>
                     )}

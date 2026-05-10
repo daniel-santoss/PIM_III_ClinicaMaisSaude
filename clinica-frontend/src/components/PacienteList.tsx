@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { mascaraCpf, mascaraTelefone } from "../utils/validators";
 import { AlertCircle, Users, CheckCircle, Clock, Search, Filter, RefreshCw, Inbox, Pencil, Key, Trash, AlertTriangle, Check, Copy, X } from 'lucide-react';
 import type { PacienteResponse } from "../types/PacienteResponse";
+import { useScrollBlock } from "../hooks/useScrollBlock";
 
 interface PacienteListProps {
   recarregarContador?: number;
@@ -57,6 +58,7 @@ export default function PacienteList({
   const isAdmin = localStorage.getItem("isAdmin") === "true";
   const isEnfermeira = localStorage.getItem("tipoUsuario") === "Enfermeira";
 
+  useScrollBlock(!!(editandoId || excluindoPaciente || pacienteReset || modalMensagem));
 
   const [page, setPage] = useState(1);
   const pageSize = 20;
@@ -469,7 +471,8 @@ export default function PacienteList({
                             <span className="text-[11px] font-bold text-gray-700">
                                {p.ultimoAcesso ? getRealDate(p.ultimoAcesso)!.toLocaleString('pt-BR', { 
                                   day: '2-digit', month: '2-digit', year: '2-digit', 
-                                  hour: '2-digit', minute: '2-digit' 
+                                  hour: '2-digit', minute: '2-digit',
+                                  timeZone: 'America/Sao_Paulo'
                                }) : 'Sem registro'}
                             </span>
                          </div>

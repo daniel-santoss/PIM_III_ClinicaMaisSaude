@@ -8,6 +8,7 @@ import AgendamentoFiltros from "./AgendamentoFiltros";
 import AgendamentoFormCriar from "./AgendamentoFormCriar";
 import ModalRemarcar from "./ModalRemarcar";
 import ModalHistorico from "./ModalHistorico";
+import { useScrollBlock } from "../hooks/useScrollBlock";
 
 export interface AgendamentoResponse {
   id: string;
@@ -48,7 +49,7 @@ const StatusPriority: Record<string, number> = {
   "AguardandoRetorno": 4, "Faltou": 5, "Finalizado": 6, "Cancelado": 7
 };
 
-export default function AgendamentoList() {
+export default function AgendamentoList({ agendamentoDestaque }: { agendamentoDestaque?: string | null }) {
   const [agendamentos, setAgendamentos] = useState<AgendamentoResponse[]>([]);
   const [pacientes, setPacientes] = useState<PacienteResponse[]>([]);
   const [carregando, setCarregando] = useState(true);
@@ -65,8 +66,10 @@ export default function AgendamentoList() {
   const [historicoAtual, setHistoricoAtual] = useState<AgendamentoHistoricoResponse[]>([]);
   const [historicoLoading, setHistoricoLoading] = useState(false);
 
+  useScrollBlock(!!(modalMensagem || cancelarAlvo || alterarAlvo || pacienteDetalhesModal || modalNovoAgendamento || modalHistoricoAberto));
+
   const [filtroAgenda, setFiltroAgenda] = useState("");
-  const [filtroStatus, setFiltroStatus] = useState("Todos");
+  const [statusSelecionados, setStatusSelecionados] = useState<string[]>(Object.keys(EnumStatusUrl));
   const [filtroDataConsulta, setFiltroDataConsulta] = useState("");
   const [filtroRiscoApenas, setFiltroRiscoApenas] = useState(false);
   const [ordemData, setOrdemData] = useState<"asc" | "desc">("desc");
@@ -79,7 +82,7 @@ export default function AgendamentoList() {
   const [totalCount, setTotalCount] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
 
-  const limparFiltros = () => { setFiltroAgenda(""); setFiltroStatus("Todos"); setFiltroDataConsulta(""); setFiltroRiscoApenas(false); setPage(1); };
+  const limparFiltros = () => { setFiltroAgenda(""); setStatusSelecionados(Object.keys(EnumStatusUrl)); setFiltroDataConsulta(""); setFiltroRiscoApenas(false); setPage(1); };
 
   useEffect(() => { carregarDados(); }, [refreshContador, page]);
 
@@ -179,7 +182,7 @@ export default function AgendamentoList() {
       const pac = pacientes.find(p => p.id === a.pacienteId);
       const cpf = pac ? pac.cpf : "";
       const matchBusca = a.pacienteNome.toLowerCase().includes(filtroAgenda.toLowerCase()) || cpf.includes(filtroAgenda);
-      const matchStatus = filtroStatus === "Todos" || a.status === filtroStatus;
+      const matchStatus = statusSelecionados.includes(a.status);
       const matchData = !filtroDataConsulta || a.dataHoraConsulta.startsWith(filtroDataConsulta);
       const matchRisco = !filtroRiscoApenas || (a.nivelProbabilidadeFalta === "Alta" || a.nivelProbabilidadeFalta === "Média");
       return matchBusca && matchStatus && matchData && matchRisco;
@@ -196,7 +199,7 @@ export default function AgendamentoList() {
   // Reset page to 1 when search filters change
   useEffect(() => {
     setPage(1);
-  }, [filtroAgenda, filtroStatus, filtroDataConsulta]);
+  }, [filtroAgenda, statusSelecionados, filtroDataConsulta]);
 
   const hoje = new Date().toISOString().split('T')[0];
   const atendimentosHoje = agendamentos.filter(a => a.dataHoraConsulta.startsWith(hoje)).length;
@@ -290,7 +293,7 @@ export default function AgendamentoList() {
                 setFiltroRiscoApenas(novoEstado);
                 if (novoEstado) {
                   setFiltroDataConsulta(hoje);
-                  setFiltroStatus("Agendado");
+                  setStatusSelecionados(["Agendado"]);
                 } else {
                   limparFiltros();
                 }
@@ -318,14 +321,14 @@ export default function AgendamentoList() {
         {/* Filtros */}
         <AgendamentoFiltros
           filtroAgenda={filtroAgenda} setFiltroAgenda={setFiltroAgenda}
-          filtroStatus={filtroStatus} setFiltroStatus={setFiltroStatus}
+          statusSelecionados={statusSelecionados} setStatusSelecionados={setStatusSelecionados}
           filtroDataConsulta={filtroDataConsulta} setFiltroDataConsulta={setFiltroDataConsulta}
           ordemData={ordemData} setOrdemData={setOrdemData}
           limparFiltros={limparFiltros}
         />
 
         {/* Grid de Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {agendamentosFiltrados.length === 0 ? (
             <div className="col-span-full py-20 bg-white rounded-[2.5rem] border border-dashed border-purple-200 text-center">
               <p className="text-gray-400 font-bold uppercase tracking-widest text-sm">Nenhum agendamento para exibir</p>
@@ -335,6 +338,7 @@ export default function AgendamentoList() {
               <AgendamentoCard
                 key={agenda.id}
                 agenda={agenda}
+                highlighted={agenda.id === agendamentoDestaque}
                 opcoesValidas={obterOpcoesPermitidas(agenda.status, agenda.tipoConsulta, agenda.dataHoraConsulta)}
                 podeCancelar={agenda.status === "Agendado" || agenda.status === "RetornoAgendado"}
                 podeRemarcar={agenda.status !== "Finalizado" && agenda.status !== "Cancelado"}
@@ -351,7 +355,7 @@ export default function AgendamentoList() {
         {/* Footer / Paginação */}
         <div className="px-6 py-4 bg-gray-50/80 rounded-2xl border border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4 mt-6">
           <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">
-            Exibindo {agendamentos.length} de {totalCount} {totalCount === 1 ? "resultado" : "resultados"}
+            Exibindo {agendamentosFiltrados.length} de {totalCount} {totalCount === 1 ? "resultado" : "resultados"}
           </p>
           
           {totalPages > 1 && (

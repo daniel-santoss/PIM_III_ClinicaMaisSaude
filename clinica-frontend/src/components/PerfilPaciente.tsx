@@ -2,6 +2,7 @@ import { API_URL } from "../constants/api";
 import { useEffect, useState } from "react";
 import { mascaraCpf, mascaraTelefone } from "../utils/validators";
 import { AlertTriangle } from "lucide-react";
+import { useScrollBlock } from "../hooks/useScrollBlock";
 
 export default function PerfilPaciente() {
   const [paciente, setPaciente] = useState<any>(null);
@@ -20,6 +21,8 @@ export default function PerfilPaciente() {
 
   const pacienteId = localStorage.getItem("pacienteId");
   const token = localStorage.getItem("authToken");
+
+  useScrollBlock(!!(modalSenha || modalExcluir || modalMensagem));
 
   useEffect(() => {
     const carregarDados = async () => {

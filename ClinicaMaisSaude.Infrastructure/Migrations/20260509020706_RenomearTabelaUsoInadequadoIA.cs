@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
@@ -10,35 +10,27 @@ namespace ClinicaMaisSaude.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropForeignKey(
-                name: "FK_AbusosIA_Pacientes_PacienteId",
-                table: "AbusosIA");
+            // Executado apenas se a tabela AbusosIA ainda existir (idempotente)
+            migrationBuilder.Sql(@"
+                IF OBJECT_ID(N'[AbusosIA]', 'U') IS NOT NULL
+                BEGIN
+                    IF EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_AbusosIA_Pacientes_PacienteId')
+                        ALTER TABLE [AbusosIA] DROP CONSTRAINT [FK_AbusosIA_Pacientes_PacienteId];
 
-            migrationBuilder.DropPrimaryKey(
-                name: "PK_AbusosIA",
-                table: "AbusosIA");
+                    IF EXISTS (SELECT 1 FROM sys.key_constraints WHERE name = 'PK_AbusosIA')
+                        ALTER TABLE [AbusosIA] DROP CONSTRAINT [PK_AbusosIA];
 
-            migrationBuilder.RenameTable(
-                name: "AbusosIA",
-                newName: "UsoInadequadoIA");
+                    EXEC sp_rename N'[AbusosIA]', N'UsoInadequadoIA';
 
-            migrationBuilder.RenameIndex(
-                name: "IX_AbusosIA_PacienteId",
-                table: "UsoInadequadoIA",
-                newName: "IX_UsoInadequadoIA_PacienteId");
+                    IF EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_AbusosIA_PacienteId')
+                        EXEC sp_rename N'[UsoInadequadoIA].[IX_AbusosIA_PacienteId]', N'IX_UsoInadequadoIA_PacienteId', N'INDEX';
 
-            migrationBuilder.AddPrimaryKey(
-                name: "PK_UsoInadequadoIA",
-                table: "UsoInadequadoIA",
-                column: "Id");
+                    ALTER TABLE [UsoInadequadoIA] ADD CONSTRAINT [PK_UsoInadequadoIA] PRIMARY KEY ([Id]);
 
-            migrationBuilder.AddForeignKey(
-                name: "FK_UsoInadequadoIA_Pacientes_PacienteId",
-                table: "UsoInadequadoIA",
-                column: "PacienteId",
-                principalTable: "Pacientes",
-                principalColumn: "Id",
-                onDelete: ReferentialAction.Cascade);
+                    ALTER TABLE [UsoInadequadoIA] ADD CONSTRAINT [FK_UsoInadequadoIA_Pacientes_PacienteId]
+                        FOREIGN KEY ([PacienteId]) REFERENCES [Pacientes] ([Id]) ON DELETE CASCADE;
+                END
+            ");
         }
 
         /// <inheritdoc />

@@ -15,6 +15,8 @@ namespace ClinicaMaisSaude.Domain.Entities
         public Guid? UsuarioId { get; private set; }
         public DateTime DtCriado { get; private set; }
         public DateTime? BloqueadoIAAte { get; private set; }
+        /// <summary>True enquanto o paciente ainda não foi notificado de que a penalidade foi removida pelo admin</summary>
+        public bool PenalidadeRemovidaAvisar { get; private set; }
 
         public virtual Usuario Usuario { get; private set; }
         public virtual ICollection<Agendamento> Agendamentos { get; private set; } = new List<Agendamento>();
@@ -68,6 +70,19 @@ namespace ClinicaMaisSaude.Domain.Entities
         public bool IsIABloqueada()
         {
             return BloqueadoIAAte.HasValue && BloqueadoIAAte.Value > DateTime.UtcNow;
+        }
+
+        /// <summary>Admin remove a penalidade e agenda o aviso para o próximo login do paciente</summary>
+        public void RemoverPenalidade()
+        {
+            BloqueadoIAAte = null;
+            PenalidadeRemovidaAvisar = true;
+        }
+
+        /// <summary>Chamado após exibir o aviso ao paciente, para não rexibir</summary>
+        public void ConsumarAvisoPenalidade()
+        {
+            PenalidadeRemovidaAvisar = false;
         }
 
         public void VincularUsuario(Guid usuarioId)

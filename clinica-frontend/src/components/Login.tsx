@@ -1,5 +1,6 @@
 import { API_URL, ADMIN_EMAIL, CLINIC_NAME, CLINIC_PHONE } from "../constants/api";
 import { useState } from "react";
+import { useScrollBlock } from "../hooks/useScrollBlock";
 import { isCpfValido, isEmailValido, mascaraCpf } from "../utils/validators";
 import logoPng from "../assets/logo_clinica.png";
 import { Eye, EyeOff, Lock } from 'lucide-react';
@@ -11,8 +12,10 @@ export default function Login({ onLogado }: { onLogado: () => void }) {
   const [carregando, setCarregando] = useState(false);
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const [modalEsqueciSenha, setModalEsqueciSenha] = useState(false);
-
   const [isCpfMask, setIsCpfMask] = useState(false);
+  const [modalPenalidadeRemovida, setModalPenalidadeRemovida] = useState(false);
+
+  useScrollBlock(modalEsqueciSenha || modalPenalidadeRemovida);
 
   const handleIdentificador = (valor: string) => {
     if (/[a-zA-Z@]/.test(valor)) {
@@ -64,7 +67,13 @@ export default function Login({ onLogado }: { onLogado: () => void }) {
       localStorage.setItem("isAdmin", data.isAdmin ? "true" : "false");
       if (data.pacienteId) localStorage.setItem("pacienteId", data.pacienteId);
       if (data.profissionalId) localStorage.setItem("profissionalId", data.profissionalId);
-      onLogado();
+
+      if (data.penalidadeRemovida) {
+        // Exibe modal antes de entrar; onLogado() será chamado ao fechar
+        setModalPenalidadeRemovida(true);
+      } else {
+        onLogado();
+      }
 
     } catch (err: any) {
       setErro(err.message || "Erro de conexão ao servidor");
@@ -194,6 +203,30 @@ export default function Login({ onLogado }: { onLogado: () => void }) {
 
             <button className="w-full bg-[#7C3AED] text-white font-black py-4 rounded-2xl uppercase tracking-widest text-[10px] shadow-lg shadow-purple-100 hover:bg-[#6D28D9] transition-all active:scale-95" onClick={() => setModalEsqueciSenha(false)}>
               Entendido
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Penalidade de IA removida */}
+      {modalPenalidadeRemovida && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-green-900/80 backdrop-blur-md p-4 animate-in fade-in duration-300">
+          <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md p-10 text-center border-4 border-green-400">
+            <div className="w-20 h-20 bg-green-100 text-green-600 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h3 className="text-2xl font-black text-green-700 mb-3 uppercase tracking-tight">Penalidade Removida</h3>
+            <p className="text-gray-600 text-sm font-medium leading-relaxed mb-8">
+              Após análise, o administrador do sistema <strong>removeu a penalidade</strong> aplicada à sua conta.
+              Você já pode utilizar o assistente de triagem com Inteligência Artificial normalmente.
+            </p>
+            <button
+              onClick={() => { setModalPenalidadeRemovida(false); onLogado(); }}
+              className="w-full bg-green-600 hover:bg-green-700 text-white font-black py-4 rounded-2xl uppercase tracking-widest text-xs shadow-lg shadow-green-200 transition-colors active:scale-95"
+            >
+              Entendido, Entrar
             </button>
           </div>
         </div>

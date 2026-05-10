@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { ESPECIALIDADES } from "../constants/especialidades";
 import { mascaraCpf } from "../utils/validators";
 import { AlertTriangle, X } from 'lucide-react';
+import { useScrollBlock } from "../hooks/useScrollBlock";
 
 export default function PerfilMedico() {
   const [medico, setMedico] = useState<any>(null);
@@ -26,6 +27,8 @@ export default function PerfilMedico() {
   const profissionalId = localStorage.getItem("profissionalId");
   const token = localStorage.getItem("authToken");
   const isEnfermeira = localStorage.getItem("tipoUsuario") === "Enfermeira";
+
+  useScrollBlock(!!(modalEditar || modalSenha || modalMensagem));
 
   const carregar = async () => {
     try {

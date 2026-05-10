@@ -15,6 +15,9 @@ namespace ClinicaMaisSaude.Domain.Entities
         public Guid? AgendamentoOrigemId { get; private set; }
         public double ProbabilidadeFalta { get; private set; }
         public bool ResultadoDisponivel { get; private set; }
+        public bool NotificacaoPendenteGerada { get; private set; }
+        public bool LembreteManhaEnviado { get; private set; }
+        public bool LembreteDuasHorasEnviado { get; private set; }
         public DateTime DtCriado { get; private set; }
 
         public virtual Paciente Paciente { get; private set; }
@@ -32,6 +35,9 @@ namespace ClinicaMaisSaude.Domain.Entities
             Status = StatusAgendamento.Agendado;
             ProbabilidadeFalta = 0;
             ResultadoDisponivel = false;
+            NotificacaoPendenteGerada = false;
+            LembreteManhaEnviado = false;
+            LembreteDuasHorasEnviado = false;
             DtCriado = DateTime.UtcNow;
         }
 
@@ -48,6 +54,21 @@ namespace ClinicaMaisSaude.Domain.Entities
         public void MarcarResultadoDisponivel()
         {
             ResultadoDisponivel = true;
+        }
+
+        public void MarcarNotificacaoPendenteGerada()
+        {
+            NotificacaoPendenteGerada = true;
+        }
+
+        public void MarcarLembreteManhaEnviado()
+        {
+            LembreteManhaEnviado = true;
+        }
+
+        public void MarcarLembreteDuasHorasEnviado()
+        {
+            LembreteDuasHorasEnviado = true;
         }
     }
 }

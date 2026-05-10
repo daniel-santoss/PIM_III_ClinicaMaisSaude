@@ -1,14 +1,17 @@
 import { useEffect, useState } from "react";
 import { API_URL } from "../constants/api";
-import { AlertOctagon, AlertTriangle, ShieldAlert, XCircle, Search } from "lucide-react";
+import { AlertOctagon, AlertTriangle, ShieldAlert, XCircle, Search, ShieldCheck } from "lucide-react";
 
 type Violacao = {
   id: string;
+  pacienteId: string;
   pacienteNome: string;
   pacienteCpf: string;
   tipoViolacao: string;
   textoInserido: string;
   dtCriado: string;
+  penalidadeRemovidaAguardandoLogin: boolean;
+  iaBloqueadaAte: string | null;
 };
 
 export default function ViolacoesList() {
@@ -16,6 +19,7 @@ export default function ViolacoesList() {
   const [carregando, setCarregando] = useState(true);
   const [filtro, setFiltro] = useState<"todas" | "graves" | "leves">("todas");
   const [busca, setBusca] = useState("");
+  const [removendoPenalidade, setRemovendoPenalidade] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     const fetchViolacoes = async () => {
@@ -37,6 +41,29 @@ export default function ViolacoesList() {
     };
     fetchViolacoes();
   }, []);
+
+  const removerPenalidade = async (pacienteId: string) => {
+    setRemovendoPenalidade(prev => ({ ...prev, [pacienteId]: true }));
+    try {
+      const token = localStorage.getItem("authToken");
+      const res = await fetch(`${API_URL}/api/Consultas/violacoes/${pacienteId}/penalidade`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        // Atualiza o estado local da lista para refletir o novo estado sem precisar recarregar
+        setViolacoes(prev => prev.map(v =>
+          v.pacienteId === pacienteId
+            ? { ...v, penalidadeRemovidaAguardandoLogin: true, iaBloqueadaAte: null }
+            : v
+        ));
+      }
+    } catch (err) {
+      console.error("Erro ao remover penalidade", err);
+    } finally {
+      setRemovendoPenalidade(prev => ({ ...prev, [pacienteId]: false }));
+    }
+  };
 
   const violacoesFiltradas = violacoes.filter((v) => {
     // Filtro de Busca (Nome ou CPF)
@@ -156,20 +183,49 @@ export default function ViolacoesList() {
                       {isGrave ? "Banido Permanentemente" : "Suspensão Temporária"}
                     </span>
                     <span className="text-xs text-gray-400 ml-auto font-medium">
-                      {new Date(v.dtCriado).toLocaleString("pt-BR")}
+                      {new Date(v.dtCriado).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}
                     </span>
                   </div>
 
                   <div className="bg-white p-4 rounded-xl border border-gray-100/50 relative group">
-                    <span className="absolute -top-2.5 left-4 text-[9px] font-black uppercase tracking-widest text-gray-400 bg-white px-1">
-                      Texto Interceptado
+                    <span className="absolute -top-2.5 left-0 text-[9px] font-black uppercase tracking-widest text-gray-400 bg-white px-1">
+                      Texto Inserido
                     </span>
                     <p className="text-sm font-mono text-gray-700 whitespace-pre-wrap break-words mt-1">
                       {v.textoInserido}
                     </p>
                   </div>
+
+                  {/* Botão Remover Penalidade */}
+                  <div className="flex justify-end pt-1">
+                    {v.penalidadeRemovidaAguardandoLogin ? (
+                      <span className="flex items-center gap-1.5 text-xs font-black text-green-600 bg-green-50 border border-green-200 px-3 py-1.5 rounded-xl">
+                        <ShieldCheck className="w-4 h-4" />
+                        Penalidade Removida
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => removerPenalidade(v.pacienteId)}
+                        disabled={removendoPenalidade[v.pacienteId]}
+                        className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-green-700 bg-green-50 hover:bg-green-100 border border-green-200 hover:border-green-400 px-3 py-1.5 rounded-xl transition-all disabled:opacity-50 disabled:cursor-wait"
+                      >
+                        {removendoPenalidade[v.pacienteId] ? (
+                          <>
+                            <div className="w-3 h-3 border-2 border-green-400 border-t-transparent rounded-full animate-spin" />
+                            Removendo...
+                          </>
+                        ) : (
+                          <>
+                            <ShieldCheck className="w-4 h-4" />
+                            Remover Penalidade
+                          </>
+                        )}
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
+
             );
           })}
         </div>

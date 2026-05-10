@@ -5,6 +5,7 @@ import { obterMinDate } from "../utils/dates";
 import type { PacienteResponse } from "../types/PacienteResponse";
 import type { AgendamentoResponse } from "./AgendamentoList";
 import { X, Lightbulb, AlertTriangle, ShieldAlert } from 'lucide-react';
+import { useScrollBlock } from "../hooks/useScrollBlock";
 
 interface AgendamentoFormCriarProps {
   pacientes: PacienteResponse[];
@@ -43,6 +44,8 @@ export default function AgendamentoFormCriar({
     setTipoConsulta(tipoProfissional === 0 ? 0 : 3);
     setEspecialidadeId(null);
   }, [tipoProfissional]);
+
+  useScrollBlock(true);
 
   useEffect(() => {
     if (tipoProfissional === 1 && listaEspecialidades.length === 0) {
