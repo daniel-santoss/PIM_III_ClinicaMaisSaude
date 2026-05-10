@@ -11,6 +11,7 @@ namespace ClinicaMaisSaude.Application.DTOs.Auth
     public class LoginResponse
     {
         public string Token { get; set; } = string.Empty;
+        public string Nome { get; set; } = string.Empty;
         public Guid UsuarioId { get; set; }
         public string TipoUsuario { get; set; } = string.Empty;
         public Guid? PacienteId { get; set; }

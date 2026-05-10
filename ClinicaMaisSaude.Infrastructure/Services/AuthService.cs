@@ -147,6 +147,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             return new LoginResponse
             {
                 Token = jwtToken,
+                Nome = perfilProfissional?.Nome ?? perfilPaciente?.Nome ?? (usuario.IsAdmin ? "Administrador" : "Usuário"),
                 RefreshToken = refreshToken.Token,
                 UsuarioId = usuario.Id,
                 TipoUsuario = tipoUsuarioStr,
@@ -230,6 +231,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             return new LoginResponse
             {
                 Token = jwtToken,
+                Nome = perfilProfissional?.Nome ?? perfilPaciente?.Nome ?? (usuario.IsAdmin ? "Administrador" : "Usuário"),
                 RefreshToken = refreshToken.Token,
                 UsuarioId = usuario.Id,
                 TipoUsuario = tipoUsuarioStr,
