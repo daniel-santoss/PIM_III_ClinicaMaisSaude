@@ -2,7 +2,7 @@ import { API_URL } from "../constants/api";
 import { useEffect, useState } from "react";
 import { ESPECIALIDADES } from "../constants/especialidades";
 import { mascaraCpf } from "../utils/validators";
-import { AlertTriangle, X } from 'lucide-react';
+import { AlertTriangle, X, Pencil } from 'lucide-react';
 import { useScrollBlock } from "../hooks/useScrollBlock";
 
 export default function PerfilMedico() {
@@ -13,22 +13,23 @@ export default function PerfilMedico() {
   const [salvando, setSalvando] = useState(false);
   const [focado, setFocado] = useState(false);
 
-  const [modalEditar, setModalEditar] = useState(false);
-  const [modalSenha, setModalSenha] = useState(false);
-  const [formEdit, setFormEdit] = useState({ nome: "", email: "" });
+  const [editMode, setEditMode] = useState(false);
+  const [editSenha, setEditSenha] = useState(false);
+  const [formEdit, setFormEdit] = useState({ 
+    nome: "", 
+    email: "", 
+    senhaAtual: "", 
+    novaSenha: "", 
+    confirmarSenha: "" 
+  });
   const [salvandoPerfil, setSalvandoPerfil] = useState(false);
-
-
-  const [senhaAtual, setSenhaAtual] = useState("");
-  const [novaSenha, setNovaSenha] = useState("");
-  const [confirmarSenha, setConfirmarSenha] = useState("");
   const [modalMensagem, setModalMensagem] = useState<string | null>(null);
 
   const profissionalId = localStorage.getItem("profissionalId");
   const token = localStorage.getItem("authToken");
   const isEnfermeira = localStorage.getItem("tipoUsuario") === "Enfermeira";
 
-  useScrollBlock(!!(modalEditar || modalSenha || modalMensagem));
+  useScrollBlock(!!modalMensagem);
 
   const carregar = async () => {
     try {
@@ -39,7 +40,7 @@ export default function PerfilMedico() {
       if (resPerfil.ok) {
         const dados = await resPerfil.json();
         setMedico(dados);
-        setFormEdit({ nome: dados.nome || "", email: dados.email || "" });
+        setFormEdit(f => ({ ...f, nome: dados.nome || "", email: dados.email || "" }));
       }
       if (resEsp && resEsp.ok) setEspecialidades(await resEsp.json());
     } catch (e) { console.error(e); }
@@ -75,23 +76,70 @@ export default function PerfilMedico() {
     finally { setSalvando(false); }
   };
 
-  const salvarPerfil = async () => {
+  const salvarTudo = async () => {
     setSalvandoPerfil(true);
     try {
-      const res = await fetch(`${API_URL}/api/Perfil`, {
+      // 1. Salvar Perfil (Nome/Email)
+      const resPerfil = await fetch(`${API_URL}/api/Perfil`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify(formEdit)
+        body: JSON.stringify({ nome: formEdit.nome, email: formEdit.email })
       });
-      if (res.ok) {
-        setModalEditar(false);
-        carregar();
-        setModalMensagem("Perfil atualizado com sucesso!");
-      } else {
-        setModalMensagem(await res.text());
+
+      if (!resPerfil.ok) {
+        setModalMensagem(await resPerfil.text());
+        setSalvandoPerfil(false);
+        return;
       }
-    } catch (e) { setModalMensagem("Erro de conexão."); }
-    finally { setSalvandoPerfil(false); }
+
+      // 2. Salvar Senha se necessário
+      if (editSenha) {
+        if (!formEdit.novaSenha || !formEdit.senhaAtual || !formEdit.confirmarSenha) {
+          setModalMensagem("Preencha todos os campos de senha.");
+          setSalvandoPerfil(false);
+          return;
+        }
+        if (formEdit.novaSenha !== formEdit.confirmarSenha) {
+          setModalMensagem("As senhas não coincidem.");
+          setSalvandoPerfil(false);
+          return;
+        }
+
+        const resSenha = await fetch(`${API_URL}/api/Perfil/senha`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ senhaAtual: formEdit.senhaAtual, novaSenha: formEdit.novaSenha })
+        });
+
+        if (!resSenha.ok) {
+          setModalMensagem(await resSenha.text());
+          setSalvandoPerfil(false);
+          return;
+        }
+      }
+
+      setModalMensagem("Dados atualizados com sucesso!");
+      setEditMode(false);
+      setEditSenha(false);
+      setFormEdit(f => ({ ...f, senhaAtual: "", novaSenha: "", confirmarSenha: "" }));
+      carregar();
+    } catch (e) { 
+      setModalMensagem("Erro de conexão."); 
+    } finally { 
+      setSalvandoPerfil(false); 
+    }
+  };
+
+  const cancelarEdicao = () => {
+    setEditMode(false);
+    setEditSenha(false);
+    setFormEdit({
+      nome: medico?.nome || "",
+      email: medico?.email || "",
+      senhaAtual: "",
+      novaSenha: "",
+      confirmarSenha: ""
+    });
   };
 
   const nomesSelecionados = especialidades.map(e => e.nome);
@@ -107,46 +155,18 @@ export default function PerfilMedico() {
     );
   }
 
-  const alterarSenha = async () => {
-    if (!novaSenha || !senhaAtual || !confirmarSenha) return setModalMensagem("Preencha todos os campos.");
-    // A real validação está sendo feita no backend
-    if (novaSenha !== confirmarSenha) return setModalMensagem("As senhas não coincidem.");
-    if (senhaAtual === novaSenha) return setModalMensagem("A nova senha não pode ser igual a senha atual!");
-
-    try {
-      const res = await fetch(`${API_URL}/api/Perfil/senha`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ senhaAtual, novaSenha })
-      });
-
-      if (res.ok) {
-        setModalMensagem("Senha alterada com sucesso!");
-        setModalSenha(false);
-        setSenhaAtual(""); setNovaSenha(""); setConfirmarSenha("");
-      } else {
-        setModalMensagem(await res.text());
-      }
-    } catch (e) { setModalMensagem("Erro de conexão."); }
-  };
-
   return (
-    <div className="animate-in fade-in slide-in-from-top-4 duration-500 max-w-2xl mx-auto space-y-10">
+    <div className="animate-in fade-in slide-in-from-top-4 duration-500 max-w-4xl mx-auto space-y-8 px-4">
       {/* Header Profissional */}
       <div className="flex items-center gap-6">
         <div className={`w-20 h-20 text-white rounded-3xl flex items-center justify-center text-3xl font-black shadow-xl shrink-0 ${isEnfermeira ? 'bg-gradient-to-br from-teal-400 to-teal-600 shadow-teal-100' : 'bg-gradient-to-br from-blue-500 to-blue-700 shadow-blue-100'}`}>
           {isEnfermeira ? "ENF" : "MD"}
         </div>
         <div className="flex-1">
-          <h1 className="text-2xl font-black text-gray-900">{medico?.nome}</h1>
-          {!isEnfermeira && (
-            <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mt-1">CRM: {medico?.crm}{medico?.ufCrm ? `-${medico.ufCrm}` : ''}</p>
-          )}
-          {isEnfermeira && (
-            <p className="text-teal-500 text-xs font-bold uppercase tracking-widest mt-1">Enfermaria</p>
-          )}
+          <h1 className="text-3xl font-black text-gray-900 tracking-tight leading-none">Meu Perfil</h1>
+          <p className="text-gray-400 text-sm font-medium mt-1">Perfil de {medico?.nome}</p>
         </div>
-        <button onClick={() => setModalEditar(true)} className="p-3 bg-purple-50 text-purple-600 rounded-xl hover:bg-purple-100 transition-colors font-bold text-xs uppercase shadow-sm">Editar Dados</button>
+
         {/* MODAL MENSAGEM */}
         {modalMensagem && (
           <div className="fixed inset-0 z-[300] flex items-center justify-center bg-gray-900/60 backdrop-blur-sm p-4">
@@ -163,19 +183,150 @@ export default function PerfilMedico() {
       </div>
 
       {/* Dados Pessoais */}
-      <div className="space-y-1 bg-white rounded-3xl border border-gray-100 overflow-hidden shadow-sm">
-        <div className="px-6 py-4 flex flex-col gap-1 hover:bg-gray-50 transition-colors">
-          <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Nome Completo</span>
-          <span className="text-sm font-bold text-gray-800">{medico?.nome}</span>
+      <div className="space-y-4">
+        <div className="bg-white rounded-3xl border border-gray-100 overflow-hidden shadow-sm grid grid-cols-1 md:grid-cols-2">
+          {/* NOME */}
+          <div className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors group border-b md:border-b-0 md:border-r border-gray-50">
+            <div className="flex flex-col gap-1 flex-1">
+              <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Nome Completo</span>
+              {editMode ? (
+                <input 
+                  type="text" 
+                  value={formEdit.nome} 
+                  onChange={e => setFormEdit({...formEdit, nome: e.target.value})}
+                  className="text-sm font-bold text-gray-800 bg-transparent border-b border-purple-200 outline-none focus:border-[#7C3AED] py-1"
+                />
+              ) : (
+                <span className="text-sm font-bold text-gray-800">{medico?.nome}</span>
+              )}
+            </div>
+            {!editMode && (
+              <button onClick={() => setEditMode(true)} className="p-2 text-gray-300 hover:text-[#7C3AED] transition-colors opacity-0 group-hover:opacity-100">
+                <Pencil size={16} />
+              </button>
+            )}
+          </div>
+
+          {/* EMAIL */}
+          <div className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors group border-b md:border-b-0 border-gray-50">
+            <div className="flex flex-col gap-1 flex-1">
+              <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">E-mail</span>
+              {editMode ? (
+                <input 
+                  type="email" 
+                  value={formEdit.email} 
+                  onChange={e => setFormEdit({...formEdit, email: e.target.value})}
+                  className="text-sm font-bold text-gray-800 bg-transparent border-b border-purple-200 outline-none focus:border-[#7C3AED] py-1"
+                />
+              ) : (
+                <span className="text-sm font-bold text-gray-800">{medico?.email}</span>
+              )}
+            </div>
+            {!editMode && (
+              <button onClick={() => setEditMode(true)} className="p-2 text-gray-300 hover:text-[#7C3AED] transition-colors opacity-0 group-hover:opacity-100">
+                <Pencil size={16} />
+              </button>
+            )}
+          </div>
+
+          {/* CPF (Não editável) */}
+          <div className="px-6 py-4 flex flex-col gap-1 border-t border-gray-50 bg-gray-50/30 md:border-r">
+            <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">CPF <span className="lowercase normal-case font-normal text-[10px] ml-1">(Não editável)</span></span>
+            <span className="text-sm font-bold text-gray-500">{mascaraCpf(medico?.cpf || "")}</span>
+          </div>
+
+          {/* SENHA */}
+          <div className="px-6 py-4 flex items-center justify-between border-t border-gray-50 hover:bg-gray-50 transition-colors group">
+            <div className="flex flex-col gap-1 flex-1">
+              <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Senha</span>
+              <span className="text-sm font-bold text-gray-800 tracking-[0.3em]">••••••••</span>
+            </div>
+            {!editSenha && (
+              <button 
+                onClick={() => { setEditMode(true); setEditSenha(true); }} 
+                className="p-2 text-gray-300 hover:text-[#7C3AED] transition-colors opacity-0 group-hover:opacity-100"
+              >
+                <Pencil size={16} />
+              </button>
+            )}
+          </div>
+
+          {/* Campos de nova senha */}
+          {editSenha && (
+            <div className="col-span-1 md:col-span-2 px-6 py-6 bg-purple-50/30 border-t border-purple-100 space-y-4 animate-in slide-in-from-top-2 duration-300">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-4">
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-black text-purple-400 uppercase tracking-widest ml-1">Senha Atual</label>
+                  <input 
+                    type="password" 
+                    placeholder="Sua senha atual"
+                    value={formEdit.senhaAtual}
+                    onChange={e => setFormEdit({...formEdit, senhaAtual: e.target.value})}
+                    className="w-full p-3 bg-white border border-purple-100 rounded-xl outline-none text-sm focus:ring-2 focus:ring-purple-400 font-bold"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-black text-purple-400 uppercase tracking-widest ml-1">Nova Senha</label>
+                  <input 
+                    type="password" 
+                    placeholder="Nova senha"
+                    value={formEdit.novaSenha}
+                    onChange={e => setFormEdit({...formEdit, novaSenha: e.target.value})}
+                    className="w-full p-3 bg-white border border-purple-100 rounded-xl outline-none text-sm focus:ring-2 focus:ring-purple-400 font-bold"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-black text-purple-400 uppercase tracking-widest ml-1">Confirmar Nova Senha</label>
+                  <input 
+                    type="password" 
+                    placeholder="Confirme a nova senha"
+                    value={formEdit.confirmarSenha}
+                    onChange={e => setFormEdit({...formEdit, confirmarSenha: e.target.value})}
+                    className="w-full p-3 bg-white border border-purple-100 rounded-xl outline-none text-sm focus:ring-2 focus:ring-purple-400 font-bold"
+                  />
+                </div>
+
+                {/* Botões de Ação ao lado de Confirmar Senha */}
+                <div className="flex items-end justify-end gap-3 pb-1">
+                  <button 
+                    onClick={cancelarEdicao}
+                    className="px-8 py-3 border border-gray-300 text-gray-500 rounded-xl font-bold text-xs uppercase tracking-wider hover:bg-gray-50 transition-colors bg-white shadow-sm"
+                  >
+                    Cancelar
+                  </button>
+                  <button 
+                    onClick={salvarTudo}
+                    disabled={salvandoPerfil}
+                    className="px-10 py-3 bg-[#7C3AED] text-white rounded-xl font-bold text-xs uppercase tracking-wider shadow-lg shadow-purple-100 hover:bg-[#6D28D9] transition-all disabled:opacity-50 active:scale-95"
+                  >
+                    {salvandoPerfil ? "Salvando..." : "Salvar"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
-        <div className="px-6 py-4 flex flex-col gap-1 border-t border-gray-50 hover:bg-gray-50 transition-colors">
-          <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">CPF</span>
-          <span className="text-sm font-bold text-gray-800">{mascaraCpf(medico?.cpf || "")}</span>
-        </div>
-        <div className="px-6 py-4 flex flex-col gap-1 border-t border-gray-50 hover:bg-gray-50 transition-colors">
-          <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">E-mail</span>
-          <span className="text-sm font-bold text-gray-800">{medico?.email}</span>
-        </div>
+
+        {/* Botões de Ação (Salvar / Cancelar) - Apenas se não estiver editando senha */}
+        {editMode && !editSenha && (
+          <div className="flex justify-end gap-3 animate-in fade-in slide-in-from-right-2 duration-300">
+            <button 
+              onClick={cancelarEdicao}
+              className="px-8 py-3 border border-gray-300 text-gray-500 rounded-xl font-bold text-xs uppercase tracking-wider hover:bg-gray-50 transition-colors bg-white shadow-sm"
+            >
+              Cancelar
+            </button>
+            <button 
+              onClick={salvarTudo}
+              disabled={salvandoPerfil}
+              className="px-10 py-3 bg-[#7C3AED] text-white rounded-xl font-bold text-xs uppercase tracking-wider shadow-lg shadow-purple-100 hover:bg-[#6D28D9] transition-all disabled:opacity-50 active:scale-95"
+            >
+              {salvandoPerfil ? "Salvando..." : "Salvar"}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Seção Especialidades (Apenas Médicos) */}
@@ -238,54 +389,6 @@ export default function PerfilMedico() {
             >
               {salvando ? 'Salvando...' : 'Salvar Especialidades'}
             </button>
-          </div>
-        </div>
-      )}
-
-      {/* Ação Senha */}
-      <div className="pt-4 border-t border-gray-100">
-        <button onClick={() => setModalSenha(true)} className="w-full py-4 bg-gray-100 text-gray-600 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-gray-200 transition-all active:scale-95">
-          Alterar Senha
-        </button>
-      </div>
-
-      {/* MODAL EDITAR DADOS */}
-      {modalEditar && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-gray-900/40 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8 animate-in zoom-in duration-200">
-            <h3 className="text-lg font-bold text-gray-800 mb-6">Editar Dados</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1 ml-1">Nome</label>
-                <input type="text" value={formEdit.nome} onChange={(e) => setFormEdit({ ...formEdit, nome: e.target.value })} className="w-full p-3.5 bg-gray-50 border border-gray-100 rounded-xl outline-none text-sm font-bold text-gray-700 focus:ring-2 focus:ring-purple-400" />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1 ml-1">E-mail</label>
-                <input type="email" value={formEdit.email} onChange={(e) => setFormEdit({ ...formEdit, email: e.target.value })} className="w-full p-3.5 bg-gray-50 border border-gray-100 rounded-xl outline-none text-sm font-bold text-gray-700 focus:ring-2 focus:ring-purple-400" />
-              </div>
-            </div>
-            <div className="flex gap-2 mt-8">
-              <button onClick={() => setModalEditar(false)} disabled={salvandoPerfil} className="flex-1 py-3 text-gray-400 font-bold text-xs uppercase hover:bg-gray-50 rounded-xl transition-colors">Cancelar</button>
-              <button onClick={salvarPerfil} disabled={salvandoPerfil} className="flex-1 py-3 bg-[#7C3AED] text-white rounded-xl font-bold text-xs uppercase shadow-md shadow-purple-100 hover:bg-[#6D28D9] transition-colors">{salvandoPerfil ? 'Salvando' : 'Salvar'}</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL ALTERAR SENHA */}
-      {modalSenha && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-gray-900/40 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-xs p-8 animate-in zoom-in duration-200">
-            <h3 className="text-lg font-bold text-gray-800 mb-6">Nova Senha</h3>
-            <div className="space-y-3">
-              <input type="password" value={senhaAtual} onChange={(e) => setSenhaAtual(e.target.value)} className="w-full p-3.5 bg-gray-50 border border-gray-100 rounded-xl outline-none text-sm focus:ring-2 focus:ring-purple-400" placeholder="Senha atual" />
-              <input type="password" value={novaSenha} onChange={(e) => setNovaSenha(e.target.value)} className="w-full p-3.5 bg-gray-50 border border-gray-100 rounded-xl outline-none text-sm focus:ring-2 focus:ring-purple-400" placeholder="Nova senha" />
-              <input type="password" value={confirmarSenha} onChange={(e) => setConfirmarSenha(e.target.value)} className="w-full p-3.5 bg-gray-50 border border-gray-100 rounded-xl outline-none text-sm focus:ring-2 focus:ring-purple-400" placeholder="Confirme a nova senha" />
-            </div>
-            <div className="flex gap-2 mt-8">
-              <button onClick={() => setModalSenha(false)} className="flex-1 py-3 text-gray-400 font-bold text-xs uppercase hover:bg-gray-50 rounded-xl transition-colors">Cancelar</button>
-              <button onClick={alterarSenha} className="flex-1 py-3 bg-[#7C3AED] text-white rounded-xl font-bold text-xs uppercase shadow-md shadow-purple-100 hover:bg-[#6D28D9] transition-colors">Salvar</button>
-            </div>
           </div>
         </div>
       )}

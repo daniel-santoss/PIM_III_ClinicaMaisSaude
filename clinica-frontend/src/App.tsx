@@ -24,7 +24,7 @@ type Notificacao = {
 };
 
 // Aba ativa — inclui "painel" (reservado para uso futuro) sem quebrar nada
-type AbaAtiva = "painel" | "pacientes" | "agendamentos" | "violacoes";
+type AbaAtiva = "painel" | "pacientes" | "agendamentos" | "minhas-consultas" | "violacoes";
 
 export default function App() {
   const [autenticado, setAutenticado] = useState(false);
@@ -168,14 +168,6 @@ export default function App() {
         </section>
       )}
 
-      {/* ── Painel (placeholder para futuro dashboard) ──────────────────── */}
-      {abaAtiva === "painel" && (
-        <section aria-label="Painel">
-          <h2 style={{ fontSize: 24, fontWeight: 700, color: '#1F2937', marginBottom: 8 }}>Painel</h2>
-          <p style={{ color: '#9CA3AF' }}>Em breve: visão geral do sistema.</p>
-        </section>
-      )}
-
       {/* ── Usuários / Pacientes ─────────────────────────────────────────── */}
       {abaAtiva === "pacientes" && (
         <section aria-label="Gerenciamento de pacientes">
@@ -197,42 +189,20 @@ export default function App() {
       {abaAtiva === "agendamentos" && (
         <section aria-label="Gerenciamento de agendamentos">
           {tipoUsuario === "Paciente" ? (
-            <>
-              {/* Botão de alternância para paciente */}
-              <div style={{ marginBottom: 24 }}>
-                <button
-                  onClick={() => setViewPaciente(viewPaciente === "novo" ? "lista" : "novo")}
-                  style={{
-                    padding: '8px 18px',
-                    background: '#EDE9FE',
-                    color: '#7C3AED',
-                    border: '1px solid #DDD6FE',
-                    borderRadius: 10,
-                    fontSize: 12,
-                    fontWeight: 800,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.08em',
-                    cursor: 'pointer',
-                    fontFamily: 'inherit',
-                    transition: 'background 0.15s',
-                  }}
-                  onMouseEnter={e => (e.currentTarget.style.background = '#DDD6FE')}
-                  onMouseLeave={e => (e.currentTarget.style.background = '#EDE9FE')}
-                >
-                  {viewPaciente === "novo" ? "Ver Minhas Consultas" : "Marcar Nova Consulta"}
-                </button>
-              </div>
-
-              {viewPaciente === "novo"
-                ? <AgendamentoPaciente onSucesso={() => setViewPaciente("lista")} />
-                : <MeusAgendamentos onNovoAgendamento={() => setViewPaciente("novo")} agendamentoDestaque={agendamentoDestaque} />
-              }
-            </>
+             <AgendamentoPaciente onSucesso={() => setAbaAtiva("minhas-consultas")} />
           ) : (
             <AgendamentoList agendamentoDestaque={agendamentoDestaque} />
           )}
         </section>
       )}
+
+      {/* ── Minhas Consultas (Histórico do Paciente) ───────────────────────── */}
+      {abaAtiva === "minhas-consultas" && tipoUsuario === "Paciente" && (
+        <section aria-label="Minhas consultas">
+           <MeusAgendamentos onNovoAgendamento={() => setAbaAtiva("agendamentos")} agendamentoDestaque={agendamentoDestaque} />
+        </section>
+      )}
+
 
       {/* ── Modal de Perfil ───────────────────────────────────────────────── */}
       {modalPerfilAberto && (
@@ -246,7 +216,7 @@ export default function App() {
           role="dialog" aria-modal="true" aria-label="Perfil do usuário"
         >
           <div style={{
-            background: '#fff', width: '100%', maxWidth: 560,
+            background: '#fff', width: '100%', maxWidth: 900,
             maxHeight: '90vh', borderRadius: 32,
             boxShadow: '0 24px 64px rgba(0,0,0,0.2)',
             position: 'relative', display: 'flex', flexDirection: 'column', padding: 8,

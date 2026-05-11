@@ -48,7 +48,8 @@ function getNavItems(tipoUsuario: string, isAdmin: boolean): NavItem[] {
   }
   // Paciente
   return [
-    { id: 'agendamentos', label: 'Meus Agendamentos', icon: <CalendarDays size={18} /> },
+    { id: 'agendamentos',      label: 'Agendar Consulta',  icon: <CalendarDays size={18} /> },
+    { id: 'minhas-consultas', label: 'Minhas Consultas', icon: <LayoutDashboard size={18} /> },
   ];
 }
 
