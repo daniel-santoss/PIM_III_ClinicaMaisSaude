@@ -1,13 +1,16 @@
-﻿using ClinicaMaisSaude.Application.DTOs;
+using ClinicaMaisSaude.Application.DTOs;
 using ClinicaMaisSaude.Application.DTOs.Paciente;
 using ClinicaMaisSaude.Application.Interfaces;
 using ClinicaMaisSaude.Application.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace ClinicaMaisSaude.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class PacientesController : ControllerBase
     {
         private readonly IPacienteService _pacienteService;
@@ -28,6 +31,59 @@ namespace ClinicaMaisSaude.API.Controllers
             {
                 return BadRequest(ex.Message);
             }
+        }
+
+        [HttpGet("{id}")]
+        public async Task<IActionResult> ObterPorId(Guid id)
+        {
+            var paciente = await _pacienteService.ObterPorIdAsync(id);
+            if (paciente == null)
+                return NotFound("Paciente não encontrado.");
+
+            return Ok(paciente);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> ObterTodos([FromQuery] string? nome, [FromQuery] string? cpf, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+        {
+            var isAdmin = User.FindFirstValue("IsAdmin") == "true";
+            var result = await _pacienteService.ObterTodosPaginadoAsync(nome, cpf, isAdmin, page, pageSize);
+
+            return Ok(result);
+        }
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> AtualizarPaciente(Guid id, [FromBody] PacienteRequest request)
+        {
+            try
+            {
+                var resultado = await _pacienteService.AtualizarAsync(id, request);
+                return Ok(resultado);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DesativarPaciente(Guid id)
+        {
+            try
+            {
+                await _pacienteService.DesativarAsync(id);
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+        [HttpGet("inativos")]
+        public async Task<IActionResult> ObterInativos([FromQuery] int dias = 60)
+        {
+            var pacientes = await _pacienteService.ObterInativosAsync(dias);
+            return Ok(pacientes);
         }
     }
 }

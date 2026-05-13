@@ -1,0 +1,769 @@
+import { API_URL } from "../constants/api";
+import { useEffect, useState } from "react";
+import { mascaraCpf, mascaraTelefone } from "../utils/validators";
+import { AlertCircle, Users, CheckCircle, Clock, Search, Filter, RefreshCw, Inbox, Pencil, Key, Trash, AlertTriangle, Check, Copy, X } from 'lucide-react';
+import type { PacienteResponse } from "../types/PacienteResponse";
+import { useScrollBlock } from "../hooks/useScrollBlock";
+
+interface PacienteListProps {
+  recarregarContador?: number;
+  pacienteInicialEdicao?: PacienteResponse | null;
+  onFinalizouEdicaoExterno?: () => void;
+}
+
+interface PacienteEdicao {
+  nome: string;
+  cpf: string;
+  telefone: string;
+  email: string;
+}
+
+
+export default function PacienteList({ 
+  recarregarContador = 0, 
+  pacienteInicialEdicao = null,
+  onFinalizouEdicaoExterno
+}: PacienteListProps) {
+  const [pacientes, setPacientes] = useState<PacienteResponse[]>([]);
+  const [carregando, setCarregando] = useState(true);
+  const [erro, setErro] = useState<string | null>(null);
+  const [refreshInterno, setRefreshInterno] = useState(0);
+
+  const [buscaNome, setBuscaNome] = useState("");
+  const [buscaCpf, setBuscaCpf] = useState("");
+  const [perfisSelecionados, setPerfisSelecionados] = useState<string[]>(["Paciente", "Medico", "Enfermeira"]);
+  const [menuFiltroAberto, setMenuFiltroAberto] = useState(false);
+  const [copiado, setCopiado] = useState(false);
+  const [modalMensagem, setModalMensagem] = useState<string | null>(null);
+
+  const limparFiltros = () => {
+    setBuscaNome("");
+    setBuscaCpf("");
+    setPerfisSelecionados(["Paciente", "Medico", "Enfermeira"]);
+  };
+
+  const [editandoId, setEditandoId] = useState<string | null>(null);
+  const [form, setForm] = useState<PacienteEdicao>({ nome: "", cpf: "", telefone: "", email: "" });
+  const [salvando, setSalvando] = useState(false);
+
+  const [excluindoPaciente, setExcluindoPaciente] = useState<{ id: string, nome: string } | null>(null);
+  const [excluindoLoader, setExcluindoLoader] = useState(false);
+
+  const [pacienteReset, setPacienteReset] = useState<{ id: string, usuarioId: string, nome: string } | null>(null);
+  const [novaSenhaReset, setNovaSenhaReset] = useState("");
+  const [senhaExibida, setSenhaExibida] = useState<string | null>(null);
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetMensagem, setResetMensagem] = useState<{ texto: string; erro: boolean } | null>(null);
+
+  const isAdmin = localStorage.getItem("isAdmin") === "true";
+  const isEnfermeira = localStorage.getItem("tipoUsuario") === "Enfermeira";
+
+  useScrollBlock(!!(editandoId || excluindoPaciente || pacienteReset || modalMensagem));
+
+  const [page, setPage] = useState(1);
+  const pageSize = 20;
+  const [totalCount, setTotalCount] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setCarregando(true);
+      setErro(null);
+
+      const params = new URLSearchParams();
+      params.set("page", page.toString());
+      params.set("pageSize", pageSize.toString());
+
+      const termoBusca = buscaNome.trim();
+      if (termoBusca) {
+        if (/^\d+$/.test(termoBusca)) {
+          params.set("cpf", termoBusca);
+        } else {
+          params.set("nome", termoBusca);
+        }
+      }
+
+      const queryString = params.toString();
+      const url = `${API_URL}/api/Pacientes${queryString ? `?${queryString}` : ""}`;
+
+      const token = localStorage.getItem("authToken");
+      
+      fetch(url, { headers: { 'Authorization': `Bearer ${token}` } })
+        .then(r => {
+           if (!r.ok) throw new Error(`Erro ao buscar pacientes: ${r.status}`);
+           return r.json();
+        })
+        .then(data => {
+            if (data.items) {
+                setPacientes(data.items);
+                setTotalCount(data.totalCount);
+                setTotalPages(data.totalPages || Math.ceil(data.totalCount / pageSize));
+            } else {
+                setPacientes(data);
+                setTotalCount(data.length);
+                setTotalPages(1);
+            }
+        })
+        .catch((err: Error) => setErro(err.message))
+        .finally(() => setCarregando(false));
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [recarregarContador, refreshInterno, buscaNome, buscaCpf, page]);
+
+  // Reset page to 1 when search filters change
+  useEffect(() => {
+    setPage(1);
+  }, [buscaNome, buscaCpf, perfisSelecionados]);
+
+  // Efeito para abrir edição externa (Vindo da Agenda por exemplo)
+  useEffect(() => {
+    if (pacienteInicialEdicao) {
+      abrirEdicao(pacienteInicialEdicao);
+    }
+  }, [pacienteInicialEdicao]);
+
+  const abrirEdicao = (p: PacienteResponse) => {
+    setEditandoId(p.id);
+    setForm({ nome: p.nome, cpf: p.cpf, telefone: p.telefone, email: p.email });
+  };
+
+  const fecharModal = () => {
+    setEditandoId(null);
+    if (onFinalizouEdicaoExterno) onFinalizouEdicaoExterno();
+  };
+
+  const salvarEdicao = async () => {
+    if (!editandoId) return;
+    setSalvando(true);
+    try {
+      const token = localStorage.getItem("authToken");
+      const response = await fetch(`${API_URL}/api/Pacientes/${editandoId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+        body: JSON.stringify(form),
+      });
+      if (!response.ok) {
+        const erro = await response.text();
+        setModalMensagem(erro);
+        return;
+      }
+      fecharModal();
+      setRefreshInterno((prev) => prev + 1);
+    } catch (err) {
+      setModalMensagem("Erro ao salvar edição.");
+    } finally {
+      setSalvando(false);
+    }
+  };
+
+  const abrirModalExclusao = (id: string, nome: string) => {
+    setExcluindoPaciente({ id, nome });
+  };
+
+  const fecharModalExclusao = () => {
+    setExcluindoPaciente(null);
+  };
+
+  const confirmarExclusao = async () => {
+    if (!excluindoPaciente) return;
+    setExcluindoLoader(true);
+    try {
+      const token = localStorage.getItem("authToken");
+      const response = await fetch(`${API_URL}/api/Pacientes/${excluindoPaciente.id}`, {
+        method: "DELETE",
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (!response.ok) {
+        const erro = await response.text();
+        setModalMensagem(erro);
+        return;
+      }
+      setExcluindoPaciente(null);
+      setRefreshInterno((prev) => prev + 1);
+    } catch (err) {
+      setModalMensagem("Erro ao excluir paciente.");
+    } finally {
+      setExcluindoLoader(false);
+    }
+  };
+
+  const handleResetSenha = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!pacienteReset || !novaSenhaReset) return;
+    setResetLoading(true);
+    setResetMensagem(null);
+    try {
+      const token = localStorage.getItem("authToken");
+      const response = await fetch(`${API_URL}/api/LoginPortal/${pacienteReset.usuarioId}/reset-senha`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify({ novaSenha: novaSenhaReset })
+      });
+
+      if (!response.ok) {
+        const err = await response.text();
+        setResetMensagem({ texto: err || "Erro ao redefinir.", erro: true });
+      } else {
+        setSenhaExibida(novaSenhaReset);
+        setNovaSenhaReset("");
+        setResetMensagem(null);
+      }
+    } catch (e) {
+      setResetMensagem({ texto: "Falha de conexão.", erro: true });
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
+  const fecharModalReset = () => {
+    setPacienteReset(null);
+    setNovaSenhaReset("");
+    setSenhaExibida(null);
+    setResetMensagem(null);
+    setCopiado(false);
+  };
+
+  const copiarSenha = () => {
+    if (!senhaExibida) return;
+    navigator.clipboard.writeText(senhaExibida);
+    setCopiado(true);
+    setTimeout(() => setCopiado(false), 2000);
+  };
+
+  if (erro) {
+    return <p className="text-center text-red-500 py-8">{erro}</p>;
+  }
+
+  const totalPacientes = pacientes.filter(p => p.tipo === "Paciente").length;
+  const totalMedicos = pacientes.filter(p => p.tipo === "Medico").length;
+  const totalEnfermeiras = pacientes.filter(p => p.tipo === "Enfermeira").length;
+
+  const trintaDiasAtras = new Date();
+  trintaDiasAtras.setDate(trintaDiasAtras.getDate() - 30);
+  
+  const sessentaDiasAtras = new Date();
+  sessentaDiasAtras.setDate(sessentaDiasAtras.getDate() - 60);
+
+  const getRealDate = (dateStr?: string) => {
+    if (!dateStr) return null;
+    return new Date(dateStr.endsWith('Z') ? dateStr : dateStr + 'Z');
+  };
+
+  const usuariosAtivosMes = pacientes.filter(p => {
+    const data = getRealDate(p.ultimoAcesso);
+    return data && data >= trintaDiasAtras;
+  }).length;
+
+  const pacientesInativos = pacientes.filter(p => {
+    if (p.tipo !== "Paciente") return false;
+    const data = getRealDate(p.ultimoAcesso);
+    return !data || data < sessentaDiasAtras;
+  });
+
+  if (erro) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="bg-red-50 text-red-700 p-6 rounded-xl border border-red-200 shadow-sm max-w-md text-center">
+          <AlertCircle className="w-12 h-12 mx-auto mb-4" />
+          <h3 className="text-lg font-bold mb-2">Ops! Algo deu errado</h3>
+          <p className="text-sm opacity-90">{erro}</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-8 animate-in fade-in duration-500">
+      {/* --- CARDS DE RESUMO --- */}
+      <div className={`grid grid-cols-3 md:grid-cols-${isAdmin ? '4' : '3'} gap-6`}>
+        {/* Card: Usuários por Tipo */}
+        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all group">
+          <div className="flex justify-between items-start mb-4">
+            <div className="p-3 bg-purple-50 rounded-xl text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition-colors">
+              <Users className="w-6 h-6" />
+            </div>
+            <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Total de Usuários</span>
+          </div>
+          <h4 className="text-2xl font-black text-gray-800 mb-2">{pacientes.length}</h4>
+          <div className="flex gap-2">
+            <span className="px-2 py-1 bg-green-50 text-green-700 rounded-md text-[10px] font-bold">{totalPacientes} Pacientes</span>
+            <span className="px-2 py-1 bg-purple-50 text-purple-700 rounded-md text-[10px] font-bold">{totalMedicos} Médicos</span>
+            <span className="px-2 py-1 bg-blue-50 text-blue-700 rounded-md text-[10px] font-bold">{totalEnfermeiras} Enfermeiras</span>
+          </div>
+        </div>
+
+        {/* Card: Usuários Ativos este mês */}
+        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all group">
+          <div className="flex justify-between items-start mb-4">
+            <div className="p-3 bg-green-50 rounded-xl text-green-600 group-hover:bg-green-600 group-hover:text-white transition-colors">
+              <CheckCircle className="w-6 h-6" />
+            </div>
+            <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Ativos no Mês</span>
+          </div>
+          <h4 className="text-2xl font-black text-gray-800 mb-2">{usuariosAtivosMes}</h4>
+          <p className="text-sm text-gray-500 font-medium flex items-center gap-1">
+            Logaram nos últimos 30 dias
+          </p>
+        </div>
+
+        {/* Card: Pacientes Inativos */}
+        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all group relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-2">
+          </div>
+          <div className="flex justify-between items-start mb-4">
+            <div className="p-3 bg-orange-50 rounded-xl text-orange-600 group-hover:bg-orange-600 group-hover:text-white transition-colors">
+              <Clock className="w-6 h-6" />
+            </div>
+          </div>
+          <h4 className="text-2xl font-black text-gray-800 mb-2">{pacientesInativos.length} Inativos</h4>
+          <p className="text-xs text-gray-400 mb-4 font-medium">+60 dias sem acessar o portal</p>
+        </div>
+
+      </div>
+
+      {/* --- TABELA E FILTROS --- */}
+      <div className="bg-white rounded-3xl border border-gray-100 shadow-xl overflow-hidden">
+        {/* Header da Tabela / Filtros */}
+        <div className="p-6 border-b border-gray-50 bg-gray-50/30 flex flex-col lg:flex-row gap-4 items-center justify-between">
+          <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+            {/* Busca Unificada (Nome ou CPF) */}
+            <div className="relative group flex-1 min-w-[320px]">
+              <Search className="absolute left-4 top-3.5 w-5 h-5 text-purple-400" />
+              <input
+                type="text"
+                placeholder="Pesquisar por nome ou CPF..."
+                className="w-full pl-12 pr-4 py-3 bg-purple-50/30 border border-purple-100 rounded-2xl focus:ring-2 focus:ring-[#7C3AED] focus:bg-white transition-all outline-none font-medium text-sm text-gray-700"
+                value={buscaNome}
+                onChange={(e) => setBuscaNome(e.target.value)}
+              />
+            </div>
+
+            {/* Filtro Tipo */}
+            {isAdmin && (
+              <div className="relative">
+                <button
+                  onClick={() => setMenuFiltroAberto(!menuFiltroAberto)}
+                  className={`flex items-center gap-2 px-4 py-2.5 border rounded-xl min-w-[160px] transition-all text-sm font-bold shadow-sm ${
+                    menuFiltroAberto ? 'border-purple-600 bg-purple-50 text-purple-700 ring-4 ring-purple-100' : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  <Filter className="w-4 h-4" />
+                  Tipo: ({perfisSelecionados.length})
+                </button>
+
+                {menuFiltroAberto && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setMenuFiltroAberto(false)}></div>
+                    <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-2xl border border-gray-100 py-3 z-20 animate-in fade-in zoom-in duration-200 origin-top-right">
+                      <div className="px-4 py-1 mb-2 border-b border-gray-50">
+                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Filtrar Categoria</span>
+                      </div>
+                      {["Paciente", "Medico", "Enfermeira"].map((perfil) => (
+                        <label key={perfil} className="flex items-center gap-3 px-4 py-2.5 hover:bg-purple-50 cursor-pointer transition-colors group">
+                          <input
+                            type="checkbox"
+                            className="h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500 transition-all cursor-pointer"
+                            checked={perfisSelecionados.includes(perfil)}
+                            onChange={(e) => {
+                              if (e.target.checked) setPerfisSelecionados([...perfisSelecionados, perfil]);
+                              else setPerfisSelecionados(perfisSelecionados.filter(p => p !== perfil));
+                            }}
+                          />
+                          <span className="text-sm font-bold text-gray-600 group-hover:text-purple-700">
+                            {perfil === "Medico" ? "Médico" : perfil}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            <button
+              onClick={limparFiltros}
+              className="p-3 bg-gray-50 text-gray-400 border border-gray-200 rounded-xl hover:bg-purple-50 hover:text-purple-600 transition-all flex items-center gap-2 group shadow-sm"
+              title="Limpar Filtros"
+            >
+              <RefreshCw className="w-5 h-5 group-hover:rotate-[-45deg] transition-transform duration-300" />
+              <span className="text-[10px] font-black uppercase tracking-widest hidden xl:inline">Limpar Filtros</span>
+            </button>
+          </div>
+
+          <div className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse"></span>
+            Total: {pacientes.length} registros
+          </div>
+        </div>
+
+        {/* Listagem */}
+        <div className="overflow-x-auto">
+          {carregando ? (
+            <div className="flex flex-col items-center justify-center py-20 gap-4">
+              <div className="w-10 h-10 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin"></div>
+              <p className="text-sm font-bold text-gray-400 uppercase tracking-widest animate-pulse">Sincronizando Dados...</p>
+            </div>
+          ) : (
+            <table className="min-w-full divide-y divide-gray-100">
+              <thead>
+                <tr className="bg-gray-50/50">
+                  <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-[2px]">Usuário</th>
+                  <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-[2px]">CPF</th>
+                  <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-[2px]">Categoria</th>
+                  <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-[2px]">Último Acesso</th>
+                  <th className="px-6 py-4 text-right text-[10px] font-black text-gray-400 uppercase tracking-[2px]">Ações</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {pacientes.filter(p => perfisSelecionados.includes(p.tipo)).length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-20 text-center">
+                      <div className="flex flex-col items-center gap-2 opacity-30">
+                        <Inbox className="w-12 h-12" />
+                        <p className="text-sm font-bold">Nenhum resultado para os filtros atuais.</p>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  pacientes
+                    .filter(p => perfisSelecionados.includes(p.tipo))
+                    .map((p) => (
+                    <tr key={p.id} className="group hover:bg-purple-50/30 transition-colors">
+                      {/* Avatar + Nome */}
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-purple-100 border-2 border-white shadow-sm flex items-center justify-center text-purple-700 font-black text-sm uppercase ring-2 ring-purple-50 group-hover:ring-purple-100 transition-all">
+                            {p.nome.charAt(0)}
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="text-sm font-bold text-gray-800 group-hover:text-purple-900 transition-colors">{p.nome}</span>
+                            <span className="text-[11px] text-gray-400 font-medium truncate max-w-[150px]">{p.email}</span>
+                          </div>
+                        </div>
+                      </td>
+                      {/* CPF */}
+                      <td className="px-6 py-4">
+                        <span className="text-sm font-mono text-gray-500 font-medium">{mascaraCpf(p.cpf)}</span>
+                      </td>
+                      {/* Perfil Badge */}
+                      <td className="px-6 py-4">
+                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider border ${
+                          p.tipo === 'Paciente' ? 'bg-green-50 text-green-600 border-green-100' : 
+                          p.tipo === 'Medico' ? 'bg-purple-50 text-purple-600 border-purple-100' : 
+                          'bg-blue-50 text-blue-600 border-blue-100'
+                        }`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${
+                             p.tipo === 'Paciente' ? 'bg-green-500' : 
+                             p.tipo === 'Medico' ? 'bg-purple-500' : 
+                             'bg-blue-500'
+                          }`}></span>
+                          {p.tipo === 'Medico' ? 'Médico' : p.tipo}
+                        </span>
+                      </td>
+
+                      {/* Último Acesso (Real) */}
+                      <td className="px-6 py-4">
+                         <div className="flex flex-col">
+                            <span className="text-[11px] font-bold text-gray-700">
+                               {p.ultimoAcesso ? getRealDate(p.ultimoAcesso)!.toLocaleString('pt-BR', { 
+                                  day: '2-digit', month: '2-digit', year: '2-digit', 
+                                  hour: '2-digit', minute: '2-digit',
+                                  timeZone: 'America/Sao_Paulo'
+                               }) : 'Sem registro'}
+                            </span>
+                         </div>
+                      </td>
+
+                      {/* Ações */}
+                      <td className="px-6 py-4">
+                        <div className="flex items-center justify-end gap-2 transition-opacity">
+                          <button
+                            title="Editar Dados"
+                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-xl transition-colors"
+                            onClick={() => abrirEdicao(p)}
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                          {(isAdmin || isEnfermeira) && p.usuarioId && (
+                            <button
+                              title="Redefinir Senha"
+                              className="p-2 text-orange-600 hover:bg-orange-50 rounded-xl transition-colors"
+                              onClick={() => setPacienteReset({ id: p.id, usuarioId: p.usuarioId!, nome: p.nome })}
+                            >
+                              <Key className="w-4 h-4" />
+                            </button>
+                          )}
+                          <button
+                            title="Excluir Usuário"
+                            className="p-2 text-red-600 hover:bg-red-50 rounded-xl transition-colors"
+                            onClick={() => abrirModalExclusao(p.id, p.nome)}
+                          >
+                            <Trash className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          )}
+        </div>
+
+        {/* Footer / Contagem e Paginação */}
+        <div className="px-6 py-4 bg-gray-50/50 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+            Exibindo {pacientes.length} de {totalCount} {totalCount === 1 ? "resultado" : "resultados"}
+          </p>
+          
+          {totalPages > 1 && (
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="px-3 py-1 text-sm font-bold border border-gray-200 rounded-lg text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white hover:text-purple-600 transition-colors bg-gray-50"
+              >
+                Anterior
+              </button>
+              
+              <div className="flex items-center gap-1">
+                {Array.from({ length: totalPages }).map((_, i) => {
+                  const pNum = i + 1;
+                  // Show max 5 page numbers: first, last, current, current-1, current+1
+                  if (pNum === 1 || pNum === totalPages || (pNum >= page - 1 && pNum <= page + 1)) {
+                    return (
+                      <button
+                        key={pNum}
+                        onClick={() => setPage(pNum)}
+                        className={`w-8 h-8 flex items-center justify-center text-xs font-bold rounded-lg transition-colors border ${
+                          page === pNum 
+                            ? 'bg-purple-600 text-white border-purple-600 shadow-md shadow-purple-200' 
+                            : 'bg-white text-gray-600 border-gray-200 hover:bg-purple-50 hover:text-purple-600 hover:border-purple-200'
+                        }`}
+                      >
+                        {pNum}
+                      </button>
+                    );
+                  }
+                  // Ellipsis
+                  if (pNum === page - 2 || pNum === page + 2) {
+                    return <span key={pNum} className="text-gray-400 text-xs px-1">...</span>;
+                  }
+                  return null;
+                })}
+              </div>
+
+              <button 
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                className="px-3 py-1 text-sm font-bold border border-gray-200 rounded-lg text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white hover:text-purple-600 transition-colors bg-gray-50"
+              >
+                Próximo
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Modal de Edição */}
+      {editandoId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-300">
+          <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl overflow-hidden border border-purple-50 animate-in zoom-in duration-300">
+            <div className="p-8 border-b border-purple-50 bg-purple-50/30">
+              <h3 className="text-2xl font-black text-gray-800">Editar Paciente</h3>
+              <p className="text-[10px] font-black text-purple-400 uppercase tracking-widest mt-1">Atualize as informações cadastrais</p>
+            </div>
+
+            <div className="p-8 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Nome Completo</label>
+                  <input
+                    type="text"
+                    className="w-full p-4 border border-gray-200 rounded-2xl bg-gray-50 focus:ring-2 focus:ring-[#7C3AED] focus:bg-white transition-all outline-none font-bold text-sm"
+                    placeholder="Nome"
+                    value={form.nome}
+                    onChange={(e) => setForm({ ...form, nome: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">CPF (Inalterável)</label>
+                  <input
+                    type="text"
+                    className="w-full p-4 border border-gray-200 rounded-2xl bg-gray-100 text-gray-400 cursor-not-allowed outline-none font-bold text-sm"
+                    value={form.cpf}
+                    disabled
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Telefone de Contato</label>
+                  <input
+                    type="text"
+                    className="w-full p-4 border border-gray-200 rounded-2xl bg-gray-50 focus:ring-2 focus:ring-[#7C3AED] focus:bg-white transition-all outline-none font-bold text-sm"
+                    maxLength={15}
+                    placeholder="Telefone"
+                    value={form.telefone}
+                    onChange={(e) => setForm({ ...form, telefone: mascaraTelefone(e.target.value) })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">E-mail</label>
+                  <input
+                    type="email"
+                    className="w-full p-4 border border-gray-200 rounded-2xl bg-gray-50 focus:ring-2 focus:ring-[#7C3AED] focus:bg-white transition-all outline-none font-bold text-sm"
+                    placeholder="Email"
+                    value={form.email}
+                    onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="p-8 bg-gray-50/50 border-t border-gray-100 flex gap-4">
+              <button
+                className="flex-1 px-6 py-4 bg-red-600 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-red-700 shadow-lg shadow-red-100 transition-all active:scale-95 disabled:opacity-50"
+                onClick={fecharModal}
+                disabled={salvando}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={salvarEdicao}
+                disabled={salvando}
+                className="flex-1 px-6 py-4 bg-green-600 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-green-700 shadow-lg shadow-green-100 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {salvando ? (
+                   <><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> Salvando...</>
+                ) : "Salvar Alterações"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Exclusão */}
+      {excluindoPaciente && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-sm p-6">
+            <div className="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 rounded-full mb-4">
+              <AlertTriangle className="w-6 h-6 text-red-600" />
+            </div>
+            
+            <h3 className="text-lg font-bold text-gray-900 text-center mb-2">Excluir Paciente</h3>
+            <p className="text-sm text-gray-600 text-center mb-6">
+              Tem certeza que deseja excluir <strong>{excluindoPaciente.nome}</strong>? Esta ação não poderá ser desfeita.
+            </p>
+
+            <div className="flex justify-center gap-3">
+              <button
+                className="px-5 py-2.5 text-sm font-medium border border-gray-300 rounded text-gray-700 hover:bg-gray-50 transition-colors w-full"
+                onClick={fecharModalExclusao}
+                disabled={excluindoLoader}
+              >
+                Cancelar
+              </button>
+              <button
+                className="px-5 py-2.5 text-sm font-medium bg-red-600 text-white rounded hover:bg-red-700 transition-colors shadow-sm disabled:opacity-50 w-full"
+                onClick={confirmarExclusao}
+                disabled={excluindoLoader}
+              >
+                {excluindoLoader ? "Excluindo..." : "Sim, excluir"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Modal de Reset de Senha */}
+      {pacienteReset && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+            <h3 className="text-xl font-bold text-gray-800 mb-2">Redefinir Senha</h3>
+            <p className="text-sm text-gray-600 mb-4">Paciente: <span className="font-semibold">{pacienteReset.nome}</span></p>
+            
+            {resetMensagem && (
+              <div className={`p-3 rounded mb-4 text-sm ${resetMensagem.erro ? "bg-red-50 text-red-700" : "bg-green-50 text-green-700"}`}>
+                {resetMensagem.texto}
+              </div>
+            )}
+
+            {senhaExibida ? (
+              <div className="bg-amber-50 border border-amber-200 p-4 rounded-lg mb-4 text-center">
+                <p className="text-sm font-semibold text-amber-800 mb-2">Anote esta senha — ela não será exibida novamente:</p>
+                <div className="relative group">
+                  <p className="text-2xl font-mono font-bold text-gray-900 bg-white border border-dashed border-amber-300 py-2 px-8 rounded">
+                    {senhaExibida}
+                  </p>
+                  <button
+                    onClick={copiarSenha}
+                    title="Copiar senha"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-amber-600 hover:bg-amber-100 rounded-md transition-all active:scale-95"
+                  >
+                    {copiado ? (
+                      <Check className="w-5 h-5 text-green-600" />
+                    ) : (
+                      <Copy className="w-5 h-5" />
+                    )}
+                  </button>
+                  {copiado && (
+                    <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] py-1 px-2 rounded shadow-lg animate-bounce">
+                      Copiado!
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-amber-600 mt-2">Passe esta senha de forma segura para o paciente.</p>
+              </div>
+            ) : (
+              <form onSubmit={handleResetSenha}>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Nova Senha</label>
+                  <input
+                    type="text"
+                    required
+                    value={novaSenhaReset}
+                    onChange={(e) => setNovaSenhaReset(e.target.value)}
+                    className="w-full border border-gray-300 rounded p-2 focus:ring-2 focus:ring-amber-500 outline-none"
+                    
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={resetLoading}
+                  className={`w-full text-white font-bold py-2.5 rounded transition-colors mb-2 ${resetLoading ? "bg-amber-400 cursor-not-allowed" : "bg-amber-600 hover:bg-amber-700"}`}
+                >
+                  {resetLoading ? "Redefinindo..." : "Confirmar Redefinição"}
+                </button>
+              </form>
+            )}
+
+            <button
+              onClick={fecharModalReset}
+              className="w-full mt-2 text-gray-600 hover:bg-gray-100 font-medium py-2 rounded transition-colors"
+            >
+              {senhaExibida ? "Fechar" : "Cancelar"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Mensagem Estilizado (substitui alert nativo) */}
+      {modalMensagem && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center bg-gray-900/60 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-sm p-8 text-center border border-purple-50 animate-in zoom-in duration-200">
+            <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <AlertTriangle className="w-8 h-8" />
+            </div>
+            <h3 className="text-xl font-black text-gray-800 mb-2 uppercase tracking-tight">Aviso</h3>
+            <p className="text-gray-500 text-sm mb-8 font-medium leading-relaxed">{modalMensagem}</p>
+            <button className="w-full bg-[#7C3AED] text-white font-black py-4 rounded-2xl uppercase tracking-widest text-[10px] shadow-lg shadow-purple-100" onClick={() => setModalMensagem(null)}>Entendido</button>
+          </div>
+        </div>
+      )}
+
+
+  </div>
+  );
+}

@@ -1,4 +1,4 @@
-﻿using ClinicaMaisSaude.Domain.Entities;
+using ClinicaMaisSaude.Domain.Entities;
 using ClinicaMaisSaude.Domain.Interfaces;
 using ClinicaMaisSaude.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -19,6 +19,25 @@ namespace ClinicaMaisSaude.Infrastructure.Repositories
             _context = context;
         }
 
+        public async Task<IEnumerable<Agendamento>> ObterTodosPorPacienteIdAsync(Guid pacienteId)
+        {
+            return await _context.Agendamentos
+                .AsNoTracking()
+                .Where(a => a.PacienteId == pacienteId)
+                .OrderByDescending(a => a.DataHoraConsulta)
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<AgendamentoHistorico>> ObterHistoricoPorPacienteIdAsync(Guid pacienteId)
+        {
+            return await _context.AgendamentoHistoricos
+                .AsNoTracking()
+                .Include(h => h.Agendamento)
+                .Where(h => h.Agendamento.PacienteId == pacienteId)
+                .OrderBy(h => h.Dt_Criado)
+                .ToListAsync();
+        }
+
         public async Task AdicionarAsync(Agendamento agendamento)
         {
             await _context.Agendamentos.AddAsync(agendamento);
@@ -26,7 +45,9 @@ namespace ClinicaMaisSaude.Infrastructure.Repositories
         }
         public async Task<Agendamento?> ObterPorIdAsync(Guid id)
         {
-            return await _context.Agendamentos.FindAsync(id);
+            return await _context.Agendamentos
+                .Include(a => a.Paciente)
+                .FirstOrDefaultAsync(a => a.Id == id);
         }
 
         public async Task AtualizarAsync(Agendamento agendamento)
@@ -38,9 +59,67 @@ namespace ClinicaMaisSaude.Infrastructure.Repositories
         public async Task<IEnumerable<Agendamento>> ObterAgendamentosDoDiaAsync(DateTime date)
         {
             return await _context.Agendamentos
+                .AsNoTracking()
+                .Include(a => a.Paciente)
                 .Where(x => x.DataHoraConsulta.Date == date.Date)
                 .ToListAsync();
         }
 
+        public async Task<IEnumerable<Agendamento>> ObterTodosAsync()
+        {
+            return await _context.Agendamentos
+                .AsNoTracking()
+                .Include(a => a.Paciente)
+                .ToListAsync();
+        }
+
+        public async Task<(IEnumerable<Agendamento> Items, int TotalCount)> ObterTodosPaginadoAsync(int page, int pageSize, Guid? profissionalId = null, Guid? pacienteId = null)
+        {
+            var query = _context.Agendamentos
+                                .AsNoTracking()
+                                .Include(a => a.Paciente)
+                                .AsQueryable();
+
+            if (profissionalId.HasValue)
+                query = query.Where(a => a.ProfissionalId == profissionalId.Value);
+
+            if (pacienteId.HasValue)
+                query = query.Where(a => a.PacienteId == pacienteId.Value);
+
+            query = query.OrderByDescending(a => a.DataHoraConsulta);
+
+            var totalCount = await query.CountAsync();
+            var items = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
+
+            return (items, totalCount);
+        }
+
+        public async Task DeletarAsync(Agendamento agendamento)
+        {
+            _context.Agendamentos.Remove(agendamento);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task<bool> ExisteAgendamentoNoHorarioAsync(Guid profissionalId, DateTime dataHora)
+        {
+            return await _context.Agendamentos
+                .AsNoTracking()
+                .AnyAsync(a => a.ProfissionalId == profissionalId && a.DataHoraConsulta == dataHora);
+        }
+
+        public async Task AdicionarHistoricoAsync(AgendamentoHistorico historico)
+        {
+            await _context.AgendamentoHistoricos.AddAsync(historico);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task<IEnumerable<AgendamentoHistorico>> ObterHistoricoPorAgendamentoAsync(Guid agendamentoId)
+        {
+            return await _context.AgendamentoHistoricos
+                .AsNoTracking()
+                .Where(h => h.AgendamentoId == agendamentoId)
+                .OrderBy(h => h.Dt_Criado)
+                .ToListAsync();
+        }
     }
 }

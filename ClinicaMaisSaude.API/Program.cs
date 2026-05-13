@@ -1,18 +1,40 @@
 using ClinicaMaisSaude.Application.Interfaces;
 using ClinicaMaisSaude.Application.Services;
+using ClinicaMaisSaude.Infrastructure.Services;
 using ClinicaMaisSaude.Application.Validators;
 using ClinicaMaisSaude.Domain.Interfaces;
 using ClinicaMaisSaude.Infrastructure.Data;
+using ClinicaMaisSaude.API.Services;
+using ClinicaMaisSaude.API.Converters;
 using ClinicaMaisSaude.Infrastructure.Repositories;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Ensina a API a ler a pasta Controllers
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        // Garante que todas as datas sejam serializadas com sufixo 'Z' (UTC)
+        // para que o JavaScript as interprete corretamente como UTC e converta ao fuso local
+        options.JsonSerializerOptions.Converters.Add(new UtcDateTimeJsonConverter());
+    });
+builder.Services.AddHttpClient();
 builder.Services.AddFluentValidationAutoValidation();
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("PermitirFrontEnd", policy =>
+    {
+        policy.WithOrigins("http://localhost:5173")
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
 builder.Services.AddValidatorsFromAssemblyContaining<PacienteRequestValidator>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -21,10 +43,43 @@ builder.Services.AddSwaggerGen();
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<ClinicaDbContext>(options => options.UseSqlServer(connectionString));
 
+// Configuração do JWT Authentication
+var secretKey = builder.Configuration["JwtConfig:Secret"] ?? throw new InvalidOperationException("JwtConfig:Secret não configurado. Defina em appsettings.json ou User Secrets.");
+builder.Services.AddAuthentication(x =>
+{
+    x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    x.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(x =>
+{
+    x.RequireHttpsMetadata = false;
+    x.SaveToken = true;
+    x.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(secretKey)),
+        ValidateIssuer = false,
+        ValidateAudience = false
+    };
+});
+
 // Injeção de Dependências
 builder.Services.AddScoped<IPacienteRepository, PacienteRepository>();
 builder.Services.AddScoped<IAgendamentoRepository, AgendamentoRepository>();
+builder.Services.AddScoped<IProfissionalRepository, ProfissionalRepository>();
+builder.Services.AddScoped<IUsuarioRepository, UsuarioRepository>();
 builder.Services.AddScoped<IPacienteService, PacienteService>();
+builder.Services.AddScoped<IAgendamentoService, AgendamentoService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<ICadastroService, CadastroService>();
+builder.Services.AddScoped<IProbabilidadeFaltaService, ProbabilidadeFaltaService>();
+builder.Services.AddScoped<IEspecialidadeService, EspecialidadeService>();
+builder.Services.AddScoped<IPerfilService, PerfilService>();
+builder.Services.AddScoped<IProfissionalService, ProfissionalService>();
+builder.Services.AddScoped<INotificacaoRepository, NotificacaoRepository>();
+builder.Services.AddScoped<INotificacaoService, NotificacaoService>();
+
+builder.Services.AddHostedService<NotificacaoBackgroundService>();
 
 var app = builder.Build();
 
@@ -36,8 +91,12 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseCors("PermitirFrontEnd");
 
-// Mapeia as rotas (Endpoints) construídas no PacientesController
+app.UseAuthentication(); // <-- Exigido pra ler o Token
+app.UseAuthorization();  // <-- Exigido pra aplicar políticas (ex: [Authorize])
+
+// Mapeia as rotas (Endpoints)
 app.MapControllers();
 
 app.Run();
