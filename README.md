@@ -5,7 +5,7 @@
 ![React](https://img.shields.io/badge/REACT-19-61DAFB?style=for-the-badge&logo=react&logoColor=white)
 ![Architecture](https://img.shields.io/badge/ARCHITECTURE-CLEAN%20ARCHITECTURE-A4C639?style=for-the-badge)
 
-O **Clínica Mais Saúde** é uma plataforma full-stack de gestão clínica projetada para centralizar o fluxo de atendimento médico, desde a triagem inteligente de sintomas até a gestão administrativa de indicadores de desempenho. O sistema resolve gargalos operacionais como o absenteísmo e a desorganização de agendas através de automação e regras de negócio robustas.
+O **Clínica Mais Saúde** é uma plataforma de gestão clínica projetada para centralizar o fluxo de atendimento médico, desde a triagem inteligente de sintomas até a gestão administrativa de indicadores de desempenho. O sistema resolve gargalos operacionais como o absenteísmo e a desorganização de agendas através de automação e regras de negócio robustas.
 
 ## 🛠️ Stack Tecnológica
 
