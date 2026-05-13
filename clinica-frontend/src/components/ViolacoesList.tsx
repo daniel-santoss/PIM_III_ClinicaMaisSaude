@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { API_URL } from "../constants/api";
 import { AlertOctagon, AlertTriangle, ShieldAlert, Search, ShieldCheck, ShieldOff } from "lucide-react";
 
+import { useScrollBlock } from "../hooks/useScrollBlock";
+
 type Violacao = {
   id: string;
   pacienteId: string;
@@ -21,6 +23,8 @@ export default function ViolacoesList() {
   const [busca, setBusca] = useState("");
   const [removendoPenalidade, setRemovendoPenalidade] = useState<Record<string, boolean>>({});
   const [confirmarPaciente, setConfirmarPaciente] = useState<{ id: string; nome: string } | null>(null);
+
+  useScrollBlock(!!confirmarPaciente);
 
   useEffect(() => {
     const fetchViolacoes = async () => {

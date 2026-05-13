@@ -127,7 +127,7 @@ export function CadastroUsuario({ onUserCreated }: { onUserCreated?: () => void 
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Senha (Provisória) *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Senha *</label>
             <input
               type="password"
               required

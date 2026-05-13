@@ -26,7 +26,7 @@ export default function PerfilPaciente() {
   const pacienteId = localStorage.getItem("pacienteId");
   const token = localStorage.getItem("authToken");
 
-  useScrollBlock(!!(modalExcluir || modalMensagem));
+  useScrollBlock(!!(modalExcluir || modalMensagem || editMode || editSenha));
 
   const carregarDados = async () => {
     try {

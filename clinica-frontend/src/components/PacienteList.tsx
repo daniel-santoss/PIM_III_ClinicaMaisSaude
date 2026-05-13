@@ -571,56 +571,61 @@ export default function PacienteList({
 
       {/* Modal de Edição */}
       {editandoId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">Editar Paciente</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-300">
+          <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl overflow-hidden border border-purple-50 animate-in zoom-in duration-300">
+            <div className="p-8 border-b border-purple-50 bg-purple-50/30">
+              <h3 className="text-2xl font-black text-gray-800">Editar Paciente</h3>
+              <p className="text-[10px] font-black text-purple-400 uppercase tracking-widest mt-1">Atualize as informações cadastrais</p>
+            </div>
 
-            <div className="space-y-3">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nome</label>
-                <input
-                  type="text"
-                  className="p-2 border rounded w-full bg-gray-50"
-                  placeholder="Nome"
-                  value={form.nome}
-                  onChange={(e) => setForm({ ...form, nome: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">CPF</label>
-                <input
-                  type="text"
-                  className="p-2 border rounded w-full bg-gray-200 text-gray-500 cursor-not-allowed"
-                  value={form.cpf}
-                  disabled
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Telefone</label>
-                <input
-                  type="text"
-                  className="p-2 border rounded w-full bg-gray-50"
-                  maxLength={15}
-                  placeholder="Telefone"
-                  value={form.telefone}
-                  onChange={(e) => setForm({ ...form, telefone: mascaraTelefone(e.target.value) })}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                <input
-                  type="email"
-                  className="p-2 border rounded w-full bg-gray-50"
-                  placeholder="Email"
-                  value={form.email}
-                  onChange={(e) => setForm({ ...form, email: e.target.value })}
-                />
+            <div className="p-8 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Nome Completo</label>
+                  <input
+                    type="text"
+                    className="w-full p-4 border border-gray-200 rounded-2xl bg-gray-50 focus:ring-2 focus:ring-[#7C3AED] focus:bg-white transition-all outline-none font-bold text-sm"
+                    placeholder="Nome"
+                    value={form.nome}
+                    onChange={(e) => setForm({ ...form, nome: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">CPF (Inalterável)</label>
+                  <input
+                    type="text"
+                    className="w-full p-4 border border-gray-200 rounded-2xl bg-gray-100 text-gray-400 cursor-not-allowed outline-none font-bold text-sm"
+                    value={form.cpf}
+                    disabled
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Telefone de Contato</label>
+                  <input
+                    type="text"
+                    className="w-full p-4 border border-gray-200 rounded-2xl bg-gray-50 focus:ring-2 focus:ring-[#7C3AED] focus:bg-white transition-all outline-none font-bold text-sm"
+                    maxLength={15}
+                    placeholder="Telefone"
+                    value={form.telefone}
+                    onChange={(e) => setForm({ ...form, telefone: mascaraTelefone(e.target.value) })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">E-mail</label>
+                  <input
+                    type="email"
+                    className="w-full p-4 border border-gray-200 rounded-2xl bg-gray-50 focus:ring-2 focus:ring-[#7C3AED] focus:bg-white transition-all outline-none font-bold text-sm"
+                    placeholder="Email"
+                    value={form.email}
+                    onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  />
+                </div>
               </div>
             </div>
 
-            <div className="flex justify-end gap-3 mt-6">
+            <div className="p-8 bg-gray-50/50 border-t border-gray-100 flex gap-4">
               <button
-                className="px-5 py-2.5 text-sm font-medium border border-gray-300 rounded text-gray-700 hover:bg-gray-50 transition-colors"
+                className="flex-1 px-6 py-4 bg-red-600 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-red-700 shadow-lg shadow-red-100 transition-all active:scale-95 disabled:opacity-50"
                 onClick={fecharModal}
                 disabled={salvando}
               >
@@ -629,8 +634,11 @@ export default function PacienteList({
               <button
                 onClick={salvarEdicao}
                 disabled={salvando}
+                className="flex-1 px-6 py-4 bg-green-600 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-green-700 shadow-lg shadow-green-100 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
               >
-                {salvando ? "Salvando…" : "Salvar Alterações"}
+                {salvando ? (
+                   <><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> Salvando...</>
+                ) : "Salvar Alterações"}
               </button>
             </div>
           </div>
@@ -718,7 +726,7 @@ export default function PacienteList({
                     value={novaSenhaReset}
                     onChange={(e) => setNovaSenhaReset(e.target.value)}
                     className="w-full border border-gray-300 rounded p-2 focus:ring-2 focus:ring-amber-500 outline-none"
-                    placeholder="Digite a nova senha provisória"
+                    
                   />
                 </div>
                 <button

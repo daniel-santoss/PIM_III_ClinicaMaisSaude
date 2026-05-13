@@ -29,7 +29,7 @@ export default function PerfilMedico() {
   const token = localStorage.getItem("authToken");
   const isEnfermeira = localStorage.getItem("tipoUsuario") === "Enfermeira";
 
-  useScrollBlock(!!modalMensagem);
+  useScrollBlock(!!(modalMensagem || editMode || editSenha));
 
   const carregar = async () => {
     try {

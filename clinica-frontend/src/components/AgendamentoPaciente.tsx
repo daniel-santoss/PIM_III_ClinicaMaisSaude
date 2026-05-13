@@ -23,7 +23,7 @@ export default function AgendamentoPaciente({ onSucesso }: AgendamentoPacientePr
   const [modalMensagem, setModalMensagem] = useState<string | null>(null);
   const [violacao, setViolacao] = useState(false);
 
-  useScrollBlock(!!(modalMensagem || violacao));
+  useScrollBlock(!!(modalMensagem || violacao || analisandoIA));
 
   const [tipoProfissional, setTipoProfissional] = useState<number | null>(null); // 0: Enfermeira, 1: Medico
   const [tipoConsulta, setTipoConsulta] = useState<number>(3); // Default 3: Consulta Médica
