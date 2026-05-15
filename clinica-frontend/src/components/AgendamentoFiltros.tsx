@@ -30,8 +30,10 @@ export default function AgendamentoFiltros({
   const [menuStatusAberto, setMenuStatusAberto] = useState(false);
 
   return (
-    <div className="bg-white p-4 rounded-3xl shadow-lg border border-purple-50 flex flex-wrap items-center gap-4">
-      <div className="relative flex-1 min-w-[280px]">
+    <div className="bg-white p-4 rounded-3xl shadow-lg border border-purple-50 flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3 sm:gap-4">
+
+      {/* Campo de Busca — largura total */}
+      <div className="relative w-full sm:flex-1 sm:min-w-0">
         <Search className="absolute left-4 top-3.5 w-5 h-5 text-purple-600" />
         <input
           type="text"
@@ -42,27 +44,32 @@ export default function AgendamentoFiltros({
         />
       </div>
 
-      <div className="flex items-center gap-2">
+      {/* Controles — linha própria no mobile */}
+      <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+
         {/* Status Dropdown */}
-        <div className="relative">
+        <div className="relative flex-1 sm:flex-none">
           <button
             onClick={() => setMenuStatusAberto(!menuStatusAberto)}
-            className={`flex items-center gap-2 px-4 py-3 border rounded-2xl min-w-[160px] transition-all text-sm font-bold shadow-sm ${
-              menuStatusAberto ? 'border-[#7C3AED] bg-purple-50 text-[#7C3AED] ring-4 ring-purple-100' : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
+            className={`w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-3 border rounded-2xl transition-all text-sm font-bold shadow-sm ${
+              menuStatusAberto
+                ? "border-[#7C3AED] bg-purple-50 text-[#7C3AED] ring-4 ring-purple-100"
+                : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
             }`}
           >
-            <Filter className="w-4 h-4" />
+            <Filter className="w-4 h-4 shrink-0" />
             Status: ({statusSelecionados.length})
           </button>
 
           {menuStatusAberto && (
             <>
               <div className="fixed inset-0 z-10" onClick={() => setMenuStatusAberto(false)}></div>
-              <div className="absolute right-0 lg:left-0 mt-2 w-64 bg-white rounded-2xl shadow-2xl border border-gray-100 py-3 z-20 animate-in fade-in zoom-in duration-200 origin-top-right lg:origin-top-left">
+              {/* Dropdown sempre ancorado à esquerda para não sair da tela */}
+              <div className="absolute left-0 mt-2 w-64 bg-white rounded-2xl shadow-2xl border border-gray-100 py-3 z-20 animate-in fade-in zoom-in duration-200 origin-top-left">
                 <div className="px-4 py-1 mb-2 border-b border-gray-50 flex justify-between items-center">
                   <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Filtrar Status</span>
                   {statusSelecionados.length < Object.keys(MapNomesStatus).length && (
-                    <button 
+                    <button
                       onClick={() => setStatusSelecionados(Object.keys(MapNomesStatus))}
                       className="text-[10px] text-purple-600 hover:underline font-bold"
                     >
@@ -80,7 +87,7 @@ export default function AgendamentoFiltros({
                         if (e.target.checked) {
                           setStatusSelecionados([...statusSelecionados, statusKey]);
                         } else {
-                          setStatusSelecionados(statusSelecionados.filter(s => s !== statusKey));
+                          setStatusSelecionados(statusSelecionados.filter((s) => s !== statusKey));
                         }
                       }}
                     />
@@ -94,20 +101,24 @@ export default function AgendamentoFiltros({
           )}
         </div>
 
+        {/* Data */}
         <input
           type="date"
-          className="px-4 py-3 bg-white border border-gray-200 rounded-2xl focus:ring-2 focus:ring-[#7C3AED] outline-none font-bold text-sm text-gray-600 cursor-pointer"
+          className="flex-1 sm:flex-none px-4 py-3 bg-white border border-gray-200 rounded-2xl focus:ring-2 focus:ring-[#7C3AED] outline-none font-bold text-sm text-gray-600 cursor-pointer"
           value={filtroDataConsulta}
           onChange={(e) => setFiltroDataConsulta(e.target.value)}
         />
 
+        {/* Ordenação */}
         <button
           onClick={() => setOrdemData(ordemData === "asc" ? "desc" : "asc")}
           className="p-3 bg-white border border-gray-200 rounded-2xl hover:bg-purple-50 transition-colors text-purple-600"
           title="Inverter Ordem"
         >
-          <ArrowDownUp className={`w-6 h-6 transition-transform duration-500 ${ordemData === 'asc' ? 'rotate-180' : ''}`} />
+          <ArrowDownUp className={`w-5 h-5 transition-transform duration-500 ${ordemData === "asc" ? "rotate-180" : ""}`} />
         </button>
+
+        {/* Limpar Filtros */}
         <button
           onClick={limparFiltros}
           className="p-3 bg-gray-50 text-gray-400 border border-gray-200 rounded-2xl hover:bg-purple-50 hover:text-purple-600 transition-all flex items-center gap-2 group shadow-sm"

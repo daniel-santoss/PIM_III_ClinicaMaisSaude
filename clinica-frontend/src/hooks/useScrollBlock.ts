@@ -2,13 +2,13 @@ import { useEffect } from "react";
 
 export function useScrollBlock(shouldBlock: boolean | undefined | null) {
   useEffect(() => {
-    if (shouldBlock) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
+    if (!shouldBlock) return;
+
+    const originalStyle = window.getComputedStyle(document.body).overflow;
+    document.body.style.overflow = 'hidden';
+
     return () => {
-      document.body.style.overflow = '';
+      document.body.style.overflow = originalStyle;
     };
   }, [shouldBlock]);
 }

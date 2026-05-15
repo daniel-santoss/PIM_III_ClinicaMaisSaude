@@ -239,39 +239,39 @@ export default function AgendamentoList({ agendamentoDestaque }: { agendamentoDe
     <>
       <div className="space-y-8 animate-in fade-in duration-700">
         {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-white p-6 rounded-[2.5rem] shadow-xl shadow-purple-100/20 border border-purple-50 group hover:scale-[1.02] transition-all duration-300">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-purple-100 rounded-2xl text-purple-600 group-hover:bg-[#7C3AED] group-hover:text-white transition-colors">
-                <Calendar className="w-6 h-6" />
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+          <div className="bg-white p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2.5rem] shadow-xl shadow-purple-100/20 border border-purple-50 group hover:scale-[1.02] transition-all duration-300">
+            <div className="flex items-start sm:items-center justify-between mb-3 sm:mb-4 flex-col sm:flex-row gap-1 sm:gap-0">
+              <div className="p-2 sm:p-3 bg-purple-100 rounded-xl sm:rounded-2xl text-purple-600 group-hover:bg-[#7C3AED] group-hover:text-white transition-colors">
+                <Calendar className="w-5 h-5 sm:w-6 sm:h-6" />
               </div>
-              <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Atendimentos Hoje</span>
+              <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-gray-400 leading-tight">Atend. Hoje</span>
             </div>
-            <div className="flex items-end gap-3">
-              <span className="text-4xl font-black text-gray-800 leading-none">{atendimentosHoje}</span>
-              <div className="flex items-center gap-1 mb-1 px-2 py-0.5 bg-green-100 text-green-600 rounded-full text-[10px] font-black">
-                <TrendingUp className="w-3 h-3" />
+            <div className="flex items-end gap-2">
+              <span className="text-2xl sm:text-4xl font-black text-gray-800 leading-none">{atendimentosHoje}</span>
+              <div className="flex items-center gap-1 mb-1 px-1.5 py-0.5 bg-green-100 text-green-600 rounded-full text-[9px] font-black">
+                <TrendingUp className="w-2.5 h-2.5" />
                 <span>+12%</span>
               </div>
             </div>
           </div>
-          <div className="bg-white p-6 rounded-[2.5rem] shadow-xl shadow-orange-100/20 border border-orange-50 group hover:scale-[1.02] transition-all duration-300">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-orange-100 rounded-2xl text-orange-600 group-hover:bg-orange-500 group-hover:text-white transition-colors">
-                <AlertCircle className="w-6 h-6" />
+          <div className="bg-white p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2.5rem] shadow-xl shadow-orange-100/20 border border-orange-50 group hover:scale-[1.02] transition-all duration-300">
+            <div className="flex items-start sm:items-center justify-between mb-3 sm:mb-4 flex-col sm:flex-row gap-1 sm:gap-0">
+              <div className="p-2 sm:p-3 bg-orange-100 rounded-xl sm:rounded-2xl text-orange-600 group-hover:bg-orange-500 group-hover:text-white transition-colors">
+                <AlertCircle className="w-5 h-5 sm:w-6 sm:h-6" />
               </div>
-              <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Absenteísmo (Semana)</span>
+              <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-gray-400 leading-tight">Absenteísmo</span>
             </div>
-            <div className="flex items-end gap-3">
-              <span className="text-4xl font-black text-gray-800 leading-none">{taxaAbsenteismo}%</span>
-              <span className="text-[10px] font-bold text-orange-400 mb-1">{faltasSemana} faltas totais</span>
+            <div className="flex items-end gap-2">
+              <span className="text-2xl sm:text-4xl font-black text-gray-800 leading-none">{taxaAbsenteismo}%</span>
+              <span className="text-[9px] sm:text-[10px] font-bold text-orange-400 mb-1 hidden sm:inline">{faltasSemana} faltas</span>
             </div>
           </div>
-          <div className="bg-white p-6 rounded-[2.5rem] shadow-xl shadow-blue-100/20 border border-blue-50 group hover:scale-[1.02] transition-all duration-300">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-blue-100 rounded-2xl text-blue-600 group-hover:bg-blue-500 group-hover:text-white transition-colors">
-                <BarChart3 className="w-6 h-6" />            </div>
-              <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Distribuição Mensal</span>
+          <div className="bg-white p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2.5rem] shadow-xl shadow-blue-100/20 border border-blue-50 group hover:scale-[1.02] transition-all duration-300">
+            <div className="flex items-start sm:items-center justify-between mb-3 sm:mb-4 flex-col sm:flex-row gap-1 sm:gap-0">
+              <div className="p-2 sm:p-3 bg-blue-100 rounded-xl sm:rounded-2xl text-blue-600 group-hover:bg-blue-500 group-hover:text-white transition-colors">
+                <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6" />            </div>
+              <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-gray-400 leading-tight">Dist. Mensal</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden flex">
@@ -298,21 +298,21 @@ export default function AgendamentoList({ agendamentoDestaque }: { agendamentoDe
                   limparFiltros();
                 }
               }}
-              className={`text-left p-6 rounded-[2.5rem] shadow-xl transition-all duration-300 group hover:scale-[1.02] ${
+              className={`text-left p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2.5rem] shadow-xl transition-all duration-300 group hover:scale-[1.02] ${
                 filtroRiscoApenas 
                   ? 'bg-red-50 border-2 border-red-400 shadow-red-200' 
                   : 'bg-white border border-red-50 shadow-red-100/20'
               }`}
             >
-              <div className="flex items-center justify-between mb-4">
-                <div className="p-3 bg-red-100 rounded-2xl text-red-600 group-hover:bg-red-500 group-hover:text-white transition-colors">
-                  <AlertTriangle className="w-6 h-6" />
+              <div className="flex items-start sm:items-center justify-between mb-3 sm:mb-4 flex-col sm:flex-row gap-1 sm:gap-0">
+                <div className="p-2 sm:p-3 bg-red-100 rounded-xl sm:rounded-2xl text-red-600 group-hover:bg-red-500 group-hover:text-white transition-colors">
+                  <AlertTriangle className="w-5 h-5 sm:w-6 sm:h-6" />
                 </div>
-                <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Risco de Falta (Hoje)</span>
+                <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-gray-400 leading-tight">Risco Falta</span>
               </div>
-              <div className="flex items-end gap-3">
-                <span className="text-4xl font-black text-gray-800 leading-none">{riscoAltoHoje + riscoMedioHoje}</span>
-                <span className="text-[10px] font-bold text-red-400 mb-1">{riscoAltoHoje} Alto, {riscoMedioHoje} Médio</span>
+              <div className="flex items-end gap-2">
+                <span className="text-2xl sm:text-4xl font-black text-gray-800 leading-none">{riscoAltoHoje + riscoMedioHoje}</span>
+                <span className="text-[9px] sm:text-[10px] font-bold text-red-400 mb-1 hidden sm:inline">{riscoAltoHoje} Alto</span>
               </div>
             </button>
           )}
@@ -328,7 +328,7 @@ export default function AgendamentoList({ agendamentoDestaque }: { agendamentoDe
         />
 
         {/* Grid de Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {agendamentosFiltrados.length === 0 ? (
             <div className="col-span-full py-20 bg-white rounded-[2.5rem] border border-dashed border-purple-200 text-center">
               <p className="text-gray-400 font-bold uppercase tracking-widest text-sm">Nenhum agendamento para exibir</p>

@@ -205,7 +205,7 @@ export default function AgendamentoPaciente({ onSucesso }: AgendamentoPacientePr
   );
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-700 pb-20">
+    <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-700 pb-20 px-4 xl:px-0">
       {/* Progresso Superior */}
       <div className="flex items-center justify-between px-4 max-w-2xl mx-auto">
         {[1, 2, 3, 4].map(num => (
@@ -215,7 +215,7 @@ export default function AgendamentoPaciente({ onSucesso }: AgendamentoPacientePr
               {num}
             </div>
             <span className={`text-[9px] font-black uppercase tracking-tighter ${passo >= num ? 'text-purple-600' : 'text-gray-300'}`}>
-              {num === 1 ? 'Sintomas' : num === 2 ? 'Profissional' : num === 3 ? 'Data/Hora' : 'Confirmar'}
+              {num === 1 ? 'Início' : num === 2 ? 'Tipo' : num === 3 ? 'Horário' : 'OK'}
             </span>
           </div>
         ))}
@@ -269,7 +269,7 @@ export default function AgendamentoPaciente({ onSucesso }: AgendamentoPacientePr
       )}
       </div>
 
-      <div className="bg-white rounded-[3rem] p-10 shadow-2xl shadow-purple-100/50 border border-purple-50">
+      <div className="bg-white rounded-2xl sm:rounded-[3rem] p-5 sm:p-8 lg:p-10 shadow-2xl shadow-purple-100/50 border border-purple-50">
 
         {/* ETAPA 1: ESCOLHA INICIAL */}
         {passo === 1 && (
@@ -281,7 +281,7 @@ export default function AgendamentoPaciente({ onSucesso }: AgendamentoPacientePr
 
             <div className="flex flex-col items-center gap-6">
               {!modoIA ? (
-                <div className="flex items-center gap-6 w-full max-w-xl">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 sm:gap-6 w-full sm:max-w-xl">
                   <button
                     onClick={() => setPasso(2)}
                     className="flex-1 py-8 bg-slate-50 text-[#7C3AED] border-2 border-[#7C3AED]/10 rounded-[2.5rem] font-black text-xs uppercase tracking-widest hover:bg-[#F5F3FF] hover:border-[#7C3AED] transition-all shadow-sm flex flex-col items-center gap-4"
@@ -318,17 +318,18 @@ export default function AgendamentoPaciente({ onSucesso }: AgendamentoPacientePr
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-4">
+                  {/* Botões IA — empilhados no mobile */}
+                  <div className="flex flex-col-reverse sm:flex-row items-stretch gap-3">
                     <button
                       onClick={() => setModoIA(false)}
-                      className="px-8 py-5 bg-slate-50 text-gray-400 border-2 border-gray-100 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-gray-100 hover:text-gray-600 transition-all shadow-sm"
+                      className="w-full sm:w-auto px-8 py-4 bg-slate-50 text-gray-500 border-2 border-gray-100 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-gray-100 transition-all shadow-sm text-center"
                     >
                       Voltar
                     </button>
                     <button
                       onClick={analisarSintomas}
                       disabled={!sintomas.trim() || analisandoIA}
-                      className="flex-1 py-5 bg-[#7C3AED] text-white rounded-2xl font-black shadow-lg shadow-purple-100 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-3"
+                      className="flex-1 py-4 bg-[#7C3AED] text-white rounded-2xl font-black shadow-lg shadow-purple-100 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-3"
                     >
                       {analisandoIA ? (
                         <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
@@ -342,22 +343,22 @@ export default function AgendamentoPaciente({ onSucesso }: AgendamentoPacientePr
                   </div>
 
                   {sugestaoIA && (
-                    <div className="p-8 bg-purple-50 rounded-[2.5rem] border-2 border-purple-100 animate-in zoom-in duration-300 space-y-4">
-                      <div className="flex items-start gap-4">
-                        <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-purple-600 shadow-sm shrink-0">
-                          <CheckCircle className="w-6 h-6" />
+                    <div className="p-5 sm:p-8 bg-purple-50 rounded-2xl sm:rounded-[2.5rem] border-2 border-purple-100 animate-in zoom-in duration-300 space-y-4">
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white rounded-xl sm:rounded-2xl flex items-center justify-center text-purple-600 shadow-sm shrink-0">
+                          <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6" />
                         </div>
-                        <div>
+                        <div className="flex-1 min-w-0">
                           <p className="text-[10px] font-black text-purple-400 uppercase tracking-widest mb-1">Recomendamos:</p>
-                          <h4 className="text-xl font-black text-gray-800">{sugestaoIA.tipo} — {sugestaoIA.especialidade}</h4>
+                          <h4 className="text-base sm:text-xl font-black text-gray-800 leading-snug">{sugestaoIA.tipo} — {sugestaoIA.especialidade}</h4>
                           <p className="text-[10px] font-bold text-gray-500 mt-2 leading-relaxed">
                             Esta é apenas uma sugestão baseada no seu relato. O profissional fará a avaliação completa durante o atendimento.
                           </p>
                         </div>
                       </div>
-                      <div className="flex gap-3 pt-2">
-                        <button onClick={usarSugestao} className="flex-1 py-4 bg-[#7C3AED] text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-purple-100">Usar Sugestão</button>
-                        <button onClick={() => setPasso(2)} className="flex-1 py-4 bg-white text-gray-400 border-2 border-gray-100 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-gray-50 transition-colors">Escolher Outro</button>
+                      <div className="flex gap-3 pt-1">
+                        <button onClick={usarSugestao} className="flex-1 py-3.5 bg-[#7C3AED] text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-purple-100 hover:scale-105 transition-all">Usar Sugestão</button>
+                        <button onClick={() => setPasso(2)} className="flex-1 py-3.5 bg-white text-gray-500 border-2 border-gray-100 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-gray-50 transition-colors">Escolher Outro</button>
                       </div>
                     </div>
                   )}
@@ -425,7 +426,7 @@ export default function AgendamentoPaciente({ onSucesso }: AgendamentoPacientePr
                       </div>
                     )}
 
-                    <div className="grid grid-cols-2 gap-3 max-h-48 overflow-y-auto pr-2 custom-scrollbar mt-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-48 overflow-y-auto pr-2 custom-scrollbar mt-4">
                         {filtradas.map(e => {
                           const espObj = listaEspecialidades.find(le => le.nome.toLowerCase() === e.toLowerCase());
                           const isDisponivel = espObj ? especialidadesDisponiveis.includes(espObj.id) : false;
@@ -478,12 +479,12 @@ export default function AgendamentoPaciente({ onSucesso }: AgendamentoPacientePr
               )}
             </div>
 
-            <div className="flex justify-between pt-4">
-              <button onClick={() => setPasso(1)} className="px-10 py-4 text-gray-400 font-bold hover:text-gray-600 transition-colors">Voltar</button>
+            <div className="flex flex-col-reverse sm:flex-row justify-between gap-3 pt-4">
+              <button onClick={() => setPasso(1)} className="w-full sm:w-auto px-10 py-4 text-gray-400 font-bold hover:text-gray-600 transition-colors text-center">Voltar</button>
               <button
                 disabled={(tipoConsulta === 3 && !especialidade) || (tipoConsulta === 4 && !origemId)}
                 onClick={() => setPasso(3)}
-                className="px-10 py-4 bg-[#7C3AED] text-white rounded-2xl font-black shadow-lg shadow-purple-200 hover:scale-105 transition-all disabled:opacity-50"
+                className="w-full sm:w-auto px-10 py-4 bg-[#7C3AED] text-white rounded-2xl font-black shadow-lg shadow-purple-200 hover:scale-105 transition-all disabled:opacity-50"
               >
                 Próximo Passo
               </button>
@@ -526,7 +527,7 @@ export default function AgendamentoPaciente({ onSucesso }: AgendamentoPacientePr
                   </div>
                 ) : dataSelecionada ? (
                   horariosDisponiveis.length > 0 ? (
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-3 md:grid-cols-4 gap-3">
                       {horariosDisponiveis.map(h => {
                         const isSelecionado = horarioSelecionado === h;
 
@@ -563,12 +564,12 @@ export default function AgendamentoPaciente({ onSucesso }: AgendamentoPacientePr
 
             {erro && <p className="text-center text-red-500 text-[10px] font-black uppercase">{erro}</p>}
 
-            <div className="flex justify-between pt-4">
-              <button onClick={() => setPasso(2)} className="px-10 py-4 text-gray-400 font-bold hover:text-gray-600 transition-colors">Voltar</button>
+            <div className="flex flex-col-reverse sm:flex-row justify-between gap-3 pt-4">
+              <button onClick={() => setPasso(2)} className="w-full sm:w-auto px-10 py-4 text-gray-400 font-bold hover:text-gray-600 transition-colors text-center">Voltar</button>
               <button
                 disabled={!dataSelecionada || !horarioSelecionado}
                 onClick={() => setPasso(4)}
-                className="px-10 py-4 bg-[#7C3AED] text-white rounded-2xl font-black shadow-lg shadow-purple-200 hover:scale-105 transition-all disabled:opacity-50"
+                className="w-full sm:w-auto px-10 py-4 bg-[#7C3AED] text-white rounded-2xl font-black shadow-lg shadow-purple-200 hover:scale-105 transition-all disabled:opacity-50"
               >
                 Próximo Passo
               </button>

@@ -235,9 +235,9 @@ export default function PerfilPaciente() {
             )}
           </div>
 
-          {/* CPF (Não editável) */}
+          {/* CPF  */}
           <div className="px-6 py-4 flex flex-col gap-1 border-t border-gray-50 bg-gray-50/30">
-            <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">CPF <span className="lowercase normal-case font-normal text-[10px] ml-1">(Não editável)</span></span>
+            <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">CPF</span>
             <span className="text-sm font-bold text-gray-500">{mascaraCpf(paciente?.cpf)}</span>
           </div>
 

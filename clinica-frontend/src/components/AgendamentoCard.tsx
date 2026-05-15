@@ -61,16 +61,16 @@ export default function AgendamentoCard({
   return (
     <div
       ref={cardRef}
-      className={`bg-white rounded-2xl shadow-sm border flex flex-col h-full min-h-[280px] transition-all duration-500 ${
+      className={`bg-white rounded-2xl shadow-sm border flex flex-col h-full transition-all duration-500 ${
         highlighted
           ? 'border-purple-400 shadow-lg shadow-purple-200/60 ring-2 ring-purple-300 card-highlight'
           : 'border-gray-200'
       }`}
     >
       {/* Cabeçalho do Card: Horário e Status */}
-      <div className="p-6 pb-4 flex justify-between items-start">
+      <div className="p-4 sm:p-6 pb-3 sm:pb-4 flex justify-between items-start">
         <div className="flex flex-col">
-          <span className="text-3xl font-bold text-[#7C3AED] leading-none">{hora}</span>
+          <span className="text-2xl sm:text-3xl font-bold text-[#7C3AED] leading-none">{hora}</span>
           <span className="text-xs font-medium text-gray-500 uppercase mt-2 tracking-wide">{dia}</span>
         </div>
         
@@ -97,14 +97,14 @@ export default function AgendamentoCard({
       </div>
 
       {/* Corpo do Card: Paciente e Profissional */}
-      <div className="px-6 py-4 flex-1 flex flex-col justify-center">
+      <div className="px-4 sm:px-6 py-4 flex-1 flex flex-col justify-center">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-full bg-[#7C3AED] flex items-center justify-center text-white font-bold text-xl shrink-0">
             {agenda.pacienteNome.charAt(0).toUpperCase()}
           </div>
           <div className="flex flex-col">
             <div className="flex items-center gap-2">
-              <h4 className="text-lg font-bold text-gray-900 leading-tight">{agenda.pacienteNome}</h4>
+              <h4 className="text-base sm:text-lg font-bold text-gray-900 leading-tight line-clamp-1">{agenda.pacienteNome}</h4>
               {(tipoUsuarioLogado === "Medico" || tipoUsuarioLogado === "Enfermeira") && agenda.nivelProbabilidadeFalta && (agenda.status === "Agendado" || agenda.status === "RetornoAgendado") && (
                 <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider flex items-center gap-1 ${
                   agenda.nivelProbabilidadeFalta === "Alta" ? "bg-red-100 text-red-700" :
@@ -129,7 +129,7 @@ export default function AgendamentoCard({
       </div>
 
       {/* Separador e Profissional */}
-      <div className="px-6 py-4 border-t border-gray-100 flex items-center gap-3">
+      <div className="px-4 sm:px-6 py-3 sm:py-4 border-t border-gray-100 flex items-center gap-3">
         <div className="w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center text-[#7C3AED] shrink-0">
           <Stethoscope className="w-4 h-4" />
         </div>
@@ -140,25 +140,33 @@ export default function AgendamentoCard({
       </div>
 
       {/* Rodapé: Ações */}
-      <div className="px-5 py-4 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3">
+      <div className="px-4 sm:px-5 py-3 sm:py-4 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3">
         <div className="flex gap-2 shrink-0">
           {onHistorico && (
-            <button title="Histórico" onClick={() => onHistorico(agenda.id)} className="p-2 border border-gray-200 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors">
+            <button
+              title="Histórico"
+              onClick={() => onHistorico(agenda.id)}
+              className="flex items-center justify-center w-10 h-10 border border-gray-200 text-gray-600 hover:bg-gray-50 rounded-xl transition-colors"
+            >
               <Clock className="w-4 h-4" />
             </button>
           )}
           {podeRemarcar && onRemarcar && (
-            <button title="Remarcar" onClick={() => onRemarcar(agenda)} className="p-2 border border-gray-200 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors">
+            <button
+              title="Remarcar"
+              onClick={() => onRemarcar(agenda)}
+              className="flex items-center justify-center w-10 h-10 border border-gray-200 text-gray-600 hover:bg-gray-50 rounded-xl transition-colors"
+            >
               <Calendar className="w-4 h-4" />
             </button>
           )}
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 flex-1">
           {opcoesValidas.length > 0 && onAlterarStatus && (
-            <div className="relative">
+            <div className="relative flex-1 sm:flex-none">
               <select
-                className="appearance-none bg-white text-[#7C3AED] border border-[#7C3AED] text-xs font-bold py-2 pl-3 pr-7 rounded-lg cursor-pointer outline-none hover:bg-[#F5F3FF] transition-colors"
+                className="w-full sm:w-auto appearance-none bg-white text-[#7C3AED] border border-[#7C3AED] text-xs font-bold py-2.5 pl-3 pr-8 rounded-xl cursor-pointer outline-none hover:bg-[#F5F3FF] transition-colors"
                 value={agenda.status}
                 onChange={(e) => onAlterarStatus(agenda.id, e.target.value)}
               >
@@ -176,7 +184,7 @@ export default function AgendamentoCard({
           {podeCancelar && onCancelar && (
             <button
               onClick={() => onCancelar(agenda.id, agenda.pacienteNome)}
-              className="text-xs font-bold bg-red-500 text-white px-3 py-2 rounded-lg hover:bg-red-600 transition-colors shadow-sm whitespace-nowrap"
+              className="flex-1 sm:flex-none text-xs font-bold bg-red-500 text-white px-4 py-2.5 rounded-xl hover:bg-red-600 transition-colors shadow-sm whitespace-nowrap text-center"
             >
               Cancelar
             </button>

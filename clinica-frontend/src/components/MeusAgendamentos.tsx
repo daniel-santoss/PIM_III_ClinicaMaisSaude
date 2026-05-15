@@ -64,7 +64,7 @@ export default function MeusAgendamentos({ onNovoAgendamento, agendamentoDestaqu
   }, [pacienteId, token]);
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in duration-700 pb-20 px-4">
+    <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in duration-700 pb-20 px-4 xl:px-0">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-black text-gray-900 tracking-tight">Meus Agendamentos</h1>
@@ -72,7 +72,7 @@ export default function MeusAgendamentos({ onNovoAgendamento, agendamentoDestaqu
         </div>
         <button
           onClick={onNovoAgendamento}
-          className="px-6 py-3 bg-[#7C3AED] text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-purple-100 hover:scale-105 transition-all flex items-center gap-2 w-fit"
+          className="w-full md:w-fit px-6 py-3 bg-[#7C3AED] text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-purple-100 hover:scale-105 transition-all flex items-center justify-center gap-2"
         >
           <Plus className="w-4 h-4" strokeWidth={3} />
           Novo Agendamento
@@ -95,7 +95,7 @@ export default function MeusAgendamentos({ onNovoAgendamento, agendamentoDestaqu
         </div>
       ) : agendamentos.length > 0 ? (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             {agendamentos
               .filter(a => {
                 const termo = filtroAgenda.toLowerCase();

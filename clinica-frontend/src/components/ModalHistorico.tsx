@@ -13,16 +13,19 @@ export default function ModalHistorico({ historico, loading, onFechar }: ModalHi
   useScrollBlock(true);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-lg p-6 max-h-[80vh] flex flex-col">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-bold text-gray-800">Histórico do Agendamento</h3>
-          <button onClick={onFechar} className="text-gray-400 hover:text-gray-600">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4">
+      {/* Largura total no mobile (sem margens), centralizado no tablet/desktop */}
+      <div className="bg-white w-full sm:rounded-lg sm:max-w-lg shadow-xl flex flex-col max-h-[90vh] sm:max-h-[80vh] rounded-t-2xl sm:rounded-lg overflow-hidden">
+        {/* Cabeçalho */}
+        <div className="flex justify-between items-center p-4 sm:p-6 border-b border-gray-100 shrink-0">
+          <h3 className="text-base sm:text-lg font-bold text-gray-800">Histórico do Agendamento</h3>
+          <button onClick={onFechar} className="text-gray-400 hover:text-gray-600 p-1">
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto pr-2">
+        {/* Linha do tempo com scroll interno */}
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar">
           {loading ? (
             <div className="text-center py-8 text-gray-500">Carregando histórico...</div>
           ) : historico.length === 0 ? (
@@ -80,8 +83,15 @@ export default function ModalHistorico({ historico, loading, onFechar }: ModalHi
             </div>
           )}
         </div>
-        <div className="mt-4 pt-4 border-t border-gray-100 text-right">
-          <button onClick={onFechar} className="bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 px-6 font-medium text-sm rounded transition-colors">Fechar</button>
+
+        {/* Rodapé */}
+        <div className="shrink-0 p-4 sm:p-6 pt-4 border-t border-gray-100 text-right">
+          <button
+            onClick={onFechar}
+            className="bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 px-6 font-medium text-sm rounded transition-colors w-full sm:w-auto"
+          >
+            Fechar
+          </button>
         </div>
       </div>
     </div>
