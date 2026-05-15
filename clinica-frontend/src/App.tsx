@@ -146,6 +146,7 @@ export default function App() {
 
   // Suprime aviso de CLINIC_NAME não utilizado (mantém import caso seja reaproveitado)
   void CLINIC_NAME;
+  void viewPaciente;
 
   // ── App autenticado ────────────────────────────────────────────────────────
   return (
@@ -189,7 +190,7 @@ export default function App() {
       {abaAtiva === "agendamentos" && (
         <section aria-label="Gerenciamento de agendamentos">
           {tipoUsuario === "Paciente" ? (
-             <AgendamentoPaciente onSucesso={() => setAbaAtiva("minhas-consultas")} />
+            <AgendamentoPaciente onSucesso={() => setAbaAtiva("minhas-consultas")} />
           ) : (
             <AgendamentoList agendamentoDestaque={agendamentoDestaque} />
           )}
@@ -199,45 +200,36 @@ export default function App() {
       {/* ── Minhas Consultas (Histórico do Paciente) ───────────────────────── */}
       {abaAtiva === "minhas-consultas" && tipoUsuario === "Paciente" && (
         <section aria-label="Minhas consultas">
-           <MeusAgendamentos onNovoAgendamento={() => setAbaAtiva("agendamentos")} agendamentoDestaque={agendamentoDestaque} />
+          <MeusAgendamentos onNovoAgendamento={() => setAbaAtiva("agendamentos")} agendamentoDestaque={agendamentoDestaque} />
         </section>
       )}
 
-
-      {/* ── Modal de Perfil ───────────────────────────────────────────────── */}
+      {/* ── Modal de Perfil — bottom-sheet no mobile, centralizado no desktop ── */}
       {modalPerfilAberto && (
         <div
-          style={{
-            position: 'fixed', inset: 0, zIndex: 150,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: 'rgba(17,24,39,0.6)', backdropFilter: 'blur(6px)',
-            padding: 16,
-          }}
+          className="fixed inset-0 z-[150] flex items-end sm:items-center justify-center bg-gray-900/60 backdrop-blur-md p-0 sm:p-4"
           role="dialog" aria-modal="true" aria-label="Perfil do usuário"
+          onClick={e => { if (e.target === e.currentTarget) setModalPerfilAberto(false); }}
         >
-          <div style={{
-            background: '#fff', width: '100%', maxWidth: 900,
-            maxHeight: '90vh', borderRadius: 32,
-            boxShadow: '0 24px 64px rgba(0,0,0,0.2)',
-            position: 'relative', display: 'flex', flexDirection: 'column', padding: 8,
-          }}>
+          <div className="bg-white w-full sm:max-w-3xl rounded-t-[2rem] sm:rounded-[2rem] shadow-2xl flex flex-col max-h-[92dvh] sm:max-h-[90vh] overflow-hidden border border-purple-50 relative">
+
+            {/* Drag handle — mobile */}
+            <div className="flex justify-center pt-3 pb-1 sm:hidden shrink-0">
+              <div className="w-10 h-1.5 bg-gray-200 rounded-full" />
+            </div>
+
+            {/* Botão fechar */}
             <button
               onClick={() => setModalPerfilAberto(false)}
-              style={{
-                position: 'absolute', right: 24, top: 24,
-                padding: 10, background: '#fff', border: 'none',
-                borderRadius: 14, boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                cursor: 'pointer', color: '#9CA3AF', zIndex: 160,
-                display: 'flex', transition: 'color 0.15s',
-              }}
-              onMouseEnter={e => (e.currentTarget.style.color = '#EF4444')}
-              onMouseLeave={e => (e.currentTarget.style.color = '#9CA3AF')}
+              className="absolute right-4 top-4 sm:right-6 sm:top-6 p-2.5 bg-white rounded-2xl shadow-md cursor-pointer text-gray-400 hover:text-red-500 transition-colors z-[160] flex items-center border-none"
               aria-label="Fechar perfil"
             >
-              <X className="w-6 h-6" strokeWidth={2.5} />
+              <X className="w-5 h-5" strokeWidth={2.5} />
             </button>
-            <div style={{ flex: 1, overflowY: 'auto', paddingRight: 16 }} className="custom-scrollbar scroll-smooth">
-              <div style={{ padding: '16px 24px 24px' }}>
+
+            {/* Conteúdo com scroll */}
+            <div className="flex-1 overflow-y-auto custom-scrollbar scroll-smooth">
+              <div className="p-4 pt-5 sm:p-8 sm:pt-10">
                 {tipoUsuario === "Medico" || tipoUsuario === "Enfermeira"
                   ? <PerfilMedico />
                   : <PerfilPaciente />

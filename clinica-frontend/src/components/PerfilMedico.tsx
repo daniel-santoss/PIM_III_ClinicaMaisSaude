@@ -158,13 +158,13 @@ export default function PerfilMedico() {
   return (
     <div className="animate-in fade-in slide-in-from-top-4 duration-500 max-w-4xl mx-auto space-y-8 px-4">
       {/* Header Profissional */}
-      <div className="flex items-center gap-6">
-        <div className={`w-20 h-20 text-white rounded-3xl flex items-center justify-center text-3xl font-black shadow-xl shrink-0 ${isEnfermeira ? 'bg-gradient-to-br from-teal-400 to-teal-600 shadow-teal-100' : 'bg-gradient-to-br from-blue-500 to-blue-700 shadow-blue-100'}`}>
+      <div className="flex items-center gap-4">
+        <div className={`w-14 h-14 sm:w-20 sm:h-20 text-white rounded-2xl sm:rounded-3xl flex items-center justify-center text-lg sm:text-3xl font-black shadow-xl shrink-0 ${isEnfermeira ? 'bg-gradient-to-br from-teal-400 to-teal-600 shadow-teal-100' : 'bg-gradient-to-br from-blue-500 to-blue-700 shadow-blue-100'}`}>
           {isEnfermeira ? "ENF" : "MD"}
         </div>
-        <div className="flex-1">
-          <h1 className="text-3xl font-black text-gray-900 tracking-tight leading-none">Meu Perfil</h1>
-          <p className="text-gray-400 text-sm font-medium mt-1">Perfil de {medico?.nome}</p>
+        <div className="flex-1 min-w-0">
+          <h1 className="text-xl sm:text-3xl font-black text-gray-900 tracking-tight leading-none">Meu Perfil</h1>
+          <p className="text-gray-400 text-sm font-medium mt-1 truncate">Perfil de {medico?.nome}</p>
         </div>
 
         {/* MODAL MENSAGEM */}
@@ -201,7 +201,7 @@ export default function PerfilMedico() {
               )}
             </div>
             {!editMode && (
-              <button onClick={() => setEditMode(true)} className="p-2 text-gray-300 hover:text-[#7C3AED] transition-colors opacity-0 group-hover:opacity-100">
+              <button onClick={() => setEditMode(true)} className="p-2 text-gray-300 hover:text-[#7C3AED] transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
                 <Pencil size={16} />
               </button>
             )}
@@ -223,7 +223,7 @@ export default function PerfilMedico() {
               )}
             </div>
             {!editMode && (
-              <button onClick={() => setEditMode(true)} className="p-2 text-gray-300 hover:text-[#7C3AED] transition-colors opacity-0 group-hover:opacity-100">
+              <button onClick={() => setEditMode(true)} className="p-2 text-gray-300 hover:text-[#7C3AED] transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
                 <Pencil size={16} />
               </button>
             )}
@@ -244,7 +244,7 @@ export default function PerfilMedico() {
             {!editSenha && (
               <button 
                 onClick={() => { setEditMode(true); setEditSenha(true); }} 
-                className="p-2 text-gray-300 hover:text-[#7C3AED] transition-colors opacity-0 group-hover:opacity-100"
+                className="p-2 text-gray-300 hover:text-[#7C3AED] transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
               >
                 <Pencil size={16} />
               </button>
@@ -289,17 +289,17 @@ export default function PerfilMedico() {
                 </div>
 
                 {/* Botões de Ação ao lado de Confirmar Senha */}
-                <div className="flex items-end justify-end gap-3 pb-1">
+                <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-end justify-end gap-3 pb-1">
                   <button 
                     onClick={cancelarEdicao}
-                    className="px-8 py-3 border border-gray-300 text-gray-500 rounded-xl font-bold text-xs uppercase tracking-wider hover:bg-gray-50 transition-colors bg-white shadow-sm"
+                    className="w-full sm:w-auto px-8 py-3 border border-gray-300 text-gray-500 rounded-xl font-bold text-xs uppercase tracking-wider hover:bg-gray-50 transition-colors bg-white shadow-sm text-center"
                   >
                     Cancelar
                   </button>
                   <button 
                     onClick={salvarTudo}
                     disabled={salvandoPerfil}
-                    className="px-10 py-3 bg-[#7C3AED] text-white rounded-xl font-bold text-xs uppercase tracking-wider shadow-lg shadow-purple-100 hover:bg-[#6D28D9] transition-all disabled:opacity-50 active:scale-95"
+                    className="w-full sm:w-auto px-10 py-3 bg-[#7C3AED] text-white rounded-xl font-bold text-xs uppercase tracking-wider shadow-lg shadow-purple-100 hover:bg-[#6D28D9] transition-all disabled:opacity-50 active:scale-95"
                   >
                     {salvandoPerfil ? "Salvando..." : "Salvar"}
                   </button>
@@ -311,17 +311,17 @@ export default function PerfilMedico() {
 
         {/* Botões de Ação (Salvar / Cancelar) - Apenas se não estiver editando senha */}
         {editMode && !editSenha && (
-          <div className="flex justify-end gap-3 animate-in fade-in slide-in-from-right-2 duration-300">
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 animate-in fade-in slide-in-from-right-2 duration-300">
             <button 
               onClick={cancelarEdicao}
-              className="px-8 py-3 border border-gray-300 text-gray-500 rounded-xl font-bold text-xs uppercase tracking-wider hover:bg-gray-50 transition-colors bg-white shadow-sm"
+              className="w-full sm:w-auto px-8 py-3 border border-gray-300 text-gray-500 rounded-xl font-bold text-xs uppercase tracking-wider hover:bg-gray-50 transition-colors bg-white shadow-sm text-center"
             >
               Cancelar
             </button>
             <button 
               onClick={salvarTudo}
               disabled={salvandoPerfil}
-              className="px-10 py-3 bg-[#7C3AED] text-white rounded-xl font-bold text-xs uppercase tracking-wider shadow-lg shadow-purple-100 hover:bg-[#6D28D9] transition-all disabled:opacity-50 active:scale-95"
+              className="w-full sm:w-auto px-10 py-3 bg-[#7C3AED] text-white rounded-xl font-bold text-xs uppercase tracking-wider shadow-lg shadow-purple-100 hover:bg-[#6D28D9] transition-all disabled:opacity-50 active:scale-95"
             >
               {salvandoPerfil ? "Salvando..." : "Salvar"}
             </button>
@@ -337,7 +337,7 @@ export default function PerfilMedico() {
             <span className="text-[10px] font-bold text-purple-500 bg-purple-50 px-2 py-1 rounded-lg">{especialidades.length} selecionada{especialidades.length !== 1 ? 's' : ''}</span>
           </div>
 
-          <div className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-sm space-y-6">
+          <div className="bg-white p-4 sm:p-6 rounded-2xl sm:rounded-[2.5rem] border border-gray-100 shadow-sm space-y-6">
             <div className="flex flex-wrap gap-2">
               {especialidades.map(esp => (
                 <span key={esp.id} className="inline-flex items-center gap-2 bg-purple-50 text-[#7C3AED] px-4 py-2 rounded-xl text-xs font-black border border-purple-100 group animate-in zoom-in duration-200">

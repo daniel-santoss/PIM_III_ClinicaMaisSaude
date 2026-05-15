@@ -164,10 +164,10 @@ export default function AgendamentoFormCriar({
           </div>
         </div>
       )}
-      <div className="bg-white w-full max-w-xl rounded-[3rem] shadow-2xl overflow-hidden border border-purple-100">
-        <div className="p-8 border-b border-purple-50 flex items-center justify-between bg-purple-50/30">
+      <div className="bg-white w-full sm:max-w-xl rounded-t-[2.5rem] sm:rounded-[3rem] shadow-2xl overflow-hidden border border-purple-100 flex flex-col max-h-[95dvh] sm:max-h-none">
+        <div className="p-5 sm:p-8 border-b border-purple-50 flex items-center justify-between bg-purple-50/30 shrink-0">
           <div>
-            <h3 className="text-2xl font-black text-gray-800">Novo Agendamento</h3>
+            <h3 className="text-xl sm:text-2xl font-black text-gray-800">Novo Agendamento</h3>
             <p className="text-xs font-bold text-purple-400 uppercase tracking-widest">Preencha os detalhes da consulta</p>
           </div>
           <button onClick={onFechar} className="p-2 text-gray-400 hover:bg-white rounded-2xl transition-all">
@@ -175,8 +175,8 @@ export default function AgendamentoFormCriar({
           </button>
         </div>
 
-        <div className="p-8 space-y-6">
-          <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+        <div className="p-5 sm:p-8 space-y-6 overflow-y-auto">
+          <div className="space-y-6">
             {/* Triagem por IA */}
             <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-5 rounded-2xl border border-indigo-100 space-y-3">
               <div className="flex items-center gap-2">
@@ -283,7 +283,7 @@ export default function AgendamentoFormCriar({
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Especialidade</label>
                 <select
@@ -327,7 +327,7 @@ export default function AgendamentoFormCriar({
                     <span>Especialidades com ⚠ não possuem médicos no momento.</span>
                   </div>
                 )}
-                <div className="grid grid-cols-2 gap-2 max-h-36 overflow-y-auto pr-1 custom-scrollbar">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-36 overflow-y-auto pr-1 custom-scrollbar">
                   {listaEspecialidades.map(e => {
                     const disponivel = especialidadesDisponiveis.includes(e.id);
                     const selecionado = especialidadeId === e.id;
@@ -378,7 +378,7 @@ export default function AgendamentoFormCriar({
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="col-span-2 md:col-span-1">
                 <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Data</label>
                 <input
@@ -391,7 +391,7 @@ export default function AgendamentoFormCriar({
               </div>
               <div className="col-span-2 md:col-span-1">
                 <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 ml-1">Horário Selecionado: <span className="text-[#7C3AED]">{horarioSelecionado || '...'}</span></label>
-                <div className="grid grid-cols-4 gap-2 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
                   {carregandoHorarios ? (
                     <div className="col-span-4 p-4 flex justify-center">
                       <div className="w-5 h-5 border-2 border-purple-200 border-t-[#7C3AED] rounded-full animate-spin"></div>
@@ -424,9 +424,9 @@ export default function AgendamentoFormCriar({
             </div>
           </div>
 
-          <div className="pt-4 flex gap-3">
-            <button onClick={onFechar} className="flex-1 px-8 py-4 bg-gray-100 text-gray-600 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-gray-200 transition-all">Cancelar</button>
-            <button onClick={async () => { await criarAgendamento(); }} className="flex-2 px-8 py-4 bg-[#7C3AED] text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-[#6D28D9] shadow-lg shadow-purple-200 transition-all">Finalizar Agendamento</button>
+          <div className="pt-4 flex flex-col-reverse sm:flex-row gap-3">
+            <button onClick={onFechar} className="w-full sm:flex-1 px-8 py-4 bg-gray-100 text-gray-600 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-gray-200 transition-all text-center">Cancelar</button>
+            <button onClick={async () => { await criarAgendamento(); }} className="w-full sm:flex-1 px-8 py-4 bg-[#7C3AED] text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-[#6D28D9] shadow-lg shadow-purple-200 transition-all text-center">Finalizar Agendamento</button>
           </div>
         </div>
       </div>
