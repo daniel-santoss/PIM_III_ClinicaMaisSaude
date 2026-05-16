@@ -82,5 +82,20 @@ window.fetch = async (...args) => {
     }
   }
 
+  if (!response.ok) {
+    const isAuthRoute = args[0].toString().includes('/login') || args[0].toString().includes('/refresh');
+    if (!isAuthRoute || response.status === 500) {
+      if (response.status === 401) {
+        window.dispatchEvent(new CustomEvent('addToast', { detail: { message: "Sessão expirada. Faça login novamente.", type: "error" } }));
+      } else if (response.status === 403) {
+        window.dispatchEvent(new CustomEvent('addToast', { detail: { message: "Você não tem permissão para esta ação.", type: "warning" } }));
+      } else if (response.status === 404) {
+        window.dispatchEvent(new CustomEvent('addToast', { detail: { message: "Registro não encontrado.", type: "error" } }));
+      } else if (response.status === 500) {
+        window.dispatchEvent(new CustomEvent('addToast', { detail: { message: "Erro interno. Tente novamente em instantes.", type: "error" } }));
+      }
+    }
+  }
+
   return response;
 };

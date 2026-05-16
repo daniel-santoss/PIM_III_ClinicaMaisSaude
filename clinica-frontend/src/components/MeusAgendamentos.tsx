@@ -31,7 +31,7 @@ export default function MeusAgendamentos({ onNovoAgendamento, agendamentoDestaqu
 
   const [filtroAgenda, setFiltroAgenda] = useState("");
   const [statusSelecionados, setStatusSelecionados] = useState<string[]>(Object.keys(MapNomesStatus));
-  const [filtroDataConsulta, setFiltroDataConsulta] = useState("");
+  const [filtroDataConsulta, setFiltroDataConsulta] = useState(() => new Date().toISOString().split('T')[0]);
   const [ordemData, setOrdemData] = useState<"asc" | "desc">("desc");
 
   const limparFiltros = () => {

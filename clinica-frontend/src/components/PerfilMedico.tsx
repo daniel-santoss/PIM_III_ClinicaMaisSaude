@@ -2,8 +2,9 @@ import { API_URL } from "../constants/api";
 import { useEffect, useState } from "react";
 import { ESPECIALIDADES } from "../constants/especialidades";
 import { mascaraCpf } from "../utils/validators";
-import { AlertTriangle, X, Pencil } from 'lucide-react';
+import { X, Pencil } from 'lucide-react';
 import { useScrollBlock } from "../hooks/useScrollBlock";
+import { useToast } from "../hooks/useToast";
 
 export default function PerfilMedico() {
   const [medico, setMedico] = useState<any>(null);
@@ -23,13 +24,13 @@ export default function PerfilMedico() {
     confirmarSenha: "" 
   });
   const [salvandoPerfil, setSalvandoPerfil] = useState(false);
-  const [modalMensagem, setModalMensagem] = useState<string | null>(null);
+  const toast = useToast();
 
   const profissionalId = localStorage.getItem("profissionalId");
   const token = localStorage.getItem("authToken");
   const isEnfermeira = localStorage.getItem("tipoUsuario") === "Enfermeira";
 
-  useScrollBlock(!!(modalMensagem || editMode || editSenha));
+  useScrollBlock(!!(editMode || editSenha));
 
   const carregar = async () => {
     try {
@@ -87,7 +88,7 @@ export default function PerfilMedico() {
       });
 
       if (!resPerfil.ok) {
-        setModalMensagem(await resPerfil.text());
+        toast.error(await resPerfil.text());
         setSalvandoPerfil(false);
         return;
       }
@@ -95,12 +96,12 @@ export default function PerfilMedico() {
       // 2. Salvar Senha se necessário
       if (editSenha) {
         if (!formEdit.novaSenha || !formEdit.senhaAtual || !formEdit.confirmarSenha) {
-          setModalMensagem("Preencha todos os campos de senha.");
+          toast.warning("Preencha todos os campos de senha.");
           setSalvandoPerfil(false);
           return;
         }
         if (formEdit.novaSenha !== formEdit.confirmarSenha) {
-          setModalMensagem("As senhas não coincidem.");
+          toast.error("As senhas não coincidem.");
           setSalvandoPerfil(false);
           return;
         }
@@ -112,19 +113,19 @@ export default function PerfilMedico() {
         });
 
         if (!resSenha.ok) {
-          setModalMensagem(await resSenha.text());
+          toast.error(await resSenha.text());
           setSalvandoPerfil(false);
           return;
         }
       }
 
-      setModalMensagem("Dados atualizados com sucesso!");
+      toast.success("Dados atualizados com sucesso!");
       setEditMode(false);
       setEditSenha(false);
       setFormEdit(f => ({ ...f, senhaAtual: "", novaSenha: "", confirmarSenha: "" }));
       carregar();
     } catch (e) { 
-      setModalMensagem("Erro de conexão."); 
+      toast.error("Erro de conexão."); 
     } finally { 
       setSalvandoPerfil(false); 
     }
@@ -166,20 +167,6 @@ export default function PerfilMedico() {
           <h1 className="text-xl sm:text-3xl font-black text-gray-900 tracking-tight leading-none">Meu Perfil</h1>
           <p className="text-gray-400 text-sm font-medium mt-1 truncate">Perfil de {medico?.nome}</p>
         </div>
-
-        {/* MODAL MENSAGEM */}
-        {modalMensagem && (
-          <div className="fixed inset-0 z-[300] flex items-center justify-center bg-gray-900/60 backdrop-blur-sm p-4">
-            <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-sm p-8 text-center border border-purple-50 animate-in zoom-in duration-200">
-              <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <AlertTriangle className="w-8 h-8" />
-              </div>
-              <h3 className="text-xl font-black text-gray-800 mb-2 uppercase tracking-tight">Aviso</h3>
-              <p className="text-gray-500 text-sm mb-8 font-medium leading-relaxed">{modalMensagem}</p>
-              <button className="w-full bg-[#7C3AED] text-white font-black py-4 rounded-2xl uppercase tracking-widest text-[10px] shadow-lg shadow-purple-100" onClick={() => setModalMensagem(null)}>Entendido</button>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Dados Pessoais */}
@@ -299,9 +286,11 @@ export default function PerfilMedico() {
                   <button 
                     onClick={salvarTudo}
                     disabled={salvandoPerfil}
-                    className="w-full sm:w-auto px-10 py-3 bg-[#7C3AED] text-white rounded-xl font-bold text-xs uppercase tracking-wider shadow-lg shadow-purple-100 hover:bg-[#6D28D9] transition-all disabled:opacity-50 active:scale-95"
+                    className="w-full sm:w-auto px-10 py-3 bg-[#7C3AED] text-white rounded-xl font-bold text-xs uppercase tracking-wider shadow-lg shadow-purple-100 hover:bg-[#6D28D9] transition-all disabled:opacity-50 active:scale-95 flex items-center justify-center gap-2"
                   >
-                    {salvandoPerfil ? "Salvando..." : "Salvar"}
+                    {salvandoPerfil ? (
+                      <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> Aguarde...</>
+                    ) : "Salvar"}
                   </button>
                 </div>
               </div>
@@ -321,9 +310,11 @@ export default function PerfilMedico() {
             <button 
               onClick={salvarTudo}
               disabled={salvandoPerfil}
-              className="w-full sm:w-auto px-10 py-3 bg-[#7C3AED] text-white rounded-xl font-bold text-xs uppercase tracking-wider shadow-lg shadow-purple-100 hover:bg-[#6D28D9] transition-all disabled:opacity-50 active:scale-95"
+              className="w-full sm:w-auto px-10 py-3 bg-[#7C3AED] text-white rounded-xl font-bold text-xs uppercase tracking-wider shadow-lg shadow-purple-100 hover:bg-[#6D28D9] transition-all disabled:opacity-50 active:scale-95 flex items-center justify-center gap-2"
             >
-              {salvandoPerfil ? "Salvando..." : "Salvar"}
+              {salvandoPerfil ? (
+                <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> Aguarde...</>
+              ) : "Salvar"}
             </button>
           </div>
         )}
@@ -385,9 +376,11 @@ export default function PerfilMedico() {
             <button
               onClick={salvarEspecialidades}
               disabled={salvando}
-              className="w-full py-4 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-black transition-all shadow-lg active:scale-95 disabled:opacity-50"
+              className="w-full py-4 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-black transition-all shadow-lg active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
             >
-              {salvando ? 'Salvando...' : 'Salvar Especialidades'}
+              {salvando ? (
+                <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> Aguarde...</>
+              ) : 'Salvar Especialidades'}
             </button>
           </div>
         </div>

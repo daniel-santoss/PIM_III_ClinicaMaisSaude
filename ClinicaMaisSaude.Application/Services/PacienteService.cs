@@ -87,7 +87,8 @@ namespace ClinicaMaisSaude.Application.Services
                 TemProblemaMemoria = p.TemProblemaMemoria,
                 UsuarioId = p.UsuarioId,
                 Tipo = "Paciente",
-                UltimoAcesso = p.Usuario?.UltimoAcesso
+                UltimoAcesso = p.Usuario?.UltimoAcesso,
+                IsBanidoPermanente = p.Usuario?.BloqueadoAte.HasValue == true && (p.Usuario.BloqueadoAte.Value - DateTime.UtcNow).TotalDays > 3650
             }).ToList();
 
             if (incluirProfissionais)
@@ -115,7 +116,8 @@ namespace ClinicaMaisSaude.Application.Services
                         Email = prof.Usuario.Email,
                         UsuarioId = prof.UsuarioId,
                         Tipo = prof.TipoProfissional.ToString(),
-                        UltimoAcesso = prof.Usuario.UltimoAcesso
+                        UltimoAcesso = prof.Usuario.UltimoAcesso,
+                        IsBanidoPermanente = prof.Usuario?.BloqueadoAte.HasValue == true && (prof.Usuario.BloqueadoAte.Value - DateTime.UtcNow).TotalDays > 3650
                     });
                 }
             }
@@ -137,7 +139,8 @@ namespace ClinicaMaisSaude.Application.Services
                 TemProblemaMemoria = p.TemProblemaMemoria,
                 UsuarioId = p.UsuarioId,
                 Tipo = "Paciente",
-                UltimoAcesso = p.Usuario?.UltimoAcesso
+                UltimoAcesso = p.Usuario?.UltimoAcesso,
+                IsBanidoPermanente = p.Usuario?.BloqueadoAte.HasValue == true && (p.Usuario.BloqueadoAte.Value - DateTime.UtcNow).TotalDays > 3650
             }).ToList();
 
             if (incluirProfissionais)
@@ -160,7 +163,8 @@ namespace ClinicaMaisSaude.Application.Services
                         Email = prof.Usuario.Email,
                         UsuarioId = prof.UsuarioId,
                         Tipo = prof.TipoProfissional.ToString(),
-                        UltimoAcesso = prof.Usuario.UltimoAcesso
+                        UltimoAcesso = prof.Usuario.UltimoAcesso,
+                        IsBanidoPermanente = prof.Usuario?.BloqueadoAte.HasValue == true && (prof.Usuario.BloqueadoAte.Value - DateTime.UtcNow).TotalDays > 3650
                     });
                 }
                 

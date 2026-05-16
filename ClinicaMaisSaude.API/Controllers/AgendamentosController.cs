@@ -57,7 +57,7 @@ namespace ClinicaMaisSaude.API.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> ObterTodos([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+        public async Task<IActionResult> ObterTodos([FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] string? busca = null, [FromQuery] string? data = null, [FromQuery] string? status = null, [FromQuery] bool riscoAltoApenas = false)
         {
             var tipoUsuario = User.FindFirstValue("TipoUsuario") ?? User.FindFirstValue(ClaimTypes.Role);
             var isAdmin = User.FindFirstValue("IsAdmin") == "true";
@@ -77,9 +77,9 @@ namespace ClinicaMaisSaude.API.Controllers
                 if (Guid.TryParse(profissionalIdStr, out var profissionalId))
                     filtroProf = profissionalId;
             }
-            // Enfermeira e Admin: sem filtro, veem tudo
+            // Enfermeira e Admin: sem filtro de ID, veem tudo (sujeito aos parâmetros de busca)
 
-            var result = await _agendamentoService.ObterTodosPaginadoAsync(page, pageSize, filtroProf, filtroPac);
+            var result = await _agendamentoService.ObterTodosPaginadoAsync(page, pageSize, filtroProf, filtroPac, busca, data, status, riscoAltoApenas);
             return Ok(result);
         }
 

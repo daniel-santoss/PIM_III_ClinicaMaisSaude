@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { API_URL } from "../constants/api";
-import { AlertOctagon, AlertTriangle, ShieldAlert, Search, ShieldCheck, ShieldOff } from "lucide-react";
+import { AlertOctagon, AlertTriangle, ShieldAlert, Search, ShieldCheck } from "lucide-react";
 
 import { useScrollBlock } from "../hooks/useScrollBlock";
+import { useToast } from "../hooks/useToast";
+import ConfirmModal from "./ConfirmModal";
 
 type Violacao = {
   id: string;
@@ -23,8 +25,9 @@ export default function ViolacoesList() {
   const [busca, setBusca] = useState("");
   const [removendoPenalidade, setRemovendoPenalidade] = useState<Record<string, boolean>>({});
   const [confirmarPaciente, setConfirmarPaciente] = useState<{ id: string; nome: string } | null>(null);
+  const toast = useToast();
 
-  useScrollBlock(!!confirmarPaciente);
+  // O scroll block é gerenciado internamente pelo ConfirmModal
 
   useEffect(() => {
     const fetchViolacoes = async () => {
@@ -37,9 +40,11 @@ export default function ViolacoesList() {
         if (res.ok) {
           const data = await res.json();
           setViolacoes(data);
+        } else {
+          toast.error("Erro ao carregar violações");
         }
       } catch (err) {
-        console.error("Erro ao carregar violações", err);
+        toast.error("Erro de conexão ao carregar violações.");
       } finally {
         setCarregando(false);
       }
@@ -61,9 +66,12 @@ export default function ViolacoesList() {
             ? { ...v, penalidadeRemovidaAguardandoLogin: true, iaBloqueadaAte: null }
             : v
         ));
+        toast.success("Penalidade removida com sucesso.");
+      } else {
+        toast.error(await res.text());
       }
     } catch (err) {
-      console.error("Erro ao remover penalidade", err);
+      toast.error("Erro de conexão ao remover penalidade.");
     } finally {
       setRemovendoPenalidade(prev => ({ ...prev, [pacienteId]: false }));
     }
@@ -236,38 +244,22 @@ export default function ViolacoesList() {
       </div>
 
       {/* ── Modal de Confirmação ── */}
-      {confirmarPaciente && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-sm p-8 text-center animate-in zoom-in-95 duration-200">
-            <div className="w-16 h-16 bg-purple-50 text-[#7C3AED] rounded-2xl flex items-center justify-center mx-auto mb-5">
-              <ShieldOff className="w-8 h-8" />
-            </div>
-            <h3 className="text-lg font-black text-gray-900 mb-2 uppercase tracking-tight">Remover Penalidade</h3>
-            <p className="text-sm text-gray-900 font-medium mb-1">
-              Tem certeza que deseja remover a penalidade de IA de <b className="text-purple-700">{confirmarPaciente.nome}?</b></p>
-            <p className="text-sm text-gray-900 font-medium mb-8">
-              O paciente será notificado no próximo login e poderá voltar a usar o assistente de triagem normalmente.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setConfirmarPaciente(null)}
-                className="flex-1 py-3 rounded-xl border-2 border-gray-200 text-sm font-black text-gray-500 hover:border-gray-300 hover:bg-gray-50 transition-all active:scale-95"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={() => {
-                  removerPenalidade(confirmarPaciente.id);
-                  setConfirmarPaciente(null);
-                }}
-                className="flex-1 py-3 rounded-xl bg-[#7C3AED] text-white text-sm font-black hover:bg-[#6D28D9] transition-all active:scale-95 shadow-lg shadow-purple-200"
-              >
-                Confirmar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmModal
+        isOpen={!!confirmarPaciente}
+        title="Remover Penalidade"
+        description={confirmarPaciente ? `Tem certeza que deseja remover a penalidade de IA de ${confirmarPaciente.nome}? O paciente será notificado no próximo login.` : ''}
+        confirmText="Remover"
+        cancelText="Cancelar"
+        type="neutral"
+        loading={confirmarPaciente ? removendoPenalidade[confirmarPaciente.id] : false}
+        onConfirm={() => {
+          if (confirmarPaciente) {
+            removerPenalidade(confirmarPaciente.id);
+            setConfirmarPaciente(null);
+          }
+        }}
+        onCancel={() => setConfirmarPaciente(null)}
+      />
     </>
   );
 }

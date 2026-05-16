@@ -4,24 +4,23 @@ import { mascaraCpf } from "../utils/validators";
 import { obterMinDate } from "../utils/dates";
 import type { PacienteResponse } from "../types/PacienteResponse";
 import type { AgendamentoResponse } from "./AgendamentoList";
-import { X, Lightbulb, AlertTriangle, ShieldAlert } from 'lucide-react';
+import { X, Lightbulb, AlertTriangle, ShieldAlert, Search } from 'lucide-react';
 import { useScrollBlock } from "../hooks/useScrollBlock";
+import { useToast } from "../hooks/useToast";
 
 interface AgendamentoFormCriarProps {
-  pacientes: PacienteResponse[];
-  agendamentos: AgendamentoResponse[];
   onFechar: () => void;
   onCriado: () => void;
-  onMensagem: (msg: string) => void;
 }
 
 export default function AgendamentoFormCriar({
-  pacientes,
-  agendamentos,
   onFechar,
   onCriado,
-  onMensagem,
 }: AgendamentoFormCriarProps) {
+  const toast = useToast();
+  const [pacientesLista, setPacientesLista] = useState<PacienteResponse[]>([]);
+  const [totalPacientesBusca, setTotalPacientesBusca] = useState(0);
+  const [buscandoPacientes, setBuscandoPacientes] = useState(false);
   const [pacienteSelecionado, setPacienteSelecionado] = useState("");
   const [buscaPaciente, setBuscaPaciente] = useState("");
   const [mostrarListaPacientes, setMostrarListaPacientes] = useState(false);
@@ -39,6 +38,7 @@ export default function AgendamentoFormCriar({
   const [sugestaoIA, setSugestaoIA] = useState<any>(null);
   const [carregandoIA, setCarregandoIA] = useState(false);
   const [violacao, setViolacao] = useState(false);
+  const [criando, setCriando] = useState(false);
 
   useEffect(() => {
     setTipoConsulta(tipoProfissional === 0 ? 0 : 3);
@@ -94,25 +94,48 @@ export default function AgendamentoFormCriar({
     fetchHorarios();
   }, [dataSelecionada, tipoConsulta, especialidadeId, origemId]);
 
-  const pacientesFiltrados = pacientes.filter(p => p.nome.toLowerCase().includes(buscaPaciente.toLowerCase()) || p.cpf.includes(buscaPaciente));
-
+  const buscarPacientesAPI = async () => {
+    if (!buscaPaciente) return;
+    setBuscandoPacientes(true);
+    setMostrarListaPacientes(false);
+    try {
+      const token = localStorage.getItem("authToken");
+      const response = await fetch(`${API_URL}/api/Pacientes?nome=${encodeURIComponent(buscaPaciente)}&pageSize=10`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        const pacs = data.items || data;
+        setPacientesLista(pacs.filter((p: any) => p.tipo === "Paciente" && !p.isBanidoPermanente));
+        setTotalPacientesBusca(data.totalCount || pacs.length);
+        setMostrarListaPacientes(true);
+      } else {
+        toast.error("Erro ao buscar pacientes.");
+      }
+    } catch {
+      toast.error("Falha na comunicação com o servidor.");
+    } finally {
+      setBuscandoPacientes(false);
+    }
+  };
   const criarAgendamento = async () => {
     if (!pacienteSelecionado || !dataSelecionada || !horarioSelecionado) {
-      onMensagem("Por favor, preencha todos os campos e selecione um horário.");
+      toast.error("Por favor, preencha todos os campos e selecione um horário.");
       return;
     }
 
     if (tipoProfissional === 1 && tipoConsulta === 3 && !especialidadeId) {
-      onMensagem("Selecione uma especialidade médica para prosseguir.");
+      toast.error("Selecione uma especialidade médica para prosseguir.");
       return;
     }
 
     if (tipoConsulta === 4 && !origemId) {
-      onMensagem("Para agendar retorno, você precisa selecionar a consulta de origem.");
+      toast.error("Para agendar retorno, você precisa selecionar a consulta de origem.");
       return;
     }
 
     const dataHoraUnida = `${dataSelecionada}T${horarioSelecionado}:00-03:00`;
+    setCriando(true);
 
     try {
       const token = localStorage.getItem("authToken");
@@ -130,18 +153,21 @@ export default function AgendamentoFormCriar({
       });
 
       if (!response.ok) {
-        onMensagem(await response.text());
+        toast.error(await response.text());
         return;
       }
-
+      
+      toast.success("Consulta agendada com sucesso!");
       onCriado();
     } catch (err) {
-      onMensagem("Falha de conexão ao criar agendamento.");
+      toast.error("Falha de conexão ao criar agendamento.");
+    } finally {
+      setCriando(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-purple-900/40 backdrop-blur-sm animate-in fade-in duration-300">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-0 sm:p-4 bg-purple-900/40 backdrop-blur-sm animate-in fade-in duration-300">
       {violacao && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-red-900/90 backdrop-blur-md p-4 animate-in fade-in duration-300">
           <div className="bg-white rounded-[2.5rem] shadow-2xl shadow-red-900/50 w-full max-w-xl p-10 text-center border-4 border-red-500">
@@ -164,7 +190,7 @@ export default function AgendamentoFormCriar({
           </div>
         </div>
       )}
-      <div className="bg-white w-full sm:max-w-xl rounded-t-[2.5rem] sm:rounded-[3rem] shadow-2xl overflow-hidden border border-purple-100 flex flex-col max-h-[95dvh] sm:max-h-none">
+      <div className="bg-white w-full h-[100dvh] sm:h-auto sm:max-w-xl rounded-none sm:rounded-[3rem] shadow-2xl overflow-hidden border-0 sm:border border-purple-100 flex flex-col sm:max-h-[90vh]">
         <div className="p-5 sm:p-8 border-b border-purple-50 flex items-center justify-between bg-purple-50/30 shrink-0">
           <div>
             <h3 className="text-xl sm:text-2xl font-black text-gray-800">Novo Agendamento</h3>
@@ -229,8 +255,8 @@ export default function AgendamentoFormCriar({
                           const match = listaEspecialidades.find(e => e.nome === dados.especialidade);
                           if (match) setEspecialidadeId(match.id);
                         }
-                      } else { onMensagem(await res.text()); }
-                    } catch { onMensagem("Falha ao consultar IA."); }
+                      } else { toast.error(await res.text()); }
+                    } catch { toast.error("Falha ao consultar IA."); }
                     finally { setCarregandoIA(false); }
                   }}
                   className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-700 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
@@ -251,24 +277,49 @@ export default function AgendamentoFormCriar({
             </div>
             <div className="relative">
               <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Paciente</label>
-              <input
-                type="text"
-                placeholder="Buscar por nome ou CPF..."
-                className="w-full p-4 border border-gray-200 rounded-2xl bg-gray-50 focus:ring-2 focus:ring-[#7C3AED] focus:bg-white transition-all outline-none font-bold text-sm"
-                value={buscaPaciente}
-                onChange={(e) => {
-                  setBuscaPaciente(e.target.value);
-                  setMostrarListaPacientes(true);
-                  setPacienteSelecionado("");
-                  setOrigemId("");
-                }}
-              />
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Buscar por nome ou CPF..."
+                  className="w-full p-4 pr-14 border border-gray-200 rounded-2xl bg-gray-50 focus:ring-2 focus:ring-[#7C3AED] focus:bg-white transition-all outline-none font-bold text-sm"
+                  value={buscaPaciente}
+                  onBlur={() => {
+                    setTimeout(() => setMostrarListaPacientes(false), 200);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      buscarPacientesAPI();
+                    }
+                  }}
+                  onChange={(e) => {
+                    setBuscaPaciente(e.target.value);
+                    setPacienteSelecionado("");
+                    setOrigemId("");
+                  }}
+                />
+                <button 
+                  type="button" 
+                  onClick={buscarPacientesAPI}
+                  onMouseDown={(e) => e.preventDefault()}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-purple-100 text-purple-600 rounded-xl hover:bg-[#7C3AED] hover:text-white transition-colors"
+                >
+                  {buscandoPacientes ? (
+                    <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                  ) : (
+                    <Search className="w-5 h-5" />
+                  )}
+                </button>
+              </div>
               {mostrarListaPacientes && (
-                <div className="absolute z-[70] w-full bg-white border border-purple-100 mt-2 max-h-48 overflow-y-auto rounded-2xl shadow-2xl">
-                  {pacientesFiltrados.map((p) => (
+                <div className="absolute z-[70] w-full bg-white border border-purple-100 mt-2 max-h-48 overflow-y-auto rounded-2xl shadow-2xl custom-scrollbar">
+                  {pacientesLista.length === 0 && !buscandoPacientes && (
+                     <div className="p-4 text-center text-sm font-bold text-gray-500">Nenhum paciente encontrado.</div>
+                  )}
+                  {pacientesLista.map((p) => (
                     <div
                       key={p.id}
-                      className="p-4 hover:bg-purple-50 cursor-pointer border-b border-gray-50 last:border-0 transition-colors"
+                      className="p-4 hover:bg-purple-50 cursor-pointer border-b border-gray-50 last:border-0 transition-colors flex flex-col gap-1"
                       onClick={() => {
                         setPacienteSelecionado(p.id);
                         setBuscaPaciente(p.nome);
@@ -279,6 +330,11 @@ export default function AgendamentoFormCriar({
                       <div className="text-[10px] font-bold text-purple-400">CPF: {mascaraCpf(p.cpf)}</div>
                     </div>
                   ))}
+                  {totalPacientesBusca > 10 && (
+                     <div className="p-3 text-center text-[10px] font-bold text-purple-600 bg-purple-50 rounded-b-2xl">
+                        Foram encontrados muitos resultados. Sugerimos a busca por CPF para refinar.
+                     </div>
+                  )}
                 </div>
               )}
             </div>
@@ -378,8 +434,8 @@ export default function AgendamentoFormCriar({
               </div>
             )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="col-span-2 md:col-span-1">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="col-span-1">
                 <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Data</label>
                 <input
                   type="date"
@@ -389,13 +445,13 @@ export default function AgendamentoFormCriar({
                   onChange={(e) => setDataSelecionada(e.target.value)}
                 />
               </div>
-              <div className="col-span-2 md:col-span-1">
+              <div className="col-span-1">
                 <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 ml-1">Horário Selecionado: <span className="text-[#7C3AED]">{horarioSelecionado || '...'}</span></label>
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
                   {carregandoHorarios ? (
-                    <div className="col-span-4 p-4 flex justify-center">
-                      <div className="w-5 h-5 border-2 border-purple-200 border-t-[#7C3AED] rounded-full animate-spin"></div>
-                    </div>
+                    Array.from({ length: 8 }).map((_, i) => (
+                      <div key={i} className="h-10 bg-gray-200 rounded-xl animate-pulse"></div>
+                    ))
                   ) : dataSelecionada && horariosDisponiveis.length === 0 ? (
                     <div className="col-span-4 p-4 flex flex-col items-center justify-center text-center bg-orange-50 border border-orange-100 rounded-2xl">
                       <AlertTriangle className="w-8 h-8 text-orange-400 mb-2" />
@@ -425,8 +481,14 @@ export default function AgendamentoFormCriar({
           </div>
 
           <div className="pt-4 flex flex-col-reverse sm:flex-row gap-3">
-            <button onClick={onFechar} className="w-full sm:flex-1 px-8 py-4 bg-gray-100 text-gray-600 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-gray-200 transition-all text-center">Cancelar</button>
-            <button onClick={async () => { await criarAgendamento(); }} className="w-full sm:flex-1 px-8 py-4 bg-[#7C3AED] text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-[#6D28D9] shadow-lg shadow-purple-200 transition-all text-center">Finalizar Agendamento</button>
+            <button onClick={onFechar} disabled={criando} className="w-full sm:flex-1 px-8 py-4 bg-gray-100 text-gray-600 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-gray-200 transition-all text-center disabled:opacity-50">Cancelar</button>
+            <button disabled={criando} onClick={async () => { await criarAgendamento(); }} className="w-full sm:flex-1 px-8 py-4 bg-[#7C3AED] text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-[#6D28D9] shadow-lg shadow-purple-200 transition-all flex justify-center items-center gap-2 disabled:opacity-50">
+              {criando ? (
+                <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> Aguarde...</>
+              ) : (
+                "Finalizar Agendamento"
+              )}
+            </button>
           </div>
         </div>
       </div>

@@ -13,9 +13,9 @@ export default function ModalHistorico({ historico, loading, onFechar }: ModalHi
   useScrollBlock(true);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4 backdrop-blur-sm animate-in fade-in duration-300">
       {/* Largura total no mobile (sem margens), centralizado no tablet/desktop */}
-      <div className="bg-white w-full sm:rounded-lg sm:max-w-lg shadow-xl flex flex-col max-h-[90vh] sm:max-h-[80vh] rounded-t-2xl sm:rounded-lg overflow-hidden">
+      <div className="bg-white w-full h-[100dvh] sm:h-auto sm:rounded-lg sm:max-w-lg shadow-xl flex flex-col sm:max-h-[80vh] rounded-none sm:rounded-lg overflow-hidden animate-in slide-in-from-bottom-4 sm:zoom-in duration-300">
         {/* Cabeçalho */}
         <div className="flex justify-between items-center p-4 sm:p-6 border-b border-gray-100 shrink-0">
           <h3 className="text-base sm:text-lg font-bold text-gray-800">Histórico do Agendamento</h3>
@@ -27,7 +27,19 @@ export default function ModalHistorico({ historico, loading, onFechar }: ModalHi
         {/* Linha do tempo com scroll interno */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar">
           {loading ? (
-            <div className="text-center py-8 text-gray-500">Carregando histórico...</div>
+            <div className="relative border-l-2 border-gray-100 ml-3 space-y-6 pb-4 mt-2">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="relative pl-6 animate-pulse">
+                  <span className="absolute -left-[9px] top-1.5 w-4 h-4 rounded-full bg-gray-200 border-2 border-white shadow"></span>
+                  <div className="flex flex-col gap-2">
+                    <div className="h-3 w-24 bg-gray-200 rounded"></div>
+                    <div className="h-5 w-32 bg-gray-200 rounded"></div>
+                    <div className="h-4 w-48 bg-gray-200 rounded mt-1"></div>
+                    <div className="h-3 w-32 bg-gray-200 rounded mt-2"></div>
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : historico.length === 0 ? (
             <div className="text-center py-8 text-gray-500 bg-gray-50 rounded">Nenhum evento registrado para este agendamento.</div>
           ) : (

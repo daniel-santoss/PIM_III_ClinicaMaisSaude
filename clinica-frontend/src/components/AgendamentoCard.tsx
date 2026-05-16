@@ -1,7 +1,7 @@
 
 import { useEffect, useRef } from 'react';
 import { MapNomesStatus, MapNomesTipoConsulta, MapNomesEspecialidade } from "../constants/statusMap";
-import { User, Clock, Calendar, Stethoscope } from 'lucide-react';
+import { Clock, Calendar, Stethoscope } from 'lucide-react';
 
 interface AgendamentoCardProps {
   agenda: {
@@ -15,6 +15,7 @@ interface AgendamentoCardProps {
     nomeProfissional: string;
     especialidade?: string;
     nivelProbabilidadeFalta?: string;
+    probabilidadeFalta?: number;
   };
   highlighted?: boolean;
   opcoesValidas: string[];
@@ -116,7 +117,7 @@ export default function AgendamentoCard({
                     agenda.nivelProbabilidadeFalta === "Média" ? "bg-amber-500" :
                     "bg-green-500"
                   }`}></span>
-                  Risco {agenda.nivelProbabilidadeFalta}
+                  Risco {agenda.nivelProbabilidadeFalta} {agenda.probabilidadeFalta !== undefined ? `(${agenda.probabilidadeFalta}%)` : ''}
                 </span>
               )}
             </div>
@@ -140,51 +141,52 @@ export default function AgendamentoCard({
       </div>
 
       {/* Rodapé: Ações */}
-      <div className="px-4 sm:px-5 py-3 sm:py-4 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex gap-2 shrink-0">
-          {onHistorico && (
-            <button
-              title="Histórico"
-              onClick={() => onHistorico(agenda.id)}
-              className="flex items-center justify-center w-10 h-10 border border-gray-200 text-gray-600 hover:bg-gray-50 rounded-xl transition-colors"
+      <div className="px-4 sm:px-5 py-3 sm:py-4 border-t border-gray-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        
+        {opcoesValidas.length > 0 && onAlterarStatus && (
+          <div className="relative w-full sm:w-auto sm:order-last">
+            <select
+              className="w-full sm:w-auto appearance-none bg-white text-[#7C3AED] border border-[#7C3AED] text-xs font-bold py-2.5 pl-3 pr-8 rounded-xl cursor-pointer outline-none hover:bg-[#F5F3FF] transition-colors"
+              value={agenda.status}
+              onChange={(e) => onAlterarStatus(agenda.id, e.target.value)}
             >
-              <Clock className="w-4 h-4" />
-            </button>
-          )}
-          {podeRemarcar && onRemarcar && (
-            <button
-              title="Remarcar"
-              onClick={() => onRemarcar(agenda)}
-              className="flex items-center justify-center w-10 h-10 border border-gray-200 text-gray-600 hover:bg-gray-50 rounded-xl transition-colors"
-            >
-              <Calendar className="w-4 h-4" />
-            </button>
-          )}
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2 flex-1">
-          {opcoesValidas.length > 0 && onAlterarStatus && (
-            <div className="relative flex-1 sm:flex-none">
-              <select
-                className="w-full sm:w-auto appearance-none bg-white text-[#7C3AED] border border-[#7C3AED] text-xs font-bold py-2.5 pl-3 pr-8 rounded-xl cursor-pointer outline-none hover:bg-[#F5F3FF] transition-colors"
-                value={agenda.status}
-                onChange={(e) => onAlterarStatus(agenda.id, e.target.value)}
-              >
-                <option value={agenda.status} disabled>Status</option>
-                {opcoesValidas.map(op => (
-                  <option key={op} value={op}>{MapNomesStatus[op]}</option>
-                ))}
-              </select>
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2 text-[#7C3AED]">
-                <svg className="fill-current h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
-              </div>
+              <option value={agenda.status} disabled>Status</option>
+              {opcoesValidas.map(op => (
+                <option key={op} value={op}>{MapNomesStatus[op]}</option>
+              ))}
+            </select>
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2 text-[#7C3AED]">
+              <svg className="fill-current h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
             </div>
-          )}
+          </div>
+        )}
+
+        <div className="flex items-center justify-between sm:justify-start gap-2 w-full sm:w-auto">
+          <div className="flex gap-2">
+            {onHistorico && (
+              <button
+                title="Histórico"
+                onClick={() => onHistorico(agenda.id)}
+                className="flex items-center justify-center w-10 h-10 border border-gray-200 text-gray-600 hover:bg-gray-50 rounded-xl transition-colors"
+              >
+                <Clock className="w-4 h-4" />
+              </button>
+            )}
+            {podeRemarcar && onRemarcar && (
+              <button
+                title="Remarcar"
+                onClick={() => onRemarcar(agenda)}
+                className="flex items-center justify-center w-10 h-10 border border-gray-200 text-gray-600 hover:bg-gray-50 rounded-xl transition-colors"
+              >
+                <Calendar className="w-4 h-4" />
+              </button>
+            )}
+          </div>
 
           {podeCancelar && onCancelar && (
             <button
               onClick={() => onCancelar(agenda.id, agenda.pacienteNome)}
-              className="flex-1 sm:flex-none text-xs font-bold bg-red-500 text-white px-4 py-2.5 rounded-xl hover:bg-red-600 transition-colors shadow-sm whitespace-nowrap text-center"
+              className="flex-1 sm:flex-none text-xs font-bold bg-red-500 text-white px-4 py-2.5 rounded-xl hover:bg-red-600 transition-colors shadow-sm whitespace-nowrap text-center h-10"
             >
               Cancelar
             </button>

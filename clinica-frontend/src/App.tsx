@@ -13,6 +13,7 @@ import PerfilMedico from "./components/PerfilMedico";
 import ViolacoesList from "./components/ViolacoesList";
 import type { PacienteResponse } from "./types/PacienteResponse";
 import { useScrollBlock } from "./hooks/useScrollBlock";
+import ToastContainer from "./components/ToastNotification";
 
 type Notificacao = {
   id: string;
@@ -239,6 +240,7 @@ export default function App() {
           </div>
         </div>
       )}
+      <ToastContainer />
     </AppLayout>
   );
 }

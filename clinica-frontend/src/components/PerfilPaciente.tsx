@@ -1,14 +1,15 @@
 import { API_URL } from "../constants/api";
 import { useEffect, useState } from "react";
 import { mascaraCpf, mascaraTelefone } from "../utils/validators";
-import { AlertTriangle, Pencil } from "lucide-react";
+import { Pencil } from "lucide-react";
 import { useScrollBlock } from "../hooks/useScrollBlock";
+import { useToast } from "../hooks/useToast";
 
 export default function PerfilPaciente() {
   const [paciente, setPaciente] = useState<any>(null);
   const [carregando, setCarregando] = useState(true);
   const [modalExcluir, setModalExcluir] = useState(false);
-  const [modalMensagem, setModalMensagem] = useState<string | null>(null);
+  const toast = useToast();
 
   const [editMode, setEditMode] = useState(false);
   const [editSenha, setEditSenha] = useState(false);
@@ -26,7 +27,7 @@ export default function PerfilPaciente() {
   const pacienteId = localStorage.getItem("pacienteId");
   const token = localStorage.getItem("authToken");
 
-  useScrollBlock(!!(modalExcluir || modalMensagem || editMode || editSenha));
+  useScrollBlock(!!(modalExcluir || editMode || editSenha));
 
   const carregarDados = async () => {
     try {
@@ -74,7 +75,7 @@ export default function PerfilPaciente() {
       });
 
       if (!resPerfil.ok) {
-        setModalMensagem(await resPerfil.text() || "Erro ao salvar perfil.");
+        toast.error(await resPerfil.text() || "Erro ao salvar perfil.");
         setSalvando(false);
         return;
       }
@@ -82,12 +83,12 @@ export default function PerfilPaciente() {
       // 2. Salvar Senha if enabled
       if (editSenha) {
         if (!editData.novaSenha || !editData.senhaAtual || !editData.confirmarSenha) {
-          setModalMensagem("Preencha todos os campos de senha.");
+          toast.warning("Preencha todos os campos de senha.");
           setSalvando(false);
           return;
         }
         if (editData.novaSenha !== editData.confirmarSenha) {
-          setModalMensagem("As senhas não coincidem.");
+          toast.error("As senhas não coincidem.");
           setSalvando(false);
           return;
         }
@@ -99,7 +100,7 @@ export default function PerfilPaciente() {
         });
 
         if (!resSenha.ok) {
-          setModalMensagem(await resSenha.text());
+          toast.error(await resSenha.text());
           setSalvando(false);
           return;
         }
@@ -108,10 +109,10 @@ export default function PerfilPaciente() {
       setPaciente({ ...paciente, ...editData });
       setEditMode(false);
       setEditSenha(false);
-      setModalMensagem("Perfil atualizado com sucesso!");
+      toast.success("Perfil atualizado com sucesso!");
       carregarDados();
     } catch (e) {
-      setModalMensagem("Erro de conexão.");
+      toast.error("Erro de conexão.");
     } finally {
       setSalvando(false);
     }
@@ -150,20 +151,6 @@ export default function PerfilPaciente() {
           <h1 className="text-3xl font-black text-gray-900 tracking-tight leading-none">Meu Perfil</h1>
           <p className="text-gray-400 text-sm font-medium">Informações da conta</p>
         </div>
-
-        {/* MODAL MENSAGEM */}
-        {modalMensagem && (
-          <div className="fixed inset-0 z-[300] flex items-center justify-center bg-gray-900/60 backdrop-blur-sm p-4">
-            <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-sm p-8 text-center border border-purple-50 animate-in zoom-in duration-200">
-              <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <AlertTriangle className="w-8 h-8" />
-              </div>
-              <h3 className="text-xl font-black text-gray-800 mb-2 uppercase tracking-tight">Aviso</h3>
-              <p className="text-gray-500 text-sm mb-8 font-medium leading-relaxed">{modalMensagem}</p>
-              <button className="w-full bg-[#7C3AED] text-white font-black py-4 rounded-2xl uppercase tracking-widest text-[10px] shadow-lg shadow-purple-100" onClick={() => setModalMensagem(null)}>Entendido</button>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Seção de Dados */}
@@ -322,9 +309,11 @@ export default function PerfilPaciente() {
                   <button 
                     onClick={salvarTudo}
                     disabled={salvando}
-                    className="px-10 py-3 bg-[#7C3AED] text-white rounded-xl font-bold text-xs uppercase tracking-wider shadow-lg shadow-purple-100 hover:bg-[#6D28D9] transition-all disabled:opacity-50 active:scale-95"
+                    className="px-10 py-3 bg-[#7C3AED] text-white rounded-xl font-bold text-xs uppercase tracking-wider shadow-lg shadow-purple-100 hover:bg-[#6D28D9] transition-all disabled:opacity-50 active:scale-95 flex items-center justify-center gap-2"
                   >
-                    {salvando ? "Salvando..." : "Salvar"}
+                    {salvando ? (
+                      <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> Aguarde...</>
+                    ) : "Salvar"}
                   </button>
                 </div>
               </div>
@@ -344,9 +333,11 @@ export default function PerfilPaciente() {
             <button 
               onClick={salvarTudo}
               disabled={salvando}
-              className="px-10 py-3 bg-[#7C3AED] text-white rounded-xl font-bold text-xs uppercase tracking-wider shadow-lg shadow-purple-100 hover:bg-[#6D28D9] transition-all disabled:opacity-50 active:scale-95"
+              className="px-10 py-3 bg-[#7C3AED] text-white rounded-xl font-bold text-xs uppercase tracking-wider shadow-lg shadow-purple-100 hover:bg-[#6D28D9] transition-all disabled:opacity-50 active:scale-95 flex items-center justify-center gap-2"
             >
-              {salvando ? "Salvando..." : "Salvar"}
+              {salvando ? (
+                <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> Aguarde...</>
+              ) : "Salvar"}
             </button>
           </div>
         )}

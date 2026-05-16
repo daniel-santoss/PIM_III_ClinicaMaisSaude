@@ -73,7 +73,7 @@ namespace ClinicaMaisSaude.Infrastructure.Repositories
                 .ToListAsync();
         }
 
-        public async Task<(IEnumerable<Agendamento> Items, int TotalCount)> ObterTodosPaginadoAsync(int page, int pageSize, Guid? profissionalId = null, Guid? pacienteId = null)
+        public async Task<(IEnumerable<Agendamento> Items, int TotalCount)> ObterTodosPaginadoAsync(int page, int pageSize, Guid? profissionalId = null, Guid? pacienteId = null, string? buscaPaciente = null, string? dataConsulta = null, string? status = null, bool riscoAltoApenas = false)
         {
             var query = _context.Agendamentos
                                 .AsNoTracking()
@@ -85,6 +85,31 @@ namespace ClinicaMaisSaude.Infrastructure.Repositories
 
             if (pacienteId.HasValue)
                 query = query.Where(a => a.PacienteId == pacienteId.Value);
+
+            if (!string.IsNullOrWhiteSpace(buscaPaciente))
+            {
+                query = query.Where(a => a.Paciente.Nome.Contains(buscaPaciente) || a.Paciente.Cpf.Contains(buscaPaciente));
+            }
+
+            if (!string.IsNullOrWhiteSpace(dataConsulta))
+            {
+                if (DateTime.TryParse(dataConsulta, out DateTime parsedDate))
+                {
+                    query = query.Where(a => a.DataHoraConsulta.Date == parsedDate.Date);
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(status))
+            {
+                var statusList = status.Split(',').Select(s => Enum.Parse<ClinicaMaisSaude.Domain.Enums.StatusAgendamento>(s)).ToList();
+                query = query.Where(a => statusList.Contains(a.Status));
+            }
+
+            if (riscoAltoApenas)
+            {
+                // Risco Média ou Alta: probabilidade > 30
+                query = query.Where(a => a.ProbabilidadeFalta > 30);
+            }
 
             query = query.OrderByDescending(a => a.DataHoraConsulta);
 

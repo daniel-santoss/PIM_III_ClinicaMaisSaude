@@ -89,6 +89,9 @@ namespace ClinicaMaisSaude.Application.Services
                 request.AgendamentoOrigemId
             );
 
+            var (prob, _) = await _probabilidadeFaltaService.CalcularProbabilidadeAsync(agendamento.PacienteId, agendamento.DataHoraConsulta);
+            agendamento.AtualizarProbabilidadeFalta(prob);
+
             await _repository.AdicionarAsync(agendamento);
 
             var historico = new AgendamentoHistorico(
@@ -139,8 +142,9 @@ namespace ClinicaMaisSaude.Application.Services
             }
             
             var response = MapearResponse(agendamento, paciente.Nome, profissionalNome);
-            var (_, nivel) = await _probabilidadeFaltaService.CalcularProbabilidadeAsync(agendamento.PacienteId, agendamento.DataHoraConsulta);
-            response.NivelProbabilidadeFalta = nivel;
+            var (probFinal, nivelFinal) = await _probabilidadeFaltaService.CalcularProbabilidadeAsync(agendamento.PacienteId, agendamento.DataHoraConsulta);
+            response.NivelProbabilidadeFalta = nivelFinal;
+            response.ProbabilidadeFalta = probFinal;
 
             return response;
         }
@@ -166,6 +170,9 @@ namespace ClinicaMaisSaude.Application.Services
                throw new Exception("O profissional original não possui agenda para esse reagendamento. Tente outro horário.");
             }
 
+            var (prob, _) = await _probabilidadeFaltaService.CalcularProbabilidadeAsync(agendamento.PacienteId, agendamento.DataHoraConsulta);
+            agendamento.AtualizarProbabilidadeFalta(prob);
+
             await _repository.AtualizarAsync(agendamento);
 
             var pacienteNome = (await _pacienteRepository.ObterPorIdAsync(agendamento.PacienteId))?.Nome ?? "N/A";
@@ -173,8 +180,9 @@ namespace ClinicaMaisSaude.Application.Services
             var profissionalNome = profissional?.Nome ?? "N/A";
 
             var response = MapearResponse(agendamento, pacienteNome, profissionalNome);
-            var (_, nivel) = await _probabilidadeFaltaService.CalcularProbabilidadeAsync(agendamento.PacienteId, agendamento.DataHoraConsulta);
-            response.NivelProbabilidadeFalta = nivel;
+            var (probFinal, nivelFinal) = await _probabilidadeFaltaService.CalcularProbabilidadeAsync(agendamento.PacienteId, agendamento.DataHoraConsulta);
+            response.NivelProbabilidadeFalta = nivelFinal;
+            response.ProbabilidadeFalta = probFinal;
 
             return response;
         }
@@ -210,8 +218,9 @@ namespace ClinicaMaisSaude.Application.Services
             var profissionalNome = profissional?.Nome ?? "N/A";
 
             var response = MapearResponse(agendamento, pacienteNome, profissionalNome);
-            var (_, nivel) = await _probabilidadeFaltaService.CalcularProbabilidadeAsync(agendamento.PacienteId, agendamento.DataHoraConsulta);
-            response.NivelProbabilidadeFalta = nivel;
+            var (probFinal, nivelFinal) = await _probabilidadeFaltaService.CalcularProbabilidadeAsync(agendamento.PacienteId, agendamento.DataHoraConsulta);
+            response.NivelProbabilidadeFalta = nivelFinal;
+            response.ProbabilidadeFalta = probFinal;
 
             return response;
         }
@@ -236,8 +245,9 @@ namespace ClinicaMaisSaude.Application.Services
             var profissionalNome = profissional?.Nome ?? "N/A";
 
             var response = MapearResponse(agendamento, pacienteNome, profissionalNome);
-            var (_, nivel) = await _probabilidadeFaltaService.CalcularProbabilidadeAsync(agendamento.PacienteId, agendamento.DataHoraConsulta);
-            response.NivelProbabilidadeFalta = nivel;
+            var (probFinal, nivelFinal) = await _probabilidadeFaltaService.CalcularProbabilidadeAsync(agendamento.PacienteId, agendamento.DataHoraConsulta);
+            response.NivelProbabilidadeFalta = nivelFinal;
+            response.ProbabilidadeFalta = probFinal;
 
             return response;
         }
@@ -266,6 +276,9 @@ namespace ClinicaMaisSaude.Application.Services
             var dataAntiga = agendamento.DataHoraConsulta;
             agendamento.AlterarDataHora(request.NovaDataHora);
 
+            var (prob, _) = await _probabilidadeFaltaService.CalcularProbabilidadeAsync(agendamento.PacienteId, agendamento.DataHoraConsulta);
+            agendamento.AtualizarProbabilidadeFalta(prob);
+
             await _repository.AtualizarAsync(agendamento);
 
             var historico = new AgendamentoHistorico(
@@ -283,8 +296,9 @@ namespace ClinicaMaisSaude.Application.Services
             var profissionalNome = profissional?.Nome ?? "N/A";
 
             var response = MapearResponse(agendamento, pacienteNome, profissionalNome);
-            var (_, nivel) = await _probabilidadeFaltaService.CalcularProbabilidadeAsync(agendamento.PacienteId, agendamento.DataHoraConsulta);
-            response.NivelProbabilidadeFalta = nivel;
+            var (probFinal, nivelFinal) = await _probabilidadeFaltaService.CalcularProbabilidadeAsync(agendamento.PacienteId, agendamento.DataHoraConsulta);
+            response.NivelProbabilidadeFalta = nivelFinal;
+            response.ProbabilidadeFalta = probFinal;
 
             return response;
         }
@@ -302,7 +316,7 @@ namespace ClinicaMaisSaude.Application.Services
                 var prof = profissionais.FirstOrDefault(p => p.Id == a.ProfissionalId);
                 var esp = prof?.Especialidades.FirstOrDefault()?.EspecialidadeId.ToString() ?? "";
                 
-                var (_, nivel) = await _probabilidadeFaltaService.CalcularProbabilidadeAsync(a.PacienteId, a.DataHoraConsulta);
+                var (prob, nivel) = await _probabilidadeFaltaService.CalcularProbabilidadeAsync(a.PacienteId, a.DataHoraConsulta);
 
                 responses.Add(new AgendamentoResponse
                 {
@@ -318,6 +332,7 @@ namespace ClinicaMaisSaude.Application.Services
                     Status = a.Status.ToString(),
                     AgendamentoOrigemId = a.AgendamentoOrigemId,
                     NivelProbabilidadeFalta = nivel,
+                    ProbabilidadeFalta = prob,
                     ResultadoDisponivel = a.ResultadoDisponivel,
                     DtCriado = a.DtCriado
                 });
@@ -326,9 +341,9 @@ namespace ClinicaMaisSaude.Application.Services
             return responses;
         }
 
-        public async Task<DTOs.PagedResult<AgendamentoResponse>> ObterTodosPaginadoAsync(int page, int pageSize, Guid? profissionalId = null, Guid? pacienteId = null)
+        public async Task<DTOs.PagedResult<AgendamentoResponse>> ObterTodosPaginadoAsync(int page, int pageSize, Guid? profissionalId = null, Guid? pacienteId = null, string? buscaPaciente = null, string? dataConsulta = null, string? status = null, bool riscoAltoApenas = false)
         {
-            var (items, totalCount) = await _repository.ObterTodosPaginadoAsync(page, pageSize, profissionalId, pacienteId);
+            var (items, totalCount) = await _repository.ObterTodosPaginadoAsync(page, pageSize, profissionalId, pacienteId, buscaPaciente, dataConsulta, status, riscoAltoApenas);
             var profissionais = await _profissionalRepository.ObterTodosAsync();
             var profDict = profissionais.ToDictionary(p => p.Id, p => p.Nome);
 
@@ -339,7 +354,7 @@ namespace ClinicaMaisSaude.Application.Services
                 var prof = profissionais.FirstOrDefault(p => p.Id == a.ProfissionalId);
                 var esp = prof?.Especialidades.FirstOrDefault()?.EspecialidadeId.ToString() ?? "";
                 
-                var (_, nivel) = await _probabilidadeFaltaService.CalcularProbabilidadeAsync(a.PacienteId, a.DataHoraConsulta);
+                var (prob, nivel) = await _probabilidadeFaltaService.CalcularProbabilidadeAsync(a.PacienteId, a.DataHoraConsulta);
 
                 responses.Add(new AgendamentoResponse
                 {
@@ -355,6 +370,7 @@ namespace ClinicaMaisSaude.Application.Services
                     Status = a.Status.ToString(),
                     AgendamentoOrigemId = a.AgendamentoOrigemId,
                     NivelProbabilidadeFalta = nivel,
+                    ProbabilidadeFalta = prob,
                     ResultadoDisponivel = a.ResultadoDisponivel,
                     DtCriado = a.DtCriado
                 });

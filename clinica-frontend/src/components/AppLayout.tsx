@@ -477,6 +477,7 @@ export default function AppLayout({
         marginLeft: isDesktop ? sidebarWidth : 0,
         marginTop: isDesktop ? 0 : 60,
         flex: 1,
+        minWidth: 0,
         padding: isDesktop ? '32px 40px' : '24px 16px 48px',
         boxSizing: 'border-box',
         transition: 'margin-left 0.3s ease',

@@ -4,6 +4,7 @@ import { useScrollBlock } from "../hooks/useScrollBlock";
 import { isCpfValido, isEmailValido, mascaraCpf } from "../utils/validators";
 import logoPng from "../assets/logo_clinica.png";
 import { Eye, EyeOff, Lock } from 'lucide-react';
+import { useToast } from "../hooks/useToast";
 
 export default function Login({ onLogado }: { onLogado: () => void }) {
   const [identificador, setIdentificador] = useState("");
@@ -14,6 +15,7 @@ export default function Login({ onLogado }: { onLogado: () => void }) {
   const [modalEsqueciSenha, setModalEsqueciSenha] = useState(false);
   const [isCpfMask, setIsCpfMask] = useState(false);
   const [modalPenalidadeRemovida, setModalPenalidadeRemovida] = useState(false);
+  const toast = useToast();
 
   useScrollBlock(modalEsqueciSenha || modalPenalidadeRemovida);
 
@@ -36,13 +38,13 @@ export default function Login({ onLogado }: { onLogado: () => void }) {
     const treatAsEmail = /[a-zA-Z@]/.test(identificador);
     if (treatAsEmail) {
       if (!isEmailValido(identificador)) {
-        setErro("Formato de e-mail inválido.");
+        toast.error("Formato de e-mail inválido.");
         setCarregando(false);
         return;
       }
     } else {
       if (!isCpfValido(identificador)) {
-        setErro("O CPF informado é inválido.");
+        toast.error("O CPF informado é inválido.");
         setCarregando(false);
         return;
       }
@@ -78,7 +80,11 @@ export default function Login({ onLogado }: { onLogado: () => void }) {
       }
 
     } catch (err: any) {
-      setErro(err.message || "Erro de conexão ao servidor");
+      if (err.message && err.message.startsWith("PERMANENT_BAN:")) {
+        setErro(err.message);
+      } else {
+        toast.error(err.message || "Erro de conexão ao servidor");
+      }
     } finally {
       setCarregando(false);
     }
@@ -154,19 +160,17 @@ export default function Login({ onLogado }: { onLogado: () => void }) {
                 Se achar que isso é um erro, entre em contato
               </button>
             </div>
-          ) : erro ? (
-            <div className="text-red-500 text-xs font-bold text-center bg-red-50 py-2 rounded-lg border border-red-100">
-              {erro}
-            </div>
           ) : null}
 
           <div className="pt-2">
             <button
               type="submit"
               disabled={carregando}
-              className="w-full flex justify-center py-3.5 px-4 rounded-xl shadow-lg shadow-purple-200 text-sm font-black text-white bg-[#7C3AED] hover:bg-[#6D28D9] focus:outline-none transition-all active:scale-[0.98] disabled:opacity-50"
+              className="w-full flex justify-center items-center gap-2 py-3.5 px-4 rounded-xl shadow-lg shadow-purple-200 text-sm font-black text-white bg-[#7C3AED] hover:bg-[#6D28D9] focus:outline-none transition-all active:scale-[0.98] disabled:opacity-50"
             >
-              {carregando ? "Entrando..." : "Entrar"}
+              {carregando ? (
+                <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> Aguarde...</>
+              ) : "Entrar"}
             </button>
           </div>
 

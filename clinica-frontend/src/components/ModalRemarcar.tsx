@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { obterMinDate } from "../utils/dates";
 import { AlertCircle, Calendar, Clock } from 'lucide-react';
 import { useScrollBlock } from "../hooks/useScrollBlock";
+import { useToast } from "../hooks/useToast";
 
 interface ModalRemarcarProps {
   agenda: {
@@ -13,10 +14,10 @@ interface ModalRemarcarProps {
   };
   onFechar: () => void;
   onSucesso: () => void;
-  onMensagem: (msg: string) => void;
 }
 
-export default function ModalRemarcar({ agenda, onFechar, onSucesso, onMensagem }: ModalRemarcarProps) {
+export default function ModalRemarcar({ agenda, onFechar, onSucesso }: ModalRemarcarProps) {
+  const toast = useToast();
   const [alterarDataSomente, setAlterarDataSomente] = useState("");
   const [alterarHorarioSelecionado, setAlterarHorarioSelecionado] = useState("");
   const [observacaoRemarcacao, setObservacaoRemarcacao] = useState("");
@@ -71,7 +72,7 @@ export default function ModalRemarcar({ agenda, onFechar, onSucesso, onMensagem 
     try {
       const token = localStorage.getItem("authToken");
       if (!observacaoRemarcacao.trim()) {
-        onMensagem("A observação é obrigatória para registrar o motivo da remarcação.");
+        toast.warning("A observação é obrigatória para registrar o motivo da remarcação.");
         setAlterando(false);
         return;
       }
@@ -80,7 +81,7 @@ export default function ModalRemarcar({ agenda, onFechar, onSucesso, onMensagem 
       const dataNova = new Date(dataHoraUnida).getTime();
 
       if (dataOriginal === dataNova) {
-        onMensagem("A nova data e hora devem ser diferentes do agendamento original.");
+        toast.warning("A nova data e hora devem ser diferentes do agendamento original.");
         setAlterando(false);
         return;
       }
@@ -95,13 +96,13 @@ export default function ModalRemarcar({ agenda, onFechar, onSucesso, onMensagem 
       });
 
       if (!response.ok) {
-        onMensagem(await response.text());
+        toast.error(await response.text());
         return;
       }
 
       onSucesso();
     } catch (err) {
-      onMensagem("Falha de conexão ao alterar agendamento.");
+      toast.error("Falha de conexão ao alterar agendamento.");
     } finally {
       setAlterando(false);
     }
@@ -110,10 +111,10 @@ export default function ModalRemarcar({ agenda, onFechar, onSucesso, onMensagem 
   return (
     /* Bottom-sheet no mobile, centralizado no desktop */
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4 animate-in fade-in duration-300"
       onClick={e => { if (e.target === e.currentTarget) onFechar(); }}
     >
-      <div className="bg-white w-full sm:max-w-md rounded-t-[2.5rem] sm:rounded-[2rem] shadow-2xl overflow-hidden border border-purple-50 flex flex-col max-h-[92dvh] sm:max-h-none animate-in slide-in-from-bottom-4 sm:zoom-in duration-300">
+      <div className="bg-white w-full h-[100dvh] sm:h-auto sm:max-w-md rounded-none sm:rounded-[2rem] shadow-2xl overflow-hidden border-0 sm:border border-purple-50 flex flex-col sm:max-h-[90vh] animate-in slide-in-from-bottom-4 sm:zoom-in duration-300">
 
         {/* Drag handle (mobile) */}
         <div className="flex justify-center pt-3 pb-1 sm:hidden shrink-0">
@@ -147,7 +148,7 @@ export default function ModalRemarcar({ agenda, onFechar, onSucesso, onMensagem 
                 if (val) {
                   const dateObj = new Date(val + "T00:00:00");
                   if (dateObj.getDay() === 0 || dateObj.getDay() === 6) {
-                    onMensagem("Não é possível agendar consultas aos fins de semana.");
+                    toast.warning("Não é possível agendar consultas aos fins de semana.");
                     setAlterarDataSomente("");
                   } else {
                     setAlterarDataSomente(val);

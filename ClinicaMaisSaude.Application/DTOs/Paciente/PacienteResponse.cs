@@ -13,5 +13,6 @@ namespace ClinicaMaisSaude.Application.DTOs.Paciente
         public string Tipo { get; set; } = "Paciente";
         public bool TemProblemaMemoria { get; set; }
         public DateTime? UltimoAcesso { get; set; }
+        public bool IsBanidoPermanente { get; set; }
     }
 }

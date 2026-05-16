@@ -7,4 +7,5 @@ export interface PacienteResponse {
   usuarioId?: string;
   tipo: string;
   ultimoAcesso?: string;
+  isBanidoPermanente?: boolean;
 }

@@ -37,13 +37,15 @@ namespace ClinicaMaisSaude.Application.Services
             int qtdFaltas = historicoTodosAgendamentos.Count(h => h.TipoEvento == TipoEventoHistorico.MudancaStatus && h.StatusNovo == StatusAgendamento.Faltou);
             probabilidade += qtdFaltas * 15;
 
-            // Cancelamentos < 24h: +10% por ocorrência
-            // Verifica o histórico de cancelamentos onde a Dt_Criado (data do cancelamento) é < 24h da DataHoraConsulta
-            int qtdCancelamentosEmCimaDaHora = historicoTodosAgendamentos.Count(h => 
+            // Cancelamentos: +10% por ocorrência
+            // Regra 1: Cancelado mais de 1 hora após a criação (ignorar erros imediatos da recepção)
+            // Regra 2: Cancelado faltando menos de 4 dias para a consulta (penalidade por cancelar tarde)
+            int qtdCancelamentos = historicoTodosAgendamentos.Count(h => 
                 (h.TipoEvento == TipoEventoHistorico.Cancelamento || h.TipoEvento == TipoEventoHistorico.MudancaStatus) && 
-                h.StatusNovo == StatusAgendamento.Cancelado && 
-                (h.Agendamento.DataHoraConsulta - h.Dt_Criado).TotalHours < 24);
-            probabilidade += qtdCancelamentosEmCimaDaHora * 10;
+                h.StatusNovo == StatusAgendamento.Cancelado &&
+                (h.Dt_Criado - h.Agendamento.DtCriado).TotalHours > 1 &&
+                (h.Agendamento.DataHoraConsulta - h.Dt_Criado).TotalDays < 4);
+            probabilidade += qtdCancelamentos * 10;
 
             // Remarcações: +5% por ocorrência
             int qtdRemarcacoes = historicoTodosAgendamentos.Count(h => h.TipoEvento == TipoEventoHistorico.Remarcacao);
@@ -73,27 +75,23 @@ namespace ClinicaMaisSaude.Application.Services
             int qtdComparecidas = historicoTodosAgendamentos.Count(h => h.TipoEvento == TipoEventoHistorico.MudancaStatus && h.StatusNovo == StatusAgendamento.Finalizado);
             probabilidade -= qtdComparecidas * 10;
 
-            // Agendamento com < 7 dias de antecedência: -10% fixo
-            if ((dataAgendamento - dataCriacao).TotalDays < 7)
-            {
-                probabilidade -= 10;
-            }
 
-            // Nunca faltou nos últimos 3 agendamentos: -15% fixo
-            // Identifica os últimos 3 agendamentos concluídos (Finalizado, Faltou ou Cancelado)
+
+            // Frequência perfeita nos últimos 3 agendamentos: -15% fixo
+            // Só ganha o bônus se realmente compareceu nos 3 (Cancelamento não conta como positivo)
             var ultimos3Agendamentos = todosAgendamentosDoPaciente
                 .Where(a => a.Status == StatusAgendamento.Finalizado || a.Status == StatusAgendamento.Faltou || a.Status == StatusAgendamento.Cancelado)
                 .OrderByDescending(a => a.DataHoraConsulta)
                 .Take(3)
                 .ToList();
 
-            if (ultimos3Agendamentos.Any() && !ultimos3Agendamentos.Any(a => a.Status == StatusAgendamento.Faltou))
+            if (ultimos3Agendamentos.Any() && ultimos3Agendamentos.All(a => a.Status == StatusAgendamento.Finalizado))
             {
                 probabilidade -= 15;
             }
 
-            // TemProblemaMemoria = false e sem faltas na base: -10% fixo
-            if (!paciente.TemProblemaMemoria && qtdFaltas == 0 && todosAgendamentosDoPaciente.Any())
+            // TemProblemaMemoria = false, sem faltas e com histórico de comparecimento: -10% fixo
+            if (!paciente.TemProblemaMemoria && qtdFaltas == 0 && qtdComparecidas > 0)
             {
                 probabilidade -= 10;
             }

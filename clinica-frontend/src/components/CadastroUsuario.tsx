@@ -3,6 +3,7 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import { mascaraCpf } from "../utils/validators";
 import { ChevronDown, Check } from 'lucide-react';
+import { useToast } from "../hooks/useToast";
 
 
 export function CadastroUsuario({ onUserCreated }: { onUserCreated?: () => void }) {
@@ -16,8 +17,8 @@ export function CadastroUsuario({ onUserCreated }: { onUserCreated?: () => void 
   const [temProblemaMemoria, setTemProblemaMemoria] = useState(false);
 
   const [loading, setLoading] = useState(false);
-  const [mensagem, setMensagem] = useState<{ texto: string; erro: boolean } | null>(null);
   const [dropdownAberto, setDropdownAberto] = useState(false);
+  const toast = useToast();
 
   const opcoesPerfil = [
     { id: 'Paciente', nome: 'Paciente' },
@@ -27,10 +28,21 @@ export function CadastroUsuario({ onUserCreated }: { onUserCreated?: () => void 
 
 
 
+
+  const limparFormulario = () => {
+    setNome("");
+    setEmail("");
+    setCpf("");
+    setSenha("");
+    setTipoUsuario("Paciente");
+    setCrm("");
+    setUfCrm("");
+    setTemProblemaMemoria(false);
+  };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setMensagem(null);
 
     const token = localStorage.getItem("authToken");
 
@@ -55,37 +67,25 @@ export function CadastroUsuario({ onUserCreated }: { onUserCreated?: () => void 
 
       if (!response.ok) {
         const errorText = await response.text();
-        setMensagem({ texto: errorText || "Erro ao realizar cadastro.", erro: true });
+        toast.error(errorText || "Erro ao realizar cadastro.");
       } else {
-        setMensagem({ texto: "Usuário cadastrado com sucesso!", erro: false });
-        // Limpa formulário
-        setNome("");
-        setEmail("");
-        setCpf("");
-        setSenha("");
-        setUfCrm("");
-        setTemProblemaMemoria(false);
+        toast.success("Usuário cadastrado com sucesso!");
+        limparFormulario();
         if (onUserCreated) onUserCreated();
       }
     } catch (err) {
-      setMensagem({ texto: "Falha de conexão com o servidor.", erro: true });
+      toast.error("Falha de conexão com o servidor.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="max-w-2xl mx-auto bg-white p-8 rounded-xl shadow border border-gray-100">
+    <div className="w-full bg-white p-6 sm:p-8 rounded-3xl shadow-xl border border-gray-100">
       <div className="mb-6 border-b pb-4">
         <h2 className="text-2xl font-bold text-gray-800">Cadastro de Usuários</h2>
         <p className="text-sm text-gray-500 mt-1">Acesso restrito</p>
       </div>
-
-      {mensagem && (
-        <div className={`p-4 rounded mb-6 ${mensagem.erro ? "bg-red-50 text-red-700 border border-red-200" : "bg-green-50 text-green-700 border border-green-200"}`}>
-          {mensagem.texto}
-        </div>
-      )}
 
       <form onSubmit={handleSubmit} className="space-y-5">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -253,13 +253,23 @@ export function CadastroUsuario({ onUserCreated }: { onUserCreated?: () => void 
           </div>
         )}
 
-        <div className="pt-4 border-t">
+        <div className="pt-4 border-t flex flex-col sm:flex-row gap-4">
+          <button
+            type="button"
+            onClick={limparFormulario}
+            disabled={loading}
+            className="w-full sm:w-1/3 text-gray-700 font-black uppercase tracking-wider py-3 rounded-xl transition-all flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Limpar Formulário
+          </button>
           <button
             type="submit"
             disabled={loading}
-            className={`w-full text-white font-black uppercase tracking-wider py-3 rounded-xl transition-all ${loading ? "bg-purple-300 cursor-not-allowed" : "bg-[#7C3AED] hover:bg-[#6D28D9] hover:scale-[1.01] active:scale-[0.99] shadow-lg shadow-purple-200"}`}
+            className={`w-full sm:w-2/3 text-white font-black uppercase tracking-wider py-3 rounded-xl transition-all flex items-center justify-center gap-2 ${loading ? "bg-purple-300 cursor-not-allowed" : "bg-[#7C3AED] hover:bg-[#6D28D9] hover:scale-[1.01] active:scale-[0.99] shadow-lg shadow-purple-200"}`}
           >
-            {loading ? "Processando..." : "Registrar Usuário"}
+            {loading ? (
+              <><div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> Aguarde...</>
+            ) : "Registrar Usuário"}
           </button>
         </div>
       </form>

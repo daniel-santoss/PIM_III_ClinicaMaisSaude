@@ -8,7 +8,9 @@ import AgendamentoFiltros from "./AgendamentoFiltros";
 import AgendamentoFormCriar from "./AgendamentoFormCriar";
 import ModalRemarcar from "./ModalRemarcar";
 import ModalHistorico from "./ModalHistorico";
+import ConfirmModal from "./ConfirmModal";
 import { useScrollBlock } from "../hooks/useScrollBlock";
+import { useToast } from "../hooks/useToast";
 
 export interface AgendamentoResponse {
   id: string;
@@ -23,6 +25,7 @@ export interface AgendamentoResponse {
   nomeProfissional: string;
   dtCriado: string;
   nivelProbabilidadeFalta?: string;
+  probabilidadeFalta?: number;
 }
 
 export interface AgendamentoHistoricoResponse {
@@ -51,12 +54,11 @@ const StatusPriority: Record<string, number> = {
 
 export default function AgendamentoList({ agendamentoDestaque }: { agendamentoDestaque?: string | null }) {
   const [agendamentos, setAgendamentos] = useState<AgendamentoResponse[]>([]);
-  const [pacientes, setPacientes] = useState<PacienteResponse[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const [refreshContador, setRefreshContador] = useState(0);
 
-  const [modalMensagem, setModalMensagem] = useState<string | null>(null);
+  const toast = useToast();
   const [cancelarAlvo, setCancelarAlvo] = useState<{ id: string; nome: string } | null>(null);
   const [cancelando, setCancelando] = useState(false);
   const [alterarAlvo, setAlterarAlvo] = useState<AgendamentoResponse | null>(null);
@@ -66,11 +68,11 @@ export default function AgendamentoList({ agendamentoDestaque }: { agendamentoDe
   const [historicoAtual, setHistoricoAtual] = useState<AgendamentoHistoricoResponse[]>([]);
   const [historicoLoading, setHistoricoLoading] = useState(false);
 
-  useScrollBlock(!!(modalMensagem || cancelarAlvo || alterarAlvo || pacienteDetalhesModal || modalNovoAgendamento || modalHistoricoAberto));
+  useScrollBlock(!!pacienteDetalhesModal);
 
   const [filtroAgenda, setFiltroAgenda] = useState("");
   const [statusSelecionados, setStatusSelecionados] = useState<string[]>(Object.keys(EnumStatusUrl));
-  const [filtroDataConsulta, setFiltroDataConsulta] = useState("");
+  const [filtroDataConsulta, setFiltroDataConsulta] = useState(() => new Date().toISOString().split('T')[0]);
   const [filtroRiscoApenas, setFiltroRiscoApenas] = useState(false);
   const [ordemData, setOrdemData] = useState<"asc" | "desc">("desc");
 
@@ -84,7 +86,7 @@ export default function AgendamentoList({ agendamentoDestaque }: { agendamentoDe
 
   const limparFiltros = () => { setFiltroAgenda(""); setStatusSelecionados(Object.keys(EnumStatusUrl)); setFiltroDataConsulta(""); setFiltroRiscoApenas(false); setPage(1); };
 
-  useEffect(() => { carregarDados(); }, [refreshContador, page]);
+  useEffect(() => { carregarDados(); }, [refreshContador, page, filtroAgenda, statusSelecionados, filtroDataConsulta, filtroRiscoApenas]);
 
   const carregarDados = async () => {
     setCarregando(true);
@@ -92,11 +94,17 @@ export default function AgendamentoList({ agendamentoDestaque }: { agendamentoDe
     try {
       const token = localStorage.getItem("authToken");
       const headers = { "Authorization": `Bearer ${token}` };
-      const [resA, resP] = await Promise.all([
-        fetch(`${API_URL}/api/Agendamentos?page=${page}&pageSize=${pageSize}`, { headers }),
-        fetch(`${API_URL}/api/Pacientes?pageSize=10000`, { headers }) // Busca lista grande para o dropdown do Form
-      ]);
-      if (!resA.ok || !resP.ok) throw new Error("Erro ao carregar dados do servidor.");
+      
+      const queryParams = new URLSearchParams();
+      queryParams.append("page", page.toString());
+      queryParams.append("pageSize", pageSize.toString());
+      if (filtroAgenda) queryParams.append("busca", filtroAgenda);
+      if (filtroDataConsulta) queryParams.append("data", filtroDataConsulta);
+      if (statusSelecionados.length > 0) queryParams.append("status", statusSelecionados.join(','));
+      if (filtroRiscoApenas) queryParams.append("riscoAltoApenas", "true");
+
+      const resA = await fetch(`${API_URL}/api/Agendamentos?${queryParams.toString()}`, { headers });
+      if (!resA.ok) throw new Error("Erro ao carregar dados do servidor.");
       
       const dataA = await resA.json();
       if (dataA.items) {
@@ -108,9 +116,6 @@ export default function AgendamentoList({ agendamentoDestaque }: { agendamentoDe
           setTotalCount(dataA.length);
           setTotalPages(1);
       }
-      
-      const dataP = await resP.json();
-      setPacientes(dataP.items ? dataP.items : dataP);
     } catch (err: any) { setErro(err.message); }
     finally { setCarregando(false); }
   };
@@ -124,10 +129,14 @@ export default function AgendamentoList({ agendamentoDestaque }: { agendamentoDe
         method: "PATCH", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify(EnumStatusUrl["Cancelado"])
       });
-      if (!response.ok) { setModalMensagem(await response.text()); return; }
+      if (!response.ok) { 
+        if (response.status === 400) toast.error(await response.text());
+        return; 
+      }
+      toast.success("Consulta cancelada com sucesso.");
       setCancelarAlvo(null);
       setRefreshContador(p => p + 1);
-    } catch (e) { setModalMensagem("Erro de conexão ao remover agendamento."); }
+    } catch (e) { toast.error("Erro de conexão ao remover agendamento."); }
     finally { setCancelando(false); }
   };
 
@@ -140,9 +149,13 @@ export default function AgendamentoList({ agendamentoDestaque }: { agendamentoDe
         method: "PATCH", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify(valorEnum)
       });
-      if (!response.ok) setModalMensagem(await response.text());
+      if (!response.ok) {
+        if (response.status === 400) toast.error(await response.text());
+        return;
+      }
+      toast.success("Status da consulta alterado.");
       setRefreshContador(p => p + 1);
-    } catch (err) { setModalMensagem("Falha de conexão."); }
+    } catch (err) { toast.error("Falha de conexão."); }
   };
 
   const abrirHistorico = async (agendamentoId: string) => {
@@ -153,8 +166,11 @@ export default function AgendamentoList({ agendamentoDestaque }: { agendamentoDe
         headers: { "Authorization": `Bearer ${token}` }
       });
       if (resp.ok) { setHistoricoAtual(await resp.json()); }
-      else { setModalMensagem(await resp.text()); setModalHistoricoAberto(false); }
-    } catch (error) { setModalMensagem("Falha de conexão ao buscar histórico."); setModalHistoricoAberto(false); }
+      else { 
+        if (resp.status === 400) toast.error(await resp.text());
+        setModalHistoricoAberto(false); 
+      }
+    } catch (error) { toast.error("Falha de conexão ao buscar histórico."); setModalHistoricoAberto(false); }
     finally { setHistoricoLoading(false); }
   };
 
@@ -177,29 +193,12 @@ export default function AgendamentoList({ agendamentoDestaque }: { agendamentoDe
     }
   };
 
-  const agendamentosFiltrados = agendamentos
-    .filter(a => {
-      const pac = pacientes.find(p => p.id === a.pacienteId);
-      const cpf = pac ? pac.cpf : "";
-      const matchBusca = a.pacienteNome.toLowerCase().includes(filtroAgenda.toLowerCase()) || cpf.includes(filtroAgenda);
-      const matchStatus = statusSelecionados.includes(a.status);
-      const matchData = !filtroDataConsulta || a.dataHoraConsulta.startsWith(filtroDataConsulta);
-      const matchRisco = !filtroRiscoApenas || (a.nivelProbabilidadeFalta === "Alta" || a.nivelProbabilidadeFalta === "Média");
-      return matchBusca && matchStatus && matchData && matchRisco;
-    })
-    .sort((a, b) => {
-      const pA = StatusPriority[a.status] || 99;
-      const pB = StatusPriority[b.status] || 99;
-      if (pA !== pB) return pA - pB;
-      const dA = new Date(a.dataHoraConsulta).getTime();
-      const dB = new Date(b.dataHoraConsulta).getTime();
-      return ordemData === "desc" ? dB - dA : dA - dB;
-    });
+  const agendamentosFiltrados = agendamentos;
 
   // Reset page to 1 when search filters change
   useEffect(() => {
     setPage(1);
-  }, [filtroAgenda, statusSelecionados, filtroDataConsulta]);
+  }, [filtroAgenda, statusSelecionados, filtroDataConsulta, filtroRiscoApenas]);
 
   const hoje = new Date().toISOString().split('T')[0];
   const atendimentosHoje = agendamentos.filter(a => a.dataHoraConsulta.startsWith(hoje)).length;
@@ -229,9 +228,34 @@ export default function AgendamentoList({ agendamentoDestaque }: { agendamentoDe
   );
 
   if (carregando) return (
-    <div className="flex flex-col items-center justify-center py-32 space-y-4">
-      <div className="w-12 h-12 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin"></div>
-      <p className="text-purple-600 font-black uppercase tracking-widest text-xs">Carregando Agenda...</p>
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 animate-pulse mt-8">
+      {[1, 2, 3, 4, 5, 6].map(i => (
+        <div key={i} className="bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col h-full min-h-[250px]">
+          <div className="p-4 sm:p-6 pb-3 flex justify-between items-start">
+            <div className="flex flex-col gap-2 w-1/3">
+              <div className="h-8 bg-gray-200 rounded w-full"></div>
+              <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+            </div>
+            <div className="h-6 bg-gray-200 rounded-full w-24"></div>
+          </div>
+          <div className="px-4 sm:px-6 py-4 flex-1 flex flex-col justify-center">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-gray-200 shrink-0"></div>
+              <div className="flex flex-col gap-2 w-full">
+                <div className="h-5 bg-gray-200 rounded w-3/4"></div>
+                <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+              </div>
+            </div>
+          </div>
+          <div className="px-4 sm:px-6 py-4 border-t border-gray-100 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-gray-200 shrink-0"></div>
+            <div className="flex flex-col gap-2 w-full">
+              <div className="h-4 bg-gray-200 rounded w-1/3"></div>
+              <div className="h-3 bg-gray-200 rounded w-1/4"></div>
+            </div>
+          </div>
+        </div>
+      ))}
     </div>
   );
 
@@ -239,7 +263,7 @@ export default function AgendamentoList({ agendamentoDestaque }: { agendamentoDe
     <>
       <div className="space-y-8 animate-in fade-in duration-700">
         {/* Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6">
           <div className="bg-white p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2.5rem] shadow-xl shadow-purple-100/20 border border-purple-50 group hover:scale-[1.02] transition-all duration-300">
             <div className="flex items-start sm:items-center justify-between mb-3 sm:mb-4 flex-col sm:flex-row gap-1 sm:gap-0">
               <div className="p-2 sm:p-3 bg-purple-100 rounded-xl sm:rounded-2xl text-purple-600 group-hover:bg-[#7C3AED] group-hover:text-white transition-colors">
@@ -419,11 +443,8 @@ export default function AgendamentoList({ agendamentoDestaque }: { agendamentoDe
       {/* Modais via componentes extraidos */}
       {modalNovoAgendamento && (
         <AgendamentoFormCriar
-          pacientes={pacientes}
-          agendamentos={agendamentos}
           onFechar={() => setModalNovoAgendamento(false)}
           onCriado={() => { setModalNovoAgendamento(false); setRefreshContador(p => p + 1); }}
-          onMensagem={setModalMensagem}
         />
       )}
 
@@ -431,8 +452,7 @@ export default function AgendamentoList({ agendamentoDestaque }: { agendamentoDe
         <ModalRemarcar
           agenda={alterarAlvo}
           onFechar={() => setAlterarAlvo(null)}
-          onSucesso={() => { setAlterarAlvo(null); setRefreshContador(p => p + 1); }}
-          onMensagem={setModalMensagem}
+          onSucesso={() => { setAlterarAlvo(null); setRefreshContador(p => p + 1); toast.success("Consulta remarcada com sucesso."); }}
         />
       )}
 
@@ -444,35 +464,17 @@ export default function AgendamentoList({ agendamentoDestaque }: { agendamentoDe
         />
       )}
 
-      {/* Modal Mensagem */}
-      {modalMensagem && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-gray-900/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-sm p-8 text-center border border-purple-50">
-            <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <AlertTriangle className="w-8 h-8" />
-            </div>
-            <h3 className="text-xl font-black text-gray-800 mb-2 uppercase tracking-tight">Aviso</h3>
-            <p className="text-gray-500 text-sm mb-8 font-medium leading-relaxed">{modalMensagem}</p>
-            <button className="w-full bg-[#7C3AED] text-white font-black py-4 rounded-2xl uppercase tracking-widest text-[10px] shadow-lg shadow-purple-100" onClick={() => setModalMensagem(null)}>Entendido</button>
-          </div>
-        </div>
-      )}
-
-      {/* Modal Cancelar */}
-      {cancelarAlvo && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-gray-900/60 backdrop-blur-sm p-4 animate-in zoom-in duration-300">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-sm p-6 text-center border-t-4 border-red-500">
-            <h3 className="text-lg font-bold text-red-600 mb-2 mt-2">Cancelar Consulta</h3>
-            <p className="text-sm text-gray-700 mb-6">
-              Esta ação registrará o status como <strong>Cancelado</strong> para a consulta de <strong>{cancelarAlvo.nome}</strong>.
-            </p>
-            <div className="flex gap-2">
-              <button disabled={cancelando} className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 py-2.5 text-sm font-semibold rounded" onClick={() => setCancelarAlvo(null)}>Voltar</button>
-              <button disabled={cancelando} className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2.5 text-sm font-semibold rounded" onClick={confirmarCancelamento}>{cancelando ? '...' : 'Sim, Cancelar'}</button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmModal
+        isOpen={!!cancelarAlvo}
+        title="Cancelar Consulta"
+        description={cancelarAlvo ? `Esta ação registrará o status como Cancelado para a consulta de ${cancelarAlvo.nome}.` : ''}
+        confirmText="Sim, Cancelar"
+        cancelText="Voltar"
+        type="destructive"
+        loading={cancelando}
+        onConfirm={confirmarCancelamento}
+        onCancel={() => setCancelarAlvo(null)}
+      />
 
       {/* Modal Detalhes Paciente */}
       {pacienteDetalhesModal && (

@@ -1,9 +1,11 @@
 import { API_URL } from "../constants/api";
 import { useEffect, useState } from "react";
 import { mascaraCpf, mascaraTelefone } from "../utils/validators";
-import { AlertCircle, Users, CheckCircle, Clock, Search, Filter, RefreshCw, Inbox, Pencil, Key, Trash, AlertTriangle, Check, Copy, X } from 'lucide-react';
+import { AlertCircle, Users, CheckCircle, Clock, Search, Filter, RefreshCw, Inbox, Pencil, Key, Trash, Check, Copy } from 'lucide-react';
 import type { PacienteResponse } from "../types/PacienteResponse";
 import { useScrollBlock } from "../hooks/useScrollBlock";
+import { useToast } from "../hooks/useToast";
+import ConfirmModal from "./ConfirmModal";
 
 interface PacienteListProps {
   recarregarContador?: number;
@@ -34,7 +36,7 @@ export default function PacienteList({
   const [perfisSelecionados, setPerfisSelecionados] = useState<string[]>(["Paciente", "Medico", "Enfermeira"]);
   const [menuFiltroAberto, setMenuFiltroAberto] = useState(false);
   const [copiado, setCopiado] = useState(false);
-  const [modalMensagem, setModalMensagem] = useState<string | null>(null);
+  const toast = useToast();
 
   const limparFiltros = () => {
     setBuscaNome("");
@@ -58,7 +60,7 @@ export default function PacienteList({
   const isAdmin = localStorage.getItem("isAdmin") === "true";
   const isEnfermeira = localStorage.getItem("tipoUsuario") === "Enfermeira";
 
-  useScrollBlock(!!(editandoId || excluindoPaciente || pacienteReset || modalMensagem));
+  useScrollBlock(!!(editandoId || pacienteReset));
 
   const [page, setPage] = useState(1);
   const pageSize = 20;
@@ -144,14 +146,14 @@ export default function PacienteList({
         body: JSON.stringify(form),
       });
       if (!response.ok) {
-        const erro = await response.text();
-        setModalMensagem(erro);
+        if (response.status === 400) toast.error(await response.text());
         return;
       }
+      toast.success("Edição salva com sucesso!");
       fecharModal();
       setRefreshInterno((prev) => prev + 1);
     } catch (err) {
-      setModalMensagem("Erro ao salvar edição.");
+      toast.error("Erro ao salvar edição.");
     } finally {
       setSalvando(false);
     }
@@ -175,14 +177,14 @@ export default function PacienteList({
         headers: { "Authorization": `Bearer ${token}` }
       });
       if (!response.ok) {
-        const erro = await response.text();
-        setModalMensagem(erro);
+        if (response.status === 400) toast.error(await response.text());
         return;
       }
+      toast.success("Paciente excluído com sucesso.");
       setExcluindoPaciente(null);
       setRefreshInterno((prev) => prev + 1);
     } catch (err) {
-      setModalMensagem("Erro ao excluir paciente.");
+      toast.error("Erro ao excluir paciente.");
     } finally {
       setExcluindoLoader(false);
     }
@@ -279,7 +281,7 @@ export default function PacienteList({
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       {/* --- CARDS DE RESUMO --- */}
-      <div className={`grid grid-cols-3 md:grid-cols-${isAdmin ? '4' : '3'} gap-6`}>
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {/* Card: Usuários por Tipo */}
         <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all group">
           <div className="flex justify-between items-start mb-4">
@@ -331,7 +333,7 @@ export default function PacienteList({
         <div className="p-6 border-b border-gray-50 bg-gray-50/30 flex flex-col lg:flex-row gap-4 items-center justify-between">
           <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
             {/* Busca Unificada (Nome ou CPF) */}
-            <div className="relative group flex-1 min-w-[320px]">
+            <div className="relative group flex-1 w-full sm:min-w-[320px]">
               <Search className="absolute left-4 top-3.5 w-5 h-5 text-purple-400" />
               <input
                 type="text"
@@ -402,24 +404,46 @@ export default function PacienteList({
 
         {/* Listagem */}
         <div className="overflow-x-auto">
-          {carregando ? (
-            <div className="flex flex-col items-center justify-center py-20 gap-4">
-              <div className="w-10 h-10 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin"></div>
-              <p className="text-sm font-bold text-gray-400 uppercase tracking-widest animate-pulse">Sincronizando Dados...</p>
-            </div>
-          ) : (
-            <table className="min-w-full divide-y divide-gray-100">
-              <thead>
-                <tr className="bg-gray-50/50">
-                  <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-[2px]">Usuário</th>
-                  <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-[2px]">CPF</th>
-                  <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-[2px]">Categoria</th>
-                  <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-[2px]">Último Acesso</th>
-                  <th className="px-6 py-4 text-right text-[10px] font-black text-gray-400 uppercase tracking-[2px]">Ações</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {pacientes.filter(p => perfisSelecionados.includes(p.tipo)).length === 0 ? (
+          <table className="min-w-full divide-y divide-gray-100">
+            <thead>
+              <tr className="bg-gray-50/50">
+                <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-[2px]">Usuário</th>
+                <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-[2px]">CPF</th>
+                <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-[2px] hidden md:table-cell">Categoria</th>
+                <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-[2px] hidden md:table-cell">Último Acesso</th>
+                <th className="px-6 py-4 text-right text-[10px] font-black text-gray-400 uppercase tracking-[2px]">Ações</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {carregando ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <tr key={i} className="animate-pulse bg-gray-50/30">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-gray-200"></div>
+                        <div className="flex flex-col gap-2">
+                          <div className="h-4 w-32 bg-gray-200 rounded"></div>
+                          <div className="h-3 w-24 bg-gray-200 rounded"></div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4"><div className="h-4 w-24 bg-gray-200 rounded"></div></td>
+                    <td className="px-6 py-4 hidden md:table-cell"><div className="h-6 w-20 bg-gray-200 rounded-xl"></div></td>
+                    <td className="px-6 py-4 hidden md:table-cell">
+                      <div className="flex flex-col gap-2">
+                        <div className="h-3 w-20 bg-gray-200 rounded"></div>
+                        <div className="h-3 w-16 bg-gray-200 rounded"></div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center justify-end gap-2">
+                        <div className="w-8 h-8 rounded-xl bg-gray-200"></div>
+                        <div className="w-8 h-8 rounded-xl bg-gray-200"></div>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : pacientes.filter(p => perfisSelecionados.includes(p.tipo)).length === 0 ? (
                   <tr>
                     <td colSpan={5} className="px-6 py-20 text-center">
                       <div className="flex flex-col items-center gap-2 opacity-30">
@@ -450,7 +474,7 @@ export default function PacienteList({
                         <span className="text-sm font-mono text-gray-500 font-medium">{mascaraCpf(p.cpf)}</span>
                       </td>
                       {/* Perfil Badge */}
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-4 hidden md:table-cell">
                         <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider border ${
                           p.tipo === 'Paciente' ? 'bg-green-50 text-green-600 border-green-100' : 
                           p.tipo === 'Medico' ? 'bg-purple-50 text-purple-600 border-purple-100' : 
@@ -466,7 +490,7 @@ export default function PacienteList({
                       </td>
 
                       {/* Último Acesso (Real) */}
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-4 hidden md:table-cell">
                          <div className="flex flex-col">
                             <span className="text-[11px] font-bold text-gray-700">
                                {p.ultimoAcesso ? getRealDate(p.ultimoAcesso)!.toLocaleString('pt-BR', { 
@@ -510,8 +534,7 @@ export default function PacienteList({
                   ))
                 )}
               </tbody>
-            </table>
-          )}
+          </table>
         </div>
 
         {/* Footer / Contagem e Paginação */}
@@ -571,14 +594,16 @@ export default function PacienteList({
 
       {/* Modal de Edição */}
       {editandoId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-300">
-          <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl overflow-hidden border border-purple-50 animate-in zoom-in duration-300">
-            <div className="p-8 border-b border-purple-50 bg-purple-50/30">
-              <h3 className="text-2xl font-black text-gray-800">Editar Paciente</h3>
-              <p className="text-[10px] font-black text-purple-400 uppercase tracking-widest mt-1">Atualize as informações cadastrais</p>
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-gray-900/60 backdrop-blur-sm p-0 sm:p-4 animate-in fade-in duration-300">
+          <div className="bg-white rounded-none sm:rounded-[2.5rem] shadow-2xl w-full h-[100dvh] sm:h-auto sm:max-w-2xl overflow-hidden border-0 sm:border border-purple-50 animate-in slide-in-from-bottom-4 sm:zoom-in duration-300 flex flex-col">
+            <div className="p-6 sm:p-8 border-b border-purple-50 bg-purple-50/30 shrink-0 flex justify-between items-center">
+              <div>
+                <h3 className="text-xl sm:text-2xl font-black text-gray-800">Editar Paciente</h3>
+                <p className="text-[10px] font-black text-purple-400 uppercase tracking-widest mt-1">Atualize as informações cadastrais</p>
+              </div>
             </div>
 
-            <div className="p-8 space-y-6">
+            <div className="p-6 sm:p-8 space-y-6 flex-1 overflow-y-auto">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Nome Completo</label>
@@ -623,9 +648,9 @@ export default function PacienteList({
               </div>
             </div>
 
-            <div className="p-8 bg-gray-50/50 border-t border-gray-100 flex gap-4">
+            <div className="p-6 sm:p-8 bg-gray-50/50 border-t border-gray-100 flex flex-col sm:flex-row gap-4 shrink-0">
               <button
-                className="flex-1 px-6 py-4 bg-red-600 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-red-700 shadow-lg shadow-red-100 transition-all active:scale-95 disabled:opacity-50"
+                className="w-full sm:flex-1 px-6 py-4 bg-gray-100 text-gray-600 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-gray-200 transition-all active:scale-95 disabled:opacity-50"
                 onClick={fecharModal}
                 disabled={salvando}
               >
@@ -634,7 +659,7 @@ export default function PacienteList({
               <button
                 onClick={salvarEdicao}
                 disabled={salvando}
-                className="flex-1 px-6 py-4 bg-green-600 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-green-700 shadow-lg shadow-green-100 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full sm:flex-1 px-6 py-4 bg-[#7C3AED] text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-[#6D28D9] shadow-lg shadow-purple-100 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {salvando ? (
                    <><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> Salvando...</>
@@ -646,42 +671,22 @@ export default function PacienteList({
       )}
 
       {/* Modal de Exclusão */}
-      {excluindoPaciente && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-sm p-6">
-            <div className="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 rounded-full mb-4">
-              <AlertTriangle className="w-6 h-6 text-red-600" />
-            </div>
-            
-            <h3 className="text-lg font-bold text-gray-900 text-center mb-2">Excluir Paciente</h3>
-            <p className="text-sm text-gray-600 text-center mb-6">
-              Tem certeza que deseja excluir <strong>{excluindoPaciente.nome}</strong>? Esta ação não poderá ser desfeita.
-            </p>
-
-            <div className="flex justify-center gap-3">
-              <button
-                className="px-5 py-2.5 text-sm font-medium border border-gray-300 rounded text-gray-700 hover:bg-gray-50 transition-colors w-full"
-                onClick={fecharModalExclusao}
-                disabled={excluindoLoader}
-              >
-                Cancelar
-              </button>
-              <button
-                className="px-5 py-2.5 text-sm font-medium bg-red-600 text-white rounded hover:bg-red-700 transition-colors shadow-sm disabled:opacity-50 w-full"
-                onClick={confirmarExclusao}
-                disabled={excluindoLoader}
-              >
-                {excluindoLoader ? "Excluindo..." : "Sim, excluir"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmModal
+        isOpen={!!excluindoPaciente}
+        title="Excluir Paciente"
+        description={excluindoPaciente ? `Tem certeza que deseja excluir ${excluindoPaciente.nome}? Esta ação não poderá ser desfeita.` : ''}
+        confirmText="Sim, excluir"
+        cancelText="Cancelar"
+        type="destructive"
+        loading={excluindoLoader}
+        onConfirm={confirmarExclusao}
+        onCancel={fecharModalExclusao}
+      />
       {/* Modal de Reset de Senha */}
       {pacienteReset && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
-            <h3 className="text-xl font-bold text-gray-800 mb-2">Redefinir Senha</h3>
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-white rounded-t-[2.5rem] sm:rounded-2xl shadow-xl w-full sm:max-w-md p-6 sm:p-8 flex flex-col max-h-[90vh] animate-in slide-in-from-bottom-4 sm:zoom-in duration-300 overflow-y-auto">
+            <h3 className="text-xl font-black text-gray-800 mb-2">Redefinir Senha</h3>
             <p className="text-sm text-gray-600 mb-4">Paciente: <span className="font-semibold">{pacienteReset.nome}</span></p>
             
             {resetMensagem && (
@@ -749,19 +754,7 @@ export default function PacienteList({
         </div>
       )}
 
-      {/* Modal de Mensagem Estilizado (substitui alert nativo) */}
-      {modalMensagem && (
-        <div className="fixed inset-0 z-[300] flex items-center justify-center bg-gray-900/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-sm p-8 text-center border border-purple-50 animate-in zoom-in duration-200">
-            <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <AlertTriangle className="w-8 h-8" />
-            </div>
-            <h3 className="text-xl font-black text-gray-800 mb-2 uppercase tracking-tight">Aviso</h3>
-            <p className="text-gray-500 text-sm mb-8 font-medium leading-relaxed">{modalMensagem}</p>
-            <button className="w-full bg-[#7C3AED] text-white font-black py-4 rounded-2xl uppercase tracking-widest text-[10px] shadow-lg shadow-purple-100" onClick={() => setModalMensagem(null)}>Entendido</button>
-          </div>
-        </div>
-      )}
+
 
 
   </div>

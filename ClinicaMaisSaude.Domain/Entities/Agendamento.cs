@@ -56,6 +56,11 @@ namespace ClinicaMaisSaude.Domain.Entities
             ResultadoDisponivel = true;
         }
 
+        public void AtualizarProbabilidadeFalta(double probabilidade)
+        {
+            ProbabilidadeFalta = probabilidade;
+        }
+
         public void MarcarNotificacaoPendenteGerada()
         {
             NotificacaoPendenteGerada = true;
