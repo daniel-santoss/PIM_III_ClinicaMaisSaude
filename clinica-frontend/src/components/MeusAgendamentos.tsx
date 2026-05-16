@@ -63,6 +63,12 @@ export default function MeusAgendamentos({ onNovoAgendamento, agendamentoDestaqu
     carregarAgendamentos();
   }, [pacienteId, token]);
 
+  useEffect(() => {
+    if (agendamentoDestaque) {
+      limparFiltros();
+    }
+  }, [agendamentoDestaque]);
+
   return (
     <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in duration-700 pb-20 px-4 xl:px-0">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">

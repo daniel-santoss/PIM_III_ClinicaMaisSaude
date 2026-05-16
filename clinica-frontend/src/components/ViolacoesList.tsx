@@ -23,6 +23,7 @@ export default function ViolacoesList() {
   const [carregando, setCarregando] = useState(true);
   const [filtro, setFiltro] = useState<"todas" | "graves" | "leves">("todas");
   const [busca, setBusca] = useState("");
+  const [dataFiltro, setDataFiltro] = useState("");
   const [removendoPenalidade, setRemovendoPenalidade] = useState<Record<string, boolean>>({});
   const [confirmarPaciente, setConfirmarPaciente] = useState<{ id: string; nome: string } | null>(null);
   const toast = useToast();
@@ -86,7 +87,17 @@ export default function ViolacoesList() {
     if (filtro === "graves") matchGravidade = v.tipoViolacao === "Injecao";
     else if (filtro === "leves") matchGravidade = v.tipoViolacao === "UsoIndevido";
 
-    return matchBusca && matchGravidade;
+    let matchData = true;
+    if (dataFiltro) {
+      const dateObj = new Date(v.dtCriado);
+      const year = dateObj.getFullYear();
+      const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+      const day = String(dateObj.getDate()).padStart(2, '0');
+      const formattedDate = `${year}-${month}-${day}`;
+      matchData = formattedDate === dataFiltro;
+    }
+
+    return matchBusca && matchGravidade && matchData;
   });
 
   const getInitials = (nome: string) =>
@@ -115,6 +126,16 @@ export default function ViolacoesList() {
                 value={busca}
                 onChange={(e) => setBusca(e.target.value)}
                 className="w-full sm:w-64 pl-10 pr-4 py-2 border-2 border-gray-100 rounded-xl text-sm focus:ring-2 focus:ring-purple-100 focus:border-[#7C3AED] outline-none transition-all"
+              />
+            </div>
+
+            {/* Filtro por Data */}
+            <div>
+              <input
+                type="date"
+                value={dataFiltro}
+                onChange={(e) => setDataFiltro(e.target.value)}
+                className="w-full sm:w-auto px-4 py-2 border-2 border-gray-100 rounded-xl text-sm focus:ring-2 focus:ring-purple-100 focus:border-[#7C3AED] outline-none transition-all text-gray-600"
               />
             </div>
 

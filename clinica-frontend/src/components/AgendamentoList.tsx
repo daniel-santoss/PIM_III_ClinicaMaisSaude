@@ -200,6 +200,12 @@ export default function AgendamentoList({ agendamentoDestaque }: { agendamentoDe
     setPage(1);
   }, [filtroAgenda, statusSelecionados, filtroDataConsulta, filtroRiscoApenas]);
 
+  useEffect(() => {
+    if (agendamentoDestaque) {
+      limparFiltros();
+    }
+  }, [agendamentoDestaque]);
+
   const hoje = new Date().toISOString().split('T')[0];
   const atendimentosHoje = agendamentos.filter(a => a.dataHoraConsulta.startsWith(hoje)).length;
   const seteDiasAtras = new Date(); seteDiasAtras.setDate(seteDiasAtras.getDate() - 7);

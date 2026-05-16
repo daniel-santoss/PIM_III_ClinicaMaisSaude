@@ -102,8 +102,11 @@ export default function App() {
     if (!n.lida) handleMarcarComoLida(n.id);
     if (n.agendamentoId) {
       setAgendamentoDestaque(n.agendamentoId);
-      setAbaAtiva('agendamentos');
-      if (tipoUsuario === 'Paciente') setViewPaciente('lista');
+      if (tipoUsuario === 'Paciente') {
+        setAbaAtiva('minhas-consultas');
+      } else {
+        setAbaAtiva('agendamentos');
+      }
       setTimeout(() => setAgendamentoDestaque(null), 5500);
     }
   };
