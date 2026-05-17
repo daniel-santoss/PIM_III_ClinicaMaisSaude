@@ -14,6 +14,7 @@ import ViolacoesList from "./components/ViolacoesList";
 import type { PacienteResponse } from "./types/PacienteResponse";
 import { useScrollBlock } from "./hooks/useScrollBlock";
 import ToastContainer from "./components/ToastNotification";
+import HomePage from "./components/HomePage";
 
 type Notificacao = {
   id: string;
@@ -29,6 +30,7 @@ type AbaAtiva = "painel" | "pacientes" | "agendamentos" | "minhas-consultas" | "
 
 export default function App() {
   const [autenticado, setAutenticado] = useState(false);
+  const [isVerificandoAuth, setIsVerificandoAuth] = useState(true);
   const [tipoUsuario, setTipoUsuario] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
   const [abaAtiva, setAbaAtiva] = useState<AbaAtiva>("agendamentos");
@@ -41,12 +43,17 @@ export default function App() {
     const token = localStorage.getItem("authToken");
     const tipo = localStorage.getItem("tipoUsuario");
     const admin = localStorage.getItem("isAdmin") === "true";
+    
     if (token) {
       setAutenticado(true);
       setTipoUsuario(tipo || "Paciente");
       setIsAdmin(admin);
       setAbaAtiva(tipo === "Paciente" ? "agendamentos" : "pacientes");
+      if (window.location.pathname === "/") {
+        window.history.replaceState(null, "", "/app");
+      }
     }
+    setIsVerificandoAuth(false);
   }, []);
 
   const fetchNotificacoes = async () => {
@@ -119,6 +126,7 @@ export default function App() {
     localStorage.removeItem("profissionalId");
     localStorage.removeItem("fotoBase64");
     setAutenticado(false);
+    window.location.href = "/login"; // Força redirecionamento para o login ao sair
   };
 
   useScrollBlock(modalPerfilAberto);
@@ -135,8 +143,22 @@ export default function App() {
     return () => window.removeEventListener("editarPacienteGlobal", handleEditar as EventListener);
   }, []);
 
-  // ── Tela de Login ──────────────────────────────────────────────────────────
+  // ── Tela de Carregamento ───────────────────────────────────────────────────
+  if (isVerificandoAuth) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="w-10 h-10 border-4 border-[#7C3AED] border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  // ── Tela de Login / HomePage Pública ──────────────────────────────────────────
   if (!autenticado) {
+    // Definimos a Home como padrão para a raiz
+    if (window.location.pathname === "/") {
+      return <HomePage />;
+    }
+
     return (
       <Login onLogado={() => {
         setAutenticado(true);
@@ -145,6 +167,10 @@ export default function App() {
         setTipoUsuario(tipo || "Paciente");
         setIsAdmin(admin);
         setAbaAtiva(tipo === "Paciente" ? "agendamentos" : "pacientes");
+
+        if (window.location.pathname === "/" || window.location.pathname === "/login") {
+           window.history.replaceState(null, "", "/app");
+        }
       }} />
     );
   }

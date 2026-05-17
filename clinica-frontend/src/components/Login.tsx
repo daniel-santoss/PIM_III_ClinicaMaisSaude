@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useScrollBlock } from "../hooks/useScrollBlock";
 import { isCpfValido, isEmailValido, mascaraCpf } from "../utils/validators";
 import logoPng from "../assets/logo_clinica.png";
+import bgImage from "../assets/itens_medicos_background.png";
 import { Eye, EyeOff, Lock } from 'lucide-react';
 import { useToast } from "../hooks/useToast";
 
@@ -92,8 +93,16 @@ export default function Login({ onLogado }: { onLogado: () => void }) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center items-center p-4">
-      <div className="bg-white rounded-[2rem] shadow-xl w-full max-w-md p-8 md:p-10 border border-gray-100">
+    <div 
+      className="min-h-screen flex flex-col justify-center items-center p-4 bg-gray-50"
+      style={{
+        backgroundImage: `url(${bgImage})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed'
+      }}
+    >
+      <div className="bg-white/95 backdrop-blur-sm rounded-[2rem] shadow-2xl w-full max-w-md p-8 md:p-10 border border-gray-100/50">
         <div className="text-center mb-8">
           <img
             src={logoPng}
