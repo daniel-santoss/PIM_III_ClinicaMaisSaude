@@ -4,11 +4,13 @@ import { mascaraCpf, mascaraTelefone } from "../utils/validators";
 import { Pencil } from "lucide-react";
 import { useScrollBlock } from "../hooks/useScrollBlock";
 import { useToast } from "../hooks/useToast";
+import AvatarUpload from "./AvatarUpload";
 
 export default function PerfilPaciente() {
   const [paciente, setPaciente] = useState<any>(null);
   const [carregando, setCarregando] = useState(true);
   const [modalExcluir, setModalExcluir] = useState(false);
+  const [fotoBase64, setFotoBase64] = useState<string | null>(localStorage.getItem("fotoBase64"));
   const toast = useToast();
 
   const [editMode, setEditMode] = useState(false);
@@ -37,6 +39,10 @@ export default function PerfilPaciente() {
       if (res.ok) {
         const dados = await res.json();
         setPaciente(dados);
+        if (dados.fotoBase64) {
+          setFotoBase64(dados.fotoBase64);
+          localStorage.setItem("fotoBase64", dados.fotoBase64);
+        }
         setEditData({
           nome: dados.nome,
           telefone: dados.telefone,
@@ -144,9 +150,15 @@ export default function PerfilPaciente() {
     <div className="animate-in fade-in slide-in-from-top-4 duration-500 max-w-4xl mx-auto px-4 space-y-8">
       {/* Cabeçalho */}
       <div className="flex items-center gap-6">
-        <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-[#7C3AED] text-white rounded-3xl flex items-center justify-center text-3xl font-black shadow-xl shadow-purple-100 shrink-0 animate-in zoom-in duration-300">
-          {paciente?.nome?.charAt(0).toUpperCase()}
-        </div>
+        <AvatarUpload
+          fotoBase64={fotoBase64}
+          iniciais={paciente?.nome?.charAt(0).toUpperCase() ?? "?"}
+          size={80}
+          onFotoAtualizada={(base64) => {
+            setFotoBase64(base64);
+            window.dispatchEvent(new CustomEvent("fotoPerfilAtualizada", { detail: base64 }));
+          }}
+        />
         <div className="flex flex-col gap-1">
           <h1 className="text-3xl font-black text-gray-900 tracking-tight leading-none">Meu Perfil</h1>
           <p className="text-gray-400 text-sm font-medium">Informações da conta</p>

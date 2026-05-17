@@ -14,5 +14,6 @@ namespace ClinicaMaisSaude.Application.DTOs.Paciente
         public bool TemProblemaMemoria { get; set; }
         public DateTime? UltimoAcesso { get; set; }
         public bool IsBanidoPermanente { get; set; }
+        public string? FotoBase64 { get; set; }
     }
 }

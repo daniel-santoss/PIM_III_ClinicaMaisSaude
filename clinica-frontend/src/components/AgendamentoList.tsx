@@ -26,6 +26,11 @@ export interface AgendamentoResponse {
   dtCriado: string;
   nivelProbabilidadeFalta?: string;
   probabilidadeFalta?: number;
+  exigeResultadoPosterior?: boolean;
+  resultadoDisponivel?: boolean;
+  resultadoRetirado?: boolean;
+  pacienteFotoBase64?: string;
+  profissionalFotoBase64?: string;
 }
 
 export interface AgendamentoHistoricoResponse {
@@ -47,10 +52,6 @@ const EnumStatusUrl = {
   "RetornoAgendado": 3, "Finalizado": 4, "Faltou": 5, "Cancelado": 6
 };
 
-const StatusPriority: Record<string, number> = {
-  "EmAtendimento": 1, "Agendado": 2, "RetornoAgendado": 3,
-  "AguardandoRetorno": 4, "Faltou": 5, "Finalizado": 6, "Cancelado": 7
-};
 
 export default function AgendamentoList({ agendamentoDestaque }: { agendamentoDestaque?: string | null }) {
   const [agendamentos, setAgendamentos] = useState<AgendamentoResponse[]>([]);
@@ -67,6 +68,9 @@ export default function AgendamentoList({ agendamentoDestaque }: { agendamentoDe
   const [modalHistoricoAberto, setModalHistoricoAberto] = useState(false);
   const [historicoAtual, setHistoricoAtual] = useState<AgendamentoHistoricoResponse[]>([]);
   const [historicoLoading, setHistoricoLoading] = useState(false);
+  const [concluirExameAlvo, setConcluirExameAlvo] = useState<AgendamentoResponse | null>(null);
+  const [exigeResultadoPosterior, setExigeResultadoPosterior] = useState(false);
+  const [concluindoExame, setConcluindoExame] = useState(false);
 
   useScrollBlock(!!pacienteDetalhesModal);
 
@@ -185,12 +189,74 @@ export default function AgendamentoList({ agendamentoDestaque }: { agendamentoDe
       case "Agendado": 
         return ehHojeOuPassado ? ["EmAtendimento", "Faltou"] : [];
       case "EmAtendimento":
-        return tipoConsulta === "ConsultaMédica" || tipoConsulta === "Consulta Médica" || tipoConsulta === "ConsultaMedica" ? ["AguardandoRetorno", "Finalizado"] : ["Finalizado"];
+        if (tipoConsulta === "ConsultaMédica" || tipoConsulta === "Consulta Médica" || tipoConsulta === "ConsultaMedica")
+          return ["AguardandoRetorno", "Finalizado"];
+        if (tipoConsulta === "Exame")
+          return []; // exames usam o botão de concluir com checkbox
+        return ["Finalizado"];
       case "AguardandoRetorno": return [];
       case "RetornoAgendado": 
         return ehHojeOuPassado ? ["Finalizado", "Faltou"] : [];
       default: return [];
     }
+  };
+
+
+  const concluirExame = async () => {
+    if (!concluirExameAlvo) return;
+    setConcluindoExame(true);
+    try {
+      const token = localStorage.getItem("authToken");
+      const response = await fetch(`${API_URL}/api/Agendamentos/${concluirExameAlvo.id}/concluir-exame`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+        body: JSON.stringify(exigeResultadoPosterior)
+      });
+      if (!response.ok) {
+        const err = await response.json();
+        toast.error(err.mensagem || "Erro ao concluir exame.");
+        return;
+      }
+      toast.success("Exame concluído com sucesso.");
+      setConcluirExameAlvo(null);
+      setExigeResultadoPosterior(false);
+      setRefreshContador(p => p + 1);
+    } catch { toast.error("Falha de conexão."); }
+    finally { setConcluindoExame(false); }
+  };
+
+  const marcarResultadoDisponivel = async (id: string) => {
+    try {
+      const token = localStorage.getItem("authToken");
+      const response = await fetch(`${API_URL}/api/Agendamentos/${id}/resultado-disponivel`, {
+        method: "PATCH",
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (!response.ok) {
+        const err = await response.json();
+        toast.error(err.mensagem || "Erro ao notificar resultado.");
+        return;
+      }
+      toast.success("Paciente notificado sobre resultado pronto.");
+      setRefreshContador(p => p + 1);
+    } catch { toast.error("Falha de conexão."); }
+  };
+
+  const marcarResultadoRetirado = async (id: string) => {
+    try {
+      const token = localStorage.getItem("authToken");
+      const response = await fetch(`${API_URL}/api/Agendamentos/${id}/resultado-retirado`, {
+        method: "PATCH",
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (!response.ok) {
+        const err = await response.json();
+        toast.error(err.mensagem || "Erro ao confirmar retirada.");
+        return;
+      }
+      toast.success("Retirada de resultado confirmada.");
+      setRefreshContador(p => p + 1);
+    } catch { toast.error("Falha de conexão."); }
   };
 
   const agendamentosFiltrados = agendamentos;
@@ -377,6 +443,9 @@ export default function AgendamentoList({ agendamentoDestaque }: { agendamentoDe
                 onRemarcar={(a) => setAlterarAlvo(a)}
                 onHistorico={abrirHistorico}
                 tipoUsuarioLogado={tipoUsuario}
+                onMarcarResultadoDisponivel={marcarResultadoDisponivel}
+                onMarcarResultadoRetirado={marcarResultadoRetirado}
+                onConcluirExame={(a) => { setConcluirExameAlvo(a); setExigeResultadoPosterior(false); }}
               />
             ))
           )}
@@ -482,6 +551,41 @@ export default function AgendamentoList({ agendamentoDestaque }: { agendamentoDe
         onCancel={() => setCancelarAlvo(null)}
       />
 
+      {concluirExameAlvo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 flex flex-col gap-5">
+            <h3 className="text-lg font-black text-gray-900">Concluir Exame</h3>
+            <p className="text-sm text-gray-500">
+              Paciente: <span className="font-bold text-gray-800">{concluirExameAlvo.pacienteNome}</span>
+            </p>
+            <label className="flex items-center gap-3 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={exigeResultadoPosterior}
+                onChange={e => setExigeResultadoPosterior(e.target.checked)}
+                className="w-5 h-5 rounded accent-purple-600"
+              />
+              <span className="text-sm font-semibold text-gray-700">O resultado será entregue posteriormente</span>
+            </label>
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setConcluirExameAlvo(null); setExigeResultadoPosterior(false); }}
+                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-bold text-gray-600 hover:bg-gray-50 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={concluirExame}
+                disabled={concluindoExame}
+                className="flex-1 py-2.5 rounded-xl bg-[#7C3AED] text-white text-sm font-bold hover:bg-purple-700 transition-colors disabled:opacity-60"
+              >
+                {concluindoExame ? 'Salvando...' : 'Confirmar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Modal Detalhes Paciente */}
       {pacienteDetalhesModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
@@ -497,8 +601,12 @@ export default function AgendamentoList({ agendamentoDestaque }: { agendamentoDe
             </div>
             <div className="p-6 space-y-4">
               <div className="flex items-center gap-4 pb-4 border-b border-gray-100">
-                <div className="w-16 h-16 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center text-2xl font-bold">
-                  {pacienteDetalhesModal.nome.charAt(0).toUpperCase()}
+                <div className="w-16 h-16 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center text-2xl font-bold overflow-hidden shrink-0">
+                  {pacienteDetalhesModal.fotoBase64 ? (
+                    <img src={pacienteDetalhesModal.fotoBase64} alt="avatar" className="w-full h-full object-cover" />
+                  ) : (
+                    pacienteDetalhesModal.nome.charAt(0).toUpperCase()
+                  )}
                 </div>
                 <div>
                   <h4 className="text-xl font-bold text-gray-800">{pacienteDetalhesModal.nome}</h4>

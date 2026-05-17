@@ -16,8 +16,12 @@ namespace ClinicaMaisSaude.Application.DTOs.Agendamento
         public string Status { get; set; } = string.Empty;
         public Guid? AgendamentoOrigemId { get; set; }
         public bool ResultadoDisponivel { get; set; }
+        public bool ExigeResultadoPosterior { get; set; }
+        public bool ResultadoRetirado { get; set; }
         public string NivelProbabilidadeFalta { get; set; } = "Baixa";
         public double ProbabilidadeFalta { get; set; }
         public DateTime DtCriado { get; set; }
+        public string? PacienteFotoBase64 { get; set; }
+        public string? ProfissionalFotoBase64 { get; set; }
     }
 }

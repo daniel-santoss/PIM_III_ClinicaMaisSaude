@@ -92,6 +92,7 @@ export default function AppLayout({
 }: AppLayoutProps) {
   const [notifAberto, setNotifAberto] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const [fotoBase64, setFotoBase64] = useState<string | null>(localStorage.getItem("fotoBase64"));
   // isDesktop = tela >= 1280px → sidebar fixa. Abaixo disso: drawer/overlay.
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1280);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -115,6 +116,15 @@ export default function AppLayout({
 
   // Bloqueia scroll quando o drawer mobile/tablet está aberto
   useScrollBlock(!isDesktop && isDrawerOpen);
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const base64 = (e as CustomEvent<string>).detail;
+      setFotoBase64(base64);
+    };
+    window.addEventListener("fotoPerfilAtualizada", handler);
+    return () => window.removeEventListener("fotoPerfilAtualizada", handler);
+  }, []);
 
   // ─── Sidebar interna ───────────────────────────────────────────────────────
   const SidebarContent = () => (
@@ -239,8 +249,11 @@ export default function AppLayout({
           onMouseEnter={e => (e.currentTarget.style.background = '#EDE9FE')}
           onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
         >
-          <div style={{ width: 36, height: 36, borderRadius: 10, background: '#7C3AED', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontWeight: 800, fontSize: 13 }}>
-            {getIniciais(nomeUsuario)}
+          <div style={{ width: 36, height: 36, borderRadius: 10, background: '#7C3AED', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontWeight: 800, fontSize: 13, overflow: 'hidden' }}>
+            {fotoBase64
+              ? <img src={fotoBase64} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              : getIniciais(nomeUsuario)
+            }
           </div>
           <span style={{
             marginLeft: 14, fontSize: 14, fontWeight: 700, color: '#1F2937',
@@ -410,9 +423,13 @@ export default function AppLayout({
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 border: 'none', cursor: 'pointer',
                 fontWeight: 800, fontSize: 13,
+                overflow: 'hidden',
               }}
             >
-              {getIniciais(nomeUsuario)}
+              {fotoBase64
+                ? <img src={fotoBase64} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                : getIniciais(nomeUsuario)
+              }
             </button>
           </div>
         </header>

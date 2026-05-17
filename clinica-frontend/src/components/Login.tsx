@@ -71,6 +71,7 @@ export default function Login({ onLogado }: { onLogado: () => void }) {
       if (data.profissionalId) localStorage.setItem("profissionalId", data.profissionalId);
       const nomeSalvar = data.nome || data.Nome;
       if (nomeSalvar) localStorage.setItem("nomeUsuario", nomeSalvar);
+      if (data.fotoBase64) localStorage.setItem("fotoBase64", data.fotoBase64);
 
       if (data.penalidadeRemovida) {
         // Exibe modal antes de entrar; onLogado() será chamado ao fechar

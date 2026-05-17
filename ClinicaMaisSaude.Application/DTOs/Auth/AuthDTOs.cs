@@ -20,6 +20,7 @@ namespace ClinicaMaisSaude.Application.DTOs.Auth
         public string RefreshToken { get; set; } = string.Empty;
         /// <summary>True quando o admin removeu uma penalidade de IA — exibe aviso único ao paciente no login</summary>
         public bool PenalidadeRemovida { get; set; }
+        public string? FotoBase64 { get; set; }
     }
 
     public class RefreshTokenRequest

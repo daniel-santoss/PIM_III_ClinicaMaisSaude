@@ -8,4 +8,5 @@ export interface PacienteResponse {
   tipo: string;
   ultimoAcesso?: string;
   isBanidoPermanente?: boolean;
+  fotoBase64?: string;
 }

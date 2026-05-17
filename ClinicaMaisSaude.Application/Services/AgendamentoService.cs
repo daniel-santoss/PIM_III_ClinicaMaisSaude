@@ -141,7 +141,7 @@ namespace ClinicaMaisSaude.Application.Services
                 await _notificacaoRepository.AdicionarAsync(notifPaciente);
             }
             
-            var response = MapearResponse(agendamento, paciente.Nome, profissionalNome);
+            var response = MapearResponse(agendamento, paciente.Nome, profissionalNome, paciente.Usuario?.FotoBase64, profissional?.Usuario?.FotoBase64);
             var (probFinal, nivelFinal) = await _probabilidadeFaltaService.CalcularProbabilidadeAsync(agendamento.PacienteId, agendamento.DataHoraConsulta);
             response.NivelProbabilidadeFalta = nivelFinal;
             response.ProbabilidadeFalta = probFinal;
@@ -175,11 +175,12 @@ namespace ClinicaMaisSaude.Application.Services
 
             await _repository.AtualizarAsync(agendamento);
 
-            var pacienteNome = (await _pacienteRepository.ObterPorIdAsync(agendamento.PacienteId))?.Nome ?? "N/A";
+            var paciente = await _pacienteRepository.ObterPorIdAsync(agendamento.PacienteId);
+            var pacienteNome = paciente?.Nome ?? "N/A";
             var profissional = await _profissionalRepository.ObterPorIdAsync(agendamento.ProfissionalId);
             var profissionalNome = profissional?.Nome ?? "N/A";
 
-            var response = MapearResponse(agendamento, pacienteNome, profissionalNome);
+            var response = MapearResponse(agendamento, pacienteNome, profissionalNome, paciente?.Usuario?.FotoBase64, profissional?.Usuario?.FotoBase64);
             var (probFinal, nivelFinal) = await _probabilidadeFaltaService.CalcularProbabilidadeAsync(agendamento.PacienteId, agendamento.DataHoraConsulta);
             response.NivelProbabilidadeFalta = nivelFinal;
             response.ProbabilidadeFalta = probFinal;
@@ -234,7 +235,7 @@ namespace ClinicaMaisSaude.Application.Services
                 }
             }
 
-            var response = MapearResponse(agendamento, pacienteNome, profissionalNome);
+            var response = MapearResponse(agendamento, pacienteNome, profissionalNome, paciente?.Usuario?.FotoBase64, profissional?.Usuario?.FotoBase64);
             var (probFinal, nivelFinal) = await _probabilidadeFaltaService.CalcularProbabilidadeAsync(agendamento.PacienteId, agendamento.DataHoraConsulta);
             response.NivelProbabilidadeFalta = nivelFinal;
             response.ProbabilidadeFalta = probFinal;
@@ -257,11 +258,12 @@ namespace ClinicaMaisSaude.Application.Services
             if (agendamento == null)
                 throw new Exception("Agendamento não encontrado.");
 
-            var pacienteNome = (await _pacienteRepository.ObterPorIdAsync(agendamento.PacienteId))?.Nome ?? "N/A";
+            var paciente = await _pacienteRepository.ObterPorIdAsync(agendamento.PacienteId);
+            var pacienteNome = paciente?.Nome ?? "N/A";
             var profissional = await _profissionalRepository.ObterPorIdAsync(agendamento.ProfissionalId);
             var profissionalNome = profissional?.Nome ?? "N/A";
 
-            var response = MapearResponse(agendamento, pacienteNome, profissionalNome);
+            var response = MapearResponse(agendamento, pacienteNome, profissionalNome, paciente?.Usuario?.FotoBase64, profissional?.Usuario?.FotoBase64);
             var (probFinal, nivelFinal) = await _probabilidadeFaltaService.CalcularProbabilidadeAsync(agendamento.PacienteId, agendamento.DataHoraConsulta);
             response.NivelProbabilidadeFalta = nivelFinal;
             response.ProbabilidadeFalta = probFinal;
@@ -326,7 +328,7 @@ namespace ClinicaMaisSaude.Application.Services
                 await _notificacaoRepository.AdicionarAsync(notif);
             }
 
-            var response = MapearResponse(agendamento, pacienteNome, profissionalNome);
+            var response = MapearResponse(agendamento, pacienteNome, profissionalNome, paciente?.Usuario?.FotoBase64, profissional?.Usuario?.FotoBase64);
             var (probFinal, nivelFinal) = await _probabilidadeFaltaService.CalcularProbabilidadeAsync(agendamento.PacienteId, agendamento.DataHoraConsulta);
             response.NivelProbabilidadeFalta = nivelFinal;
             response.ProbabilidadeFalta = probFinal;
@@ -365,7 +367,11 @@ namespace ClinicaMaisSaude.Application.Services
                     NivelProbabilidadeFalta = nivel,
                     ProbabilidadeFalta = prob,
                     ResultadoDisponivel = a.ResultadoDisponivel,
-                    DtCriado = a.DtCriado
+                    ExigeResultadoPosterior = a.ExigeResultadoPosterior,
+                    ResultadoRetirado = a.ResultadoRetirado,
+                    DtCriado = a.DtCriado,
+                    PacienteFotoBase64 = a.Paciente?.Usuario?.FotoBase64,
+                    ProfissionalFotoBase64 = prof?.Usuario?.FotoBase64
                 });
             }
 
@@ -403,7 +409,11 @@ namespace ClinicaMaisSaude.Application.Services
                     NivelProbabilidadeFalta = nivel,
                     ProbabilidadeFalta = prob,
                     ResultadoDisponivel = a.ResultadoDisponivel,
-                    DtCriado = a.DtCriado
+                    ExigeResultadoPosterior = a.ExigeResultadoPosterior,
+                    ResultadoRetirado = a.ResultadoRetirado,
+                    DtCriado = a.DtCriado,
+                    PacienteFotoBase64 = a.Paciente?.Usuario?.FotoBase64,
+                    ProfissionalFotoBase64 = prof?.Usuario?.FotoBase64
                 });
             }
 
@@ -667,7 +677,7 @@ namespace ClinicaMaisSaude.Application.Services
             return responses;
         }
 
-        private AgendamentoResponse MapearResponse(Agendamento a, string pacienteNome, string profissionalNome)
+        private AgendamentoResponse MapearResponse(Agendamento a, string pacienteNome, string profissionalNome, string? pacienteFoto = null, string? profFoto = null)
         {
             return new AgendamentoResponse
             {
@@ -679,11 +689,15 @@ namespace ClinicaMaisSaude.Application.Services
                 DataHoraConsulta = a.DataHoraConsulta,
                 TipoProfissional = a.TipoProfissional.ToString(),
                 TipoConsulta = a.TipoConsulta.ToString(),
-                Especialidade = "", // Se precisar preencher aqui, faria uma busca extra, mas para a lista já é o suficiente.
+                Especialidade = "",
                 Status = a.Status.ToString(),
                 AgendamentoOrigemId = a.AgendamentoOrigemId,
                 ResultadoDisponivel = a.ResultadoDisponivel,
-                DtCriado = a.DtCriado
+                ExigeResultadoPosterior = a.ExigeResultadoPosterior,
+                ResultadoRetirado = a.ResultadoRetirado,
+                DtCriado = a.DtCriado,
+                PacienteFotoBase64 = pacienteFoto,
+                ProfissionalFotoBase64 = profFoto
             };
         }
 
@@ -699,6 +713,9 @@ namespace ClinicaMaisSaude.Application.Services
             if (agendamento.Status != StatusAgendamento.Finalizado)
                 throw new Exception("O exame precisa estar finalizado para marcar resultado disponível.");
 
+            if (!agendamento.ExigeResultadoPosterior)
+                throw new Exception("Este exame não requer notificação de resultado posterior.");
+
             agendamento.MarcarResultadoDisponivel();
             await _repository.AtualizarAsync(agendamento);
 
@@ -708,10 +725,56 @@ namespace ClinicaMaisSaude.Application.Services
                 var notif = new Notificacao(
                     paciente.UsuarioId.Value, 
                     "Resultado de Exame", 
-                    $"O resultado do seu exame de {agendamento.DataHoraConsulta:dd/MM/yyyy} já está disponível.", 
+                    $"O resultado do seu exame de {agendamento.DataHoraConsulta:dd/MM/yyyy} já está disponível para retirada.", 
                     agendamento.Id);
                 await _notificacaoRepository.AdicionarAsync(notif);
             }
+        }
+
+        public async Task MarcarResultadoRetiradoAsync(Guid id)
+        {
+            var agendamento = await _repository.ObterPorIdAsync(id);
+            if (agendamento == null)
+                throw new Exception("Agendamento não encontrado.");
+
+            if (!agendamento.ExigeResultadoPosterior)
+                throw new Exception("Este exame não possui controle de resultado.");
+
+            if (!agendamento.ResultadoDisponivel)
+                throw new Exception("O resultado ainda não foi marcado como disponível.");
+
+            agendamento.MarcarResultadoRetirado();
+            await _repository.AtualizarAsync(agendamento);
+        }
+
+        public async Task ConcluirExameAsync(Guid id, bool exigeResultadoPosterior, Guid usuarioLogadoId)
+        {
+            var agendamento = await _repository.ObterPorIdAsync(id);
+            if (agendamento == null)
+                throw new Exception("Agendamento não encontrado.");
+
+            if (agendamento.TipoConsulta != TipoConsulta.Exame)
+                throw new Exception("Endpoint exclusivo para exames.");
+
+            ValidarTransicao(agendamento, StatusAgendamento.Finalizado);
+
+            var statusAntigo = agendamento.Status;
+            agendamento.AlterarStatus(StatusAgendamento.Finalizado);
+
+            if (exigeResultadoPosterior)
+                agendamento.ExigirResultadoPosterior();
+
+            await _repository.AtualizarAsync(agendamento);
+
+            var historico = new AgendamentoHistorico(
+                agendamento.Id,
+                TipoEventoHistorico.MudancaStatus,
+                usuarioLogadoId,
+                statusAnterior: statusAntigo,
+                statusNovo: StatusAgendamento.Finalizado,
+                observacao: exigeResultadoPosterior ? "Exame concluído — resultado posterior pendente." : null
+            );
+            await _repository.AdicionarHistoricoAsync(historico);
         }
     }
 }

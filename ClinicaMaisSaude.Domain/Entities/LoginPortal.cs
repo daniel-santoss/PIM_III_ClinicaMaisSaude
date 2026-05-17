@@ -14,6 +14,7 @@ namespace ClinicaMaisSaude.Domain.Entities
         
         public int TentativasLogin { get; private set; }
         public DateTime? BloqueadoAte { get; private set; }
+        public string? FotoBase64 { get; private set; }
 
         public Usuario(string email, string cpf, string senhaHash, bool isAdmin = false)
         {
@@ -42,6 +43,11 @@ namespace ClinicaMaisSaude.Domain.Entities
         public void AlterarSenha(string novoHash)
         {
             SenhaHash = novoHash;
+        }
+
+        public void AtualizarFoto(string? base64)
+        {
+            FotoBase64 = base64;
         }
 
         public void AtualizarUltimoAcesso()

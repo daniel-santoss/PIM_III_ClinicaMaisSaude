@@ -33,7 +33,6 @@ export default function ConfirmModal({
   
   const iconColor = isDestructive ? 'text-red-600' : 'text-[#7C3AED]';
   const iconBg = isDestructive ? 'bg-red-100' : 'bg-purple-100';
-  const borderClass = isDestructive ? 'border-red-500' : 'border-[#7C3AED]';
   
   const confirmBtnClass = isDestructive 
     ? 'bg-red-600 hover:bg-red-700 text-white shadow-red-200'

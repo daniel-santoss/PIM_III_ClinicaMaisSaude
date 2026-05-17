@@ -32,7 +32,7 @@ export default function App() {
   const [tipoUsuario, setTipoUsuario] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
   const [abaAtiva, setAbaAtiva] = useState<AbaAtiva>("agendamentos");
-  const [viewPaciente, setViewPaciente] = useState<"novo" | "lista">("novo");
+  const [viewPaciente] = useState<"novo" | "lista">("novo");
   const [modalPerfilAberto, setModalPerfilAberto] = useState(false);
   const [notificacoes, setNotificacoes] = useState<Notificacao[]>([]);
   const [agendamentoDestaque, setAgendamentoDestaque] = useState<string | null>(null);
@@ -117,6 +117,7 @@ export default function App() {
     localStorage.removeItem("isAdmin");
     localStorage.removeItem("pacienteId");
     localStorage.removeItem("profissionalId");
+    localStorage.removeItem("fotoBase64");
     setAutenticado(false);
   };
 

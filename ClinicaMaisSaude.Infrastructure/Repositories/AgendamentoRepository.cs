@@ -47,6 +47,7 @@ namespace ClinicaMaisSaude.Infrastructure.Repositories
         {
             return await _context.Agendamentos
                 .Include(a => a.Paciente)
+                .ThenInclude(p => p.Usuario)
                 .FirstOrDefaultAsync(a => a.Id == id);
         }
 
@@ -61,6 +62,7 @@ namespace ClinicaMaisSaude.Infrastructure.Repositories
             return await _context.Agendamentos
                 .AsNoTracking()
                 .Include(a => a.Paciente)
+                .ThenInclude(p => p.Usuario)
                 .Where(x => x.DataHoraConsulta.Date == date.Date)
                 .ToListAsync();
         }
@@ -70,6 +72,7 @@ namespace ClinicaMaisSaude.Infrastructure.Repositories
             return await _context.Agendamentos
                 .AsNoTracking()
                 .Include(a => a.Paciente)
+                .ThenInclude(p => p.Usuario)
                 .ToListAsync();
         }
 
@@ -78,6 +81,7 @@ namespace ClinicaMaisSaude.Infrastructure.Repositories
             var query = _context.Agendamentos
                                 .AsNoTracking()
                                 .Include(a => a.Paciente)
+                                .ThenInclude(p => p.Usuario)
                                 .AsQueryable();
 
             if (profissionalId.HasValue)

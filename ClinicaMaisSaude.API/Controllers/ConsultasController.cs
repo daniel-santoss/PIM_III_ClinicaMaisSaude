@@ -211,12 +211,14 @@ Formato:
 
             var violacoes = await _context.ViolacoesIA
                 .Include(a => a.Paciente)
+                    .ThenInclude(p => p.Usuario)
                 .Select(a => new
                 {
                     a.Id,
                     a.PacienteId,
                     PacienteNome = a.Paciente.Nome,
                     PacienteCpf = a.Paciente.Cpf,
+                    PacienteFotoBase64 = a.Paciente.Usuario != null ? a.Paciente.Usuario.FotoBase64 : null,
                     TipoViolacao = a.TipoViolacao.ToString(),
                     a.TextoInserido,
                     a.DtCriado,

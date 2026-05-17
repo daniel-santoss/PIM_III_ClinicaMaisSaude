@@ -5,6 +5,7 @@ import { mascaraCpf } from "../utils/validators";
 import { X, Pencil } from 'lucide-react';
 import { useScrollBlock } from "../hooks/useScrollBlock";
 import { useToast } from "../hooks/useToast";
+import AvatarUpload from "./AvatarUpload";
 
 export default function PerfilMedico() {
   const [medico, setMedico] = useState<any>(null);
@@ -13,6 +14,7 @@ export default function PerfilMedico() {
   const [especialidades, setEspecialidades] = useState<{ id: number, nome: string }[]>([]);
   const [salvando, setSalvando] = useState(false);
   const [focado, setFocado] = useState(false);
+  const [fotoBase64, setFotoBase64] = useState<string | null>(localStorage.getItem("fotoBase64"));
 
   const [editMode, setEditMode] = useState(false);
   const [editSenha, setEditSenha] = useState(false);
@@ -41,6 +43,10 @@ export default function PerfilMedico() {
       if (resPerfil.ok) {
         const dados = await resPerfil.json();
         setMedico(dados);
+        if (dados.fotoBase64) {
+          setFotoBase64(dados.fotoBase64);
+          localStorage.setItem("fotoBase64", dados.fotoBase64);
+        }
         setFormEdit(f => ({ ...f, nome: dados.nome || "", email: dados.email || "" }));
       }
       if (resEsp && resEsp.ok) setEspecialidades(await resEsp.json());
@@ -160,9 +166,15 @@ export default function PerfilMedico() {
     <div className="animate-in fade-in slide-in-from-top-4 duration-500 max-w-4xl mx-auto space-y-8 px-4">
       {/* Header Profissional */}
       <div className="flex items-center gap-4">
-        <div className={`w-14 h-14 sm:w-20 sm:h-20 text-white rounded-2xl sm:rounded-3xl flex items-center justify-center text-lg sm:text-3xl font-black shadow-xl shrink-0 ${isEnfermeira ? 'bg-gradient-to-br from-teal-400 to-teal-600 shadow-teal-100' : 'bg-gradient-to-br from-blue-500 to-blue-700 shadow-blue-100'}`}>
-          {isEnfermeira ? "ENF" : "MD"}
-        </div>
+        <AvatarUpload
+          fotoBase64={fotoBase64}
+          iniciais={isEnfermeira ? "ENF" : "MD"}
+          size={80}
+          onFotoAtualizada={(base64) => {
+            setFotoBase64(base64);
+            window.dispatchEvent(new CustomEvent("fotoPerfilAtualizada", { detail: base64 }));
+          }}
+        />
         <div className="flex-1 min-w-0">
           <h1 className="text-xl sm:text-3xl font-black text-gray-900 tracking-tight leading-none">Meu Perfil</h1>
           <p className="text-gray-400 text-sm font-medium mt-1 truncate">Perfil de {medico?.nome}</p>

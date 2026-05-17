@@ -15,6 +15,8 @@ namespace ClinicaMaisSaude.Domain.Entities
         public Guid? AgendamentoOrigemId { get; private set; }
         public double ProbabilidadeFalta { get; private set; }
         public bool ResultadoDisponivel { get; private set; }
+        public bool ExigeResultadoPosterior { get; private set; }
+        public bool ResultadoRetirado { get; private set; }
         public bool NotificacaoPendenteGerada { get; private set; }
         public bool LembreteManhaEnviado { get; private set; }
         public bool LembreteDuasHorasEnviado { get; private set; }
@@ -35,6 +37,8 @@ namespace ClinicaMaisSaude.Domain.Entities
             Status = StatusAgendamento.Agendado;
             ProbabilidadeFalta = 0;
             ResultadoDisponivel = false;
+            ExigeResultadoPosterior = false;
+            ResultadoRetirado = false;
             NotificacaoPendenteGerada = false;
             LembreteManhaEnviado = false;
             LembreteDuasHorasEnviado = false;
@@ -51,9 +55,19 @@ namespace ClinicaMaisSaude.Domain.Entities
             DataHoraConsulta = novaDataHora;
         }
 
+        public void ExigirResultadoPosterior()
+        {
+            ExigeResultadoPosterior = true;
+        }
+
         public void MarcarResultadoDisponivel()
         {
             ResultadoDisponivel = true;
+        }
+
+        public void MarcarResultadoRetirado()
+        {
+            ResultadoRetirado = true;
         }
 
         public void AtualizarProbabilidadeFalta(double probabilidade)

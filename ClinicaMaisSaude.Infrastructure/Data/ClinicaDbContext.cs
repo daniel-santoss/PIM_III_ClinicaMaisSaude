@@ -10,6 +10,13 @@ namespace ClinicaMaisSaude.Infrastructure.Data
     {
         public ClinicaDbContext(DbContextOptions<ClinicaDbContext> options) : base(options) { }
 
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        {
+            optionsBuilder.ConfigureWarnings(w =>
+                w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
+        }
+
+
         public DbSet<Paciente> Pacientes { get; set; }
         public DbSet<Agendamento> Agendamentos { get; set; }
         public DbSet<Usuario> Usuarios { get; set; }
@@ -136,6 +143,7 @@ namespace ClinicaMaisSaude.Infrastructure.Data
                 entidade.Property(u => u.SenhaHash).IsRequired();
                 entidade.Property(u => u.IsAdmin).HasDefaultValue(false);
                 entidade.Property(u => u.DtCriado).HasColumnName("Dt_Criado");
+                entidade.Property(u => u.FotoBase64).HasColumnType("nvarchar(max)").IsRequired(false);
 
                 // SEED do Admin
                 var adminId = Guid.Parse("11111111-1111-1111-1111-111111111111");

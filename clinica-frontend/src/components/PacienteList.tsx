@@ -460,8 +460,12 @@ export default function PacienteList({
                       {/* Avatar + Nome */}
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-purple-100 border-2 border-white shadow-sm flex items-center justify-center text-purple-700 font-black text-sm uppercase ring-2 ring-purple-50 group-hover:ring-purple-100 transition-all">
-                            {p.nome.charAt(0)}
+                          <div className="w-10 h-10 rounded-full bg-purple-100 border-2 border-white shadow-sm flex items-center justify-center text-purple-700 font-black text-sm uppercase ring-2 ring-purple-50 group-hover:ring-purple-100 transition-all overflow-hidden">
+                            {p.fotoBase64 ? (
+                              <img src={p.fotoBase64} alt="avatar" className="w-full h-full object-cover" />
+                            ) : (
+                              p.nome.charAt(0)
+                            )}
                           </div>
                           <div className="flex flex-col">
                             <span className="text-sm font-bold text-gray-800 group-hover:text-purple-900 transition-colors">{p.nome}</span>

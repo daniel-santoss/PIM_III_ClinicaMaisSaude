@@ -187,17 +187,45 @@ namespace ClinicaMaisSaude.API.Controllers
                 return BadRequest(new { Mensagem = ex.Message });
             }
         }
+        [Authorize(Roles = "Medico,Enfermeira")]
+        [HttpPatch("{id}/concluir-exame")]
+        public async Task<IActionResult> ConcluirExame(Guid id, [FromBody] bool exigeResultadoPosterior)
+        {
+            try
+            {
+                var usuarioLogadoId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+                await _agendamentoService.ConcluirExameAsync(id, exigeResultadoPosterior, usuarioLogadoId);
+                return Ok(new { Mensagem = "Exame concluído." });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { Mensagem = ex.Message });
+            }
+        }
+
+        [Authorize(Roles = "Medico,Enfermeira")]
         [HttpPatch("{id}/resultado-disponivel")]
         public async Task<IActionResult> MarcarResultadoDisponivel(Guid id)
         {
             try
             {
-                var agendamento = await _agendamentoService.ObterPorIdAsync(id);
-                if (agendamento == null)
-                    return NotFound("Agendamento não encontrado.");
-
                 await _agendamentoService.MarcarResultadoDisponivelAsync(id);
                 return Ok(new { Mensagem = "Resultado marcado como disponível." });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { Mensagem = ex.Message });
+            }
+        }
+
+        [Authorize(Roles = "Medico,Enfermeira")]
+        [HttpPatch("{id}/resultado-retirado")]
+        public async Task<IActionResult> MarcarResultadoRetirado(Guid id)
+        {
+            try
+            {
+                await _agendamentoService.MarcarResultadoRetiradoAsync(id);
+                return Ok(new { Mensagem = "Resultado marcado como retirado." });
             }
             catch (Exception ex)
             {

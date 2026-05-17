@@ -65,6 +65,33 @@ namespace ClinicaMaisSaude.API.Controllers
             return Ok(new { Mensagem = "Senha alterada com sucesso." });
         }
 
+        [HttpPost("foto")]
+        [RequestSizeLimit(3_000_000)]
+        public async Task<IActionResult> AtualizarFoto(IFormFile foto)
+        {
+            var usuarioId = ObterUsuarioId();
+            if (usuarioId == null) return Unauthorized();
+
+            if (foto == null || foto.Length == 0)
+                return BadRequest(new { Mensagem = "Nenhuma imagem enviada." });
+
+            if (foto.Length > 2_000_000)
+                return BadRequest(new { Mensagem = "A imagem deve ter no máximo 2 MB." });
+
+            var tiposPermitidos = new[] { "image/jpeg", "image/png", "image/webp" };
+            if (!tiposPermitidos.Contains(foto.ContentType.ToLower()))
+                return BadRequest(new { Mensagem = "Formato inválido. Use JPEG, PNG ou WEBP." });
+
+            using var ms = new MemoryStream();
+            await foto.CopyToAsync(ms);
+            var base64 = $"data:{foto.ContentType};base64,{Convert.ToBase64String(ms.ToArray())}";
+
+            var erro = await _perfilService.AtualizarFotoAsync(usuarioId.Value, base64);
+            if (erro != null) return BadRequest(new { Mensagem = erro });
+
+            return Ok(new { Mensagem = "Foto atualizada com sucesso.", FotoBase64 = base64 });
+        }
+
         private Guid? ObterUsuarioId()
         {
             var claim = User.FindFirstValue("UsuarioId") ?? User.FindFirstValue(ClaimTypes.NameIdentifier);

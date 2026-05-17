@@ -16,6 +16,9 @@ interface AgendamentoItem {
   nomeProfissional: string;
   especialidade?: string;
   observacao?: string;
+  exigeResultadoPosterior?: boolean;
+  resultadoDisponivel?: boolean;
+  resultadoRetirado?: boolean;
 }
 
 interface MeusAgendamentosProps {
@@ -29,14 +32,16 @@ export default function MeusAgendamentos({ onNovoAgendamento, agendamentoDestaqu
   const pacienteId = localStorage.getItem("pacienteId");
   const token = localStorage.getItem("authToken");
 
+  const STATUS_PADRAO = ["Agendado", "EmAtendimento", "AguardandoRetorno", "RetornoAgendado"];
+
   const [filtroAgenda, setFiltroAgenda] = useState("");
-  const [statusSelecionados, setStatusSelecionados] = useState<string[]>(Object.keys(MapNomesStatus));
+  const [statusSelecionados, setStatusSelecionados] = useState<string[]>(STATUS_PADRAO);
   const [filtroDataConsulta, setFiltroDataConsulta] = useState(() => new Date().toISOString().split('T')[0]);
   const [ordemData, setOrdemData] = useState<"asc" | "desc">("desc");
 
   const limparFiltros = () => {
     setFiltroAgenda("");
-    setStatusSelecionados(Object.keys(MapNomesStatus));
+    setStatusSelecionados(STATUS_PADRAO);
     setFiltroDataConsulta("");
     setOrdemData("desc");
   };
@@ -65,7 +70,8 @@ export default function MeusAgendamentos({ onNovoAgendamento, agendamentoDestaqu
 
   useEffect(() => {
     if (agendamentoDestaque) {
-      limparFiltros();
+      setFiltroDataConsulta("");
+      setStatusSelecionados(Object.keys(MapNomesStatus));
     }
   }, [agendamentoDestaque]);
 

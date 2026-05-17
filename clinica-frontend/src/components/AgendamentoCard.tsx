@@ -16,6 +16,11 @@ interface AgendamentoCardProps {
     especialidade?: string;
     nivelProbabilidadeFalta?: string;
     probabilidadeFalta?: number;
+    exigeResultadoPosterior?: boolean;
+    resultadoDisponivel?: boolean;
+    resultadoRetirado?: boolean;
+    pacienteFotoBase64?: string;
+    profissionalFotoBase64?: string;
   };
   highlighted?: boolean;
   opcoesValidas: string[];
@@ -26,6 +31,9 @@ interface AgendamentoCardProps {
   onCancelar?: (id: string, nome: string) => void;
   onRemarcar?: (agenda: any) => void;
   onHistorico?: (id: string) => void;
+  onMarcarResultadoDisponivel?: (id: string) => void;
+  onMarcarResultadoRetirado?: (id: string) => void;
+  onConcluirExame?: (agenda: any) => void;
 }
 
 export default function AgendamentoCard({
@@ -39,6 +47,9 @@ export default function AgendamentoCard({
   onHistorico,
   tipoUsuarioLogado,
   highlighted = false,
+  onMarcarResultadoDisponivel,
+  onMarcarResultadoRetirado,
+  onConcluirExame,
 }: AgendamentoCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
 
@@ -94,18 +105,47 @@ export default function AgendamentoCard({
               Pendente de atualização
             </span>
           )}
+          {agenda.exigeResultadoPosterior && agenda.status === 'Finalizado' && !agenda.resultadoDisponivel && (
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-blue-100 text-blue-700">
+              Resultado pendente
+            </span>
+          )}
+          {agenda.exigeResultadoPosterior && agenda.resultadoDisponivel && !agenda.resultadoRetirado && (
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-green-100 text-green-700">
+              Resultado pronto para retirada
+            </span>
+          )}
+          {agenda.exigeResultadoPosterior && agenda.resultadoRetirado && (
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-gray-100 text-gray-600">
+              Resultados retirados
+            </span>
+          )}
         </div>
       </div>
 
-      {/* Corpo do Card: Paciente e Profissional */}
+      {/* Corpo do Card: Paciente ou Profissional (Depende do usuário logado) */}
       <div className="px-4 sm:px-6 py-4 flex-1 flex flex-col justify-center">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-[#7C3AED] flex items-center justify-center text-white font-bold text-xl shrink-0">
-            {agenda.pacienteNome.charAt(0).toUpperCase()}
+          <div className="w-12 h-12 rounded-full bg-[#7C3AED] flex items-center justify-center text-white font-bold text-xl shrink-0 overflow-hidden">
+            {tipoUsuarioLogado === "Paciente" ? (
+              agenda.profissionalFotoBase64 ? (
+                <img src={agenda.profissionalFotoBase64} alt="avatar" className="w-full h-full object-cover" />
+              ) : (
+                agenda.nomeProfissional.charAt(0).toUpperCase()
+              )
+            ) : (
+              agenda.pacienteFotoBase64 ? (
+                <img src={agenda.pacienteFotoBase64} alt="avatar" className="w-full h-full object-cover" />
+              ) : (
+                agenda.pacienteNome.charAt(0).toUpperCase()
+              )
+            )}
           </div>
           <div className="flex flex-col">
             <div className="flex items-center gap-2">
-              <h4 className="text-base sm:text-lg font-bold text-gray-900 leading-tight line-clamp-1">{agenda.pacienteNome}</h4>
+              <h4 className="text-base sm:text-lg font-bold text-gray-900 leading-tight line-clamp-1">
+                {tipoUsuarioLogado === "Paciente" ? agenda.nomeProfissional : agenda.pacienteNome}
+              </h4>
               {(tipoUsuarioLogado === "Medico" || tipoUsuarioLogado === "Enfermeira") && agenda.nivelProbabilidadeFalta && (agenda.status === "Agendado" || agenda.status === "RetornoAgendado") && (
                 <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider flex items-center gap-1 ${
                   agenda.nivelProbabilidadeFalta === "Alta" ? "bg-red-100 text-red-700" :
@@ -129,16 +169,22 @@ export default function AgendamentoCard({
         </div>
       </div>
 
-      {/* Separador e Profissional */}
-      <div className="px-4 sm:px-6 py-3 sm:py-4 border-t border-gray-100 flex items-center gap-3">
-        <div className="w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center text-[#7C3AED] shrink-0">
-          <Stethoscope className="w-4 h-4" />
+      {/* Separador e Profissional (Apenas para Administrador / Recepcionista / Enfermeira) */}
+      {tipoUsuarioLogado !== "Paciente" && tipoUsuarioLogado !== "Medico" && (
+        <div className="px-4 sm:px-6 py-3 sm:py-4 border-t border-gray-100 flex items-center gap-4">
+          <div className="w-12 h-12 rounded-full bg-purple-50 flex items-center justify-center text-[#7C3AED] shrink-0 overflow-hidden">
+            {agenda.profissionalFotoBase64 ? (
+              <img src={agenda.profissionalFotoBase64} alt="avatar" className="w-full h-full object-cover" />
+            ) : (
+              <Stethoscope className="w-6 h-6" />
+            )}
+          </div>
+          <div className="flex flex-col">
+            <span className="text-base font-bold text-gray-800">{agenda.nomeProfissional}</span>
+            <span className="text-xs font-semibold text-gray-500 mt-0.5">{agenda.tipoProfissional === 'Medico' ? 'Médico' : agenda.tipoProfissional}</span>
+          </div>
         </div>
-        <div className="flex flex-col">
-          <span className="text-sm font-bold text-gray-800">{agenda.nomeProfissional}</span>
-          <span className="text-xs font-semibold text-gray-500">{agenda.tipoProfissional === 'Medico' ? 'Médico' : agenda.tipoProfissional}</span>
-        </div>
-      </div>
+      )}
 
       {/* Rodapé: Ações */}
       <div className="px-4 sm:px-5 py-3 sm:py-4 border-t border-gray-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
@@ -189,6 +235,30 @@ export default function AgendamentoCard({
               className="flex-1 sm:flex-none text-xs font-bold bg-red-500 text-white px-4 py-2.5 rounded-xl hover:bg-red-600 transition-colors shadow-sm whitespace-nowrap text-center h-10"
             >
               Cancelar
+            </button>
+          )}
+          {onConcluirExame && agenda.tipoConsulta === 'Exame' && agenda.status === 'EmAtendimento' && (
+            <button
+              onClick={() => onConcluirExame(agenda)}
+              className="flex-1 sm:flex-none text-xs font-bold bg-[#7C3AED] text-white px-4 py-2.5 rounded-xl hover:bg-purple-700 transition-colors shadow-sm whitespace-nowrap text-center h-10"
+            >
+              Concluir Exame
+            </button>
+          )}
+          {onMarcarResultadoDisponivel && agenda.exigeResultadoPosterior && agenda.status === 'Finalizado' && !agenda.resultadoDisponivel && (
+            <button
+              onClick={() => onMarcarResultadoDisponivel(agenda.id)}
+              className="flex-1 sm:flex-none text-xs font-bold bg-blue-600 text-white px-4 py-2.5 rounded-xl hover:bg-blue-700 transition-colors shadow-sm whitespace-nowrap text-center h-10"
+            >
+              Notificar Resultado Pronto
+            </button>
+          )}
+          {onMarcarResultadoRetirado && agenda.exigeResultadoPosterior && agenda.resultadoDisponivel && !agenda.resultadoRetirado && (
+            <button
+              onClick={() => onMarcarResultadoRetirado(agenda.id)}
+              className="flex-1 sm:flex-none text-xs font-bold bg-emerald-600 text-white px-4 py-2.5 rounded-xl hover:bg-emerald-700 transition-colors shadow-sm whitespace-nowrap text-center h-10"
+            >
+              Confirmar Retirada
             </button>
           )}
         </div>

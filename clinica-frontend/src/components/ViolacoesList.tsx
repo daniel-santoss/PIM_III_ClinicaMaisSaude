@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { API_URL } from "../constants/api";
 import { AlertOctagon, AlertTriangle, ShieldAlert, Search, ShieldCheck } from "lucide-react";
 
-import { useScrollBlock } from "../hooks/useScrollBlock";
 import { useToast } from "../hooks/useToast";
 import ConfirmModal from "./ConfirmModal";
 
@@ -11,6 +10,7 @@ type Violacao = {
   pacienteId: string;
   pacienteNome: string;
   pacienteCpf: string;
+  pacienteFotoBase64?: string;
   tipoViolacao: string;
   textoInserido: string;
   dtCriado: string;
@@ -197,8 +197,12 @@ export default function ViolacoesList() {
                 >
                   {/* Linha superior */}
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-black shrink-0 bg-purple-100 text-[#7C3AED]">
-                      {getInitials(v.pacienteNome)}
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-black shrink-0 bg-purple-100 text-[#7C3AED] overflow-hidden">
+                      {v.pacienteFotoBase64 ? (
+                        <img src={v.pacienteFotoBase64} alt="avatar" className="w-full h-full object-cover" />
+                      ) : (
+                        getInitials(v.pacienteNome)
+                      )}
                     </div>
 
                     <div className="flex-1 min-w-0">

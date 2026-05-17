@@ -68,7 +68,8 @@ namespace ClinicaMaisSaude.Application.Services
                 Email = paciente.Email,
                 TemProblemaMemoria = paciente.TemProblemaMemoria,
                 UsuarioId = paciente.UsuarioId,
-                Tipo = "Paciente"
+                Tipo = "Paciente",
+                FotoBase64 = paciente.Usuario?.FotoBase64
             };
         }
 
@@ -88,7 +89,8 @@ namespace ClinicaMaisSaude.Application.Services
                 UsuarioId = p.UsuarioId,
                 Tipo = "Paciente",
                 UltimoAcesso = p.Usuario?.UltimoAcesso,
-                IsBanidoPermanente = p.Usuario?.BloqueadoAte.HasValue == true && (p.Usuario.BloqueadoAte.Value - DateTime.UtcNow).TotalDays > 3650
+                IsBanidoPermanente = p.Usuario?.BloqueadoAte.HasValue == true && (p.Usuario.BloqueadoAte.Value - DateTime.UtcNow).TotalDays > 3650,
+                FotoBase64 = p.Usuario?.FotoBase64
             }).ToList();
 
             if (incluirProfissionais)
@@ -117,7 +119,8 @@ namespace ClinicaMaisSaude.Application.Services
                         UsuarioId = prof.UsuarioId,
                         Tipo = prof.TipoProfissional.ToString(),
                         UltimoAcesso = prof.Usuario.UltimoAcesso,
-                        IsBanidoPermanente = prof.Usuario?.BloqueadoAte.HasValue == true && (prof.Usuario.BloqueadoAte.Value - DateTime.UtcNow).TotalDays > 3650
+                        IsBanidoPermanente = prof.Usuario?.BloqueadoAte.HasValue == true && (prof.Usuario.BloqueadoAte.Value - DateTime.UtcNow).TotalDays > 3650,
+                        FotoBase64 = prof.Usuario?.FotoBase64
                     });
                 }
             }
@@ -140,7 +143,8 @@ namespace ClinicaMaisSaude.Application.Services
                 UsuarioId = p.UsuarioId,
                 Tipo = "Paciente",
                 UltimoAcesso = p.Usuario?.UltimoAcesso,
-                IsBanidoPermanente = p.Usuario?.BloqueadoAte.HasValue == true && (p.Usuario.BloqueadoAte.Value - DateTime.UtcNow).TotalDays > 3650
+                IsBanidoPermanente = p.Usuario?.BloqueadoAte.HasValue == true && (p.Usuario.BloqueadoAte.Value - DateTime.UtcNow).TotalDays > 3650,
+                FotoBase64 = p.Usuario?.FotoBase64
             }).ToList();
 
             if (incluirProfissionais)
@@ -164,7 +168,8 @@ namespace ClinicaMaisSaude.Application.Services
                         UsuarioId = prof.UsuarioId,
                         Tipo = prof.TipoProfissional.ToString(),
                         UltimoAcesso = prof.Usuario.UltimoAcesso,
-                        IsBanidoPermanente = prof.Usuario?.BloqueadoAte.HasValue == true && (prof.Usuario.BloqueadoAte.Value - DateTime.UtcNow).TotalDays > 3650
+                        IsBanidoPermanente = prof.Usuario?.BloqueadoAte.HasValue == true && (prof.Usuario.BloqueadoAte.Value - DateTime.UtcNow).TotalDays > 3650,
+                        FotoBase64 = prof.Usuario?.FotoBase64
                     });
                 }
                 
@@ -216,7 +221,8 @@ namespace ClinicaMaisSaude.Application.Services
                 Telefone = paciente.Telefone,
                 Email = paciente.Email,
                 TemProblemaMemoria = paciente.TemProblemaMemoria,
-                UsuarioId = paciente.UsuarioId
+                UsuarioId = paciente.UsuarioId,
+                FotoBase64 = paciente.Usuario?.FotoBase64
             };
         }
 
@@ -248,7 +254,8 @@ namespace ClinicaMaisSaude.Application.Services
                     Telefone = p.Telefone,
                     Email = p.Email,
                     UsuarioId = p.UsuarioId,
-                    Tipo = "Paciente"
+                    Tipo = "Paciente",
+                    FotoBase64 = p.Usuario?.FotoBase64
                 })
                 .ToList();
 

@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { mascaraCpf } from "../utils/validators";
 import { obterMinDate } from "../utils/dates";
 import type { PacienteResponse } from "../types/PacienteResponse";
-import type { AgendamentoResponse } from "./AgendamentoList";
 import { X, Lightbulb, AlertTriangle, ShieldAlert, Search } from 'lucide-react';
 import { useScrollBlock } from "../hooks/useScrollBlock";
 import { useToast } from "../hooks/useToast";
@@ -39,6 +38,7 @@ export default function AgendamentoFormCriar({
   const [carregandoIA, setCarregandoIA] = useState(false);
   const [violacao, setViolacao] = useState(false);
   const [criando, setCriando] = useState(false);
+  const [agendamentos, setAgendamentos] = useState<any[]>([]);
 
   useEffect(() => {
     setTipoConsulta(tipoProfissional === 0 ? 0 : 3);
@@ -93,6 +93,24 @@ export default function AgendamentoFormCriar({
     };
     fetchHorarios();
   }, [dataSelecionada, tipoConsulta, especialidadeId, origemId]);
+
+  // Buscar agendamentos pendentes de retorno do paciente selecionado
+  useEffect(() => {
+    if (!pacienteSelecionado || tipoConsulta !== 4) return;
+    const fetchRetornos = async () => {
+      try {
+        const token = localStorage.getItem("authToken");
+        const res = await fetch(`${API_URL}/api/Agendamentos?pacienteId=${pacienteSelecionado}&status=AguardandoRetorno`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setAgendamentos(data.items || data);
+        }
+      } catch { /* silencioso */ }
+    };
+    fetchRetornos();
+  }, [pacienteSelecionado, tipoConsulta]);
 
   const buscarPacientesAPI = async () => {
     if (!buscaPaciente) return;

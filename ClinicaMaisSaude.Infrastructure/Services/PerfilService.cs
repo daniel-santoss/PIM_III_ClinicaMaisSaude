@@ -22,7 +22,8 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                     .FirstOrDefaultAsync(p => p.UsuarioId == usuarioId);
                 if (paciente == null) return null;
 
-                return new { tipo = "Paciente", paciente.Nome, paciente.Email, paciente.Telefone, paciente.Cpf };
+                var usuario = await _context.Usuarios.AsNoTracking().FirstOrDefaultAsync(u => u.Id == usuarioId);
+                return new { tipo = "Paciente", paciente.Nome, paciente.Email, paciente.Telefone, paciente.Cpf, FotoBase64 = usuario?.FotoBase64 };
             }
 
             var profissional = await _context.Profissionais
@@ -41,7 +42,8 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                 Cpf = profissional.Usuario?.Cpf,
                 profissional.Crm,
                 profissional.UfCrm,
-                Especialidades = profissional.Especialidades.Select(e => new { id = (int)e.EspecialidadeId })
+                Especialidades = profissional.Especialidades.Select(e => new { id = (int)e.EspecialidadeId }),
+                FotoBase64 = profissional.Usuario?.FotoBase64
             };
         }
 
@@ -99,6 +101,15 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             await _context.SaveChangesAsync();
 
             return null; // sucesso
+        }
+        public async Task<string?> AtualizarFotoAsync(Guid usuarioId, string base64)
+        {
+            var usuario = await _context.Usuarios.FindAsync(usuarioId);
+            if (usuario == null) return "Usuário não encontrado.";
+
+            usuario.AtualizarFoto(base64);
+            await _context.SaveChangesAsync();
+            return null;
         }
     }
 }

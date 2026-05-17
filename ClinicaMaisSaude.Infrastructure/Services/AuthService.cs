@@ -154,7 +154,8 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                 PacienteId = pacienteId,
                 ProfissionalId = perfilProfissional?.Id,
                 IsAdmin = usuario.IsAdmin,
-                PenalidadeRemovida = penalidadeRemovida
+                PenalidadeRemovida = penalidadeRemovida,
+                FotoBase64 = usuario.FotoBase64
             };
         }
 
@@ -237,7 +238,8 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                 TipoUsuario = tipoUsuarioStr,
                 PacienteId = pacienteId,
                 ProfissionalId = perfilProfissional?.Id,
-                IsAdmin = usuario.IsAdmin
+                IsAdmin = usuario.IsAdmin,
+                FotoBase64 = usuario.FotoBase64
             };
         }
     }
