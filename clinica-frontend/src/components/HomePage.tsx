@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Menu, X, Plus, Heart, Calendar, Shield, Activity, Stethoscope, Droplet, HeartPulse } from "lucide-react";
+import ModalTermosPolitica from "./ModalTermosPolitica";
 
 export default function HomePage({
   logo = "/src/assets/logo_clinica.png",
@@ -16,6 +17,7 @@ export default function HomePage({
 }) {
   const [menuAberto, setMenuAberto] = useState(false);
   const [slideAtual, setSlideAtual] = useState(0);
+  const [modalLegalAberto, setModalLegalAberto] = useState<'termos' | 'privacidade' | null>(null);
 
   const slides = [
     {
@@ -47,35 +49,77 @@ export default function HomePage({
     }, 4000);
     return () => clearInterval(intervalo);
   }, [slides.length]);
+  
+  // Scroll Suave
+  const scrollToSection = (e: React.MouseEvent<HTMLAnchorElement>, hash: string) => {
+    e.preventDefault();
+    setMenuAberto(false);
+    
+    let targetY = 0;
+    if (hash !== '#' && hash !== '') {
+      const id = hash.replace('#', '');
+      const element = document.getElementById(id);
+      if (element) {
+        targetY = element.getBoundingClientRect().top + window.scrollY - 20;
+      } else {
+        return;
+      }
+    }
+
+    const startY = window.scrollY;
+    const distance = targetY - startY;
+    const duration = 600; // 600ms de animação
+    let startTime: number | null = null;
+
+    const easeInOutQuad = (t: number) => t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+
+    const animation = (currentTime: number) => {
+      if (startTime === null) startTime = currentTime;
+      const timeElapsed = currentTime - startTime;
+      const progress = Math.min(timeElapsed / duration, 1);
+      
+      window.scrollTo(0, startY + distance * easeInOutQuad(progress));
+
+      if (timeElapsed < duration) {
+        requestAnimationFrame(animation);
+      }
+    };
+
+    requestAnimationFrame(animation);
+  };
 
   return (
-    <div className="min-h-screen bg-white flex flex-col font-sans">
+    <div className="min-h-screen bg-[#F1F5F9] flex flex-col font-sans">
       {/* 1. NAVBAR */}
       <nav className="relative z-50 flex justify-center px-6 sm:px-8 lg:px-12 pt-6 w-full">
         <div className="bg-white shadow-sm w-full max-w-7xl rounded-2xl md:rounded-full border border-gray-100">
           <div className="px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between h-20 items-center">
-              <div className="flex items-center gap-3">
+            <div className="flex justify-between h-20 items-center relative">
+              <a href="/" className="flex items-center gap-3 hover:opacity-90 transition-opacity">
                 <img src={logo} alt="Clínica Mais Saúde" className="h-10 md:h-12 w-auto object-contain" />
                 <span className="text-xl font-bold text-gray-900">Clínica Mais Saúde</span>
+              </a>
+
+              {/* Desktop Menu - Centralizado no meio */}
+              <div className="hidden md:flex items-center space-x-8 absolute left-1/2 -translate-x-1/2">
+                <a href="#" onClick={(e) => scrollToSection(e, '#')} className="text-gray-600 hover:text-[#7C3AED] font-medium transition-colors">Início</a>
+                <a href="#servicos" onClick={(e) => scrollToSection(e, '#servicos')} className="text-gray-600 hover:text-[#7C3AED] font-medium transition-colors">Serviços</a>
+                <a href="#sobre" onClick={(e) => scrollToSection(e, '#sobre')} className="text-gray-600 hover:text-[#7C3AED] font-medium transition-colors">Sobre Nós</a>
+                <a href="#contato" onClick={(e) => scrollToSection(e, '#contato')} className="text-gray-600 hover:text-[#7C3AED] font-medium transition-colors">Contato</a>
               </div>
 
-              {/* Desktop Menu */}
-              <div className="hidden md:flex items-center space-x-8">
-                <a href="#" className="text-gray-600 hover:text-[#7C3AED] font-medium transition-colors">Início</a>
-                <a href="#servicos" className="text-gray-600 hover:text-[#7C3AED] font-medium transition-colors">Serviços</a>
-                <a href="#sobre" className="text-gray-600 hover:text-[#7C3AED] font-medium transition-colors">Sobre Nós</a>
-                <a href="#contato" className="text-gray-600 hover:text-[#7C3AED] font-medium transition-colors">Contato</a>
-                <a href="/login" className="bg-[#7C3AED] text-white px-6 py-2.5 rounded-full font-medium hover:bg-purple-700 transition-colors shadow-md hover:shadow-lg">
+              {/* Botão de Agendamento e Menu Mobile à direita */}
+              <div className="flex items-center gap-4">
+                <a href="/login" className="hidden md:inline-block bg-[#7C3AED] text-white px-6 py-2.5 rounded-full font-medium hover:bg-purple-700 transition-colors shadow-md hover:shadow-lg">
                   Agendar Consulta
                 </a>
-              </div>
 
-              {/* Mobile Menu Button */}
-              <div className="md:hidden flex items-center">
-                <button onClick={() => setMenuAberto(!menuAberto)} className="text-gray-600 hover:text-[#7C3AED] transition-colors p-2">
-                  {menuAberto ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-                </button>
+                {/* Mobile Menu Button */}
+                <div className="md:hidden flex items-center">
+                  <button onClick={() => setMenuAberto(!menuAberto)} className="text-gray-600 hover:text-[#7C3AED] transition-colors p-2">
+                    {menuAberto ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -83,10 +127,10 @@ export default function HomePage({
           {/* Mobile Menu */}
           {menuAberto && (
             <div className="md:hidden bg-white border-t border-gray-100 shadow-lg absolute left-4 right-4 top-24 rounded-2xl p-4 space-y-2 z-50 border border-gray-100">
-              <a href="#" className="block px-3 py-3 text-base font-medium text-gray-700 hover:text-[#7C3AED] hover:bg-purple-50 rounded-md">Início</a>
-              <a href="#servicos" className="block px-3 py-3 text-base font-medium text-gray-700 hover:text-[#7C3AED] hover:bg-purple-50 rounded-md">Serviços</a>
-              <a href="#sobre" className="block px-3 py-3 text-base font-medium text-gray-700 hover:text-[#7C3AED] hover:bg-purple-50 rounded-md">Sobre Nós</a>
-              <a href="#contato" className="block px-3 py-3 text-base font-medium text-gray-700 hover:text-[#7C3AED] hover:bg-purple-50 rounded-md">Contato</a>
+              <a href="#" onClick={(e) => scrollToSection(e, '#')} className="block px-3 py-3 text-base font-medium text-gray-700 hover:text-[#7C3AED] hover:bg-purple-50 rounded-md">Início</a>
+              <a href="#servicos" onClick={(e) => scrollToSection(e, '#servicos')} className="block px-3 py-3 text-base font-medium text-gray-700 hover:text-[#7C3AED] hover:bg-purple-50 rounded-md">Serviços</a>
+              <a href="#sobre" onClick={(e) => scrollToSection(e, '#sobre')} className="block px-3 py-3 text-base font-medium text-gray-700 hover:text-[#7C3AED] hover:bg-purple-50 rounded-md">Sobre Nós</a>
+              <a href="#contato" onClick={(e) => scrollToSection(e, '#contato')} className="block px-3 py-3 text-base font-medium text-gray-700 hover:text-[#7C3AED] hover:bg-purple-50 rounded-md">Contato</a>
               <a href="/login" className="block w-full text-center mt-4 bg-[#7C3AED] text-white px-6 py-3 rounded-lg font-medium hover:bg-purple-700">
                 Agendar Consulta
               </a>
@@ -113,12 +157,12 @@ export default function HomePage({
             <div className="absolute inset-0 bg-black/45" />
           </div>
 
-          <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 w-full">
+          <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-16 md:pt-36 md:pb-22 w-full">
             <div className="max-w-2xl sm:text-center lg:text-left min-h-[280px] md:min-h-[240px] relative">
               {slides.map((slide, index) => (
                 <div
                   key={index}
-                  className={`transition-all duration-1000 ease-in-out ${index === slideAtual
+                  className={`transition-all duration-1000 ease-in-out pl-8 sm:pl-15 md:pl-16 lg:pl-20 ${index === slideAtual
                       ? 'opacity-100 translate-y-0 relative z-10'
                       : 'opacity-0 translate-y-4 absolute inset-0 pointer-events-none'
                     }`}
@@ -132,6 +176,9 @@ export default function HomePage({
                   <div className="mt-6 sm:mt-8 sm:flex sm:justify-center lg:justify-start">
                     <a
                       href={slide.link}
+                      onClick={(e) => {
+                        if (slide.link.startsWith('#')) scrollToSection(e, slide.link);
+                      }}
                       className="inline-flex items-center justify-center px-8 py-3 border-2 border-white text-base font-medium rounded-full text-white bg-transparent hover:shadow-[0_0_20px_rgba(255,255,255,0.65)] transition-all duration-300 md:py-3.5 md:text-lg md:px-10"
                     >
                       {slide.botao}
@@ -173,7 +220,7 @@ export default function HomePage({
         </section>
 
         {/* 3. DESTAQUES */}
-        <section className="py-16 bg-white">
+        <section className="py-16 bg-white mx-6 sm:mx-8 lg:mx-12 rounded-3xl border border-gray-100 shadow-md my-6">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {[
@@ -181,12 +228,12 @@ export default function HomePage({
                 { icon: <Calendar className="w-8 h-8 text-[#7C3AED]" />, title: "Agendamento Fácil", desc: "Plataforma digital intuitiva para marcar suas consultas." },
                 { icon: <Shield className="w-8 h-8 text-[#7C3AED]" />, title: "Tecnologia Avançada", desc: "Prontuário eletrônico seguro e integrado para sua saúde." }
               ].map((item, i) => (
-                <div key={i} className="bg-white p-8 rounded-2xl shadow-sm hover:shadow-md transition-all border border-gray-100 hover:border-purple-200 flex flex-col items-center text-center group">
+                <div key={i} className="bg-white p-8 rounded-2xl shadow-xl shadow-purple-900/5 hover:-translate-y-1 transition-all duration-300 border-2 border-gray-200 hover:border-purple-300 flex flex-col items-center text-center group">
                   <div className="p-4 bg-purple-50 rounded-full mb-6 group-hover:scale-110 transition-transform">
                     {item.icon}
                   </div>
                   <h3 className="text-xl font-bold text-gray-900 mb-3">{item.title}</h3>
-                  <p className="text-gray-500">{item.desc}</p>
+                  <p className="text-gray-600">{item.desc}</p>
                 </div>
               ))}
             </div>
@@ -194,11 +241,11 @@ export default function HomePage({
         </section>
 
         {/* 4. ESPECIALIDADES */}
-        <section id="servicos" className="py-20 bg-white mx-6 sm:mx-8 lg:mx-12 rounded-3xl border border-gray-100 shadow-md">
+        <section id="servicos" className="py-20 bg-white mx-6 sm:mx-8 lg:mx-12 rounded-3xl border border-gray-100 shadow-md my-6">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
               <h2 className="text-3xl font-extrabold text-gray-900 sm:text-4xl">Nossas Especialidades</h2>
-              <p className="mt-4 text-xl text-gray-500">Corpo clínico altamente qualificado para cuidar de você.</p>
+              <p className="mt-4 text-xl text-gray-600">Corpo clínico altamente qualificado para cuidar de você.</p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {[
@@ -209,8 +256,8 @@ export default function HomePage({
                 { icon: <Shield />, title: "Ortopedia" },
                 { icon: <Droplet />, title: "Dermatologia" }
               ].map((item, i) => (
-                <div key={i} className="group p-6 bg-white rounded-2xl shadow-sm hover:shadow-md hover:bg-[#EDE9FE] transition-all cursor-pointer border border-gray-100 hover:border-purple-200">
-                  <div className="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center text-[#7C3AED] mb-6 group-hover:scale-110 transition-transform">
+                <div key={i} className="group p-6 bg-white rounded-2xl shadow-lg shadow-purple-900/5 hover:shadow-xl hover:shadow-purple-900/10 hover:-translate-y-1 transition-all duration-300 cursor-pointer border-2 border-gray-200 hover:border-purple-400">
+                  <div className="w-12 h-12 bg-purple-50 rounded-xl shadow-sm flex items-center justify-center text-[#7C3AED] mb-6 group-hover:scale-110 group-hover:bg-[#7C3AED] group-hover:text-white transition-all duration-300">
                     {item.icon}
                   </div>
                   <h3 className="text-xl font-bold text-gray-900 mb-2">{item.title}</h3>
@@ -223,8 +270,88 @@ export default function HomePage({
           </div>
         </section>
 
+        {/* SOBRE NÓS */}
+        <section id="sobre" className="py-20 bg-white mx-6 sm:mx-8 lg:mx-12 rounded-3xl border border-gray-100 shadow-md my-6">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+              {/* Coluna Visual: Stats & Badges */}
+              <div className="relative flex flex-col gap-6">
+                <div className="absolute inset-0 bg-purple-50 rounded-3xl -rotate-2 scale-[1.02] -z-10 opacity-70" />
+                <div className="bg-white p-8 rounded-3xl border-2 border-gray-200 shadow-xl shadow-purple-900/5 flex flex-col gap-6 relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-purple-200/40 rounded-full blur-2xl pointer-events-none" />
+                  
+                  <div className="flex gap-4 items-center">
+                    <span className="p-3 bg-white rounded-2xl text-[#7C3AED] shadow-sm flex items-center justify-center">
+                      <Heart className="w-8 h-8" />
+                    </span>
+                    <div>
+                      <h4 className="text-lg font-bold text-gray-900">Nosso Propósito</h4>
+                      <p className="text-gray-600 text-sm">Oferecer atendimento médico de excelência, humanizado e focado na prevenção e cuidado integral.</p>
+                    </div>
+                  </div>
+
+                  <div className="h-[1px] bg-gray-200/80 w-full" />
+
+                  {/* Grid de Estatísticas */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-4 bg-white rounded-2xl text-center shadow-sm border border-gray-50">
+                      <span className="text-3xl font-extrabold text-[#7C3AED]">10+</span>
+                      <p className="text-xs text-gray-500 font-semibold mt-1">Anos de História</p>
+                    </div>
+                    <div className="p-4 bg-white rounded-2xl text-center shadow-sm border border-gray-50">
+                      <span className="text-3xl font-extrabold text-[#7C3AED]">50k+</span>
+                      <p className="text-xs text-gray-500 font-semibold mt-1">Pacientes Atendidos</p>
+                    </div>
+                    <div className="p-4 bg-white rounded-2xl text-center shadow-sm border border-gray-50">
+                      <span className="text-3xl font-extrabold text-[#7C3AED]">30+</span>
+                      <p className="text-xs text-gray-500 font-semibold mt-1">Médicos Especialistas</p>
+                    </div>
+                    <div className="p-4 bg-white rounded-2xl text-center shadow-sm border border-gray-50">
+                      <span className="text-3xl font-extrabold text-[#7C3AED]">98%</span>
+                      <p className="text-xs text-gray-500 font-semibold mt-1">Satisfação</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Coluna de Texto */}
+              <div className="flex flex-col">
+                <span className="text-sm font-bold text-[#7C3AED] uppercase tracking-widest mb-3">Sobre Nós</span>
+                <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 tracking-tight leading-tight">
+                  Cuidado humanizado e tecnologia de ponta para a sua saúde
+                </h2>
+                <p className="mt-6 text-gray-600 leading-relaxed font-medium">
+                  A Clínica Mais Saúde foi fundada com a missão de transformar o atendimento médico privado, tornando-o acolhedor, ágil e altamente especializado. Acreditamos que a verdadeira saúde começa com a escuta atenta e a empatia.
+                </p>
+                <p className="mt-4 text-gray-600 leading-relaxed font-medium">
+                  Contamos com uma estrutura de última geração, prontuários digitais integrados e seguros, além de um corpo clínico formado por profissionais das melhores instituições do país, prontos para acompanhar você e sua família em todas as fases da vida.
+                </p>
+
+                {/* Checklist de Valores */}
+                <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {[
+                    "Corpo clínico de referência",
+                    "Agendamento 100% digital",
+                    "Estrutura moderna e acessível",
+                    "Foco no cuidado preventivo"
+                  ].map((valor, idx) => (
+                    <div key={idx} className="flex items-center gap-3">
+                      <span className="p-1 bg-purple-50 rounded-full text-[#7C3AED]">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </span>
+                      <span className="text-sm font-bold text-gray-700">{valor}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* 5. BANNER CTA */}
-        <section className="bg-[#7C3AED] py-20 mx-6 sm:mx-8 lg:mx-12 rounded-3xl shadow-xl text-white relative overflow-hidden my-12">
+        <section className="bg-gradient-to-br from-[#7C3AED] via-[#6D28D9] to-[#4C1D95] py-20 mx-6 sm:mx-8 lg:mx-12 rounded-3xl shadow-2xl shadow-purple-900/20 text-white relative overflow-hidden my-6">
           {/* Círculos decorativos sutis em background */}
           <div className="absolute top-0 right-0 w-80 h-80 bg-white/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
           <div className="absolute bottom-0 left-0 w-80 h-80 bg-white/5 rounded-full blur-3xl -ml-20 -mb-20 pointer-events-none" />
@@ -239,7 +366,8 @@ export default function HomePage({
             <div className="mt-10 flex flex-col sm:flex-row justify-center gap-4 w-full sm:w-auto">
               <a
                 href="#contato"
-                className="px-8 py-4 bg-white text-[#7C3AED] font-bold rounded-full hover:bg-purple-50 hover:scale-105 active:scale-95 transition-all duration-300 shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+                onClick={(e) => scrollToSection(e, '#contato')}
+                className="px-8 py-4 bg-white text-[#7C3AED] font-bold rounded-full hover:bg-gray-50 hover:scale-105 active:scale-95 transition-all duration-300 shadow-lg hover:shadow-[0_0_20px_rgba(255,255,255,0.4)] flex items-center justify-center gap-2"
               >
                 Entrar em Contato
               </a>
@@ -273,9 +401,9 @@ export default function HomePage({
             <div className="flex flex-col items-center md:items-start">
               <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-4">Navegação</h3>
               <ul className="space-y-3 text-center md:text-left text-sm text-gray-300">
-                <li><a href="#" className="hover:text-white transition-colors">Início</a></li>
-                <li><a href="#servicos" className="hover:text-white transition-colors">Serviços</a></li>
-                <li><a href="#sobre" className="hover:text-white transition-colors">Sobre Nós</a></li>
+                <li><a href="#" onClick={(e) => scrollToSection(e, '#')} className="hover:text-white transition-colors">Início</a></li>
+                <li><a href="#servicos" onClick={(e) => scrollToSection(e, '#servicos')} className="hover:text-white transition-colors">Serviços</a></li>
+                <li><a href="#sobre" onClick={(e) => scrollToSection(e, '#sobre')} className="hover:text-white transition-colors">Sobre Nós</a></li>
                 <li><a href="/login" className="hover:text-white transition-colors">Acessar Portal</a></li>
               </ul>
             </div>
@@ -309,12 +437,17 @@ export default function HomePage({
           <div className="mt-12 pt-8 border-t border-gray-700 flex flex-col sm:flex-row justify-between items-center gap-4 text-xs text-gray-400">
             <span>&copy; {new Date().getFullYear()} Clínica Mais Saúde. Todos os direitos reservados.</span>
             <div className="flex gap-4">
-              <a href="#" className="hover:text-white transition-colors">Termos de Uso</a>
-              <a href="#" className="hover:text-white transition-colors">Política de Privacidade</a>
+              <button onClick={(e) => { e.preventDefault(); setModalLegalAberto('termos'); }} className="hover:text-white transition-colors cursor-pointer border-none bg-transparent">Termos de Uso</button>
+              <button onClick={(e) => { e.preventDefault(); setModalLegalAberto('privacidade'); }} className="hover:text-white transition-colors cursor-pointer border-none bg-transparent">Política de Privacidade</button>
             </div>
           </div>
         </div>
       </footer>
+
+      <ModalTermosPolitica 
+        tipo={modalLegalAberto} 
+        onFechar={() => setModalLegalAberto(null)} 
+      />
     </div>
   );
 }
