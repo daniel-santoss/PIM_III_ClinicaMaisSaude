@@ -18,10 +18,5 @@ export const ESPECIALIDADES = [
   "Pneumologia",
   "Reumatologia",
   "Geriatria",
-  "Medicina do Trabalho",
-  "Medicina Esportiva",
-  "Acupuntura",
-  "Análises Clínicas",
-  "Radiologia",
-  "Diagnóstico por Imagem",
+  "Medicina Esportiva"
 ] as const;

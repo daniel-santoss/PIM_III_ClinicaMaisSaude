@@ -88,7 +88,7 @@ export default function HomePage({
     requestAnimationFrame(animation);
   };
 
-  return (
+  return (  
     <div className="min-h-screen bg-[#F1F5F9] flex flex-col font-sans">
       {/* 1. NAVBAR */}
       <nav className="relative z-50 flex justify-center px-6 sm:px-8 lg:px-12 pt-6 w-full">

@@ -34,10 +34,5 @@ export const MapNomesEspecialidade: Record<string, string> = {
   "Pneumologia": "Pneumologia",
   "Reumatologia": "Reumatologia",
   "Geriatria": "Geriatria",
-  "MedicinaDoTrabalho": "Medicina do Trabalho",
-  "MedicinaEsportiva": "Medicina Esportiva",
-  "Acupuntura": "Acupuntura",
-  "AnalisesClinicas": "Análises Clínicas",
-  "Radiologia": "Radiologia",
-  "DiagnosticoPorImagem": "Diagnóstico por Imagem"
+  "MedicinaEsportiva": "Medicina Esportiva"
 };

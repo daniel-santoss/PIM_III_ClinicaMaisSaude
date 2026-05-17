@@ -89,12 +89,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             EspecialidadeMedica.Pneumologia => "Pneumologia",
             EspecialidadeMedica.Reumatologia => "Reumatologia",
             EspecialidadeMedica.Geriatria => "Geriatria",
-            EspecialidadeMedica.MedicinaDoTrabalho => "Medicina do Trabalho",
             EspecialidadeMedica.MedicinaEsportiva => "Medicina Esportiva",
-            EspecialidadeMedica.Acupuntura => "Acupuntura",
-            EspecialidadeMedica.AnalisesClinicas => "Análises Clínicas",
-            EspecialidadeMedica.Radiologia => "Radiologia",
-            EspecialidadeMedica.DiagnosticoPorImagem => "Diagnóstico por Imagem",
             _ => e.ToString()
         };
     }
