@@ -1,4 +1,4 @@
-import { Bell, LayoutDashboard, Users, CalendarDays, ShieldAlert, LogOut, Menu, X } from 'lucide-react';
+import { Bell, LayoutDashboard, Users, CalendarDays, ShieldAlert, BarChart2, LogOut, Menu, X } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import logoPng from '../assets/logo_clinica.png';
 import { useScrollBlock } from '../hooks/useScrollBlock';
@@ -39,12 +39,14 @@ function getNavItems(tipoUsuario: string, isAdmin: boolean): NavItem[] {
     return [
       { id: 'pacientes',    label: 'Usuários',        icon: <Users size={18} /> },
       { id: 'agendamentos', label: 'Agendamentos',    icon: <CalendarDays size={18} /> },
+      { id: 'relatorios',   label: 'Relatórios',      icon: <BarChart2 size={18} /> },
       { id: 'violacoes',    label: 'Violações IA',    icon: <ShieldAlert size={18} /> },
     ];
   }
   if (tipoUsuario === 'Medico' || tipoUsuario === 'Enfermeira') {
     return [
       { id: 'agendamentos', label: 'Agendamentos', icon: <CalendarDays size={18} /> },
+      { id: 'relatorios',   label: 'Relatórios',   icon: <BarChart2 size={18} /> },
     ];
   }
   // Paciente

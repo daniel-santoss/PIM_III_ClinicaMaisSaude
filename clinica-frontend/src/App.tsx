@@ -11,9 +11,9 @@ import MeusAgendamentos from "./components/MeusAgendamentos";
 import PerfilPaciente from "./components/PerfilPaciente";
 import PerfilMedico from "./components/PerfilMedico";
 import ViolacoesList from "./components/ViolacoesList";
+import Relatorios from "./pages/Relatorios";
 import type { PacienteResponse } from "./types/PacienteResponse";
 import { useScrollBlock } from "./hooks/useScrollBlock";
-import ToastContainer from "./components/ToastNotification";
 import HomePage from "./components/HomePage";
 
 type Notificacao = {
@@ -26,7 +26,7 @@ type Notificacao = {
 };
 
 // Aba ativa — inclui "painel" (reservado para uso futuro) sem quebrar nada
-type AbaAtiva = "painel" | "pacientes" | "agendamentos" | "minhas-consultas" | "violacoes";
+type AbaAtiva = "painel" | "pacientes" | "agendamentos" | "minhas-consultas" | "violacoes" | "relatorios";
 
 export default function App() {
   const [autenticado, setAutenticado] = useState(false);
@@ -139,8 +139,15 @@ export default function App() {
       setPacienteParaEditar(e.detail);
       setAbaAtiva("pacientes");
     };
+    const handleNavegarGlobal = (e: CustomEvent<string>) => {
+      setAbaAtiva(e.detail as AbaAtiva);
+    };
     window.addEventListener("editarPacienteGlobal", handleEditar as EventListener);
-    return () => window.removeEventListener("editarPacienteGlobal", handleEditar as EventListener);
+    window.addEventListener("navegarAbaGlobal", handleNavegarGlobal as EventListener);
+    return () => {
+      window.removeEventListener("editarPacienteGlobal", handleEditar as EventListener);
+      window.removeEventListener("navegarAbaGlobal", handleNavegarGlobal as EventListener);
+    };
   }, []);
 
   // ── Tela de Carregamento ───────────────────────────────────────────────────
@@ -235,6 +242,13 @@ export default function App() {
         </section>
       )}
 
+      {/* ── Relatórios ────────────────────────────────────────────────────── */}
+      {abaAtiva === "relatorios" && tipoUsuario !== "Paciente" && (
+        <section aria-label="Relatórios">
+          <Relatorios />
+        </section>
+      )}
+
       {/* ── Modal de Perfil — bottom-sheet no mobile, centralizado no desktop ── */}
       {modalPerfilAberto && (
         <div
@@ -270,7 +284,6 @@ export default function App() {
           </div>
         </div>
       )}
-      <ToastContainer />
     </AppLayout>
   );
 }

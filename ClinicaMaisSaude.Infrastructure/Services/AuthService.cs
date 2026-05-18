@@ -64,6 +64,12 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                     throw new Exception("Conta bloqueada por excesso de tentativas. Tente novamente em 15 minutos.");
                 }
 
+                int tentativasRestantes = 5 - usuario.TentativasLogin;
+                if (tentativasRestantes > 0 && !usuario.IsAdmin)
+                {
+                    throw new Exception($"Credenciais inválidas. Você tem mais {tentativasRestantes} tentativa(s) antes do bloqueio.");
+                }
+
                 throw new Exception("Credenciais inválidas.");
             }
 
