@@ -358,7 +358,7 @@ export default function Relatorios() {
           />
           <CheckboxDropdown
             label="Especialidade"
-            options={ESPECIALIDADES}
+            options={[...ESPECIALIDADES]}
             selected={filtroEspecialidades}
             onChange={setFiltroEspecialidades}
           />
@@ -408,8 +408,8 @@ export default function Relatorios() {
               <h3 className="text-[15px] font-bold text-gray-800 mb-4">Distribuição por Status</h3>
               <ResponsiveContainer width="100%" height={260}>
                 <PieChart>
-                  <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90} innerRadius={45} paddingAngle={2} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} style={{ fontSize: 11, cursor: 'pointer' }}
-                    onClick={(data) => toggleFiltroStatus(data.key)}
+                  <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90} innerRadius={45} paddingAngle={2} label={({ name, percent }) => `${name} ${((percent || 0) * 100).toFixed(0)}%`} style={{ fontSize: 11, cursor: 'pointer' }}
+                    onClick={(data: any) => toggleFiltroStatus(data.key as string)}
                   >
                     {pieData.map((entry, i) => (
                       <Cell key={i} fill={entry.color} 
@@ -432,7 +432,7 @@ export default function Relatorios() {
                   <YAxis type="category" dataKey="nome" tick={{ fontSize: 11, fill: '#6B7280' }} width={75} />
                   <Tooltip content={<CustomTooltip />} />
                   <Bar dataKey="total" name="Total" radius={[0, 6, 6, 0]} barSize={18} style={{ cursor: 'pointer' }}
-                    onClick={(data) => toggleFiltroEspecialidade(data.nome)}
+                    onClick={(data: any) => toggleFiltroEspecialidade(data.nome as string)}
                   >
                     {dados.especialidadesMaisProcuradas.map((entry, i) => (
                       <Cell key={i} fill={filtroEspecialidades.includes(entry.nome) ? '#7C3AED' : '#9CA3AF'} 

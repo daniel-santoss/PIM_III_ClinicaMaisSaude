@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Menu, X, Plus, Heart, Calendar, Shield, Activity, Stethoscope, Droplet, HeartPulse } from "lucide-react";
 import ModalTermosPolitica from "./ModalTermosPolitica";
+import ModalEspecialidades from "./ModalEspecialidades";
 
 export default function HomePage({
   logo = "/src/assets/logo_clinica.png",
@@ -18,6 +19,7 @@ export default function HomePage({
   const [menuAberto, setMenuAberto] = useState(false);
   const [slideAtual, setSlideAtual] = useState(0);
   const [modalLegalAberto, setModalLegalAberto] = useState<'termos' | 'privacidade' | null>(null);
+  const [modalServicosAberto, setModalServicosAberto] = useState(false);
 
   const slides = [
     {
@@ -256,16 +258,25 @@ export default function HomePage({
                 { icon: <Shield />, title: "Ortopedia" },
                 { icon: <Droplet />, title: "Dermatologia" }
               ].map((item, i) => (
-                <div key={i} className="group p-6 bg-white rounded-2xl shadow-lg shadow-purple-900/5 hover:shadow-xl hover:shadow-purple-900/10 hover:-translate-y-1 transition-all duration-300 cursor-pointer border-2 border-gray-200 hover:border-purple-400">
+                <div key={i} className="group p-6 bg-white rounded-2xl shadow-lg shadow-purple-900/5 hover:shadow-xl hover:shadow-purple-900/10 hover:-translate-y-1 transition-all duration-300 border-2 border-gray-200 hover:border-purple-400">
                   <div className="w-12 h-12 bg-purple-50 rounded-xl shadow-sm flex items-center justify-center text-[#7C3AED] mb-6 group-hover:scale-110 group-hover:bg-[#7C3AED] group-hover:text-white transition-all duration-300">
                     {item.icon}
                   </div>
                   <h3 className="text-xl font-bold text-gray-900 mb-2">{item.title}</h3>
-                  <div className="flex items-center text-[#7C3AED] font-medium mt-4">
-                    Saiba mais <svg className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
-                  </div>
                 </div>
               ))}
+            </div>
+            
+            <div className="mt-6 flex justify-end">
+              <button 
+                onClick={() => setModalServicosAberto(true)} 
+                className="text-[#7C3AED] font-semibold hover:text-purple-700 hover:underline flex items-center transition-colors group cursor-pointer bg-transparent border-none p-0"
+              >
+                Ver todos os serviços
+                <svg className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                </svg>
+              </button>
             </div>
           </div>
         </section>
@@ -447,6 +458,11 @@ export default function HomePage({
       <ModalTermosPolitica 
         tipo={modalLegalAberto} 
         onFechar={() => setModalLegalAberto(null)} 
+      />
+
+      <ModalEspecialidades 
+        isOpen={modalServicosAberto} 
+        onClose={() => setModalServicosAberto(false)} 
       />
     </div>
   );

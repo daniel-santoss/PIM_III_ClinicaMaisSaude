@@ -19,7 +19,7 @@ export default function ModalTermosPolitica({ tipo, onFechar }: ModalTermosPolit
         {/* Cabeçalho */}
         <div className="flex justify-between items-center p-4 sm:p-6 border-b border-gray-100 shrink-0 bg-gray-50/50">
           <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center shadow-sm ${isTermos ? 'bg-purple-100 text-[#7C3AED]' : 'bg-blue-100 text-blue-600'}`}>
+            <div className="w-10 h-10 rounded-full flex items-center justify-center shadow-sm bg-purple-100 text-[#7C3AED]">
               {isTermos ? <FileText className="w-5 h-5" /> : <ShieldCheck className="w-5 h-5" />}
             </div>
             <h3 className="text-lg sm:text-xl font-bold text-gray-900 tracking-tight">
@@ -116,9 +116,7 @@ export default function ModalTermosPolitica({ tipo, onFechar }: ModalTermosPolit
         <div className="shrink-0 p-4 sm:p-6 border-t border-gray-100 flex justify-end bg-gray-50/50">
           <button
             onClick={onFechar}
-            className={`py-2.5 px-6 font-bold text-sm rounded-xl transition-all shadow-sm active:scale-95 text-white w-full sm:w-auto ${
-              isTermos ? 'bg-[#7C3AED] hover:bg-[#6D28D9] shadow-purple-200' : 'bg-blue-600 hover:bg-blue-700 shadow-blue-200'
-            }`}
+            className="py-2.5 px-6 font-bold text-sm rounded-xl transition-all shadow-sm active:scale-95 text-white w-full sm:w-auto bg-[#7C3AED] hover:bg-[#6D28D9] shadow-purple-200 cursor-pointer border-none"
           >
             Entendi
           </button>

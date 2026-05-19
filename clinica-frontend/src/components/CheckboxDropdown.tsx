@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Filter, RefreshCw } from 'lucide-react';
+import { Filter } from 'lucide-react';
 
 interface CheckboxDropdownProps {
   label: string;
