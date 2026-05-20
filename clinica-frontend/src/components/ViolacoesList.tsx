@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { API_URL } from "../constants/api";
 import { AlertOctagon, AlertTriangle, ShieldAlert, Search, ShieldCheck } from "lucide-react";
+import { getRealDate } from '../utils/dates';
 
 import { useToast } from "../hooks/useToast";
 import ConfirmModal from "./ConfirmModal";
@@ -89,7 +90,7 @@ export default function ViolacoesList() {
 
     let matchData = true;
     if (dataFiltro) {
-      const dateObj = new Date(v.dtCriado);
+      const dateObj = getRealDate(v.dtCriado)!;
       const year = dateObj.getFullYear();
       const month = String(dateObj.getMonth() + 1).padStart(2, '0');
       const day = String(dateObj.getDate()).padStart(2, '0');
@@ -220,7 +221,7 @@ export default function ViolacoesList() {
                     </div>
 
                     <span className="text-xs text-gray-400 font-medium shrink-0">
-                      {new Date(v.dtCriado).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}
+                      {getRealDate(v.dtCriado)!.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}
                     </span>
                   </div>
 

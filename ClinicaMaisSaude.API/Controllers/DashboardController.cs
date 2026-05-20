@@ -174,18 +174,7 @@ namespace ClinicaMaisSaude.API.Controllers
                 wsProf.Columns().AdjustToContents();
             }
 
-            // Aba 5 — Risco de Falta
-            var wsRisco = workbook.Worksheets.Add("Risco de Falta");
-            wsRisco.Cell(1, 1).Value = "Paciente";
-            wsRisco.Cell(1, 2).Value = "Probabilidade (%)";
-            wsRisco.Cell(1, 3).Value = "Data Consulta";
-            for (int i = 0; i < dto.TopRiscoFalta.Count; i++)
-            {
-                wsRisco.Cell(i + 2, 1).Value = dto.TopRiscoFalta[i].NomePaciente;
-                wsRisco.Cell(i + 2, 2).Value = Math.Round(dto.TopRiscoFalta[i].Probabilidade * 100, 1);
-                wsRisco.Cell(i + 2, 3).Value = dto.TopRiscoFalta[i].DataConsulta;
-            }
-            wsRisco.Columns().AdjustToContents();
+
 
             // Aba 6 — Auditoria IA (Admin only)
             if (isAdmin && dto.AuditoriaIA != null)
@@ -211,7 +200,7 @@ namespace ClinicaMaisSaude.API.Controllers
 
         // ── PDF ─────────────────────────────────────────────────────────────
         [HttpGet("exportar/pdf")]
-        public async Task<IActionResult> ExportarPdf([FromQuery] DateTime dataInicio, [FromQuery] DateTime dataFim, [FromQuery] string[]? status = null, [FromQuery] string[]? especialidades = null)
+        public async Task<IActionResult> ExportarPdf([FromQuery] DateTime dataInicio, [FromQuery] DateTime dataFim, [FromQuery] string[]? status = null, [FromQuery] string[]? especialidades = null, [FromServices] ClinicaDbContext db = null)
         {
             var (isAdmin, _) = ObterContextoUsuario();
             var dto = await ObterDadosExportacao(dataInicio, dataFim, status, especialidades);
@@ -233,7 +222,18 @@ namespace ClinicaMaisSaude.API.Controllers
                         {
                             col.Item().Text($"Filtros: {textoFiltrosPdf}").FontSize(10).FontColor(Colors.Grey.Medium);
                         }
+                        var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                        var role = User.FindFirstValue(ClaimTypes.Role) ?? "Usuário";
+                        string nomeUsuario = isAdmin ? "Administrador" : "Desconhecido";
+                        
+                        if (Guid.TryParse(userIdStr, out var userId) && db != null)
+                        {
+                            var prof = db.Profissionais.FirstOrDefault(p => p.UsuarioId == userId);
+                            if (prof != null) nomeUsuario = prof.Nome;
+                        }
+
                         col.Item().Text($"Gerado em: {DateTime.Now:dd/MM/yyyy HH:mm}").FontSize(8).FontColor(Colors.Grey.Medium);
+                        col.Item().Text($"Usuário: {nomeUsuario} ({role})").FontSize(8).FontColor(Colors.Grey.Medium);
                         col.Item().PaddingBottom(10).LineHorizontal(1).LineColor(Colors.Purple.Lighten3);
                     });
 
@@ -283,25 +283,7 @@ namespace ClinicaMaisSaude.API.Controllers
                         });
                         col.Item().PaddingVertical(6).LineHorizontal(0.5f).LineColor(Colors.Grey.Lighten2);
 
-                        // Risco de Falta
-                        col.Item().Text("Top 5 Risco de Falta").Bold().FontSize(13);
-                        col.Item().Table(table =>
-                        {
-                            table.ColumnsDefinition(c => { c.RelativeColumn(2); c.RelativeColumn(); c.RelativeColumn(); });
-                            table.Header(h =>
-                            {
-                                h.Cell().Background(Colors.Purple.Lighten4).Padding(4).Text("Paciente").Bold();
-                                h.Cell().Background(Colors.Purple.Lighten4).Padding(4).Text("Prob. (%)").Bold();
-                                h.Cell().Background(Colors.Purple.Lighten4).Padding(4).Text("Data").Bold();
-                            });
-                            foreach (var r in dto.TopRiscoFalta)
-                            {
-                                table.Cell().Padding(3).Text(r.NomePaciente);
-                                table.Cell().Padding(3).Text($"{Math.Round(r.Probabilidade * 100, 1)}%");
-                                table.Cell().Padding(3).Text(r.DataConsulta);
-                            }
-                        });
-                        col.Item().PaddingVertical(6).LineHorizontal(0.5f).LineColor(Colors.Grey.Lighten2);
+
 
                         // Fluxo de Exames
                         col.Item().Text("Fluxo de Exames").Bold().FontSize(13);

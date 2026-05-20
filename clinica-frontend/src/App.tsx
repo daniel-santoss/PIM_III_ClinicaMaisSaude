@@ -211,7 +211,7 @@ export default function App() {
       {abaAtiva === "pacientes" && (
         <section aria-label="Gerenciamento de pacientes">
           <div style={{ marginBottom: 32 }}>
-            <CadastroUsuario onUserCreated={() => setRecarregarUsuarios((prev) => prev + 1)} />
+            <CadastroUsuario tipoUsuarioLogado={tipoUsuario} onUserCreated={() => setRecarregarUsuarios((prev) => prev + 1)} />
           </div>
           <h2 style={{ fontSize: 18, fontWeight: 600, color: '#1F2937', marginBottom: 16 }}>
             {isAdmin ? "Usuários Cadastrados" : "Pacientes Cadastrados"}

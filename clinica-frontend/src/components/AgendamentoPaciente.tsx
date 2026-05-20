@@ -2,7 +2,8 @@ import { API_URL, ADMIN_EMAIL, MAX_PROMPT_LENGTH } from "../constants/api";
 import { useEffect, useState } from "react";
 
 import { ESPECIALIDADES } from "../constants/especialidades";
-import { Check, AlertTriangle, Sliders, Zap, CheckCircle, Search, User, Calendar, MessageSquare, AlertCircle, ShieldAlert } from 'lucide-react';
+import { AlertCircle, Calendar, Clock, Stethoscope, FileText, Activity, HeartPulse, Zap, Check, AlertTriangle, Sliders, CheckCircle, Search, User, MessageSquare, ShieldAlert } from 'lucide-react';
+import { getRealDate } from '../utils/dates';
 import { useScrollBlock } from "../hooks/useScrollBlock";
 
 interface AgendamentoPacienteProps {
@@ -467,7 +468,7 @@ export default function AgendamentoPaciente({ onSucesso }: AgendamentoPacientePr
                       .filter(a => a.status === "AguardandoRetorno")
                       .map(a => (
                         <option key={a.id} value={a.id}>
-                          {new Date(a.dataHoraConsulta).toLocaleDateString('pt-BR')} - {a.tipoConsulta} ({a.nomeProfissional})
+                          {getRealDate(a.dataHoraConsulta)!.toLocaleDateString('pt-BR')} - {a.tipoConsulta} ({a.nomeProfissional})
                         </option>
                       ))
                     }

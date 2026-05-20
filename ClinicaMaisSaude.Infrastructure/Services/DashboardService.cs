@@ -73,11 +73,11 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             {
                 TotalAgendamentos = totalAgendamentos,
                 AgendamentosPorStatus = statusList.ToDictionary(x => x.Status.ToString(), x => x.Total),
-                AgendamentosPorDia = diasList.Select(x => new AgendamentoPorDiaDto { Data = x.Data.ToString("yyyy-MM-dd"), Total = x.Total }).ToList(),
+                AgendamentosPorDia = diasList.Select(x => new AgendamentoPorDiaDto { Data = x.Data.ToString("dd/MM/yyyy"), Total = x.Total }).ToList(),
                 EspecialidadesMaisProcuradas = await ObterEspecialidadesAsync(dataInicio, dataFim, filtroProf),
                 TaxaAbsenteismo = totalAgendamentos > 0 ? Math.Round((decimal)faltasCount / totalAgendamentos * 100, 2) : 0,
                 PacientesNovosVsRecorrentes = await ObterNovosVsRecorrentesAsync(dataInicio, dataFim, filtroProf),
-                TopRiscoFalta = await ObterTopRiscoFaltaAsync(dataInicio, dataFim, filtroProf),
+
                 FluxoExames = new FluxoExamesDto { Total = totalExames, Liberados = liberados, Pendentes = pendentes }
             };
 
@@ -161,31 +161,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             return porMes;
         }
 
-        private async Task<List<RiscoFaltaDto>> ObterTopRiscoFaltaAsync(DateTime inicio, DateTime fim, Guid? profId)
-        {
-            var query = _db.Agendamentos.AsNoTracking()
-                .Include(a => a.Paciente)
-                .Where(a => a.DataHoraConsulta >= inicio && a.DataHoraConsulta <= fim)
-                .Where(a => a.Status == StatusAgendamento.Agendado);
 
-            if (profId.HasValue)
-                query = query.Where(a => a.ProfissionalId == profId.Value);
-
-            var top = await query
-                .OrderByDescending(a => a.ProbabilidadeFalta)
-                .Take(5)
-                .Select(a => new RiscoFaltaDto
-                {
-                    AgendamentoId = a.Id,
-                    PacienteId = a.PacienteId,
-                    NomePaciente = a.Paciente.Nome,
-                    Probabilidade = a.ProbabilidadeFalta,
-                    DataConsulta = a.DataHoraConsulta.ToString("yyyy-MM-dd HH:mm")
-                })
-                .ToListAsync();
-
-            return top;
-        }
 
 
 

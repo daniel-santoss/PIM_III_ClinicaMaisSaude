@@ -1,7 +1,7 @@
 import { API_URL } from "../constants/api";
 import { useEffect, useState } from "react";
-import { obterMinDate } from "../utils/dates";
-import { AlertCircle, Calendar, Clock } from 'lucide-react';
+import { obterMinDate, getRealDate } from "../utils/dates";
+import { Calendar, Clock, AlertCircle } from 'lucide-react';
 import { useScrollBlock } from "../hooks/useScrollBlock";
 import { useToast } from "../hooks/useToast";
 
@@ -29,7 +29,7 @@ export default function ModalRemarcar({ agenda, onFechar, onSucesso }: ModalRema
   useScrollBlock(true);
 
   useEffect(() => {
-    const d = new Date(agenda.dataHoraConsulta);
+    const d = getRealDate(agenda.dataHoraConsulta)!;
     const ano = d.getFullYear();
     const mes = String(d.getMonth() + 1).padStart(2, "0");
     const dia = String(d.getDate()).padStart(2, "0");
@@ -77,7 +77,7 @@ export default function ModalRemarcar({ agenda, onFechar, onSucesso }: ModalRema
         return;
       }
 
-      const dataOriginal = new Date(agenda.dataHoraConsulta).getTime();
+      const dataOriginal = getRealDate(agenda.dataHoraConsulta)!.getTime();
       const dataNova = new Date(dataHoraUnida).getTime();
 
       if (dataOriginal === dataNova) {

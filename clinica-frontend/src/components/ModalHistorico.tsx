@@ -1,6 +1,7 @@
 import type { AgendamentoHistoricoResponse } from "./AgendamentoList";
 import { MapNomesStatus } from "../constants/statusMap";
 import { X, User } from 'lucide-react';
+import { getRealDate } from '../utils/dates';
 import { useScrollBlock } from "../hooks/useScrollBlock";
 
 interface ModalHistoricoProps {
@@ -49,7 +50,7 @@ export default function ModalHistorico({ historico, loading, onFechar }: ModalHi
                   <span className="absolute -left-[9px] top-1.5 w-4 h-4 rounded-full bg-blue-500 border-2 border-white shadow"></span>
                   <div className="flex flex-col">
                     <span className="text-sm font-bold text-gray-400 mb-0.5">
-                      {new Date(h.dtCriado).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}
+                      {getRealDate(h.dtCriado)!.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}
                     </span>
                     <h4 className="text-base font-bold text-gray-800">
                       {h.tipoEvento}
@@ -63,7 +64,7 @@ export default function ModalHistorico({ historico, loading, onFechar }: ModalHi
 
                     {h.tipoEvento === "Remarcacao" && (
                       <div className="text-base text-gray-600 mt-1">
-                        Data: <span className="font-semibold text-gray-700">{h.dataAnterior ? new Date(h.dataAnterior).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }) : "-"}</span> → <span className="font-semibold text-blue-600">{h.dataNova ? new Date(h.dataNova).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }) : "-"}</span>
+                        Data: <span className="font-semibold text-gray-700">{h.dataAnterior ? getRealDate(h.dataAnterior)!.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }) : "-"}</span> → <span className="font-semibold text-blue-600">{h.dataNova ? getRealDate(h.dataNova)!.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }) : "-"}</span>
                       </div>
                     )}
 

@@ -2,6 +2,7 @@
 import { useEffect, useRef } from 'react';
 import { MapNomesStatus, MapNomesTipoConsulta, MapNomesEspecialidade } from "../constants/statusMap";
 import { Clock, Calendar, Stethoscope } from 'lucide-react';
+import { getRealDate } from '../utils/dates';
 
 interface AgendamentoCardProps {
   agenda: {
@@ -62,7 +63,7 @@ export default function AgendamentoCard({
       return () => clearTimeout(timer);
     }
   }, [highlighted]);
-  const dataObj = new Date(agenda.dataHoraConsulta);
+  const dataObj = getRealDate(agenda.dataHoraConsulta)!;
   const dia = dataObj.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' });
   const hora = dataObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 

@@ -9,7 +9,7 @@ namespace ClinicaMaisSaude.Application.DTOs.Dashboard
         public decimal TaxaAbsenteismo { get; set; }
         public List<PacientesNovosVsRecorrentesDto> PacientesNovosVsRecorrentes { get; set; } = new();
         public List<ProfissionalCargaDto>? AgendamentosPorProfissional { get; set; }
-        public List<RiscoFaltaDto> TopRiscoFalta { get; set; } = new();
+
         public FluxoExamesDto FluxoExames { get; set; } = new();
         public AuditoriaIADto? AuditoriaIA { get; set; }
     }
@@ -40,14 +40,7 @@ namespace ClinicaMaisSaude.Application.DTOs.Dashboard
         public int Total { get; set; }
     }
 
-    public class RiscoFaltaDto
-    {
-        public Guid AgendamentoId { get; set; }
-        public Guid PacienteId { get; set; }
-        public string NomePaciente { get; set; } = "";
-        public double Probabilidade { get; set; }
-        public string DataConsulta { get; set; } = "";
-    }
+
 
     public class FluxoExamesDto
     {

@@ -244,8 +244,6 @@ export default function PacienteList({
   const totalMedicos = pacientes.filter(p => p.tipo === "Medico").length;
   const totalEnfermeiras = pacientes.filter(p => p.tipo === "Enfermeira").length;
 
-  const trintaDiasAtras = new Date();
-  trintaDiasAtras.setDate(trintaDiasAtras.getDate() - 30);
   
   const sessentaDiasAtras = new Date();
   sessentaDiasAtras.setDate(sessentaDiasAtras.getDate() - 60);
@@ -255,10 +253,6 @@ export default function PacienteList({
     return new Date(dateStr.endsWith('Z') ? dateStr : dateStr + 'Z');
   };
 
-  const usuariosAtivosMes = pacientes.filter(p => {
-    const data = getRealDate(p.ultimoAcesso);
-    return data && data >= trintaDiasAtras;
-  }).length;
 
   const pacientesInativos = pacientes.filter(p => {
     if (p.tipo !== "Paciente") return false;
@@ -281,7 +275,7 @@ export default function PacienteList({
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       {/* --- CARDS DE RESUMO --- */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-6">
         {/* Card: Usuários por Tipo */}
         <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all group">
           <div className="flex justify-between items-start mb-4">
@@ -298,19 +292,7 @@ export default function PacienteList({
           </div>
         </div>
 
-        {/* Card: Usuários Ativos este mês */}
-        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all group">
-          <div className="flex justify-between items-start mb-4">
-            <div className="p-3 bg-green-50 rounded-xl text-green-600 group-hover:bg-green-600 group-hover:text-white transition-colors">
-              <CheckCircle className="w-6 h-6" />
-            </div>
-            <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Ativos no Mês</span>
-          </div>
-          <h4 className="text-2xl font-black text-gray-800 mb-2">{usuariosAtivosMes}</h4>
-          <p className="text-sm text-gray-500 font-medium flex items-center gap-1">
-            Logaram nos últimos 30 dias
-          </p>
-        </div>
+
 
         {/* Card: Pacientes Inativos */}
         <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all group relative overflow-hidden">

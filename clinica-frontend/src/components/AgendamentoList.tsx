@@ -274,10 +274,7 @@ export default function AgendamentoList({ agendamentoDestaque }: { agendamentoDe
 
   const hoje = new Date().toISOString().split('T')[0];
   const atendimentosHoje = agendamentos.filter(a => a.dataHoraConsulta.startsWith(hoje)).length;
-  const seteDiasAtras = new Date(); seteDiasAtras.setDate(seteDiasAtras.getDate() - 7);
-  const faltasSemana = agendamentos.filter(a => a.status === "Faltou" && new Date(a.dataHoraConsulta) >= seteDiasAtras).length;
-  const totalSemana = agendamentos.filter(a => new Date(a.dataHoraConsulta) >= seteDiasAtras).length;
-  const taxaAbsenteismo = totalSemana > 0 ? Math.round((faltasSemana / totalSemana) * 100) : 0;
+
   const statusResumo = {
     agendados: agendamentos.filter(a => a.status === "Agendado" || a.status === "RetornoAgendado").length,
     finalizados: agendamentos.filter(a => a.status === "Finalizado").length,
@@ -335,7 +332,7 @@ export default function AgendamentoList({ agendamentoDestaque }: { agendamentoDe
     <>
       <div className="space-y-8 animate-in fade-in duration-700">
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
           <div className="bg-white p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2.5rem] shadow-xl shadow-purple-100/20 border border-purple-50 group hover:scale-[1.02] transition-all duration-300">
             <div className="flex items-start sm:items-center justify-between mb-3 sm:mb-4 flex-col sm:flex-row gap-1 sm:gap-0">
               <div className="p-2 sm:p-3 bg-purple-100 rounded-xl sm:rounded-2xl text-purple-600 group-hover:bg-[#7C3AED] group-hover:text-white transition-colors">
@@ -351,18 +348,7 @@ export default function AgendamentoList({ agendamentoDestaque }: { agendamentoDe
               </div>
             </div>
           </div>
-          <div className="bg-white p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2.5rem] shadow-xl shadow-orange-100/20 border border-orange-50 group hover:scale-[1.02] transition-all duration-300">
-            <div className="flex items-start sm:items-center justify-between mb-3 sm:mb-4 flex-col sm:flex-row gap-1 sm:gap-0">
-              <div className="p-2 sm:p-3 bg-orange-100 rounded-xl sm:rounded-2xl text-orange-600 group-hover:bg-orange-500 group-hover:text-white transition-colors">
-                <AlertCircle className="w-5 h-5 sm:w-6 sm:h-6" />
-              </div>
-              <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-gray-400 leading-tight">Absenteísmo</span>
-            </div>
-            <div className="flex items-end gap-2">
-              <span className="text-2xl sm:text-4xl font-black text-gray-800 leading-none">{taxaAbsenteismo}%</span>
-              <span className="text-[9px] sm:text-[10px] font-bold text-orange-400 mb-1 hidden sm:inline">{faltasSemana} faltas</span>
-            </div>
-          </div>
+
           <div className="bg-white p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2.5rem] shadow-xl shadow-blue-100/20 border border-blue-50 group hover:scale-[1.02] transition-all duration-300">
             <div className="flex items-start sm:items-center justify-between mb-3 sm:mb-4 flex-col sm:flex-row gap-1 sm:gap-0">
               <div className="p-2 sm:p-3 bg-blue-100 rounded-xl sm:rounded-2xl text-blue-600 group-hover:bg-blue-500 group-hover:text-white transition-colors">

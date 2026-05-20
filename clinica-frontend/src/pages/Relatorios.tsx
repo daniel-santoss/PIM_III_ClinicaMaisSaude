@@ -13,7 +13,6 @@ type AgendamentoPorDia = { data: string; total: number };
 type EspecialidadeRanking = { nome: string; total: number };
 type PacientesNovosVsRecorrentes = { mes: string; novos: number; recorrentes: number };
 type ProfissionalCarga = { id: string; nome: string; total: number };
-type RiscoFalta = { agendamentoId: string; pacienteId: string; nomePaciente: string; probabilidade: number; dataConsulta: string };
 type FluxoExames = { total: number; liberados: number; pendentes: number };
 type AuditoriaIA = { totalInjecoes: number; totalUsoIndevido: number; bloqueados: number };
 
@@ -25,7 +24,6 @@ type DashboardDto = {
   taxaAbsenteismo: number;
   pacientesNovosVsRecorrentes: PacientesNovosVsRecorrentes[];
   agendamentosPorProfissional: ProfissionalCarga[] | null;
-  topRiscoFalta: RiscoFalta[];
   fluxoExames: FluxoExames;
   auditoriaIA: AuditoriaIA | null;
 };
@@ -122,16 +120,13 @@ export default function Relatorios() {
   const [esconderNovos, setEsconderNovos] = useState(false);
   const temFiltrosAtivos = filtroStatus.length > 0 || filtroEspecialidades.length > 0;
   const [esconderRecorrentes, setEsconderRecorrentes] = useState(false);
-  
+
   // Drawer Profissional
   const [profissionalDrawer, setProfissionalDrawer] = useState<ProfissionalCarga | null>(null);
   const [detalhesProf, setDetalhesProf] = useState<DetalhesProfissional | null>(null);
   const [loadingDetalhes, setLoadingDetalhes] = useState(false);
 
-  // Modal Risco Falta
-  const [riscoModal, setRiscoModal] = useState<RiscoFalta | null>(null);
-  const [historicoFaltas, setHistoricoFaltas] = useState<HistoricoItem[] | null>(null);
-  const [loadingHistorico, setLoadingHistorico] = useState(false);
+
 
   const selecionarPeriodo = (dias: string) => {
     setPeriodoLabel(dias);
@@ -149,7 +144,7 @@ export default function Relatorios() {
         let url = `${API_URL}/api/Dashboard/estatisticas?dataInicio=${dataInicio}&dataFim=${dataFim}`;
         filtroStatus.forEach(s => url += `&status=${encodeURIComponent(s)}`);
         filtroEspecialidades.forEach(e => url += `&especialidades=${encodeURIComponent(e)}`);
-        
+
         const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
         if (res.ok) setDados(await res.json());
       } catch (e) {
@@ -171,7 +166,7 @@ export default function Relatorios() {
             headers: { Authorization: `Bearer ${token}` }
           });
           if (res.ok) setDetalhesProf(await res.json());
-        } catch(e) { console.error(e); }
+        } catch (e) { console.error(e); }
         setLoadingDetalhes(false);
       }
       fetchDetalhes();
@@ -182,30 +177,7 @@ export default function Relatorios() {
     return () => { document.body.style.overflow = 'auto'; };
   }, [profissionalDrawer, dataInicio, dataFim, token]);
 
-  useEffect(() => {
-    if (riscoModal) {
-      document.body.style.overflow = 'hidden';
-      const fetchHistorico = async () => {
-        setLoadingHistorico(true);
-        try {
-          const res = await fetch(`${API_URL}/api/Agendamentos/${riscoModal.agendamentoId}/historico`, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          if (res.ok) {
-            const hist: HistoricoItem[] = await res.json();
-            // Faltou é status 6
-            setHistoricoFaltas(hist.filter(h => h.statusNovo === 6));
-          }
-        } catch(e) { console.error(e); }
-        setLoadingHistorico(false);
-      }
-      fetchHistorico();
-    } else {
-      document.body.style.overflow = 'auto';
-      setHistoricoFaltas(null);
-    }
-    return () => { document.body.style.overflow = 'auto'; };
-  }, [riscoModal, token]);
+
 
   const exportar = async (tipo: 'excel' | 'pdf') => {
     const ext = tipo === 'excel' ? 'xlsx' : 'pdf';
@@ -242,27 +214,26 @@ export default function Relatorios() {
   // ─── Dados derivados para gráficos ────────────────────────────────────────
   const pieData = dados
     ? Object.entries(dados.agendamentosPorStatus).map(([name, value]) => ({
-        name: STATUS_LABELS[name] || name,
-        key: name,
-        value,
-        color: STATUS_COLORS[name] || '#9CA3AF',
-      }))
+      name: STATUS_LABELS[name] || name,
+      key: name,
+      value,
+      color: STATUS_COLORS[name] || '#9CA3AF',
+    }))
     : [];
 
   const examesBarData = dados
     ? [
-        { nome: 'Liberados', valor: dados.fluxoExames.liberados },
-        { nome: 'Pendentes', valor: dados.fluxoExames.pendentes },
-      ]
+      { nome: 'Liberados', valor: dados.fluxoExames.liberados },
+      { nome: 'Pendentes', valor: dados.fluxoExames.pendentes },
+    ]
     : [];
 
   const card = 'bg-white rounded-2xl border border-purple-100 p-6 shadow-[0_1px_4px_rgba(124,58,237,0.06)]';
 
   const btnPeriodoClass = (val: string) =>
-    `px-4 py-2 rounded-xl text-[13px] cursor-pointer transition-all border ${
-      periodoLabel === val
-        ? 'border-[#7C3AED] border-2 bg-purple-50 text-[#7C3AED] font-bold'
-        : 'border-gray-200 bg-white text-gray-500 font-medium hover:bg-gray-50'
+    `px-4 py-2 rounded-xl text-[13px] cursor-pointer transition-all border ${periodoLabel === val
+      ? 'border-[#7C3AED] border-2 bg-purple-50 text-[#7C3AED] font-bold'
+      : 'border-gray-200 bg-white text-gray-500 font-medium hover:bg-gray-50'
     }`;
 
   const kpiCard = (label: string, value: string | number, accent: string): React.ReactNode => (
@@ -412,8 +383,8 @@ export default function Relatorios() {
                     onClick={(data: any) => toggleFiltroStatus(data.key as string)}
                   >
                     {pieData.map((entry, i) => (
-                      <Cell key={i} fill={entry.color} 
-                        style={{ opacity: filtroStatus.length > 0 && !filtroStatus.includes(entry.key) ? 0.4 : 1, transition: 'opacity 0.2s' }} 
+                      <Cell key={i} fill={entry.color}
+                        style={{ opacity: filtroStatus.length > 0 && !filtroStatus.includes(entry.key) ? 0.4 : 1, transition: 'opacity 0.2s' }}
                       />
                     ))}
                   </Pie>
@@ -435,7 +406,7 @@ export default function Relatorios() {
                     onClick={(data: any) => toggleFiltroEspecialidade(data.nome as string)}
                   >
                     {dados.especialidadesMaisProcuradas.map((entry, i) => (
-                      <Cell key={i} fill={filtroEspecialidades.includes(entry.nome) ? '#7C3AED' : '#9CA3AF'} 
+                      <Cell key={i} fill={filtroEspecialidades.includes(entry.nome) ? '#7C3AED' : '#9CA3AF'}
                         style={{ opacity: filtroEspecialidades.length > 0 && !filtroEspecialidades.includes(entry.nome) ? 0.4 : 1, transition: 'all 0.2s' }}
                       />
                     ))}
@@ -513,44 +484,6 @@ export default function Relatorios() {
             )}
           </div>
 
-          {/* ── 6. Top 5 Risco de Falta (tabela) ──────────────────────────── */}
-          <div className={`${card} mb-6`}>
-            <h3 className="text-[15px] font-bold text-gray-800 mb-4">Top 5 Risco de Falta</h3>
-            {dados.topRiscoFalta.length === 0 ? (
-              <p className="text-gray-400 text-[13px]">Nenhum agendamento com risco no período.</p>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-[13px]" style={{ borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr className="border-b-2 border-purple-100">
-                      <th className="text-left px-3 py-2 text-gray-500 font-bold">Paciente</th>
-                      <th className="text-left px-3 py-2 text-gray-500 font-bold">Probabilidade</th>
-                      <th className="text-left px-3 py-2 text-gray-500 font-bold">Data Consulta</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {dados.topRiscoFalta.map((r, i) => {
-                      const pct = Math.round(r.probabilidade * 100);
-                      const badgeColor = pct >= 70 ? '#EF4444' : pct >= 40 ? '#F59E0B' : '#10B981';
-                      return (
-                        <tr key={i} className="border-b border-gray-100 cursor-pointer hover:bg-gray-50"
-                          onClick={() => setRiscoModal(r)}
-                        >
-                          <td className="px-3 py-2.5 text-gray-800 font-semibold">{r.nomePaciente}</td>
-                          <td className="px-3 py-2.5">
-                            <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-bold" style={{ background: `${badgeColor}18`, color: badgeColor }}>
-                              {pct}%
-                            </span>
-                          </td>
-                          <td className="px-3 py-2.5 text-gray-500">{formatDisplayDate(r.dataConsulta.split(' ')[0])} {r.dataConsulta.split(' ')[1]}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
 
           {/* ── 8. Auditoria IA (Admin only) — cards numéricos ────────────── */}
           {isAdmin && dados.auditoriaIA && (
@@ -576,7 +509,7 @@ export default function Relatorios() {
             </button>
             <h2 className="text-xl font-extrabold text-gray-800 mb-2 mt-3">{profissionalDrawer.nome}</h2>
             <p className="text-gray-500 text-sm mb-6">Total de agendamentos no período: <strong className="text-[#7C3AED]">{profissionalDrawer.total}</strong></p>
-            
+
             {loadingDetalhes ? (
               <div className="text-center py-10"><div className="w-6 h-6 border-[3px] border-[#7C3AED] border-t-transparent rounded-full animate-spin mx-auto" /></div>
             ) : detalhesProf ? (
@@ -584,7 +517,7 @@ export default function Relatorios() {
                 <h3 className="text-[15px] font-bold text-gray-800 mb-4">Distribuição por Status</h3>
                 <ResponsiveContainer width="100%" height={200}>
                   <PieChart>
-                    <Pie data={Object.entries(detalhesProf.distribuicaoPorStatus).map(([k, v]) => ({ name: STATUS_LABELS[k] || k, value: v, color: STATUS_COLORS[k] || '#9CA3AF' }))} 
+                    <Pie data={Object.entries(detalhesProf.distribuicaoPorStatus).map(([k, v]) => ({ name: STATUS_LABELS[k] || k, value: v, color: STATUS_COLORS[k] || '#9CA3AF' }))}
                       dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={70} innerRadius={40}>
                       {Object.entries(detalhesProf.distribuicaoPorStatus).map(([k, _], i) => <Cell key={i} fill={STATUS_COLORS[k] || '#9CA3AF'} />)}
                     </Pie>
@@ -614,55 +547,7 @@ export default function Relatorios() {
         </>
       )}
 
-      {/* ── Modal: Top 5 Risco de Falta ── */}
-      {riscoModal && (
-        <>
-          <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center" onClick={() => setRiscoModal(null)}>
-            <div className="bg-white rounded-2xl w-[500px] max-w-[90vw] p-6 relative max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-              <button onClick={() => setRiscoModal(null)} className="absolute top-4 right-4 bg-transparent border-none cursor-pointer">
-                <X size={20} className="text-gray-500" />
-              </button>
-              
-              <h2 className="text-xl font-extrabold text-gray-800 mb-1">{riscoModal.nomePaciente}</h2>
-              <p className="text-gray-500 text-sm mb-5">Consulta agendada para: <strong className="text-gray-700">{formatDisplayDate(riscoModal.dataConsulta.split(' ')[0])} {riscoModal.dataConsulta.split(' ')[1]}</strong></p>
-              
-              <div className="p-4 bg-red-50 rounded-xl border border-red-200 flex items-center gap-3 mb-6">
-                <Activity color="#EF4444" size={24} />
-                <div>
-                  <span className="text-[13px] text-red-900 font-semibold block">Risco Calculado pela IA</span>
-                  <span className="text-lg text-red-500 font-extrabold">{Math.round(riscoModal.probabilidade * 100)}% de chance de falta</span>
-                </div>
-              </div>
 
-              <h3 className="text-[15px] font-bold text-gray-800 mb-3">Histórico de Faltas</h3>
-              {loadingHistorico ? (
-                <div className="text-center py-5"><div className="w-5 h-5 border-2 border-red-500 border-t-transparent rounded-full animate-spin mx-auto" /></div>
-              ) : historicoFaltas && historicoFaltas.length > 0 ? (
-                <ul className="list-none p-0 mb-6">
-                  {historicoFaltas.map((h, i) => (
-                    <li key={i} className="text-[13px] text-gray-600 py-2 border-b border-gray-100 flex gap-2 items-center">
-                      <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
-                        Registro de falta em {formatDisplayDate(h.dtAlteracao.split('T')[0])}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-[13px] text-gray-400 mb-6">Nenhum registro de falta no histórico retornado.</p>
-              )}
-
-              <button 
-                onClick={() => {
-                  window.dispatchEvent(new CustomEvent("navegarAbaGlobal", { detail: "agendamentos" }));
-                  setRiscoModal(null);
-                }}
-                className="w-full py-3 bg-[#7C3AED] text-white border-none rounded-xl font-bold cursor-pointer transition-colors hover:bg-[#6D28D9]"
-              >
-                Ver agendamento completo
-              </button>
-            </div>
-          </div>
-        </>
-      )}
     </div>
   );
 }

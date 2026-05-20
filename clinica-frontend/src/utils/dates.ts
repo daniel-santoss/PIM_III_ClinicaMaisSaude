@@ -5,3 +5,8 @@ export function obterMinDate(): string {
   const dia = String(agora.getDate()).padStart(2, "0");
   return `${ano}-${mes}-${dia}`;
 }
+
+export function getRealDate(dateStr?: string): Date | null {
+  if (!dateStr) return null;
+  return new Date(dateStr.endsWith('Z') ? dateStr : dateStr + 'Z');
+}

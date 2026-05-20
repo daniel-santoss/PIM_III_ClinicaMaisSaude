@@ -1,7 +1,7 @@
 import { API_URL, MAX_PROMPT_LENGTH } from "../constants/api";
 import { useEffect, useState } from "react";
 import { mascaraCpf } from "../utils/validators";
-import { obterMinDate } from "../utils/dates";
+import { obterMinDate, getRealDate } from "../utils/dates";
 import type { PacienteResponse } from "../types/PacienteResponse";
 import { X, Lightbulb, AlertTriangle, ShieldAlert, Search } from 'lucide-react';
 import { useScrollBlock } from "../hooks/useScrollBlock";
@@ -441,7 +441,7 @@ export default function AgendamentoFormCriar({
                     .filter(a => a.pacienteId === pacienteSelecionado && a.status === "AguardandoRetorno")
                     .map(a => (
                       <option key={a.id} value={a.id}>
-                        {new Date(a.dataHoraConsulta).toLocaleDateString('pt-BR')} - {a.tipoConsulta} ({a.nomeProfissional})
+                        {getRealDate(a.dataHoraConsulta)!.toLocaleDateString('pt-BR')} - {a.tipoConsulta} ({a.nomeProfissional})
                       </option>
                     ))
                   }

@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Calendar, Plus } from 'lucide-react';
 import AgendamentoCard from "./AgendamentoCard";
 import AgendamentoFiltros from "./AgendamentoFiltros";
+import { getRealDate } from "../utils/dates";
 import { MapNomesStatus, MapNomesTipoConsulta, MapNomesEspecialidade } from "../constants/statusMap";
 
 interface AgendamentoItem {
@@ -55,7 +56,7 @@ export default function MeusAgendamentos({ onNovoAgendamento, agendamentoDestaqu
       if (res.ok) {
         const dados = await res.json();
         const lista = dados.items ?? dados;
-        setAgendamentos(lista.sort((a: any, b: any) => new Date(b.dataHoraConsulta).getTime() - new Date(a.dataHoraConsulta).getTime()));
+        setAgendamentos(lista.sort((a: any, b: any) => getRealDate(b.dataHoraConsulta)!.getTime() - getRealDate(a.dataHoraConsulta)!.getTime()));
       }
     } catch (e) {
       console.error(e);
@@ -121,8 +122,8 @@ export default function MeusAgendamentos({ onNovoAgendamento, agendamentoDestaqu
                 return matchBusca && matchStatus && matchData;
               })
               .sort((a, b) => {
-                const dA = new Date(a.dataHoraConsulta).getTime();
-                const dB = new Date(b.dataHoraConsulta).getTime();
+                const dA = getRealDate(a.dataHoraConsulta)!.getTime();
+                const dB = getRealDate(b.dataHoraConsulta)!.getTime();
                 return ordemData === "desc" ? dB - dA : dA - dB;
               })
               .map(a => (

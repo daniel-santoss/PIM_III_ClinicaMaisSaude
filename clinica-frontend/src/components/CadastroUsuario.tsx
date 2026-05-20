@@ -6,7 +6,7 @@ import { ChevronDown, Check } from 'lucide-react';
 import { useToast } from "../hooks/useToast";
 
 
-export function CadastroUsuario({ onUserCreated }: { onUserCreated?: () => void }) {
+export function CadastroUsuario({ onUserCreated, tipoUsuarioLogado }: { onUserCreated?: () => void; tipoUsuarioLogado?: string }) {
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [cpf, setCpf] = useState("");
@@ -20,11 +20,15 @@ export function CadastroUsuario({ onUserCreated }: { onUserCreated?: () => void 
   const [dropdownAberto, setDropdownAberto] = useState(false);
   const toast = useToast();
 
-  const opcoesPerfil = [
+  const todasOpcoesPerfil = [
     { id: 'Paciente', nome: 'Paciente' },
     { id: 'Enfermeira', nome: 'Enfermeira' },
     { id: 'Medico', nome: 'Médico' },
   ];
+
+  const opcoesPerfil = tipoUsuarioLogado === 'Enfermeira'
+    ? todasOpcoesPerfil.filter(o => o.id === 'Paciente')
+    : todasOpcoesPerfil;
 
 
 
@@ -141,44 +145,52 @@ export function CadastroUsuario({ onUserCreated }: { onUserCreated?: () => void 
 
         <div className="relative">
           <label className="block text-sm font-black text-gray-700 mb-2 uppercase tracking-wide">Tipo de Perfil *</label>
-          <button
-            type="button"
-            onClick={() => setDropdownAberto(!dropdownAberto)}
-            className="w-full flex items-center justify-between border border-gray-300 rounded-xl p-3 bg-white focus:ring-2 focus:ring-[#7C3AED] focus:border-transparent outline-none transition-all text-left shadow-sm"
-          >
-            <span className="font-bold text-sm text-gray-700">
-              {opcoesPerfil.find(o => o.id === tipoUsuario)?.nome}
-            </span>
-            <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform ${dropdownAberto ? 'rotate-180' : ''}`} />
-          </button>
-
-          {dropdownAberto && (
+          {opcoesPerfil.length === 1 ? (
+            <div className="w-full border border-gray-200 rounded-xl p-3 bg-gray-50 text-sm font-bold text-gray-500">
+              {opcoesPerfil[0].nome}
+            </div>
+          ) : (
             <>
-              <div 
-                className="fixed inset-0 z-10" 
-                onClick={() => setDropdownAberto(false)}
-              ></div>
-              <div className="absolute left-0 right-0 mt-2 bg-white border border-gray-100 rounded-2xl shadow-2xl z-20 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
-                {opcoesPerfil.map((opcao) => (
+              <button
+                type="button"
+                onClick={() => setDropdownAberto(!dropdownAberto)}
+                className="w-full flex items-center justify-between border border-gray-300 rounded-xl p-3 bg-white focus:ring-2 focus:ring-[#7C3AED] focus:border-transparent outline-none transition-all text-left shadow-sm"
+              >
+                <span className="font-bold text-sm text-gray-700">
+                  {opcoesPerfil.find(o => o.id === tipoUsuario)?.nome}
+                </span>
+                <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform ${dropdownAberto ? 'rotate-180' : ''}`} />
+              </button>
+
+              {dropdownAberto && (
+                <>
                   <div
-                    key={opcao.id}
-                    onClick={() => {
-                      setTipoUsuario(opcao.id);
-                      setDropdownAberto(false);
-                    }}
-                    className={`px-4 py-3 cursor-pointer transition-colors flex items-center justify-between ${
-                      tipoUsuario === opcao.id 
-                        ? 'bg-[#7C3AED] text-white' 
-                        : 'text-gray-700 hover:bg-purple-50'
-                    }`}
-                  >
-                    <span className="font-bold text-sm">{opcao.nome}</span>
-                    {tipoUsuario === opcao.id && (
-                      <Check className="w-5 h-5 text-white" />
-                    )}
+                    className="fixed inset-0 z-10"
+                    onClick={() => setDropdownAberto(false)}
+                  ></div>
+                  <div className="absolute left-0 right-0 mt-2 bg-white border border-gray-100 rounded-2xl shadow-2xl z-20 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                    {opcoesPerfil.map((opcao) => (
+                      <div
+                        key={opcao.id}
+                        onClick={() => {
+                          setTipoUsuario(opcao.id);
+                          setDropdownAberto(false);
+                        }}
+                        className={`px-4 py-3 cursor-pointer transition-colors flex items-center justify-between ${
+                          tipoUsuario === opcao.id
+                            ? 'bg-[#7C3AED] text-white'
+                            : 'text-gray-700 hover:bg-purple-50'
+                        }`}
+                      >
+                        <span className="font-bold text-sm">{opcao.nome}</span>
+                        {tipoUsuario === opcao.id && (
+                          <Check className="w-5 h-5 text-white" />
+                        )}
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                </>
+              )}
             </>
           )}
         </div>
