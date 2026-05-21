@@ -61,6 +61,10 @@ export default function PerfilMedico() {
   const adicionarEspecialidade = (esp: string) => {
     const idx = ESPECIALIDADES.indexOf(esp as any);
     if (idx >= 0 && !especialidades.some(e => e.nome === esp)) {
+      if (especialidades.length >= 2) {
+        toast.warning("Médicos podem ter no máximo 2 especialidades.");
+        return;
+      }
       setEspecialidades([...especialidades, { id: idx, nome: esp }]);
     }
     setBusca("");

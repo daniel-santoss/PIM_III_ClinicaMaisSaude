@@ -10,26 +10,34 @@ import { useToast } from "../hooks/useToast";
 interface AgendamentoFormCriarProps {
   onFechar: () => void;
   onCriado: () => void;
+  dadosRetorno?: {
+    pacienteId: string;
+    pacienteNome: string;
+    origemId: string;
+    nomeProfissional: string;
+    dataHoraOrigem: string;
+  } | null;
 }
 
 export default function AgendamentoFormCriar({
   onFechar,
   onCriado,
+  dadosRetorno,
 }: AgendamentoFormCriarProps) {
   const toast = useToast();
   const [pacientesLista, setPacientesLista] = useState<PacienteResponse[]>([]);
   const [totalPacientesBusca, setTotalPacientesBusca] = useState(0);
   const [buscandoPacientes, setBuscandoPacientes] = useState(false);
-  const [pacienteSelecionado, setPacienteSelecionado] = useState("");
-  const [buscaPaciente, setBuscaPaciente] = useState("");
+  const [pacienteSelecionado, setPacienteSelecionado] = useState(dadosRetorno?.pacienteId || "");
+  const [buscaPaciente, setBuscaPaciente] = useState(dadosRetorno?.pacienteNome || "");
   const [mostrarListaPacientes, setMostrarListaPacientes] = useState(false);
   const [dataSelecionada, setDataSelecionada] = useState("");
   const [horarioSelecionado, setHorarioSelecionado] = useState("");
   const [horariosDisponiveis, setHorariosDisponiveis] = useState<string[]>([]);
   const [carregandoHorarios, setCarregandoHorarios] = useState(false);
-  const [tipoProfissional, setTipoProfissional] = useState(0);
-  const [tipoConsulta, setTipoConsulta] = useState(0);
-  const [origemId, setOrigemId] = useState("");
+  const [tipoProfissional, setTipoProfissional] = useState(dadosRetorno ? 1 : 0);
+  const [tipoConsulta, setTipoConsulta] = useState(dadosRetorno ? 4 : 0);
+  const [origemId, setOrigemId] = useState(dadosRetorno?.origemId || "");
   const [especialidadeId, setEspecialidadeId] = useState<number | null>(null);
   const [listaEspecialidades, setListaEspecialidades] = useState<{id: number, nome: string}[]>([]);
   const [especialidadesDisponiveis, setEspecialidadesDisponiveis] = useState<number[]>([]);
@@ -41,9 +49,10 @@ export default function AgendamentoFormCriar({
   const [agendamentos, setAgendamentos] = useState<any[]>([]);
 
   useEffect(() => {
+    if (dadosRetorno) return;
     setTipoConsulta(tipoProfissional === 0 ? 0 : 3);
     setEspecialidadeId(null);
-  }, [tipoProfissional]);
+  }, [tipoProfissional, dadosRetorno]);
 
   useScrollBlock(true);
 
@@ -211,7 +220,9 @@ export default function AgendamentoFormCriar({
       <div className="bg-white w-full h-[100dvh] sm:h-auto sm:max-w-xl rounded-none sm:rounded-[3rem] shadow-2xl overflow-hidden border-0 sm:border border-purple-100 flex flex-col sm:max-h-[90vh]">
         <div className="p-5 sm:p-8 border-b border-purple-50 flex items-center justify-between bg-purple-50/30 shrink-0">
           <div>
-            <h3 className="text-xl sm:text-2xl font-black text-gray-800">Novo Agendamento</h3>
+            <h3 className="text-xl sm:text-2xl font-black text-gray-800">
+              {dadosRetorno ? "Agendar Retorno" : "Novo Agendamento"}
+            </h3>
             <p className="text-xs font-bold text-purple-400 uppercase tracking-widest">Preencha os detalhes da consulta</p>
           </div>
           <button onClick={onFechar} className="p-2 text-gray-400 hover:bg-white rounded-2xl transition-all">
@@ -221,7 +232,32 @@ export default function AgendamentoFormCriar({
 
         <div className="p-5 sm:p-8 space-y-6 overflow-y-auto">
           <div className="space-y-6">
-            {/* Triagem por IA */}
+            {dadosRetorno ? (
+              <div className="bg-purple-50 p-5 rounded-2xl border border-purple-100 space-y-4 mb-4">
+                <div className="flex flex-col gap-1">
+                  <span className="text-[10px] font-black text-purple-400 uppercase tracking-widest">Paciente</span>
+                  <span className="text-sm font-bold text-gray-800">{dadosRetorno.pacienteNome}</span>
+                </div>
+                <div className="flex flex-col gap-1 border-t border-purple-100/50 pt-2">
+                  <span className="text-[10px] font-black text-purple-400 uppercase tracking-widest">Tipo de Consulta</span>
+                  <span className="text-sm font-bold text-gray-800">Retorno Médico</span>
+                </div>
+                <div className="flex flex-col gap-1 border-t border-purple-100/50 pt-2">
+                  <span className="text-[10px] font-black text-purple-400 uppercase tracking-widest">Consulta de Origem</span>
+                  <span className="text-xs font-semibold text-gray-600">
+                    {dadosRetorno.dataHoraOrigem ? (
+                      <>
+                        {getRealDate(dadosRetorno.dataHoraOrigem)!.toLocaleDateString('pt-BR')} às{' '}
+                        {getRealDate(dadosRetorno.dataHoraOrigem)!.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                      </>
+                    ) : 'Consulta anterior'}{' '}
+                    - Dr(a). {dadosRetorno.nomeProfissional}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <>
+                {/* Triagem por IA */}
             <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-5 rounded-2xl border border-indigo-100 space-y-3">
               <div className="flex items-center gap-2">
                 <Lightbulb className="w-5 h-5 text-indigo-500" />
@@ -450,6 +486,8 @@ export default function AgendamentoFormCriar({
                   <p className="mt-2 text-[10px] text-red-400 font-bold ml-1 uppercase tracking-tighter">Nenhuma consulta pendente de retorno para este paciente.</p>
                 )}
               </div>
+            )}
+              </>
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

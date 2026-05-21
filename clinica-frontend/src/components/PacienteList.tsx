@@ -1,7 +1,7 @@
 import { API_URL } from "../constants/api";
 import { useEffect, useState } from "react";
 import { mascaraCpf, mascaraTelefone } from "../utils/validators";
-import { AlertCircle, Users, CheckCircle, Clock, Search, Filter, RefreshCw, Inbox, Pencil, Key, Trash, Check, Copy } from 'lucide-react';
+import { AlertCircle, Users, Clock, Search, Filter, RefreshCw, Inbox, Pencil, Key, Trash, Check, Copy } from 'lucide-react';
 import type { PacienteResponse } from "../types/PacienteResponse";
 import { useScrollBlock } from "../hooks/useScrollBlock";
 import { useToast } from "../hooks/useToast";

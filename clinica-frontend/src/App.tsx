@@ -48,7 +48,7 @@ export default function App() {
       setAutenticado(true);
       setTipoUsuario(tipo || "Paciente");
       setIsAdmin(admin);
-      setAbaAtiva(tipo === "Paciente" ? "agendamentos" : "pacientes");
+      setAbaAtiva((tipo === "Paciente" || tipo === "Medico") ? "agendamentos" : "pacientes");
       if (window.location.pathname === "/") {
         window.history.replaceState(null, "", "/app");
       }
@@ -173,7 +173,7 @@ export default function App() {
         const admin = localStorage.getItem("isAdmin") === "true";
         setTipoUsuario(tipo || "Paciente");
         setIsAdmin(admin);
-        setAbaAtiva(tipo === "Paciente" ? "agendamentos" : "pacientes");
+        setAbaAtiva((tipo === "Paciente" || tipo === "Medico") ? "agendamentos" : "pacientes");
 
         if (window.location.pathname === "/" || window.location.pathname === "/login") {
            window.history.replaceState(null, "", "/app");
@@ -208,7 +208,7 @@ export default function App() {
       )}
 
       {/* ── Usuários / Pacientes ─────────────────────────────────────────── */}
-      {abaAtiva === "pacientes" && (
+      {abaAtiva === "pacientes" && (tipoUsuario === "Enfermeira" || isAdmin) && (
         <section aria-label="Gerenciamento de pacientes">
           <div style={{ marginBottom: 32 }}>
             <CadastroUsuario tipoUsuarioLogado={tipoUsuario} onUserCreated={() => setRecarregarUsuarios((prev) => prev + 1)} />

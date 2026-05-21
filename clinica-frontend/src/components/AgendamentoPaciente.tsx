@@ -2,7 +2,7 @@ import { API_URL, ADMIN_EMAIL, MAX_PROMPT_LENGTH } from "../constants/api";
 import { useEffect, useState } from "react";
 
 import { ESPECIALIDADES } from "../constants/especialidades";
-import { AlertCircle, Calendar, Clock, Stethoscope, FileText, Activity, HeartPulse, Zap, Check, AlertTriangle, Sliders, CheckCircle, Search, User, MessageSquare, ShieldAlert } from 'lucide-react';
+import { AlertCircle, Calendar, Zap, Check, AlertTriangle, Sliders, CheckCircle, Search, User, MessageSquare, ShieldAlert } from 'lucide-react';
 import { getRealDate } from '../utils/dates';
 import { useScrollBlock } from "../hooks/useScrollBlock";
 

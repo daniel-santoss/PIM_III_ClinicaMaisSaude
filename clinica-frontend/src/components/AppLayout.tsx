@@ -43,7 +43,14 @@ function getNavItems(tipoUsuario: string, isAdmin: boolean): NavItem[] {
       { id: 'violacoes',    label: 'Violações IA',    icon: <ShieldAlert size={18} /> },
     ];
   }
-  if (tipoUsuario === 'Medico' || tipoUsuario === 'Enfermeira') {
+  if (tipoUsuario === 'Enfermeira') {
+    return [
+      { id: 'pacientes',    label: 'Pacientes',       icon: <Users size={18} /> },
+      { id: 'agendamentos', label: 'Agendamentos',    icon: <CalendarDays size={18} /> },
+      { id: 'relatorios',   label: 'Relatórios',      icon: <BarChart2 size={18} /> },
+    ];
+  }
+  if (tipoUsuario === 'Medico') {
     return [
       { id: 'agendamentos', label: 'Agendamentos', icon: <CalendarDays size={18} /> },
       { id: 'relatorios',   label: 'Relatórios',   icon: <BarChart2 size={18} /> },

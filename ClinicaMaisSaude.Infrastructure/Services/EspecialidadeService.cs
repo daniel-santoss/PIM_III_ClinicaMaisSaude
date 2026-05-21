@@ -60,6 +60,11 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             var validos = Enum.GetValues<EspecialidadeMedica>().Cast<int>().ToHashSet();
             var idsValidos = especialidadeIds.Where(id => validos.Contains(id)).Distinct().ToList();
 
+            if (idsValidos.Count > 2)
+            {
+                throw new InvalidOperationException("Médicos podem ter no máximo 2 especialidades.");
+            }
+
             prof.Especialidades.Clear();
             foreach (var id in idsValidos)
             {

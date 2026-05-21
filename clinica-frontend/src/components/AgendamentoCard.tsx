@@ -1,7 +1,7 @@
 
 import { useEffect, useRef } from 'react';
 import { MapNomesStatus, MapNomesTipoConsulta, MapNomesEspecialidade } from "../constants/statusMap";
-import { Clock, Calendar, Stethoscope } from 'lucide-react';
+import { Clock, Calendar, Stethoscope, CalendarPlus } from 'lucide-react';
 import { getRealDate } from '../utils/dates';
 
 interface AgendamentoCardProps {
@@ -35,6 +35,7 @@ interface AgendamentoCardProps {
   onMarcarResultadoDisponivel?: (id: string) => void;
   onMarcarResultadoRetirado?: (id: string) => void;
   onConcluirExame?: (agenda: any) => void;
+  onAgendarRetorno?: (agenda: any) => void;
 }
 
 export default function AgendamentoCard({
@@ -51,6 +52,7 @@ export default function AgendamentoCard({
   onMarcarResultadoDisponivel,
   onMarcarResultadoRetirado,
   onConcluirExame,
+  onAgendarRetorno,
 }: AgendamentoCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
 
@@ -219,14 +221,26 @@ export default function AgendamentoCard({
                 <Clock className="w-4 h-4" />
               </button>
             )}
-            {podeRemarcar && onRemarcar && (
-              <button
-                title="Remarcar"
-                onClick={() => onRemarcar(agenda)}
-                className="flex items-center justify-center w-10 h-10 border border-gray-200 text-gray-600 hover:bg-gray-50 rounded-xl transition-colors"
-              >
-                <Calendar className="w-4 h-4" />
-              </button>
+            {agenda.status === 'AguardandoRetorno' ? (
+              tipoUsuarioLogado !== 'Paciente' && onAgendarRetorno && (
+                <button
+                  title="Agendar Retorno"
+                  onClick={() => onAgendarRetorno(agenda)}
+                  className="flex items-center justify-center w-10 h-10 border border-purple-200 text-[#7C3AED] hover:bg-purple-50 rounded-xl transition-colors bg-white"
+                >
+                  <CalendarPlus className="w-4 h-4" />
+                </button>
+              )
+            ) : (
+              podeRemarcar && onRemarcar && (
+                <button
+                  title="Remarcar"
+                  onClick={() => onRemarcar(agenda)}
+                  className="flex items-center justify-center w-10 h-10 border border-gray-200 text-gray-600 hover:bg-gray-50 rounded-xl transition-colors"
+                >
+                  <Calendar className="w-4 h-4" />
+                </button>
+              )
             )}
           </div>
 

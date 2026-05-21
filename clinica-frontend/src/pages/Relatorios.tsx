@@ -4,7 +4,7 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, BarChart, Bar, Legend,
 } from 'recharts';
-import { Download, FileSpreadsheet, X, Calendar, Activity, RefreshCw } from 'lucide-react';
+import { Download, FileSpreadsheet, X, Calendar, RefreshCw } from 'lucide-react';
 import { ESPECIALIDADES } from '../constants/especialidades';
 import CheckboxDropdown from '../components/CheckboxDropdown';
 
@@ -34,13 +34,7 @@ type DetalhesProfissional = {
   ultimosAgendamentos: UltimoAgendamento[];
 };
 
-type HistoricoItem = {
-  statusAnterior: number;
-  statusNovo: number;
-  motivoRemarcacao: string | null;
-  usuarioAlteracaoId: string;
-  dtAlteracao: string;
-};
+
 
 // ─── Cores por status (padrão do sistema) ─────────────────────────────────────
 const STATUS_COLORS: Record<string, string> = {
