@@ -9,16 +9,18 @@ namespace ClinicaMaisSaude.Domain.Entities
         public string Titulo { get; private set; }
         public string Mensagem { get; private set; }
         public Guid? AgendamentoId { get; private set; }
+        public string? Link { get; private set; }
         public bool Lida { get; private set; }
         public DateTime DtCriado { get; private set; }
 
-        public Notificacao(Guid usuarioId, string titulo, string mensagem, Guid? agendamentoId = null)
+        public Notificacao(Guid usuarioId, string titulo, string mensagem, Guid? agendamentoId = null, string? link = null)
         {
             Id = Guid.NewGuid();
             UsuarioId = usuarioId;
             Titulo = titulo;
             Mensagem = mensagem;
             AgendamentoId = agendamentoId;
+            Link = link;
             Lida = false;
             DtCriado = DateTime.UtcNow;
         }

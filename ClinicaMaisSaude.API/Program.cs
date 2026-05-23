@@ -27,6 +27,7 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.Converters.Add(new UtcDateTimeJsonConverter());
     });
 builder.Services.AddHttpClient();
+builder.Services.AddMemoryCache();
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddCors(options =>
 {
@@ -81,6 +82,7 @@ builder.Services.AddScoped<IProfissionalService, ProfissionalService>();
 builder.Services.AddScoped<INotificacaoRepository, NotificacaoRepository>();
 builder.Services.AddScoped<INotificacaoService, NotificacaoService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
+builder.Services.AddScoped<IConsultaService, ConsultaService>();
 
 builder.Services.AddHostedService<NotificacaoBackgroundService>();
 
@@ -97,6 +99,28 @@ app.UseHttpsRedirection();
 app.UseCors("PermitirFrontEnd");
 
 app.UseAuthentication(); // <-- Exigido pra ler o Token
+
+// Middleware de segurança para interceptar requisições autenticadas de usuários bloqueados/banidos
+app.Use(async (context, next) =>
+{
+    if (context.User.Identity?.IsAuthenticated == true)
+    {
+        var userIdStr = context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (Guid.TryParse(userIdStr, out var userId))
+        {
+            var dbContext = context.RequestServices.GetRequiredService<ClinicaDbContext>();
+            var dbUser = await dbContext.Usuarios.FindAsync(userId);
+            if (dbUser != null && dbUser.IsBloqueado())
+            {
+                context.Response.StatusCode = 403;
+                await context.Response.WriteAsync("Sua conta está bloqueada.");
+                return;
+            }
+        }
+    }
+    await next();
+});
+
 app.UseAuthorization();  // <-- Exigido pra aplicar políticas (ex: [Authorize])
 
 // Mapeia as rotas (Endpoints)

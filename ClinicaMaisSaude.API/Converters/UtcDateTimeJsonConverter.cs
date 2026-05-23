@@ -23,8 +23,11 @@ namespace ClinicaMaisSaude.API.Converters
 
         public override void Write(Utf8JsonWriter writer, DateTime value, JsonSerializerOptions options)
         {
-            // Serializa como ISO 8601 com sufixo 'Z' (UTC)
-            var utcValue = value.Kind == DateTimeKind.Utc ? value : value.ToUniversalTime();
+            // Se for Local converte, senão força Kind como UTC para evitar soma indevida de fuso
+            var utcValue = value.Kind == DateTimeKind.Local 
+                ? value.ToUniversalTime() 
+                : DateTime.SpecifyKind(value, DateTimeKind.Utc);
+
             writer.WriteStringValue(utcValue.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"));
         }
     }

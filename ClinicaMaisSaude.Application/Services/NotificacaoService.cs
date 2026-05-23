@@ -26,6 +26,7 @@ namespace ClinicaMaisSaude.Application.Services
                 Titulo = n.Titulo,
                 Mensagem = n.Mensagem,
                 AgendamentoId = n.AgendamentoId,
+                Link = n.Link,
                 Lida = n.Lida,
                 DtCriado = n.DtCriado
             });

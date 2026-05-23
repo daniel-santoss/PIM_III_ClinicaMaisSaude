@@ -53,6 +53,7 @@ namespace ClinicaMaisSaude.Infrastructure.Data
                 entidade.Property(a => a.TipoProfissional).IsRequired();
                 entidade.Property(a => a.TipoConsulta).IsRequired();
                 entidade.Property(a => a.Status).IsRequired();
+                entidade.Property(a => a.EspecialidadeId).IsRequired(false);
                 entidade.Property(a => a.NotificacaoPendenteGerada).HasDefaultValue(false);
                 entidade.Property(a => a.LembreteManhaEnviado).HasDefaultValue(false);
                 entidade.Property(a => a.LembreteDuasHorasEnviado).HasDefaultValue(false);
@@ -118,6 +119,7 @@ namespace ClinicaMaisSaude.Infrastructure.Data
                 entidade.HasKey(n => n.Id);
                 entidade.Property(n => n.Titulo).IsRequired().HasMaxLength(150);
                 entidade.Property(n => n.Mensagem).IsRequired().HasMaxLength(500);
+                entidade.Property(n => n.Link).HasMaxLength(255).IsRequired(false);
                 entidade.Property(n => n.Lida).HasDefaultValue(false);
                 entidade.Property(n => n.DtCriado).HasColumnName("Dt_Criado");
 

@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { Menu, X, Plus, Heart, Calendar, Shield, Activity, Stethoscope, Droplet, HeartPulse } from "lucide-react";
-import ModalTermosPolitica from "./ModalTermosPolitica";
-import ModalEspecialidades from "./ModalEspecialidades";
+import ModalTermosPolitica from "../components/ModalTermosPolitica";
+import ModalEspecialidades from "../components/ModalEspecialidades";
+import { CLINIC_NAME, CLINIC_PHONE, CLINIC_EMAIL, CLINIC_ADDRESS } from "../constants/clinic";
 
 export default function HomePage({
   logo = "/src/assets/logo_clinica.png",
@@ -51,12 +52,12 @@ export default function HomePage({
     }, 4000);
     return () => clearInterval(intervalo);
   }, [slides.length]);
-  
+
   // Scroll Suave
   const scrollToSection = (e: React.MouseEvent<HTMLAnchorElement>, hash: string) => {
     e.preventDefault();
     setMenuAberto(false);
-    
+
     let targetY = 0;
     if (hash !== '#' && hash !== '') {
       const id = hash.replace('#', '');
@@ -79,7 +80,7 @@ export default function HomePage({
       if (startTime === null) startTime = currentTime;
       const timeElapsed = currentTime - startTime;
       const progress = Math.min(timeElapsed / duration, 1);
-      
+
       window.scrollTo(0, startY + distance * easeInOutQuad(progress));
 
       if (timeElapsed < duration) {
@@ -90,34 +91,34 @@ export default function HomePage({
     requestAnimationFrame(animation);
   };
 
-  return (  
+  return (
     <div className="min-h-screen bg-[#F1F5F9] flex flex-col font-sans">
       {/* 1. NAVBAR */}
-      <nav className="relative z-50 flex justify-center px-6 sm:px-8 lg:px-12 pt-6 w-full">
-        <div className="bg-white shadow-sm w-full max-w-7xl rounded-2xl md:rounded-full border border-gray-100">
-          <div className="px-4 sm:px-6 lg:px-8">
+      <nav className="relative z-50 px-4 sm:px-8 lg:px-12 pt-6 w-full">
+        <div className="bg-white shadow-sm w-full rounded-2xl md:rounded-full border border-gray-100">
+          <div className="px-6 sm:px-8 md:px-10 w-full">
             <div className="flex justify-between h-20 items-center relative">
               <a href="/" className="flex items-center gap-3 hover:opacity-90 transition-opacity">
-                <img src={logo} alt="Clínica Mais Saúde" className="h-10 md:h-12 w-auto object-contain" />
-                <span className="text-xl font-bold text-gray-900">Clínica Mais Saúde</span>
+                <img src={logo} alt={CLINIC_NAME} className="h-10 md:h-12 w-auto object-contain" />
+                <span className="text-base sm:text-xl font-bold text-gray-900">{CLINIC_NAME}</span>
               </a>
 
               {/* Desktop Menu - Centralizado no meio */}
-              <div className="hidden md:flex items-center space-x-8 absolute left-1/2 -translate-x-1/2">
-                <a href="#" onClick={(e) => scrollToSection(e, '#')} className="text-gray-600 hover:text-[#7C3AED] font-medium transition-colors">Início</a>
-                <a href="#servicos" onClick={(e) => scrollToSection(e, '#servicos')} className="text-gray-600 hover:text-[#7C3AED] font-medium transition-colors">Serviços</a>
-                <a href="#sobre" onClick={(e) => scrollToSection(e, '#sobre')} className="text-gray-600 hover:text-[#7C3AED] font-medium transition-colors">Sobre Nós</a>
-                <a href="#contato" onClick={(e) => scrollToSection(e, '#contato')} className="text-gray-600 hover:text-[#7C3AED] font-medium transition-colors">Contato</a>
+              <div className="hidden lg:flex items-center space-x-8 absolute left-1/2 -translate-x-1/2">
+                <a href="#" onClick={(e) => scrollToSection(e, '#')} className="text-gray-600 hover:text-[#7C3AED] text-lg font-medium transition-colors">Início</a>
+                <a href="#servicos" onClick={(e) => scrollToSection(e, '#servicos')} className="text-gray-600 hover:text-[#7C3AED] text-lg font-medium transition-colors">Serviços</a>
+                <a href="#sobre" onClick={(e) => scrollToSection(e, '#sobre')} className="text-gray-600 hover:text-[#7C3AED] text-lg font-medium transition-colors">Sobre Nós</a>
+                <a href="#contato" onClick={(e) => scrollToSection(e, '#contato')} className="text-gray-600 hover:text-[#7C3AED] text-lg font-medium transition-colors">Contato</a>
               </div>
 
               {/* Botão de Agendamento e Menu Mobile à direita */}
               <div className="flex items-center gap-4">
-                <a href="/login" className="hidden md:inline-block bg-[#7C3AED] text-white px-6 py-2.5 rounded-full font-medium hover:bg-purple-700 transition-colors shadow-md hover:shadow-lg">
+                <a href="/login" className="hidden lg:inline-block bg-[#7C3AED] text-white px-6 py-2.5 rounded-full font-medium hover:bg-purple-700 transition-colors shadow-md hover:shadow-lg">
                   Agendar Consulta
                 </a>
 
                 {/* Mobile Menu Button */}
-                <div className="md:hidden flex items-center">
+                <div className="lg:hidden flex items-center">
                   <button onClick={() => setMenuAberto(!menuAberto)} className="text-gray-600 hover:text-[#7C3AED] transition-colors p-2">
                     {menuAberto ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
                   </button>
@@ -128,7 +129,7 @@ export default function HomePage({
 
           {/* Mobile Menu */}
           {menuAberto && (
-            <div className="md:hidden bg-white border-t border-gray-100 shadow-lg absolute left-4 right-4 top-24 rounded-2xl p-4 space-y-2 z-50 border border-gray-100">
+            <div className="lg:hidden bg-white border-t border-gray-100 shadow-lg absolute left-4 right-4 top-24 rounded-2xl p-4 space-y-2 z-50 border border-gray-100">
               <a href="#" onClick={(e) => scrollToSection(e, '#')} className="block px-3 py-3 text-base font-medium text-gray-700 hover:text-[#7C3AED] hover:bg-purple-50 rounded-md">Início</a>
               <a href="#servicos" onClick={(e) => scrollToSection(e, '#servicos')} className="block px-3 py-3 text-base font-medium text-gray-700 hover:text-[#7C3AED] hover:bg-purple-50 rounded-md">Serviços</a>
               <a href="#sobre" onClick={(e) => scrollToSection(e, '#sobre')} className="block px-3 py-3 text-base font-medium text-gray-700 hover:text-[#7C3AED] hover:bg-purple-50 rounded-md">Sobre Nós</a>
@@ -143,7 +144,7 @@ export default function HomePage({
 
       <main className="flex-grow pt-2">
         {/* 2. HERO COM CARROSSEL */}
-        <section className="relative overflow-hidden min-h-[550px] lg:h-[650px] flex items-center mx-6 sm:mx-8 lg:mx-12 my-6 rounded-3xl border-2 border-white shadow-xl">
+        <section className="relative overflow-hidden min-h-[550px] lg:h-[650px] flex items-center mx-4 sm:mx-8 lg:mx-12 my-6 rounded-3xl border-2 border-white shadow-xl">
           {/* Imagens de Fundo com Transição Suave (Cross-Fade) */}
           <div className="absolute inset-0 z-0">
             {slides.map((slide, index) => (
@@ -159,23 +160,23 @@ export default function HomePage({
             <div className="absolute inset-0 bg-black/45" />
           </div>
 
-          <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-16 md:pt-36 md:pb-22 w-full">
-            <div className="max-w-2xl sm:text-center lg:text-left min-h-[280px] md:min-h-[240px] relative">
+          <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-12 sm:pt-28 sm:pb-16 md:pt-36 md:pb-22 w-full">
+            <div className="max-w-2xl text-center lg:text-left min-h-[280px] md:min-h-[240px] relative mx-auto lg:mx-0">
               {slides.map((slide, index) => (
                 <div
                   key={index}
-                  className={`transition-all duration-1000 ease-in-out pl-8 sm:pl-15 md:pl-16 lg:pl-20 ${index === slideAtual
-                      ? 'opacity-100 translate-y-0 relative z-10'
-                      : 'opacity-0 translate-y-4 absolute inset-0 pointer-events-none'
+                  className={`transition-all duration-1000 ease-in-out px-4 sm:px-8 lg:px-0 lg:pl-20 ${index === slideAtual
+                    ? 'opacity-100 translate-y-0 relative z-10'
+                    : 'opacity-0 translate-y-4 absolute inset-0 pointer-events-none'
                     }`}
                 >
-                  <h1 className="text-4xl tracking-tight font-extrabold text-white sm:text-5xl md:text-4xl leading-tight">
+                  <h1 className="text-3xl tracking-tight font-extrabold text-white sm:text-4xl lg:text-5xl leading-tight">
                     <span className="block">{slide.titulo}</span>
                   </h1>
-                  <p className="mt-4 text-base text-gray-200 sm:mt-5 sm:text-lg sm:max-w-xl sm:mx-auto md:mt-5 md:text-xl lg:mx-0 font-medium">
+                  <p className="mt-4 text-base text-gray-200 sm:mt-5 sm:text-lg sm:max-w-xl mx-auto lg:mx-0 font-medium">
                     {slide.texto}
                   </p>
-                  <div className="mt-6 sm:mt-8 sm:flex sm:justify-center lg:justify-start">
+                  <div className="mt-6 sm:mt-8 flex justify-center lg:justify-start">
                     <a
                       href={slide.link}
                       onClick={(e) => {
@@ -194,7 +195,7 @@ export default function HomePage({
           {/* Controles Laterais (Setas) */}
           <button
             onClick={() => setSlideAtual((prev) => (prev - 1 + slides.length) % slides.length)}
-            className="absolute left-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-white/20 hover:bg-white/60 text-white hover:text-gray-900 shadow-md backdrop-blur-sm transition-all z-20 flex items-center justify-center border-none cursor-pointer"
+            className="hidden sm:flex absolute left-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-white/20 hover:bg-white/60 text-white hover:text-gray-900 shadow-md backdrop-blur-sm transition-all z-20 items-center justify-center border-none cursor-pointer"
             aria-label="Anterior"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" /></svg>
@@ -202,7 +203,7 @@ export default function HomePage({
 
           <button
             onClick={() => setSlideAtual((prev) => (prev + 1) % slides.length)}
-            className="absolute right-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-white/20 hover:bg-white/60 text-white hover:text-gray-900 shadow-md backdrop-blur-sm transition-all z-20 flex items-center justify-center border-none cursor-pointer"
+            className="hidden sm:flex absolute right-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-white/20 hover:bg-white/60 text-white hover:text-gray-900 shadow-md backdrop-blur-sm transition-all z-20 items-center justify-center border-none cursor-pointer"
             aria-label="Próximo"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" /></svg>
@@ -222,7 +223,7 @@ export default function HomePage({
         </section>
 
         {/* 3. DESTAQUES */}
-        <section className="py-16 bg-white mx-6 sm:mx-8 lg:mx-12 rounded-3xl border border-gray-100 shadow-md my-6">
+        <section className="py-16 bg-white mx-4 sm:mx-8 lg:mx-12 rounded-3xl border border-gray-100 shadow-md my-6">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {[
@@ -243,7 +244,7 @@ export default function HomePage({
         </section>
 
         {/* 4. ESPECIALIDADES */}
-        <section id="servicos" className="py-20 bg-white mx-6 sm:mx-8 lg:mx-12 rounded-3xl border border-gray-100 shadow-md my-6">
+        <section id="servicos" className="py-20 bg-white mx-4 sm:mx-8 lg:mx-12 rounded-3xl border border-gray-100 shadow-md my-6">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
               <h2 className="text-3xl font-extrabold text-gray-900 sm:text-4xl">Nossas Especialidades</h2>
@@ -266,10 +267,10 @@ export default function HomePage({
                 </div>
               ))}
             </div>
-            
+
             <div className="mt-6 flex justify-end">
-              <button 
-                onClick={() => setModalServicosAberto(true)} 
+              <button
+                onClick={() => setModalServicosAberto(true)}
                 className="text-[#7C3AED] font-semibold hover:text-purple-700 hover:underline flex items-center transition-colors group cursor-pointer bg-transparent border-none p-0"
               >
                 Ver todos os serviços
@@ -282,15 +283,15 @@ export default function HomePage({
         </section>
 
         {/* SOBRE NÓS */}
-        <section id="sobre" className="py-20 bg-white mx-6 sm:mx-8 lg:mx-12 rounded-3xl border border-gray-100 shadow-md my-6">
+        <section id="sobre" className="py-20 bg-white mx-4 sm:mx-8 lg:mx-12 rounded-3xl border border-gray-100 shadow-md my-6">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
               {/* Coluna Visual: Stats & Badges */}
               <div className="relative flex flex-col gap-6">
                 <div className="absolute inset-0 bg-purple-50 rounded-3xl -rotate-2 scale-[1.02] -z-10 opacity-70" />
-                <div className="bg-white p-8 rounded-3xl border-2 border-gray-200 shadow-xl shadow-purple-900/5 flex flex-col gap-6 relative overflow-hidden">
+                <div className="bg-white p-6 sm:p-8 rounded-2xl sm:rounded-3xl border-2 border-gray-200 shadow-xl shadow-purple-900/5 flex flex-col gap-6 relative overflow-hidden">
                   <div className="absolute top-0 right-0 w-32 h-32 bg-purple-200/40 rounded-full blur-2xl pointer-events-none" />
-                  
+
                   <div className="flex gap-4 items-center">
                     <span className="p-3 bg-white rounded-2xl text-[#7C3AED] shadow-sm flex items-center justify-center">
                       <Heart className="w-8 h-8" />
@@ -314,11 +315,11 @@ export default function HomePage({
                       <p className="text-xs text-gray-500 font-semibold mt-1">Pacientes Atendidos</p>
                     </div>
                     <div className="p-4 bg-white rounded-2xl text-center shadow-sm border border-gray-50">
-                      <span className="text-3xl font-extrabold text-[#7C3AED]">30+</span>
+                      <span className="text-3xl font-extrabold text-[#7C3AED]">100+</span>
                       <p className="text-xs text-gray-500 font-semibold mt-1">Médicos Especialistas</p>
                     </div>
                     <div className="p-4 bg-white rounded-2xl text-center shadow-sm border border-gray-50">
-                      <span className="text-3xl font-extrabold text-[#7C3AED]">98%</span>
+                      <span className="text-3xl font-extrabold text-[#7C3AED]">99,9%</span>
                       <p className="text-xs text-gray-500 font-semibold mt-1">Satisfação</p>
                     </div>
                   </div>
@@ -332,7 +333,7 @@ export default function HomePage({
                   Cuidado humanizado e tecnologia de ponta para a sua saúde
                 </h2>
                 <p className="mt-6 text-gray-600 leading-relaxed font-medium">
-                  A Clínica Mais Saúde foi fundada com a missão de transformar o atendimento médico privado, tornando-o acolhedor, ágil e altamente especializado. Acreditamos que a verdadeira saúde começa com a escuta atenta e a empatia.
+                  A {CLINIC_NAME} foi fundada com a missão de transformar o atendimento médico privado, tornando-o acolhedor, ágil e altamente especializado. Acreditamos que a verdadeira saúde começa com a escuta atenta e a empatia.
                 </p>
                 <p className="mt-4 text-gray-600 leading-relaxed font-medium">
                   Contamos com uma estrutura de última geração, prontuários digitais integrados e seguros, além de um corpo clínico formado por profissionais das melhores instituições do país, prontos para acompanhar você e sua família em todas as fases da vida.
@@ -341,7 +342,7 @@ export default function HomePage({
                 {/* Checklist de Valores */}
                 <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {[
-                    "Corpo clínico de referência",
+                    "Clínica de referência",
                     "Agendamento 100% digital",
                     "Estrutura moderna e acessível",
                     "Foco no cuidado preventivo"
@@ -362,7 +363,7 @@ export default function HomePage({
         </section>
 
         {/* 5. BANNER CTA */}
-        <section className="bg-gradient-to-br from-[#7C3AED] via-[#6D28D9] to-[#4C1D95] py-20 mx-6 sm:mx-8 lg:mx-12 rounded-3xl shadow-2xl shadow-purple-900/20 text-white relative overflow-hidden my-6">
+        <section className="bg-gradient-to-br from-[#7C3AED] via-[#6D28D9] to-[#4C1D95] py-12 sm:py-20 mx-4 sm:mx-8 lg:mx-12 rounded-3xl shadow-2xl shadow-purple-900/20 text-white relative overflow-hidden my-6">
           {/* Círculos decorativos sutis em background */}
           <div className="absolute top-0 right-0 w-80 h-80 bg-white/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
           <div className="absolute bottom-0 left-0 w-80 h-80 bg-white/5 rounded-full blur-3xl -ml-20 -mb-20 pointer-events-none" />
@@ -394,14 +395,14 @@ export default function HomePage({
       </main>
 
       {/* 6. FOOTER */}
-      <footer id="contato" className="bg-[#1F2937] text-gray-300 py-16 border-t border-gray-700">
+      <footer id="contato" className="bg-[#1F2937] text-gray-300 py-10 sm:py-16 border-t border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-10">
             {/* Coluna 1: Branding */}
-            <div className="flex flex-col items-center md:items-start md:col-span-1">
+            <div className="flex flex-col items-center md:items-start md:col-span-4">
               <div className="flex items-center gap-3 mb-4">
-                <img src={logoBranca} alt="Clínica Mais Saúde" className="h-10 w-auto object-contain" />
-                <span className="text-xl font-bold text-white tracking-tight">Clínica Mais Saúde</span>
+                <img src={logoBranca} alt={CLINIC_NAME} className="h-10 w-auto object-contain" />
+                <span className="text-xl font-bold text-white tracking-tight">{CLINIC_NAME}</span>
               </div>
               <p className="text-gray-400 text-sm text-center md:text-left leading-relaxed">
                 Oferecemos cuidado de alta qualidade e atendimento humanizado para toda a sua família. Nossa prioridade é você.
@@ -409,7 +410,7 @@ export default function HomePage({
             </div>
 
             {/* Coluna 2: Links Rápidos */}
-            <div className="flex flex-col items-center md:items-start">
+            <div className="flex flex-col items-center md:items-start md:col-span-2">
               <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-4">Navegação</h3>
               <ul className="space-y-3 text-center md:text-left text-sm text-gray-300">
                 <li><a href="#" onClick={(e) => scrollToSection(e, '#')} className="hover:text-white transition-colors">Início</a></li>
@@ -420,7 +421,7 @@ export default function HomePage({
             </div>
 
             {/* Coluna 3: Horário de Funcionamento */}
-            <div className="flex flex-col items-center md:items-start">
+            <div className="flex flex-col items-center md:items-start md:col-span-3">
               <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-4">Funcionamento</h3>
               <ul className="space-y-3 text-center md:text-left text-sm text-gray-300">
                 <li>Segunda a Sexta: 8h às 18h</li>
@@ -429,24 +430,24 @@ export default function HomePage({
             </div>
 
             {/* Coluna 4: Contato */}
-            <div className="flex flex-col items-center md:items-start">
+            <div className="flex flex-col items-center md:items-start md:col-span-3">
               <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-4">Contato</h3>
               <ul className="space-y-3 text-center md:text-left text-sm text-gray-300">
                 <li className="flex items-center gap-2 justify-center md:justify-start">
-                  <span className="font-semibold text-white">Telefone:</span> (11) 4002-8922
+                  <span className="font-semibold text-white">Telefone:</span> {CLINIC_PHONE}
                 </li>
                 <li className="flex items-center gap-2 justify-center md:justify-start">
-                  <span className="font-semibold text-white">Email:</span> contato@maissaude.com.br
+                  <span className="font-semibold text-white">Email:</span> {CLINIC_EMAIL}
                 </li>
                 <li className="flex items-center gap-2 justify-center md:justify-start text-xs leading-relaxed max-w-[200px] text-center md:text-left text-gray-400">
-                  Av. Paulista, 1000 - Bela Vista, São Paulo - SP, 01310-100
+                  {CLINIC_ADDRESS}
                 </li>
               </ul>
             </div>
           </div>
 
           <div className="mt-12 pt-8 border-t border-gray-700 flex flex-col sm:flex-row justify-between items-center gap-4 text-xs text-gray-400">
-            <span>&copy; {new Date().getFullYear()} Clínica Mais Saúde. Todos os direitos reservados.</span>
+            <span>&copy; {new Date().getFullYear()} {CLINIC_NAME}. Todos os direitos reservados.</span>
             <div className="flex gap-4">
               <button onClick={(e) => { e.preventDefault(); setModalLegalAberto('termos'); }} className="hover:text-white transition-colors cursor-pointer border-none bg-transparent">Termos de Uso</button>
               <button onClick={(e) => { e.preventDefault(); setModalLegalAberto('privacidade'); }} className="hover:text-white transition-colors cursor-pointer border-none bg-transparent">Política de Privacidade</button>
@@ -455,14 +456,14 @@ export default function HomePage({
         </div>
       </footer>
 
-      <ModalTermosPolitica 
-        tipo={modalLegalAberto} 
-        onFechar={() => setModalLegalAberto(null)} 
+      <ModalTermosPolitica
+        tipo={modalLegalAberto}
+        onFechar={() => setModalLegalAberto(null)}
       />
 
-      <ModalEspecialidades 
-        isOpen={modalServicosAberto} 
-        onClose={() => setModalServicosAberto(false)} 
+      <ModalEspecialidades
+        isOpen={modalServicosAberto}
+        onClose={() => setModalServicosAberto(false)}
       />
     </div>
   );

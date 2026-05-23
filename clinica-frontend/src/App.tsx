@@ -2,25 +2,26 @@ import { X } from 'lucide-react';
 import { CLINIC_NAME, API_URL } from "./constants/api";
 import { useState, useEffect } from "react";
 import AppLayout from "./components/AppLayout";
-import PacienteList from "./components/PacienteList";
-import AgendamentoList from "./components/AgendamentoList";
-import Login from "./components/Login";
-import { CadastroUsuario } from "./components/CadastroUsuario";
-import AgendamentoPaciente from "./components/AgendamentoPaciente";
-import MeusAgendamentos from "./components/MeusAgendamentos";
+import PacienteList from "./pages/PacienteList";
+import AgendamentoList from "./pages/AgendamentoList";
+import Login from "./pages/Login";
+import { CadastroUsuario } from "./pages/CadastroUsuario";
+import AgendamentoPaciente from "./pages/AgendamentoPaciente";
+import MeusAgendamentos from "./pages/MeusAgendamentos";
 import PerfilPaciente from "./components/PerfilPaciente";
 import PerfilMedico from "./components/PerfilMedico";
-import ViolacoesList from "./components/ViolacoesList";
+import ViolacoesList from "./pages/ViolacoesList";
 import Relatorios from "./pages/Relatorios";
 import type { PacienteResponse } from "./types/PacienteResponse";
 import { useScrollBlock } from "./hooks/useScrollBlock";
-import HomePage from "./components/HomePage";
+import HomePage from "./pages/HomePage";
 
 type Notificacao = {
   id: string;
   titulo: string;
   mensagem: string;
   agendamentoId: string | null;
+  link: string | null;
   lida: boolean;
   dtCriado: string;
 };
@@ -38,6 +39,17 @@ export default function App() {
   const [modalPerfilAberto, setModalPerfilAberto] = useState(false);
   const [notificacoes, setNotificacoes] = useState<Notificacao[]>([]);
   const [agendamentoDestaque, setAgendamentoDestaque] = useState<string | null>(null);
+  const [buscaViolacao, setBuscaViolacao] = useState("");
+  useEffect(() => {
+    const handler = () => {
+      localStorage.clear();
+      localStorage.setItem("violacaoDetectada", "true");
+      setAutenticado(false);
+      window.location.href = "/login";
+    };
+    window.addEventListener("segurancaViolada", handler);
+    return () => window.removeEventListener("segurancaViolada", handler);
+  }, []);
 
   useEffect(() => {
     const token = localStorage.getItem("authToken");
@@ -107,7 +119,31 @@ export default function App() {
 
   const handleNavegacaoNotificacao = (n: Notificacao) => {
     if (!n.lida) handleMarcarComoLida(n.id);
-    if (n.agendamentoId) {
+    
+    if (n.link) {
+      const [path, query] = n.link.split('?');
+      const params = new URLSearchParams(query || "");
+      
+      if (path === 'violacoes') {
+        const busca = params.get('busca');
+        if (busca) {
+          setBuscaViolacao(busca);
+        }
+        setAbaAtiva('violacoes');
+      } else if (path === 'agendamentos') {
+        const id = params.get('id');
+        if (id) {
+          setAgendamentoDestaque(id);
+          if (tipoUsuario === 'Paciente') {
+            setAbaAtiva('minhas-consultas');
+          } else {
+            setAbaAtiva('agendamentos');
+          }
+          setTimeout(() => setAgendamentoDestaque(null), 5500);
+        }
+      }
+    } else if (n.agendamentoId) {
+      // Fallback para notificações legadas sem a coluna Link
       setAgendamentoDestaque(n.agendamentoId);
       if (tipoUsuario === 'Paciente') {
         setAbaAtiva('minhas-consultas');
@@ -188,6 +224,7 @@ export default function App() {
 
   // ── App autenticado ────────────────────────────────────────────────────────
   return (
+    <>
     <AppLayout
       tipoUsuario={tipoUsuario}
       isAdmin={isAdmin}
@@ -203,7 +240,7 @@ export default function App() {
       {/* ── Violações IA ─────────────────────────────────────────────────── */}
       {abaAtiva === "violacoes" && (
         <section aria-label="Auditoria de IA">
-          <ViolacoesList />
+          <ViolacoesList buscaInicial={buscaViolacao} onLimparBusca={() => setBuscaViolacao("")} />
         </section>
       )}
 
@@ -285,5 +322,6 @@ export default function App() {
         </div>
       )}
     </AppLayout>
+    </>
   );
 }

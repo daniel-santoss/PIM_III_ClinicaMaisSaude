@@ -63,7 +63,7 @@ namespace ClinicaMaisSaude.API.Services
                     if (profissional != null)
                     {
                         var msg = $"Consulta de {a.Paciente.Nome} em {a.DataHoraConsulta:dd/MM/yyyy} às {a.DataHoraConsulta:HH:mm} não foi finalizada. Atualize o status.";
-                        var notificacao = new Notificacao(profissional.UsuarioId, "Consulta não finalizada", msg, a.Id);
+                        var notificacao = new Notificacao(profissional.UsuarioId, "Consulta não finalizada", msg, a.Id, link: $"agendamentos?id={a.Id}");
                         
                         dbContext.Notificacoes.Add(notificacao);
                         a.MarcarNotificacaoPendenteGerada();
@@ -74,7 +74,7 @@ namespace ClinicaMaisSaude.API.Services
                 if (!a.LembreteManhaEnviado && a.Paciente.UsuarioId.HasValue && a.DataHoraConsulta.Date == agora.Date)
                 {
                     var msg = $"Sua consulta de {a.TipoConsulta} está agendada para hoje às {a.DataHoraConsulta:HH:mm}.";
-                    var notificacao = new Notificacao(a.Paciente.UsuarioId.Value, "Você tem consulta hoje", msg, a.Id);
+                    var notificacao = new Notificacao(a.Paciente.UsuarioId.Value, "Você tem consulta hoje", msg, a.Id, link: $"agendamentos?id={a.Id}");
 
                     dbContext.Notificacoes.Add(notificacao);
                     a.MarcarLembreteManhaEnviado();
@@ -85,7 +85,7 @@ namespace ClinicaMaisSaude.API.Services
                 if (!a.LembreteDuasHorasEnviado && a.Paciente.UsuarioId.HasValue && agora >= duasHorasAntes && agora < a.DataHoraConsulta)
                 {
                     var msg = $"Sua consulta está marcada para hoje às {a.DataHoraConsulta:HH:mm}. Não esqueça!";
-                    var notificacao = new Notificacao(a.Paciente.UsuarioId.Value, "Lembrete de consulta", msg, a.Id);
+                    var notificacao = new Notificacao(a.Paciente.UsuarioId.Value, "Lembrete de consulta", msg, a.Id, link: $"agendamentos?id={a.Id}");
 
                     dbContext.Notificacoes.Add(notificacao);
                     a.MarcarLembreteDuasHorasEnviado();

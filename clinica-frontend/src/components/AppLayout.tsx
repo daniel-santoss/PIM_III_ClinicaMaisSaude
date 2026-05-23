@@ -2,6 +2,7 @@ import { Bell, LayoutDashboard, Users, CalendarDays, ShieldAlert, BarChart2, Log
 import { useState, useEffect } from 'react';
 import logoPng from '../assets/logo_clinica.png';
 import { useScrollBlock } from '../hooks/useScrollBlock';
+import { CLINIC_NAME } from '../constants/clinic';
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 type NavItem = {
@@ -74,17 +75,6 @@ function getIniciais(nome: string): string {
     .join('');
 }
 
-// ─── Rótulo legível do perfil ─────────────────────────────────────────────────
-function getRoleLabel(tipoUsuario: string, isAdmin: boolean): string {
-  if (isAdmin) return 'Administrador';
-  const map: Record<string, string> = {
-    Medico: 'Médico',
-    Enfermeira: 'Enfermeira',
-    Paciente: 'Paciente',
-  };
-  return map[tipoUsuario] ?? tipoUsuario;
-}
-
 // ─── Componente principal ─────────────────────────────────────────────────────
 export default function AppLayout({
   tipoUsuario,
@@ -102,9 +92,9 @@ export default function AppLayout({
   const [notifAberto, setNotifAberto] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [fotoBase64, setFotoBase64] = useState<string | null>(localStorage.getItem("fotoBase64"));
-  // isDesktop = tela >= 1280px → sidebar fixa. Abaixo disso: drawer/overlay.
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1280);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
   useEffect(() => {
     const handleResize = () => {
       const desktop = window.innerWidth >= 1280;
@@ -118,7 +108,6 @@ export default function AppLayout({
   const navItems = getNavItems(tipoUsuario, isAdmin);
   const naoLidas = notificacoes.filter(n => !n.lida).length;
   const nomeUsuario = localStorage.getItem('nomeUsuario') ?? localStorage.getItem('tipoUsuario') ?? 'Usuário';
-  void getRoleLabel(tipoUsuario, isAdmin);
 
   // Largura da sidebar (só relevante no desktop)
   const sidebarWidth = isDesktop ? (isHovered ? 240 : 72) : 0;
@@ -139,34 +128,22 @@ export default function AppLayout({
   const SidebarContent = () => (
     <>
       {/* Header da sidebar */}
-      <div style={{
-        height: 60,
-        display: 'flex',
-        alignItems: 'center',
-        padding: '0 12px',
-        marginBottom: 20,
-        flexShrink: 0,
-        borderBottom: '1px solid #E9E5FF',
-        gap: 12
-      }}>
+      <div className="h-[60px] flex items-center px-3 mb-5 shrink-0 border-b border-[#E9E5FF] gap-3">
         <img
           src={logoPng}
           alt="Logo"
-          style={{ width: 32, height: 32, objectFit: 'contain', mixBlendMode: 'multiply' }}
+          className="w-8 h-8 object-contain mix-blend-multiply"
         />
-        <span style={{
-          fontSize: 15, fontWeight: 800, color: '#7C3AED',
-          opacity: (!isDesktop || isHovered) ? 1 : 0,
-          transition: 'opacity 0.2s ease',
-          whiteSpace: 'nowrap'
-        }}>
-          Clínica Mais Saúde
+        <span className={`text-[15px] font-extrabold text-[#7C3AED] transition-opacity duration-200 ease-out whitespace-nowrap ${
+          (!isDesktop || isHovered) ? 'opacity-100' : 'opacity-0'
+        }`}>
+          {CLINIC_NAME}
         </span>
         {/* Botão fechar drawer (mobile/tablet) */}
         {!isDesktop && (
           <button
             onClick={() => setIsDrawerOpen(false)}
-            style={{ marginLeft: 'auto', border: 'none', background: 'none', color: '#7C3AED', cursor: 'pointer' }}
+            className="ml-auto border-none bg-transparent text-[#7C3AED] cursor-pointer"
           >
             <X size={20} />
           </button>
@@ -174,48 +151,25 @@ export default function AppLayout({
       </div>
 
       {/* Navegação */}
-      <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <nav className="flex-1 flex flex-col gap-1.5">
         {navItems.map(item => {
           const ativo = abaAtiva === item.id;
           return (
             <button
               key={item.id}
               onClick={() => { onNavegar(item.id); if (!isDesktop) setIsDrawerOpen(false); }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                padding: '10px 14px',
-                borderRadius: 12,
-                border: 'none',
-                cursor: 'pointer',
-                background: ativo ? '#7C3AED' : 'transparent',
-                color: ativo ? '#FFFFFF' : '#6B7280',
-                transition: 'all 0.2s',
-                width: '100%',
-                textAlign: 'left'
-              }}
-              onMouseEnter={e => {
-                if (!ativo) {
-                  e.currentTarget.style.background = '#EDE9FE';
-                  e.currentTarget.style.color = '#7C3AED';
-                }
-              }}
-              onMouseLeave={e => {
-                if (!ativo) {
-                  e.currentTarget.style.background = 'transparent';
-                  e.currentTarget.style.color = '#6B7280';
-                }
-              }}
+              className={`flex items-center px-3.5 py-2.5 rounded-xl cursor-pointer w-full text-left transition-all duration-200 ${
+                ativo 
+                  ? 'bg-[#7C3AED] text-white font-bold' 
+                  : 'bg-transparent text-gray-500 hover:bg-[#EDE9FE] hover:text-[#7C3AED]'
+              }`}
             >
-              <div style={{ width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <div className="w-6 h-6 flex items-center justify-center shrink-0">
                 {item.icon}
               </div>
-              <span style={{
-                marginLeft: 14, fontSize: 14, fontWeight: ativo ? 700 : 500,
-                opacity: (!isDesktop || isHovered) ? 1 : 0,
-                transition: 'opacity 0.2s',
-                whiteSpace: 'nowrap'
-              }}>
+              <span className={`ml-3.5 text-sm transition-opacity duration-200 whitespace-nowrap ${
+                ativo ? 'font-bold' : 'font-medium'
+              } ${(!isDesktop || isHovered) ? 'opacity-100' : 'opacity-0'}`}>
                 {item.label}
               </span>
             </button>
@@ -224,74 +178,57 @@ export default function AppLayout({
       </nav>
 
       {/* Footer: Notificações (desktop), Perfil e Sair */}
-      <div style={{ marginTop: 'auto', borderTop: '1px solid #E9E5FF', paddingTop: 10, display: 'flex', flexDirection: 'column', gap: 4 }}>
+      <div className="mt-auto border-t border-[#E9E5FF] pt-2.5 flex flex-col gap-1">
         {/* Sino — apenas sidebar desktop */}
         {isDesktop && (
           <button
             onClick={() => setNotifAberto(v => !v)}
-            style={{
-              display: 'flex', alignItems: 'center', padding: '10px 14px', borderRadius: 12, border: 'none', cursor: 'pointer',
-              background: notifAberto ? '#EDE9FE' : 'transparent',
-              color: notifAberto ? '#7C3AED' : '#6B7280',
-              transition: 'all 0.2s', width: '100%', textAlign: 'left',
-            }}
-            onMouseEnter={e => { e.currentTarget.style.background = '#EDE9FE'; e.currentTarget.style.color = '#7C3AED'; }}
-            onMouseLeave={e => { if (!notifAberto) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#6B7280'; } }}
+            className={`flex items-center px-3.5 py-2.5 rounded-xl cursor-pointer w-full text-left transition-all duration-200 ${
+              notifAberto 
+                ? 'bg-[#EDE9FE] text-[#7C3AED]' 
+                : 'bg-transparent text-gray-500 hover:bg-[#EDE9FE] hover:text-[#7C3AED]'
+            }`}
           >
-            <div style={{ width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, position: 'relative' }}>
+            <div className="w-6 h-6 flex items-center justify-center shrink-0 relative">
               <Bell size={18} />
               {naoLidas > 0 && (
-                <span style={{ position: 'absolute', top: -2, right: -2, width: 8, height: 8, borderRadius: '50%', background: '#EF4444', border: '1.5px solid #fff' }} />
+                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-red-500 border border-white" />
               )}
             </div>
-            <span style={{ marginLeft: 14, fontSize: 14, fontWeight: 600, opacity: isHovered ? 1 : 0, transition: 'opacity 0.2s', whiteSpace: 'nowrap' }}>
+            <span className={`ml-3.5 text-sm font-semibold transition-opacity duration-200 whitespace-nowrap ${
+              isHovered ? 'opacity-100' : 'opacity-0'
+            }`}>
               Notificações {naoLidas > 0 ? `(${naoLidas})` : ''}
             </span>
           </button>
         )}
         <button
           onClick={() => { onAbrirPerfil(); if (!isDesktop) setIsDrawerOpen(false); }}
-          style={{
-            display: 'flex', alignItems: 'center', padding: '10px 14px', borderRadius: 12, border: 'none', cursor: 'pointer',
-            background: 'transparent', color: '#6B7280', transition: 'all 0.2s', width: '100%', textAlign: 'left'
-          }}
-          onMouseEnter={e => (e.currentTarget.style.background = '#EDE9FE')}
-          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+          className="flex items-center px-3.5 py-2.5 rounded-xl cursor-pointer bg-transparent text-gray-500 hover:bg-[#EDE9FE] hover:text-[#7C3AED] transition-all duration-200 w-full text-left"
         >
-          <div style={{ width: 36, height: 36, borderRadius: 10, background: '#7C3AED', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontWeight: 800, fontSize: 13, overflow: 'hidden' }}>
+          <div className="w-9 h-9 rounded-xl bg-[#7C3AED] text-white flex items-center justify-center shrink-0 font-extrabold text-sm overflow-hidden">
             {fotoBase64
-              ? <img src={fotoBase64} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ? <img src={fotoBase64} alt="avatar" className="w-full h-full object-cover" />
               : getIniciais(nomeUsuario)
             }
           </div>
-          <span style={{
-            marginLeft: 14, fontSize: 14, fontWeight: 700, color: '#1F2937',
-            opacity: (!isDesktop || isHovered) ? 1 : 0,
-            transition: 'opacity 0.2s',
-            whiteSpace: 'nowrap'
-          }}>
+          <span className={`ml-3.5 text-sm font-bold text-gray-800 transition-opacity duration-200 whitespace-nowrap ${
+            (!isDesktop || isHovered) ? 'opacity-100' : 'opacity-0'
+          }`}>
             Perfil
           </span>
         </button>
 
         <button
           onClick={onLogout}
-          style={{
-            display: 'flex', alignItems: 'center', padding: '10px 14px', borderRadius: 12, border: 'none', cursor: 'pointer',
-            background: 'transparent', color: '#EF4444', transition: 'all 0.2s', width: '100%', textAlign: 'left'
-          }}
-          onMouseEnter={e => (e.currentTarget.style.background = '#FEF2F2')}
-          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+          className="flex items-center px-3.5 py-2.5 rounded-xl cursor-pointer bg-transparent text-red-500 hover:bg-red-50 transition-all duration-200 w-full text-left"
         >
-          <div style={{ width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <div className="w-6 h-6 flex items-center justify-center shrink-0">
             <LogOut size={20} />
           </div>
-          <span style={{
-            marginLeft: 14, fontSize: 14, fontWeight: 600,
-            opacity: (!isDesktop || isHovered) ? 1 : 0,
-            transition: 'opacity 0.2s',
-            whiteSpace: 'nowrap'
-          }}>
+          <span className={`ml-3.5 text-sm font-semibold transition-opacity duration-200 whitespace-nowrap ${
+            (!isDesktop || isHovered) ? 'opacity-100' : 'opacity-0'
+          }`}>
             Sair
           </span>
         </button>
@@ -300,18 +237,13 @@ export default function AppLayout({
   );
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: '#F9FAFB' }}>
+    <div className="flex min-h-screen bg-[#F9FAFB]">
 
       {/* ── OVERLAY (Mobile/Tablet) ──────────────────────────────────────────── */}
       {!isDesktop && isDrawerOpen && (
         <div
           onClick={() => setIsDrawerOpen(false)}
-          style={{
-            position: 'fixed', inset: 0,
-            background: 'rgba(0,0,0,0.45)',
-            zIndex: 1100,
-            backdropFilter: 'blur(2px)'
-          }}
+          className="fixed inset-0 bg-black/45 z-[1100] backdrop-blur-[2px]"
         />
       )}
 
@@ -320,21 +252,8 @@ export default function AppLayout({
         <aside
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
-          style={{
-            position: 'fixed',
-            top: 0, left: 0,
-            width: sidebarWidth,
-            height: '100vh',
-            background: '#F8F7FF',
-            borderRight: '1px solid #E9E5FF',
-            display: 'flex',
-            flexDirection: 'column',
-            zIndex: 1200,
-            transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-            padding: '12px 10px',
-            boxSizing: 'border-box',
-            overflow: 'hidden',
-          }}
+          className="fixed top-0 left-0 h-screen bg-[#F8F7FF] border-r border-[#E9E5FF] flex flex-col z-[1200] transition-[width] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] p-3 pb-2.5 box-border overflow-hidden"
+          style={{ width: sidebarWidth }}
         >
           <SidebarContent />
         </aside>
@@ -343,23 +262,9 @@ export default function AppLayout({
       {/* ── SIDEBAR DRAWER (Mobile/Tablet) ──────────────────────────────────── */}
       {!isDesktop && (
         <aside
-          style={{
-            position: 'fixed',
-            top: 0, left: 0,
-            width: 260,
-            height: '100vh',
-            background: '#F8F7FF',
-            borderRight: '1px solid #E9E5FF',
-            display: 'flex',
-            flexDirection: 'column',
-            zIndex: 1200,
-            transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-            transform: isDrawerOpen ? 'translateX(0)' : 'translateX(-100%)',
-            padding: '12px 10px',
-            boxSizing: 'border-box',
-            overflow: 'hidden',
-            boxShadow: isDrawerOpen ? '10px 0 30px rgba(0,0,0,0.12)' : 'none',
-          }}
+          className={`fixed top-0 left-0 w-[260px] h-screen bg-[#F8F7FF] border-r border-[#E9E5FF] flex flex-col z-[1200] transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] p-3 pb-2.5 box-border overflow-hidden ${
+            isDrawerOpen ? 'translate-x-0 shadow-[10px_0_30px_rgba(0,0,0,0.12)]' : '-translate-x-full'
+          }`}
         >
           <SidebarContent />
         </aside>
@@ -367,30 +272,11 @@ export default function AppLayout({
 
       {/* ── TOPBAR (Mobile/Tablet) ───────────────────────────────────────────── */}
       {!isDesktop && (
-        <header style={{
-          position: 'fixed',
-          top: 0, left: 0, right: 0,
-          height: 60,
-          background: '#FFFFFF',
-          borderBottom: '1px solid #E9E5FF',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '0 16px',
-          zIndex: 1050,
-          boxShadow: '0 1px 8px rgba(0,0,0,0.05)',
-        }}>
+        <header className="fixed top-0 left-0 right-0 h-[60px] bg-white border-b border-[#E9E5FF] flex items-center justify-between px-4 z-[1050] shadow-[0_1px_8px_rgba(0,0,0,0.05)]">
           {/* Hamburguer */}
           <button
             onClick={() => setIsDrawerOpen(true)}
-            style={{
-              width: 40, height: 40, borderRadius: 10,
-              background: '#F5F3FF',
-              border: '1px solid #E9E5FF',
-              color: '#7C3AED',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              cursor: 'pointer',
-            }}
+            className="w-10 h-10 rounded-xl bg-[#F5F3FF] border border-[#E9E5FF] text-[#7C3AED] flex items-center justify-center cursor-pointer"
           >
             <Menu size={22} />
           </button>
@@ -398,45 +284,32 @@ export default function AppLayout({
           {/* Logo centralizada — sem nome */}
           <img
             src={logoPng}
-            alt="Logo Clínica Mais Saúde"
-            style={{ width: 36, height: 36, objectFit: 'contain', mixBlendMode: 'multiply' }}
+            alt={CLINIC_NAME}
+            className="w-9 h-9 object-contain mix-blend-multiply"
           />
 
           {/* Ações direita: Sino + Avatar */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div className="flex items-center gap-2">
             {/* Sino de notificações — mobile/tablet */}
             <button
               onClick={() => setNotifAberto(v => !v)}
-              style={{
-                width: 40, height: 40, borderRadius: 10,
-                background: notifAberto ? '#EDE9FE' : '#F5F3FF',
-                border: '1px solid #E9E5FF',
-                color: '#7C3AED',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                cursor: 'pointer', position: 'relative',
-              }}
+              className={`w-10 h-10 rounded-xl border border-[#E9E5FF] text-[#7C3AED] flex items-center justify-center cursor-pointer relative ${
+                notifAberto ? 'bg-[#EDE9FE]' : 'bg-[#F5F3FF]'
+              }`}
             >
               <Bell size={18} />
               {naoLidas > 0 && (
-                <span style={{ position: 'absolute', top: 6, right: 6, width: 8, height: 8, borderRadius: '50%', background: '#EF4444', border: '1.5px solid #fff' }} />
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500 border border-white" />
               )}
             </button>
 
             {/* Avatar (sem nome no mobile) */}
             <button
               onClick={onAbrirPerfil}
-              style={{
-                width: 36, height: 36, borderRadius: 10,
-                background: '#7C3AED',
-                color: '#fff',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                border: 'none', cursor: 'pointer',
-                fontWeight: 800, fontSize: 13,
-                overflow: 'hidden',
-              }}
+              className="w-9 h-9 rounded-xl bg-[#7C3AED] text-white flex items-center justify-center border-none cursor-pointer font-extrabold text-sm overflow-hidden"
             >
               {fotoBase64
-                ? <img src={fotoBase64} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ? <img src={fotoBase64} alt="avatar" className="w-full h-full object-cover" />
                 : getIniciais(nomeUsuario)
               }
             </button>
@@ -447,47 +320,44 @@ export default function AppLayout({
       {/* ── PAINEL DE NOTIFICAÇÕES UNIFICADO (desktop + mobile) ──────────────── */}
       {notifAberto && (
         <>
-          <div onClick={() => setNotifAberto(false)} style={{ position: 'fixed', inset: 0, zIndex: 1999 }} />
-          <div style={{
-            position: 'fixed',
-            top: isDesktop ? 16 : 68,
-            left: isDesktop ? sidebarWidth + 12 : 8,
-            right: isDesktop ? 'auto' : 8,
-            width: isDesktop ? 340 : undefined,
-            maxWidth: 360,
-            marginLeft: isDesktop ? undefined : 'auto',
-            background: '#fff',
-            borderRadius: 16,
-            border: '1px solid #E9E5FF',
-            boxShadow: '0 8px 30px rgba(0,0,0,0.18)',
-            zIndex: 2000,
-            overflow: 'hidden',
-          }}>
-            <div style={{ padding: '12px 16px', borderBottom: '1px solid #F3F4F6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: 12, fontWeight: 800, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Notificações</span>
-              {naoLidas > 0 && <span style={{ fontSize: 11, fontWeight: 700, color: '#7C3AED', background: '#EDE9FE', padding: '2px 8px', borderRadius: 20 }}>{naoLidas} nova{naoLidas > 1 ? 's' : ''}</span>}
+          <div onClick={() => setNotifAberto(false)} className="fixed inset-0 z-[1999]" />
+          <div 
+            className="fixed max-w-[360px] bg-white rounded-2xl border border-[#E9E5FF] shadow-[0_8px_30px_rgba(0,0,0,0.18)] z-[2000] overflow-hidden"
+            style={{
+              top: isDesktop ? 16 : 68,
+              left: isDesktop ? sidebarWidth + 12 : 8,
+              right: isDesktop ? 'auto' : 8,
+              width: isDesktop ? 340 : 'auto',
+              marginLeft: isDesktop ? undefined : 'auto',
+            }}
+          >
+            <div className="px-4 py-3 border-b border-gray-100 flex justify-between items-center">
+              <span className="text-[12px] font-extrabold text-gray-700 uppercase tracking-wider">Notificações</span>
+              {naoLidas > 0 && <span className="text-[11px] font-bold text-[#7C3AED] bg-[#EDE9FE] px-2 py-0.5 rounded-full">{naoLidas} nova{naoLidas > 1 ? 's' : ''}</span>}
             </div>
-            <div style={{ maxHeight: 320, overflowY: 'auto' }}>
+            <div className="max-h-[320px] overflow-y-auto">
               {notificacoes.length === 0 ? (
-                <div style={{ padding: '24px 16px', textAlign: 'center', color: '#9CA3AF', fontSize: 13 }}>Nenhuma notificação</div>
+                <div className="px-4 py-6 text-center text-gray-400 text-sm">Nenhuma notificação</div>
               ) : notificacoes.map(n => (
                 <div key={n.id}
-                  style={{ padding: '12px 16px', borderBottom: '1px solid #F9FAFB', background: n.lida ? '#fff' : '#FAFAFE', cursor: 'pointer' }}
+                  className={`px-4 py-3 border-b border-gray-50 cursor-pointer ${
+                    n.lida ? 'bg-white' : 'bg-[#FAFAFE]'
+                  }`}
                   onClick={() => { onNavegacaoNotificacao(n); setNotifAberto(false); }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
-                    <div style={{ flex: 1 }}>
-                      <p style={{ fontSize: 13, fontWeight: n.lida ? 500 : 700, color: '#1F2937', margin: 0 }}>{n.titulo}</p>
-                      <p style={{ fontSize: 11, color: '#6B7280', margin: '2px 0 0', lineHeight: 1.4 }}>{n.mensagem}</p>
+                  <div className="flex justify-between items-start gap-2">
+                    <div className="flex-1">
+                      <p className={`text-sm text-gray-800 m-0 ${n.lida ? 'font-medium' : 'font-bold'}`}>{n.titulo}</p>
+                      <p className="text-[11px] text-gray-500 m-0 mt-0.5 leading-relaxed">{n.mensagem}</p>
                     </div>
                     <button onClick={e => { e.stopPropagation(); onRemoverNotificacao(n.id); }}
-                      style={{ color: '#D1D5DB', background: 'none', border: 'none', cursor: 'pointer', padding: 2, flexShrink: 0 }}>
+                      className="text-gray-300 bg-transparent border-none cursor-pointer p-0.5 shrink-0 hover:text-gray-500 transition-colors">
                       <X size={14} />
                     </button>
                   </div>
                   {!n.lida && (
                     <button onClick={e => { e.stopPropagation(); onMarcarLida(n.id); }}
-                      style={{ fontSize: 10, color: '#7C3AED', background: 'none', border: 'none', cursor: 'pointer', marginTop: 4, padding: 0, fontWeight: 700 }}>
+                      className="text-[10px] text-[#7C3AED] bg-transparent border-none cursor-pointer mt-1 p-0 font-bold hover:underline">
                       Marcar como lida
                     </button>
                   )}
@@ -499,17 +369,15 @@ export default function AppLayout({
       )}
 
       {/* ── MAIN CONTENT ─────────────────────────────────────────────────────── */}
-      <main style={{
-        marginLeft: isDesktop ? sidebarWidth : 0,
-        marginTop: isDesktop ? 0 : 60,
-        flex: 1,
-        minWidth: 0,
-        padding: isDesktop ? '32px 40px' : '24px 16px 48px',
-        boxSizing: 'border-box',
-        transition: 'margin-left 0.3s ease',
-        minHeight: '100vh',
-        background: '#FFFFFF'
-      }}>
+      <main 
+        className="flex-1 min-w-0 min-h-screen bg-white transition-[margin-left] duration-300 ease-out"
+        style={{
+          marginLeft: isDesktop ? sidebarWidth : 0,
+          marginTop: isDesktop ? 0 : 60,
+          padding: isDesktop ? '32px 40px' : '24px 16px 48px',
+          boxSizing: 'border-box',
+        }}
+      >
         {children}
       </main>
 

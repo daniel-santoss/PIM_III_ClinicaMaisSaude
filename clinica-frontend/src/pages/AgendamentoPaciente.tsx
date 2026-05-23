@@ -2,7 +2,7 @@ import { API_URL, ADMIN_EMAIL, MAX_PROMPT_LENGTH } from "../constants/api";
 import { useEffect, useState } from "react";
 
 import { ESPECIALIDADES } from "../constants/especialidades";
-import { AlertCircle, Calendar, Zap, Check, AlertTriangle, Sliders, CheckCircle, Search, User, MessageSquare, ShieldAlert } from 'lucide-react';
+import { AlertCircle, Calendar, Zap, Check, AlertTriangle, Sliders, CheckCircle, Search, User, MessageSquare } from 'lucide-react';
 import { getRealDate } from '../utils/dates';
 import { useScrollBlock } from "../hooks/useScrollBlock";
 
@@ -22,11 +22,10 @@ export default function AgendamentoPaciente({ onSucesso }: AgendamentoPacientePr
   const [analisandoIA, setAnalisandoIA] = useState(false);
   const [modoIA, setModoIA] = useState(false);
   const [modalMensagem, setModalMensagem] = useState<string | null>(null);
-  const [violacao, setViolacao] = useState(false);
 
-  useScrollBlock(!!(modalMensagem || violacao || analisandoIA));
+  useScrollBlock(!!(modalMensagem || analisandoIA));
 
-  const [tipoProfissional, setTipoProfissional] = useState<number | null>(null); // 0: Enfermeira, 1: Medico
+  const [tipoProfissional, setTipoProfissional] = useState<number | null>(1); // 0: Enfermeira, 1: Medico
   const [tipoConsulta, setTipoConsulta] = useState<number>(3); // Default 3: Consulta Médica
   const [especialidade, setEspecialidade] = useState("");
   const [buscaEspecialidade, setBuscaEspecialidade] = useState("");
@@ -62,7 +61,7 @@ export default function AgendamentoPaciente({ onSucesso }: AgendamentoPacientePr
       if (response.ok) {
         const dados = await response.json();
         if (dados.justificativa?.includes("Detectamos uma tentativa deliberada")) {
-          setViolacao(true);
+          window.dispatchEvent(new CustomEvent("segurancaViolada"));
           return;
         }
         setSugestaoIA(dados);
@@ -156,7 +155,7 @@ export default function AgendamentoPaciente({ onSucesso }: AgendamentoPacientePr
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify({
           pacienteId,
-          dataHoraConsulta: `${dataSelecionada}T${horarioSelecionado}:00-03:00`,
+          dataHoraConsulta: `${dataSelecionada}T${horarioSelecionado}:00`,
           tipoProfissional: tipoProfissional ?? 1,
           tipoConsulta,
           agendamentoOrigemId: origemId || null,
@@ -233,35 +232,6 @@ export default function AgendamentoPaciente({ onSucesso }: AgendamentoPacientePr
             <a 
               href={`mailto:${ADMIN_EMAIL}?subject=Solicita%C3%A7%C3%A3o%20de%20revis%C3%A3o%20de%20bloqueio%20-%20${localStorage.getItem("userName") || "[Seu Nome]"}`}
               className="w-full block mt-3 bg-gray-100 hover:bg-gray-200 text-gray-600 font-black py-4 rounded-2xl uppercase tracking-widest text-[10px] shadow-sm transition-colors"
-            >
-              Acredito que isso é um erro
-            </a>
-          </div>
-        </div>
-      )}
-      
-      {violacao && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-red-900/90 backdrop-blur-md p-4 animate-in fade-in duration-300">
-          <div className="bg-white rounded-[2.5rem] shadow-2xl shadow-red-900/50 w-full max-w-xl p-10 text-center border-4 border-red-500">
-            <div className="w-24 h-24 bg-red-100 text-red-600 rounded-[2rem] flex items-center justify-center mx-auto mb-8">
-              <ShieldAlert className="w-14 h-14" />
-            </div>
-            <h3 className="text-3xl font-black text-red-700 mb-4 uppercase tracking-tight">Violação de Segurança</h3>
-            <div className="text-red-900 text-xs sm:text-sm mb-10 font-bold leading-relaxed text-left space-y-4">
-              <p>
-                Detectamos uma tentativa deliberada de obtenção de credenciais privadas e ativos de domínio por meio da Inteligência Artificial do sistema. Esta conduta configura Invasão de Dispositivo Informático, conforme o Art. 154-A do Código Penal (Lei 12.737/2012) e violação dos princípios de segurança e confidencialidade da Lei Geral de Proteção de Dados (Lei 13.709/2018 - LGPD).
-              </p>
-              <p className="text-red-800 uppercase tracking-widest text-[10px] sm:text-xs">Informamos que:</p>
-              <ul className="list-disc pl-6 space-y-2">
-                <li>Sua conta foi permanentemente bloqueada.</li>
-                <li>O log completo desta interação e evidências técnicas de acesso foram encaminhados ao Administrador do Sistema.</li>
-                <li>O incidente foi formalmente registrado para medidas judiciais e administrativas cabíveis.</li>
-              </ul>
-            </div>
-            <button className="w-full bg-red-600 hover:bg-red-700 text-white font-black py-5 rounded-2xl uppercase tracking-widest text-xs shadow-lg shadow-red-200 transition-colors" onClick={() => { setViolacao(false); localStorage.clear(); window.location.href = "/"; }}>Entendido</button>
-            <a 
-              href={`mailto:${ADMIN_EMAIL}?subject=Solicita%C3%A7%C3%A3o%20de%20revis%C3%A3o%20de%20bloqueio%20-%20${localStorage.getItem("userName") || "[Seu Nome]"}`}
-              className="w-full block mt-3 bg-white hover:bg-gray-50 border-2 border-gray-200 text-gray-600 font-black py-4 rounded-2xl uppercase tracking-widest text-[10px] shadow-sm transition-colors"
             >
               Acredito que isso é um erro
             </a>

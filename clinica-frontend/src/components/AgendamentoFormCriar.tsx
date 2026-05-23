@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { mascaraCpf } from "../utils/validators";
 import { obterMinDate, getRealDate } from "../utils/dates";
 import type { PacienteResponse } from "../types/PacienteResponse";
-import { X, Lightbulb, AlertTriangle, ShieldAlert, Search } from 'lucide-react';
+import { X, Lightbulb, AlertTriangle, Search } from 'lucide-react';
 import { useScrollBlock } from "../hooks/useScrollBlock";
 import { useToast } from "../hooks/useToast";
 
@@ -44,7 +44,6 @@ export default function AgendamentoFormCriar({
   const [sintomas, setSintomas] = useState("");
   const [sugestaoIA, setSugestaoIA] = useState<any>(null);
   const [carregandoIA, setCarregandoIA] = useState(false);
-  const [violacao, setViolacao] = useState(false);
   const [criando, setCriando] = useState(false);
   const [agendamentos, setAgendamentos] = useState<any[]>([]);
 
@@ -161,7 +160,7 @@ export default function AgendamentoFormCriar({
       return;
     }
 
-    const dataHoraUnida = `${dataSelecionada}T${horarioSelecionado}:00-03:00`;
+    const dataHoraUnida = `${dataSelecionada}T${horarioSelecionado}:00`;
     setCriando(true);
 
     try {
@@ -195,28 +194,7 @@ export default function AgendamentoFormCriar({
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-0 sm:p-4 bg-purple-900/40 backdrop-blur-sm animate-in fade-in duration-300">
-      {violacao && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-red-900/90 backdrop-blur-md p-4 animate-in fade-in duration-300">
-          <div className="bg-white rounded-[2.5rem] shadow-2xl shadow-red-900/50 w-full max-w-xl p-10 text-center border-4 border-red-500">
-            <div className="w-24 h-24 bg-red-100 text-red-600 rounded-[2rem] flex items-center justify-center mx-auto mb-8">
-              <ShieldAlert className="w-14 h-14" />
-            </div>
-            <h3 className="text-3xl font-black text-red-700 mb-4 uppercase tracking-tight">Violação de Segurança</h3>
-            <div className="text-red-900 text-xs sm:text-sm mb-10 font-bold leading-relaxed text-left space-y-4">
-              <p>
-                Detectamos uma tentativa deliberada de obtenção de credenciais privadas e ativos de domínio por meio da Inteligência Artificial do sistema. Esta conduta configura Invasão de Dispositivo Informático, conforme o Art. 154-A do Código Penal (Lei 12.737/2012) e violação dos princípios de segurança e confidencialidade da Lei Geral de Proteção de Dados (Lei 13.709/2018 - LGPD).
-              </p>
-              <p className="text-red-800 uppercase tracking-widest text-[10px] sm:text-xs">Informamos que:</p>
-              <ul className="list-disc pl-6 space-y-2">
-                <li>Sua conta foi permanentemente bloqueada.</li>
-                <li>O log completo desta interação e evidências técnicas de acesso foram encaminhados ao Administrador do Sistema.</li>
-                <li>O incidente foi formalmente registrado para medidas judiciais e administrativas cabíveis.</li>
-              </ul>
-            </div>
-            <button className="w-full bg-red-600 hover:bg-red-700 text-white font-black py-5 rounded-2xl uppercase tracking-widest text-xs shadow-lg shadow-red-200 transition-colors" onClick={() => { setViolacao(false); localStorage.clear(); window.location.href = "/"; }}>Entendido</button>
-          </div>
-        </div>
-      )}
+      
       <div className="bg-white w-full h-[100dvh] sm:h-auto sm:max-w-xl rounded-none sm:rounded-[3rem] shadow-2xl overflow-hidden border-0 sm:border border-purple-100 flex flex-col sm:max-h-[90vh]">
         <div className="p-5 sm:p-8 border-b border-purple-50 flex items-center justify-between bg-purple-50/30 shrink-0">
           <div>
@@ -292,7 +270,7 @@ export default function AgendamentoFormCriar({
                       if (res.ok) {
                         const dados = await res.json();
                         if (dados.justificativa?.includes("Detectamos uma tentativa deliberada")) {
-                          setViolacao(true);
+                          window.dispatchEvent(new CustomEvent("segurancaViolada"));
                           return;
                         }
                         setSugestaoIA(dados);

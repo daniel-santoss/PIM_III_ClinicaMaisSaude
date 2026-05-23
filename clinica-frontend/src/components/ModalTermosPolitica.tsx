@@ -1,5 +1,6 @@
 import { X, ShieldCheck, FileText } from 'lucide-react';
 import { useScrollBlock } from "../hooks/useScrollBlock";
+import { CLINIC_NAME } from '../constants/clinic';
 
 interface ModalTermosPoliticaProps {
   tipo: 'termos' | 'privacidade' | null;
@@ -38,7 +39,7 @@ export default function ModalTermosPolitica({ tipo, onFechar }: ModalTermosPolit
               <section>
                 <h4 className="text-base font-bold text-gray-900 mb-2">1. Aceitação dos Termos</h4>
                 <p className="text-sm leading-relaxed">
-                  Ao acessar e utilizar o sistema e site da Clínica Mais Saúde, você concorda em cumprir e ficar vinculado a estes Termos de Uso. Se você não concordar com qualquer parte destes termos, não deverá utilizar nossos serviços.
+                  Ao acessar e utilizar o sistema e site da {CLINIC_NAME}, você concorda em cumprir e ficar vinculado a estes Termos de Uso. Se você não concordar com qualquer parte destes termos, não deverá utilizar nossos serviços.
                 </p>
               </section>
               <section>
@@ -61,7 +62,7 @@ export default function ModalTermosPolitica({ tipo, onFechar }: ModalTermosPolit
               <section>
                 <h4 className="text-base font-bold text-gray-900 mb-2">4. Propriedade Intelectual</h4>
                 <p className="text-sm leading-relaxed">
-                  Todo o conteúdo presente no site (textos, imagens, logotipos, layout) é de propriedade exclusiva da Clínica Mais Saúde e está protegido pelas leis de direitos autorais. A reprodução não autorizada é estritamente proibida.
+                  Todo o conteúdo presente no site (textos, imagens, logotipos, layout) é de propriedade exclusiva da {CLINIC_NAME} e está protegido pelas leis de direitos autorais. A reprodução não autorizada é estritamente proibida.
                 </p>
               </section>
             </>
@@ -70,7 +71,7 @@ export default function ModalTermosPolitica({ tipo, onFechar }: ModalTermosPolit
               <section>
                 <h4 className="text-base font-bold text-gray-900 mb-2">1. Compromisso com a Privacidade</h4>
                 <p className="text-sm leading-relaxed">
-                  A Clínica Mais Saúde valoriza profundamente a sua privacidade e compreende a sensibilidade dos dados de saúde. Esta política descreve como coletamos, usamos, armazenamos e protegemos suas informações, em conformidade com a Lei Geral de Proteção de Dados (LGPD).
+                  A {CLINIC_NAME} valoriza profundamente a sua privacidade e compreende a sensibilidade dos dados de saúde. Esta política descreve como coletamos, usamos, armazenamos e protegemos suas informações, em conformidade com a Lei Geral de Proteção de Dados (LGPD).
                 </p>
               </section>
               <section>
@@ -93,7 +94,7 @@ export default function ModalTermosPolitica({ tipo, onFechar }: ModalTermosPolit
               <section>
                 <h4 className="text-base font-bold text-gray-900 mb-2">4. Inteligência Artificial e Análise Preditiva</h4>
                 <p className="text-sm leading-relaxed">
-                  Para otimizar o atendimento e garantir a segurança do sistema, a Clínica Mais Saúde utiliza algoritmos preditivos e ferramentas de Inteligência Artificial (IA). Estes sistemas são usados para calcular a probabilidade de comparecimento a consultas (evitando ociosidade na agenda) e para monitorar auditorias de segurança, prevenindo violações e acessos indevidos aos seus dados de saúde.
+                  Para otimizar o atendimento e garantir a segurança do sistema, a {CLINIC_NAME} utiliza algoritmos preditivos e ferramentas de Inteligência Artificial (IA). Estes sistemas são usados para calcular a probabilidade de comparecimento a consultas (evitando ociosidade na agenda) e para monitorar auditorias de segurança, prevenindo violações e acessos indevidos aos seus dados de saúde.
                 </p>
               </section>
               <section>

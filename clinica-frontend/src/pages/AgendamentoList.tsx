@@ -3,12 +3,12 @@ import { useEffect, useState } from "react";
 import { mascaraCpf, mascaraTelefone } from "../utils/validators";
 import { AlertTriangle, Calendar, TrendingUp, BarChart3, Plus, User, X, FileText, Mail, Phone, Pencil } from 'lucide-react';
 import type { PacienteResponse } from "../types/PacienteResponse";
-import AgendamentoCard from "./AgendamentoCard";
-import AgendamentoFiltros from "./AgendamentoFiltros";
-import AgendamentoFormCriar from "./AgendamentoFormCriar";
-import ModalRemarcar from "./ModalRemarcar";
-import ModalHistorico from "./ModalHistorico";
-import ConfirmModal from "./ConfirmModal";
+import AgendamentoCard from "../components/AgendamentoCard";
+import AgendamentoFiltros from "../components/AgendamentoFiltros";
+import AgendamentoFormCriar from "../components/AgendamentoFormCriar";
+import ModalRemarcar from "../components/ModalRemarcar";
+import ModalHistorico from "../components/ModalHistorico";
+import ConfirmModal from "../components/ConfirmModal";
 import { useScrollBlock } from "../hooks/useScrollBlock";
 import { useToast } from "../hooks/useToast";
 

@@ -1,4 +1,4 @@
-import type { AgendamentoHistoricoResponse } from "./AgendamentoList";
+import type { AgendamentoHistoricoResponse } from "../pages/AgendamentoList";
 import { MapNomesStatus } from "../constants/statusMap";
 import { X, User } from 'lucide-react';
 import { getRealDate } from '../utils/dates';

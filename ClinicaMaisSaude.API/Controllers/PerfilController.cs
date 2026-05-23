@@ -1,3 +1,4 @@
+using ClinicaMaisSaude.Application.DTOs.Perfil;
 using ClinicaMaisSaude.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -15,13 +16,6 @@ namespace ClinicaMaisSaude.API.Controllers
         public PerfilController(IPerfilService perfilService)
         {
             _perfilService = perfilService;
-        }
-
-        public class PerfilUpdateRequest
-        {
-            public string? Nome { get; set; }
-            public string? Email { get; set; }
-            public string? Telefone { get; set; }
         }
 
         [HttpGet]
@@ -46,12 +40,6 @@ namespace ClinicaMaisSaude.API.Controllers
             var erro = await _perfilService.AtualizarPerfilAsync(usuarioId.Value, tipoUsuario ?? "", request.Nome, request.Email, request.Telefone);
             if (erro != null) return BadRequest(erro);
             return Ok(new { Mensagem = "Perfil atualizado com sucesso." });
-        }
-
-        public class AlterarSenhaRequest
-        {
-            public string SenhaAtual { get; set; } = string.Empty;
-            public string NovaSenha { get; set; } = string.Empty;
         }
 
         [HttpPatch("senha")]

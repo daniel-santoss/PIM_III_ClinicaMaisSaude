@@ -8,5 +8,17 @@ export function obterMinDate(): string {
 
 export function getRealDate(dateStr?: string): Date | null {
   if (!dateStr) return null;
-  return new Date(dateStr.endsWith('Z') ? dateStr : dateStr + 'Z');
+  const cleanStr = dateStr.replace(/Z$/, '');
+  const parts = cleanStr.split(/[-T:]/);
+  if (parts.length >= 5) {
+    const year = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1;
+    const day = parseInt(parts[2], 10);
+    const hour = parseInt(parts[3], 10);
+    const minute = parseInt(parts[4], 10);
+    const secondPart = parts[5] || "0";
+    const second = parseInt(secondPart.split('.')[0], 10) || 0;
+    return new Date(year, month, day, hour, minute, second);
+  }
+  return new Date(cleanStr);
 }

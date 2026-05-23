@@ -4,7 +4,7 @@ import { AlertOctagon, AlertTriangle, ShieldAlert, Search, ShieldCheck } from "l
 import { getRealDate } from '../utils/dates';
 
 import { useToast } from "../hooks/useToast";
-import ConfirmModal from "./ConfirmModal";
+import ConfirmModal from "../components/ConfirmModal";
 
 type Violacao = {
   id: string;
@@ -19,15 +19,19 @@ type Violacao = {
   iaBloqueadaAte: string | null;
 };
 
-export default function ViolacoesList() {
+export default function ViolacoesList({ buscaInicial = "", onLimparBusca }: { buscaInicial?: string; onLimparBusca?: () => void }) {
   const [violacoes, setViolacoes] = useState<Violacao[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [filtro, setFiltro] = useState<"todas" | "graves" | "leves">("todas");
-  const [busca, setBusca] = useState("");
+  const [busca, setBusca] = useState(buscaInicial);
   const [dataFiltro, setDataFiltro] = useState("");
   const [removendoPenalidade, setRemovendoPenalidade] = useState<Record<string, boolean>>({});
   const [confirmarPaciente, setConfirmarPaciente] = useState<{ id: string; nome: string } | null>(null);
   const toast = useToast();
+
+  useEffect(() => {
+    setBusca(buscaInicial);
+  }, [buscaInicial]);
 
   // O scroll block é gerenciado internamente pelo ConfirmModal
 
@@ -125,7 +129,12 @@ export default function ViolacoesList() {
                 type="text"
                 placeholder="Buscar por nome ou CPF..."
                 value={busca}
-                onChange={(e) => setBusca(e.target.value)}
+                onChange={(e) => {
+                  setBusca(e.target.value);
+                  if (e.target.value === "") {
+                    onLimparBusca?.();
+                  }
+                }}
                 className="w-full sm:w-64 pl-10 pr-4 py-2 border-2 border-gray-100 rounded-xl text-sm focus:ring-2 focus:ring-purple-100 focus:border-[#7C3AED] outline-none transition-all"
               />
             </div>

@@ -48,7 +48,7 @@ namespace ClinicaMaisSaude.Application.Services
 
             ValidarCriacao(tipoProfissional, tipoConsulta);
 
-            if (request.DataHoraConsulta <= DateTime.UtcNow)
+            if (request.DataHoraConsulta <= DateTime.UtcNow.AddHours(-3))
                 throw new Exception("Não é possível agendar em datas passadas.");
 
             if (tipoConsulta == TipoConsulta.Retorno)
@@ -88,6 +88,7 @@ namespace ClinicaMaisSaude.Application.Services
                 tipoConsulta,
                 request.AgendamentoOrigemId
             );
+            agendamento.DefinirEspecialidade(request.EspecialidadeId);
 
             var (prob, _) = await _probabilidadeFaltaService.CalcularProbabilidadeAsync(agendamento.PacienteId, agendamento.DataHoraConsulta);
             agendamento.AtualizarProbabilidadeFalta(prob);
@@ -127,7 +128,7 @@ namespace ClinicaMaisSaude.Application.Services
                     ? $"Retorno de {paciente.Nome} agendado para {agendamento.DataHoraConsulta:dd/MM/yyyy HH:mm}."
                     : $"Nova consulta de {paciente.Nome} agendada para {agendamento.DataHoraConsulta:dd/MM/yyyy HH:mm}.";
                 
-                var notifProfissional = new Notificacao(profissional.UsuarioId, "Novo Agendamento", msgProf, agendamento.Id);
+                var notifProfissional = new Notificacao(profissional.UsuarioId, "Novo Agendamento", msgProf, agendamento.Id, link: $"agendamentos?id={agendamento.Id}");
                 await _notificacaoRepository.AdicionarAsync(notifProfissional);
             }
 
@@ -137,7 +138,7 @@ namespace ClinicaMaisSaude.Application.Services
                     ? $"Seu retorno com {profissionalNome} foi agendado para {agendamento.DataHoraConsulta:dd/MM/yyyy HH:mm}."
                     : $"Sua consulta com {profissionalNome} foi agendada para {agendamento.DataHoraConsulta:dd/MM/yyyy HH:mm}.";
 
-                var notifPaciente = new Notificacao(paciente.UsuarioId.Value, "Consulta Agendada", msgPac, agendamento.Id);
+                var notifPaciente = new Notificacao(paciente.UsuarioId.Value, "Consulta Agendada", msgPac, agendamento.Id, link: $"agendamentos?id={agendamento.Id}");
                 await _notificacaoRepository.AdicionarAsync(notifPaciente);
             }
             
@@ -155,7 +156,7 @@ namespace ClinicaMaisSaude.Application.Services
             if (agendamento == null)
                 throw new Exception("Agendamento não encontrado.");
 
-            if (request.DataHoraConsulta <= DateTime.UtcNow)
+            if (request.DataHoraConsulta <= DateTime.UtcNow.AddHours(-3))
                 throw new Exception("Não é permitido reagendar para datas/horários passados.");
 
             var tipoProf = (TipoProfissional)request.TipoProfissional;
@@ -224,13 +225,13 @@ namespace ClinicaMaisSaude.Application.Services
                 if (paciente != null && paciente.UsuarioId.HasValue)
                 {
                     var msg = $"Sua consulta com {profissionalNome} em {agendamento.DataHoraConsulta:dd/MM/yyyy HH:mm} foi cancelada.";
-                    var notif = new Notificacao(paciente.UsuarioId.Value, "Consulta Cancelada", msg, agendamento.Id);
+                    var notif = new Notificacao(paciente.UsuarioId.Value, "Consulta Cancelada", msg, agendamento.Id, link: $"agendamentos?id={agendamento.Id}");
                     await _notificacaoRepository.AdicionarAsync(notif);
                 }
                 if (profissional != null)
                 {
                     var msg = $"A consulta com {pacienteNome} em {agendamento.DataHoraConsulta:dd/MM/yyyy HH:mm} foi cancelada.";
-                    var notif = new Notificacao(profissional.UsuarioId, "Consulta Cancelada", msg, agendamento.Id);
+                    var notif = new Notificacao(profissional.UsuarioId, "Consulta Cancelada", msg, agendamento.Id, link: $"agendamentos?id={agendamento.Id}");
                     await _notificacaoRepository.AdicionarAsync(notif);
                 }
             }
@@ -283,7 +284,7 @@ namespace ClinicaMaisSaude.Application.Services
                 throw new Exception("Não é possível remarcar um agendamento cancelado ou finalizado.");
             }
 
-            if (request.NovaDataHora <= DateTime.UtcNow)
+            if (request.NovaDataHora <= DateTime.UtcNow.AddHours(-3))
                 throw new Exception("Não é permitido remarcar para datas/horários passados.");
 
             bool temConflito = await ExisteConflito(agendamento.ProfissionalId, request.NovaDataHora, agendamento.TipoConsulta, agendamento.Id);
@@ -318,13 +319,13 @@ namespace ClinicaMaisSaude.Application.Services
             if (paciente != null && paciente.UsuarioId.HasValue)
             {
                 var msg = $"Sua consulta foi remarcada para {request.NovaDataHora:dd/MM/yyyy HH:mm}.";
-                var notif = new Notificacao(paciente.UsuarioId.Value, "Consulta Remarcada", msg, agendamento.Id);
+                var notif = new Notificacao(paciente.UsuarioId.Value, "Consulta Remarcada", msg, agendamento.Id, link: $"agendamentos?id={agendamento.Id}");
                 await _notificacaoRepository.AdicionarAsync(notif);
             }
             if (profissional != null)
             {
                 var msg = $"A consulta com {pacienteNome} foi remarcada para {request.NovaDataHora:dd/MM/yyyy HH:mm}.";
-                var notif = new Notificacao(profissional.UsuarioId, "Consulta Remarcada", msg, agendamento.Id);
+                var notif = new Notificacao(profissional.UsuarioId, "Consulta Remarcada", msg, agendamento.Id, link: $"agendamentos?id={agendamento.Id}");
                 await _notificacaoRepository.AdicionarAsync(notif);
             }
 
@@ -347,7 +348,9 @@ namespace ClinicaMaisSaude.Application.Services
             foreach (var a in agendamentos)
             {
                 var prof = profissionais.FirstOrDefault(p => p.Id == a.ProfissionalId);
-                var esp = prof?.Especialidades.FirstOrDefault()?.EspecialidadeId.ToString() ?? "";
+                var esp = a.EspecialidadeId.HasValue 
+                    ? ((EspecialidadeMedica)a.EspecialidadeId.Value).ToString() 
+                    : (prof?.Especialidades.FirstOrDefault()?.EspecialidadeId.ToString() ?? "");
                 
                 var (prob, nivel) = await _probabilidadeFaltaService.CalcularProbabilidadeAsync(a.PacienteId, a.DataHoraConsulta);
 
@@ -389,7 +392,9 @@ namespace ClinicaMaisSaude.Application.Services
             foreach(var a in items)
             {
                 var prof = profissionais.FirstOrDefault(p => p.Id == a.ProfissionalId);
-                var esp = prof?.Especialidades.FirstOrDefault()?.EspecialidadeId.ToString() ?? "";
+                var esp = a.EspecialidadeId.HasValue 
+                    ? ((EspecialidadeMedica)a.EspecialidadeId.Value).ToString() 
+                    : (prof?.Especialidades.FirstOrDefault()?.EspecialidadeId.ToString() ?? "");
                 
                 var (prob, nivel) = await _probabilidadeFaltaService.CalcularProbabilidadeAsync(a.PacienteId, a.DataHoraConsulta);
 
@@ -482,9 +487,9 @@ namespace ClinicaMaisSaude.Application.Services
                     continue;
                 }
 
-                var dataHoraSlot = DateTime.SpecifyKind(data.Date.Add(horarioAtual), DateTimeKind.Utc);
+                var dataHoraSlot = data.Date.Add(horarioAtual);
 
-                if (dataHoraSlot <= DateTime.UtcNow)
+                if (dataHoraSlot <= DateTime.UtcNow.AddHours(-3))
                 {
                     horarioAtual = horarioAtual.Add(TimeSpan.FromMinutes(duracao));
                     continue;
@@ -636,13 +641,13 @@ namespace ClinicaMaisSaude.Application.Services
             if (novoStatus == StatusAgendamento.EmAtendimento)
             {
                 var limiteMinimo = agendamento.DataHoraConsulta.AddMinutes(-15);
-                if (DateTime.UtcNow < limiteMinimo)
+                if (DateTime.UtcNow.AddHours(-3) < limiteMinimo)
                 {
                     throw new Exception("Só é possível iniciar o atendimento a partir de 15 minutos antes do horário agendado.");
                 }
             }
 
-            if (novoStatus == StatusAgendamento.Faltou && agendamento.DataHoraConsulta > DateTime.UtcNow)
+            if (novoStatus == StatusAgendamento.Faltou && agendamento.DataHoraConsulta > DateTime.UtcNow.AddHours(-3))
             {
                 throw new Exception("Não é possível registrar falta em agendamento futuro.");
             }
@@ -689,7 +694,7 @@ namespace ClinicaMaisSaude.Application.Services
                 DataHoraConsulta = a.DataHoraConsulta,
                 TipoProfissional = a.TipoProfissional.ToString(),
                 TipoConsulta = a.TipoConsulta.ToString(),
-                Especialidade = "",
+                Especialidade = a.EspecialidadeId.HasValue ? ((EspecialidadeMedica)a.EspecialidadeId.Value).ToString() : "",
                 Status = a.Status.ToString(),
                 AgendamentoOrigemId = a.AgendamentoOrigemId,
                 ResultadoDisponivel = a.ResultadoDisponivel,
@@ -726,7 +731,8 @@ namespace ClinicaMaisSaude.Application.Services
                     paciente.UsuarioId.Value, 
                     "Resultado de Exame", 
                     $"O resultado do seu exame de {agendamento.DataHoraConsulta:dd/MM/yyyy} já está disponível para retirada.", 
-                    agendamento.Id);
+                    agendamento.Id,
+                    link: $"agendamentos?id={agendamento.Id}");
                 await _notificacaoRepository.AdicionarAsync(notif);
             }
         }

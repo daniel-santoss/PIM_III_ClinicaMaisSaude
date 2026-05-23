@@ -4,7 +4,7 @@ import { useScrollBlock } from "../hooks/useScrollBlock";
 import { isCpfValido, isEmailValido, mascaraCpf } from "../utils/validators";
 import logoPng from "../assets/logo_clinica.png";
 import bgImage from "../assets/itens_medicos_background.png";
-import { Eye, EyeOff, Lock } from 'lucide-react';
+import { Eye, EyeOff, Lock, ArrowLeft, ShieldAlert } from 'lucide-react';
 import { useToast } from "../hooks/useToast";
 
 export default function Login({ onLogado }: { onLogado: () => void }) {
@@ -16,9 +16,10 @@ export default function Login({ onLogado }: { onLogado: () => void }) {
   const [modalEsqueciSenha, setModalEsqueciSenha] = useState(false);
   const [isCpfMask, setIsCpfMask] = useState(false);
   const [modalPenalidadeRemovida, setModalPenalidadeRemovida] = useState(false);
+  const [violacaoDetectada, setViolacaoDetectada] = useState(() => localStorage.getItem("violacaoDetectada") === "true");
   const toast = useToast();
 
-  useScrollBlock(modalEsqueciSenha || modalPenalidadeRemovida);
+  useScrollBlock(modalEsqueciSenha || modalPenalidadeRemovida || violacaoDetectada);
 
   const handleIdentificador = (valor: string) => {
     if (/[a-zA-Z@]/.test(valor)) {
@@ -102,7 +103,14 @@ export default function Login({ onLogado }: { onLogado: () => void }) {
         backgroundAttachment: 'fixed'
       }}
     >
-      <div className="bg-white/95 backdrop-blur-sm rounded-[2rem] shadow-2xl w-full max-w-md p-8 md:p-10 border border-gray-100/50">
+      <div className="bg-white/95 backdrop-blur-sm rounded-[2rem] shadow-2xl w-full max-w-md p-8 md:p-10 border border-gray-100/50 relative">
+        <a 
+          href="/" 
+          className="absolute top-6 left-6 md:top-8 md:left-8 p-2 rounded-xl text-gray-400 hover:text-[#7C3AED] hover:bg-purple-50 transition-all duration-200 group"
+          title="Voltar para a Home"
+        >
+          <ArrowLeft className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform" strokeWidth={2.5} />
+        </a>
         <div className="text-center mb-8">
           <img
             src={logoPng}
@@ -243,6 +251,38 @@ export default function Login({ onLogado }: { onLogado: () => void }) {
               className="w-full bg-green-600 hover:bg-green-700 text-white font-black py-4 rounded-2xl uppercase tracking-widest text-xs shadow-lg shadow-green-200 transition-colors active:scale-95"
             >
               Entendido, Entrar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Violação de Segurança */}
+      {violacaoDetectada && (
+        <div className="fixed inset-0 z-[299] flex items-center justify-center bg-red-900/95 backdrop-blur-md p-4 animate-in fade-in duration-300">
+          <div className="bg-white rounded-[2.5rem] shadow-2xl shadow-red-900/50 w-full max-w-xl p-10 text-center border-4 border-red-500">
+            <div className="w-24 h-24 bg-red-100 text-red-600 rounded-[2rem] flex items-center justify-center mx-auto mb-8">
+              <ShieldAlert className="w-14 h-14" />
+            </div>
+            <h3 className="text-3xl font-black text-red-700 mb-4 uppercase tracking-tight">Violação de Segurança</h3>
+            <div className="text-red-900 text-xs sm:text-sm mb-10 font-bold leading-relaxed text-left space-y-4">
+              <p>
+                Detectamos uma tentativa deliberada de obtenção de credenciais privadas e ativos de domínio por meio da Inteligência Artificial do sistema. Esta conduta configura Invasão de Dispositivo Informático, conforme o Art. 154-A do Código Penal (Lei 12.737/2012) e violação dos princípios de segurança e confidencialidade da Lei Geral de Proteção de Dados (Lei 13.709/2018 - LGPD).
+              </p>
+              <p className="text-red-800 uppercase tracking-widest text-[10px] sm:text-xs">Informamos que:</p>
+              <ul className="list-disc pl-6 space-y-2">
+                <li>Sua conta foi permanentemente bloqueada.</li>
+                <li>O log completo desta interação e evidências técnicas de acesso foram encaminhados ao Administrador do Sistema.</li>
+                <li>O incidente foi formalmente registrado para medidas judiciais e administrativas cabíveis.</li>
+              </ul>
+            </div>
+            <button 
+              className="w-full bg-red-600 hover:bg-red-700 text-white font-black py-5 rounded-2xl uppercase tracking-widest text-xs shadow-lg shadow-red-200 transition-colors cursor-pointer" 
+              onClick={() => { 
+                localStorage.removeItem("violacaoDetectada"); 
+                setViolacaoDetectada(false); 
+              }}
+            >
+              Entendido
             </button>
           </div>
         </div>

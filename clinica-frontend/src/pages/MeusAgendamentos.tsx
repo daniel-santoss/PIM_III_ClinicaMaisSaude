@@ -1,8 +1,8 @@
 import { API_URL } from "../constants/api";
 import { useEffect, useState } from "react";
 import { Calendar, Plus } from 'lucide-react';
-import AgendamentoCard from "./AgendamentoCard";
-import AgendamentoFiltros from "./AgendamentoFiltros";
+import AgendamentoCard from "../components/AgendamentoCard";
+import AgendamentoFiltros from "../components/AgendamentoFiltros";
 import { getRealDate } from "../utils/dates";
 import { MapNomesStatus, MapNomesTipoConsulta, MapNomesEspecialidade } from "../constants/statusMap";
 

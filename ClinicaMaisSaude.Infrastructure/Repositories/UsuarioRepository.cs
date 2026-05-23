@@ -19,7 +19,7 @@ namespace ClinicaMaisSaude.Infrastructure.Repositories
 
         public async Task<Usuario?> ObterPorIdAsync(Guid id)
         {
-            return await _context.Usuarios.FindAsync(id);
+            return await _context.Usuarios.AsNoTracking().FirstOrDefaultAsync(u => u.Id == id);
         }
 
         public async Task<string> ObterNomeUsuarioAsync(Guid id)

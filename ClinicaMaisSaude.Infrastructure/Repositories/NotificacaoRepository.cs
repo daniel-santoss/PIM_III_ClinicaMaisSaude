@@ -35,7 +35,7 @@ namespace ClinicaMaisSaude.Infrastructure.Repositories
 
         public async Task<Notificacao?> ObterPorIdAsync(Guid id)
         {
-            return await _context.Notificacoes.FindAsync(id);
+            return await _context.Notificacoes.AsNoTracking().FirstOrDefaultAsync(n => n.Id == id);
         }
 
         public async Task AtualizarAsync(Notificacao notificacao)

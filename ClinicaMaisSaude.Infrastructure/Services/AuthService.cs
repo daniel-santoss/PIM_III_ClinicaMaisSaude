@@ -41,7 +41,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                 throw new Exception("Credenciais inválidas.");
             }
 
-            if (usuario.IsBloqueado() && !usuario.IsAdmin)
+            if (usuario.IsBloqueado())
             {
                 var minutosRestantes = (int)Math.Ceiling((usuario.BloqueadoAte!.Value - DateTime.UtcNow).TotalMinutes);
                 
@@ -59,13 +59,13 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                 usuario.RegistrarFalhaLogin();
                 await _context.SaveChangesAsync();
 
-                if (usuario.IsBloqueado() && !usuario.IsAdmin)
+                if (usuario.IsBloqueado())
                 {
                     throw new Exception("Conta bloqueada por excesso de tentativas. Tente novamente em 15 minutos.");
                 }
 
                 int tentativasRestantes = 5 - usuario.TentativasLogin;
-                if (tentativasRestantes > 0 && !usuario.IsAdmin)
+                if (tentativasRestantes > 0)
                 {
                     throw new Exception($"Credenciais inválidas. Você tem mais {tentativasRestantes} tentativa(s) antes do bloqueio.");
                 }
@@ -182,11 +182,11 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             _context.RefreshTokens.Update(storedToken);
             await _context.SaveChangesAsync();
 
-            var usuario = await _context.Usuarios.FirstOrDefaultAsync(u => u.Id == storedToken.UsuarioId);
+            var usuario = await _context.Usuarios.AsNoTracking().FirstOrDefaultAsync(u => u.Id == storedToken.UsuarioId);
             if (usuario == null) throw new Exception("Usuário não encontrado.");
 
-            var perfilProfissional = await _context.Profissionais.FirstOrDefaultAsync(p => p.UsuarioId == usuario.Id);
-            var perfilPaciente = await _context.Pacientes.FirstOrDefaultAsync(p => p.UsuarioId == usuario.Id);
+            var perfilProfissional = await _context.Profissionais.AsNoTracking().FirstOrDefaultAsync(p => p.UsuarioId == usuario.Id);
+            var perfilPaciente = await _context.Pacientes.AsNoTracking().FirstOrDefaultAsync(p => p.UsuarioId == usuario.Id);
 
             string tipoUsuarioStr = "Admin";
             Guid? pacienteId = null;

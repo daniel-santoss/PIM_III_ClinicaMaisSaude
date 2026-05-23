@@ -5,7 +5,7 @@ import { AlertCircle, Users, Clock, Search, Filter, RefreshCw, Inbox, Pencil, Ke
 import type { PacienteResponse } from "../types/PacienteResponse";
 import { useScrollBlock } from "../hooks/useScrollBlock";
 import { useToast } from "../hooks/useToast";
-import ConfirmModal from "./ConfirmModal";
+import ConfirmModal from "../components/ConfirmModal";
 
 interface PacienteListProps {
   recarregarContador?: number;
