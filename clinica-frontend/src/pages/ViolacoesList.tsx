@@ -11,6 +11,7 @@ type Violacao = {
   pacienteId: string;
   pacienteNome: string;
   pacienteCpf: string;
+  pacienteTipo: string;
   pacienteFotoBase64?: string;
   tipoViolacao: string;
   textoInserido: string;
@@ -94,7 +95,7 @@ export default function ViolacoesList({ buscaInicial = "", onLimparBusca }: { bu
 
     let matchData = true;
     if (dataFiltro) {
-      const dateObj = getRealDate(v.dtCriado)!;
+      const dateObj = getRealDate(v.dtCriado, true)!;
       const year = dateObj.getFullYear();
       const month = String(dateObj.getMonth() + 1).padStart(2, '0');
       const day = String(dateObj.getDate()).padStart(2, '0');
@@ -217,8 +218,10 @@ export default function ViolacoesList({ buscaInicial = "", onLimparBusca }: { bu
 
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-bold text-gray-900 text-sm">{v.pacienteNome}</span>
-                        <span className="text-xs font-mono text-gray-400">CPF: {v.pacienteCpf}</span>
+                        <span className="font-bold text-gray-900 text-sm">
+                          {v.pacienteNome} <span className="font-medium text-gray-500">({v.pacienteTipo === "Medico" ? "Médico" : v.pacienteTipo})</span>
+                        </span>
+                        <span className="text-sm text-gray-400">CPF: {v.pacienteCpf}</span>
                         <span
                           className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${
                             isGrave ? "bg-red-100 text-red-700" : "bg-yellow-100 text-yellow-700"
@@ -230,7 +233,7 @@ export default function ViolacoesList({ buscaInicial = "", onLimparBusca }: { bu
                     </div>
 
                     <span className="text-xs text-gray-400 font-medium shrink-0">
-                      {getRealDate(v.dtCriado)!.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}
+                      {getRealDate(v.dtCriado, true)!.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}
                     </span>
                   </div>
 

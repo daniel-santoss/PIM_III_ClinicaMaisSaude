@@ -16,6 +16,7 @@ type Notificacao = {
   titulo: string;
   mensagem: string;
   agendamentoId: string | null;
+  link: string | null;
   lida: boolean;
   dtCriado: string;
 };

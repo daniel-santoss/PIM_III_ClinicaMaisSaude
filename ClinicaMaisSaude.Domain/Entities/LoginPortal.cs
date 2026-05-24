@@ -15,6 +15,8 @@ namespace ClinicaMaisSaude.Domain.Entities
         public int TentativasLogin { get; private set; }
         public DateTime? BloqueadoAte { get; private set; }
         public string? FotoBase64 { get; private set; }
+        
+        public virtual ICollection<UsoInadequadoIA> Violacoes { get; private set; } = new List<UsoInadequadoIA>();
 
         public Usuario(string email, string cpf, string senhaHash, bool isAdmin = false)
         {

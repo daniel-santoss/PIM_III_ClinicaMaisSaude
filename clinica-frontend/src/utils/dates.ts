@@ -6,8 +6,11 @@ export function obterMinDate(): string {
   return `${ano}-${mes}-${dia}`;
 }
 
-export function getRealDate(dateStr?: string): Date | null {
+export function getRealDate(dateStr?: string, isUtc: boolean = false): Date | null {
   if (!dateStr) return null;
+  if (isUtc) {
+    return new Date(dateStr);
+  }
   const cleanStr = dateStr.replace(/Z$/, '');
   const parts = cleanStr.split(/[-T:]/);
   if (parts.length >= 5) {

@@ -8,9 +8,19 @@ import { useScrollBlock } from "../hooks/useScrollBlock";
 
 interface AgendamentoPacienteProps {
   onSucesso?: () => void;
+  dadosPrePreenchidos?: {
+    tipoProfissional: number;
+    tipoConsulta: number;
+    especialidade: string;
+  } | null;
+  onLimparPrePreenchidos?: () => void;
 }
 
-export default function AgendamentoPaciente({ onSucesso }: AgendamentoPacienteProps) {
+export default function AgendamentoPaciente({
+  onSucesso,
+  dadosPrePreenchidos,
+  onLimparPrePreenchidos
+}: AgendamentoPacienteProps) {
   const [passo, setPasso] = useState(1);
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
@@ -96,6 +106,15 @@ export default function AgendamentoPaciente({ onSucesso }: AgendamentoPacientePr
   };
 
   useEffect(() => {
+    if (dadosPrePreenchidos) {
+      setTipoProfissional(dadosPrePreenchidos.tipoProfissional);
+      setTipoConsulta(dadosPrePreenchidos.tipoConsulta);
+      setEspecialidade(dadosPrePreenchidos.especialidade);
+      setPasso(3);
+    }
+  }, [dadosPrePreenchidos]);
+
+  useEffect(() => {
     fetch(`${API_URL}/api/Especialidades/lista`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.ok ? r.json() : [])
       .then(setListaEspecialidades)
@@ -166,6 +185,7 @@ export default function AgendamentoPaciente({ onSucesso }: AgendamentoPacientePr
 
       if (!response.ok) throw new Error(await response.text());
       setSucesso(true);
+      onLimparPrePreenchidos?.();
       if (onSucesso) setTimeout(onSucesso, 2000);
     } catch (err: any) {
       setErro(err.message);
@@ -189,13 +209,13 @@ export default function AgendamentoPaciente({ onSucesso }: AgendamentoPacientePr
 
       <div className="flex flex-col sm:flex-row gap-4 w-full max-w-md">
         <button
-          onClick={() => { setSucesso(false); setPasso(1); setSintomas(""); setHorarioSelecionado(""); setModoIA(false); }}
+          onClick={() => { setSucesso(false); setPasso(1); setSintomas(""); setHorarioSelecionado(""); setModoIA(false); onLimparPrePreenchidos?.(); }}
           className="flex-1 py-4 bg-gray-100 text-gray-600 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-gray-200 transition-all"
         >
           Novo Agendamento
         </button>
         <button
-          onClick={() => onSucesso?.()}
+          onClick={() => { onLimparPrePreenchidos?.(); onSucesso?.(); }}
           className="flex-1 py-4 bg-[#7C3AED] text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-lg shadow-purple-100 hover:scale-105 transition-all"
         >
           Meus Agendamentos
@@ -536,7 +556,7 @@ export default function AgendamentoPaciente({ onSucesso }: AgendamentoPacientePr
             {erro && <p className="text-center text-red-500 text-[10px] font-black uppercase">{erro}</p>}
 
             <div className="flex flex-col-reverse sm:flex-row justify-between gap-3 pt-4">
-              <button onClick={() => setPasso(2)} className="w-full sm:w-auto px-10 py-4 text-gray-400 font-bold hover:text-gray-600 transition-colors text-center">Voltar</button>
+              <button onClick={() => { setPasso(2); onLimparPrePreenchidos?.(); }} className="w-full sm:w-auto px-10 py-4 text-gray-400 font-bold hover:text-gray-600 transition-colors text-center">Voltar</button>
               <button
                 disabled={!dataSelecionada || !horarioSelecionado}
                 onClick={() => setPasso(4)}

@@ -11,19 +11,19 @@ namespace ClinicaMaisSaude.Domain.Entities
     public class UsoInadequadoIA
     {
         public Guid Id { get; private set; }
-        public Guid PacienteId { get; private set; }
+        public Guid UsuarioId { get; private set; }
         public TipoViolacao TipoViolacao { get; private set; }
         public string TextoInserido { get; private set; }
         public DateTime DtCriado { get; private set; }
 
-        public virtual Paciente Paciente { get; private set; }
+        public virtual Usuario Usuario { get; private set; }
 
         protected UsoInadequadoIA() { } // EF Core
 
-        public UsoInadequadoIA(Guid pacienteId, TipoViolacao tipoViolacao, string textoInserido)
+        public UsoInadequadoIA(Guid usuarioId, TipoViolacao tipoViolacao, string textoInserido)
         {
             Id = Guid.NewGuid();
-            PacienteId = pacienteId;
+            UsuarioId = usuarioId;
             TipoViolacao = tipoViolacao;
             TextoInserido = textoInserido;
             DtCriado = DateTime.UtcNow;

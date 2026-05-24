@@ -1,7 +1,7 @@
 import { API_URL } from "../constants/api";
 import { useEffect, useState } from "react";
 import { obterMinDate, getRealDate } from "../utils/dates";
-import { Calendar, Clock, AlertCircle } from 'lucide-react';
+import { Calendar, Clock, AlertCircle, X } from 'lucide-react';
 import { useScrollBlock } from "../hooks/useScrollBlock";
 import { useToast } from "../hooks/useToast";
 
@@ -111,10 +111,19 @@ export default function ModalRemarcar({ agenda, onFechar, onSucesso }: ModalRema
   return (
     /* Bottom-sheet no mobile, centralizado no desktop */
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4 animate-in fade-in duration-300"
+      className="fixed inset-0 z-[3000] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4 animate-in fade-in duration-300"
       onClick={e => { if (e.target === e.currentTarget) onFechar(); }}
     >
-      <div className="bg-white w-full h-[100dvh] sm:h-auto sm:max-w-md rounded-none sm:rounded-[2rem] shadow-2xl overflow-hidden border-0 sm:border border-purple-50 flex flex-col sm:max-h-[90vh] animate-in slide-in-from-bottom-4 sm:zoom-in duration-300">
+      <div className="bg-white w-full h-[100dvh] sm:h-auto sm:max-w-md rounded-none sm:rounded-[2rem] shadow-2xl overflow-hidden border-0 sm:border border-purple-50 flex flex-col sm:max-h-[90vh] animate-in slide-in-from-bottom-4 sm:zoom-in duration-300 relative">
+
+        {/* Botão Fechar X */}
+        <button
+          onClick={onFechar}
+          className="absolute right-4 top-4 sm:right-6 sm:top-6 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors cursor-pointer border-none bg-transparent flex items-center justify-center shadow-sm z-10"
+          aria-label="Fechar"
+        >
+          <X className="w-5 h-5" />
+        </button>
 
         {/* Drag handle (mobile) */}
         <div className="flex justify-center pt-3 pb-1 sm:hidden shrink-0">

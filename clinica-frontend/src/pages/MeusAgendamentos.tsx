@@ -1,26 +1,16 @@
 import { API_URL } from "../constants/api";
 import { useEffect, useState } from "react";
 import { Calendar, Plus } from 'lucide-react';
-import AgendamentoCard from "../components/AgendamentoCard";
 import AgendamentoFiltros from "../components/AgendamentoFiltros";
 import { getRealDate } from "../utils/dates";
 import { MapNomesStatus, MapNomesTipoConsulta, MapNomesEspecialidade } from "../constants/statusMap";
+import AgendamentoVisualizador from "../components/AgendamentoVisualizador";
+import type { AgendamentoVisualizadorItem } from "../components/AgendamentoVisualizador";
+import ConfirmModal from "../components/ConfirmModal";
+import ModalRemarcar from "../components/ModalRemarcar";
+import { useToast } from "../hooks/useToast";
 
-interface AgendamentoItem {
-  id: string;
-  pacienteId: string;
-  pacienteNome: string;
-  dataHoraConsulta: string;
-  tipoProfissional: string;
-  tipoConsulta: string;
-  status: string;
-  nomeProfissional: string;
-  especialidade?: string;
-  observacao?: string;
-  exigeResultadoPosterior?: boolean;
-  resultadoDisponivel?: boolean;
-  resultadoRetirado?: boolean;
-}
+
 
 interface MeusAgendamentosProps {
   onNovoAgendamento: () => void;
@@ -28,17 +18,22 @@ interface MeusAgendamentosProps {
 }
 
 export default function MeusAgendamentos({ onNovoAgendamento, agendamentoDestaque }: MeusAgendamentosProps) {
-  const [agendamentos, setAgendamentos] = useState<AgendamentoItem[]>([]);
+  const [agendamentos, setAgendamentos] = useState<AgendamentoVisualizadorItem[]>([]);
   const [carregando, setCarregando] = useState(true);
+  const toast = useToast();
+  const [cancelarAlvo, setCancelarAlvo] = useState<{ id: string; nome: string } | null>(null);
+  const [cancelando, setCancelando] = useState(false);
+  const [alterarAlvo, setAlterarAlvo] = useState<any | null>(null);
   const pacienteId = localStorage.getItem("pacienteId");
   const token = localStorage.getItem("authToken");
 
-  const STATUS_PADRAO = ["Agendado", "EmAtendimento", "AguardandoRetorno", "RetornoAgendado"];
+  const STATUS_PADRAO = Object.keys(MapNomesStatus);
 
   const [filtroAgenda, setFiltroAgenda] = useState("");
   const [statusSelecionados, setStatusSelecionados] = useState<string[]>(STATUS_PADRAO);
-  const [filtroDataConsulta, setFiltroDataConsulta] = useState(() => new Date().toISOString().split('T')[0]);
+  const [filtroDataConsulta, setFiltroDataConsulta] = useState("");
   const [ordemData, setOrdemData] = useState<"asc" | "desc">("desc");
+  const [modoExibicao, setModoExibicao] = useState<"tabela" | "agenda">("tabela");
 
   const limparFiltros = () => {
     setFiltroAgenda("");
@@ -65,6 +60,34 @@ export default function MeusAgendamentos({ onNovoAgendamento, agendamentoDestaqu
     }
   };
 
+  const confirmarCancelamento = async () => {
+    if (!cancelarAlvo) return;
+    setCancelando(true);
+    try {
+      const response = await fetch(`${API_URL}/api/Agendamentos/${cancelarAlvo.id}/status`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(6) // 6 is Cancelado
+      });
+
+      if (!response.ok) {
+        toast.error(await response.text());
+        return;
+      }
+
+      toast.success("Consulta cancelada com sucesso.");
+      setCancelarAlvo(null);
+      carregarAgendamentos();
+    } catch (e) {
+      toast.error("Erro de conexão ao cancelar agendamento.");
+    } finally {
+      setCancelando(false);
+    }
+  };
+
   useEffect(() => {
     carregarAgendamentos();
   }, [pacienteId, token]);
@@ -75,6 +98,24 @@ export default function MeusAgendamentos({ onNovoAgendamento, agendamentoDestaqu
       setStatusSelecionados(Object.keys(MapNomesStatus));
     }
   }, [agendamentoDestaque]);
+
+  const agendamentosFiltrados = agendamentos
+    .filter(a => {
+      const termo = filtroAgenda.toLowerCase();
+      const matchBusca = a.nomeProfissional.toLowerCase().includes(termo) || 
+                        (a.especialidade && a.especialidade.toLowerCase().includes(termo)) ||
+                        (a.tipoConsulta && a.tipoConsulta.toLowerCase().includes(termo)) ||
+                        (MapNomesTipoConsulta[a.tipoConsulta]?.toLowerCase() || "").includes(termo) ||
+                        (MapNomesEspecialidade[a.especialidade || ""]?.toLowerCase() || "").includes(termo);
+      const matchStatus = statusSelecionados.includes(a.status);
+      const matchData = !filtroDataConsulta || a.dataHoraConsulta.startsWith(filtroDataConsulta);
+      return matchBusca && matchStatus && matchData;
+    })
+    .sort((a, b) => {
+      const dA = getRealDate(a.dataHoraConsulta)!.getTime();
+      const dB = getRealDate(b.dataHoraConsulta)!.getTime();
+      return ordemData === "desc" ? dB - dA : dA - dB;
+    });
 
   return (
     <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in duration-700 pb-20 px-4 xl:px-0">
@@ -99,6 +140,7 @@ export default function MeusAgendamentos({ onNovoAgendamento, agendamentoDestaqu
         ordemData={ordemData} setOrdemData={setOrdemData}
         limparFiltros={limparFiltros}
         placeholderBusca="Pesquisar por médico ou especialidade..."
+        modoExibicao={modoExibicao} setModoExibicao={setModoExibicao}
       />
 
       {carregando ? (
@@ -108,40 +150,19 @@ export default function MeusAgendamentos({ onNovoAgendamento, agendamentoDestaqu
         </div>
       ) : agendamentos.length > 0 ? (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-            {agendamentos
-              .filter(a => {
-                const termo = filtroAgenda.toLowerCase();
-                const matchBusca = a.nomeProfissional.toLowerCase().includes(termo) || 
-                                  (a.especialidade && a.especialidade.toLowerCase().includes(termo)) ||
-                                  (a.tipoConsulta && a.tipoConsulta.toLowerCase().includes(termo)) ||
-                                  (MapNomesTipoConsulta[a.tipoConsulta]?.toLowerCase() || "").includes(termo) ||
-                                  (MapNomesEspecialidade[a.especialidade || ""]?.toLowerCase() || "").includes(termo);
-                const matchStatus = statusSelecionados.includes(a.status);
-                const matchData = !filtroDataConsulta || a.dataHoraConsulta.startsWith(filtroDataConsulta);
-                return matchBusca && matchStatus && matchData;
-              })
-              .sort((a, b) => {
-                const dA = getRealDate(a.dataHoraConsulta)!.getTime();
-                const dB = getRealDate(b.dataHoraConsulta)!.getTime();
-                return ordemData === "desc" ? dB - dA : dA - dB;
-              })
-              .map(a => (
-              <AgendamentoCard
-                key={a.id}
-                agenda={a}
-                highlighted={a.id === agendamentoDestaque}
-                opcoesValidas={[]}
-                podeCancelar={false}
-                podeRemarcar={false}
-                tipoUsuarioLogado="Paciente"
-              />
-            ))}
-          </div>
+          <AgendamentoVisualizador
+            agendamentos={agendamentosFiltrados}
+            modoExibicao={modoExibicao}
+            ordemData={ordemData}
+            tipoUsuario="Paciente"
+            agendamentoDestaque={agendamentoDestaque}
+            onCancelar={(id, nome) => setCancelarAlvo({ id, nome })}
+            onRemarcar={(agenda) => setAlterarAlvo(agenda)}
+          />
           
           <div className="px-6 py-4 bg-gray-50/80 rounded-2xl border border-gray-100 flex items-center justify-between mt-6">
             <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">
-              Mostrando resultados filtrados
+              Exibindo {agendamentosFiltrados.length} de {agendamentos.length} {agendamentos.length === 1 ? "consulta" : "consultas"}
             </p>
           </div>
         </>
@@ -155,6 +176,30 @@ export default function MeusAgendamentos({ onNovoAgendamento, agendamentoDestaqu
           <button onClick={onNovoAgendamento} className="px-8 py-4 bg-gray-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-black transition-all">Marcar Primeira Consulta</button>
         </div>
       )}
+
+      {alterarAlvo && (
+        <ModalRemarcar
+          agenda={alterarAlvo}
+          onFechar={() => setAlterarAlvo(null)}
+          onSucesso={() => {
+            setAlterarAlvo(null);
+            carregarAgendamentos();
+            toast.success("Consulta remarcada com sucesso.");
+          }}
+        />
+      )}
+
+      <ConfirmModal
+        isOpen={!!cancelarAlvo}
+        title="Cancelar Consulta"
+        description={cancelarAlvo ? `Esta ação registrará o status como Cancelado para a consulta com ${cancelarAlvo ? (agendamentos.find(a => a.id === cancelarAlvo.id)?.nomeProfissional || cancelarAlvo.nome) : ""}.` : ""}
+        confirmText="Sim, Cancelar"
+        cancelText="Voltar"
+        type="destructive"
+        loading={cancelando}
+        onConfirm={confirmarCancelamento}
+        onCancel={() => setCancelarAlvo(null)}
+      />
     </div>
   );
 }

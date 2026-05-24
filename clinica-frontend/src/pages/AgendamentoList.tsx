@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { mascaraCpf, mascaraTelefone } from "../utils/validators";
 import { AlertTriangle, Calendar, TrendingUp, BarChart3, Plus, User, X, FileText, Mail, Phone, Pencil } from 'lucide-react';
 import type { PacienteResponse } from "../types/PacienteResponse";
-import AgendamentoCard from "../components/AgendamentoCard";
 import AgendamentoFiltros from "../components/AgendamentoFiltros";
 import AgendamentoFormCriar from "../components/AgendamentoFormCriar";
 import ModalRemarcar from "../components/ModalRemarcar";
@@ -11,6 +10,8 @@ import ModalHistorico from "../components/ModalHistorico";
 import ConfirmModal from "../components/ConfirmModal";
 import { useScrollBlock } from "../hooks/useScrollBlock";
 import { useToast } from "../hooks/useToast";
+import AgendamentoVisualizador from "../components/AgendamentoVisualizador";
+
 
 export interface AgendamentoResponse {
   id: string;
@@ -24,6 +25,7 @@ export interface AgendamentoResponse {
   agendamentoOrigemId?: string;
   nomeProfissional: string;
   dtCriado: string;
+  especialidade?: string;
   nivelProbabilidadeFalta?: string;
   probabilidadeFalta?: number;
   exigeResultadoPosterior?: boolean;
@@ -85,7 +87,8 @@ export default function AgendamentoList({ agendamentoDestaque }: { agendamentoDe
   const [statusSelecionados, setStatusSelecionados] = useState<string[]>(Object.keys(EnumStatusUrl));
   const [filtroDataConsulta, setFiltroDataConsulta] = useState(() => new Date().toISOString().split('T')[0]);
   const [filtroRiscoApenas, setFiltroRiscoApenas] = useState(false);
-  const [ordemData, setOrdemData] = useState<"asc" | "desc">("desc");
+  const [ordemData, setOrdemData] = useState<"asc" | "desc">("asc");
+  const [modoExibicao, setModoExibicao] = useState<"tabela" | "agenda">("tabela");
 
   const tipoUsuario = localStorage.getItem("tipoUsuario");
   const isAdmin = localStorage.getItem("isAdmin") === "true";
@@ -97,7 +100,7 @@ export default function AgendamentoList({ agendamentoDestaque }: { agendamentoDe
 
   const limparFiltros = () => { setFiltroAgenda(""); setStatusSelecionados(Object.keys(EnumStatusUrl)); setFiltroDataConsulta(""); setFiltroRiscoApenas(false); setPage(1); };
 
-  useEffect(() => { carregarDados(); }, [refreshContador, page, filtroAgenda, statusSelecionados, filtroDataConsulta, filtroRiscoApenas]);
+  useEffect(() => { carregarDados(); }, [refreshContador, page, filtroAgenda, statusSelecionados, filtroDataConsulta, filtroRiscoApenas, ordemData]);
 
   const carregarDados = async () => {
     setCarregando(true);
@@ -109,6 +112,7 @@ export default function AgendamentoList({ agendamentoDestaque }: { agendamentoDe
       const queryParams = new URLSearchParams();
       queryParams.append("page", page.toString());
       queryParams.append("pageSize", pageSize.toString());
+      queryParams.append("ordem", ordemData);
       if (filtroAgenda) queryParams.append("busca", filtroAgenda);
       if (filtroDataConsulta) queryParams.append("data", filtroDataConsulta);
       if (statusSelecionados.length > 0) queryParams.append("status", statusSelecionados.join(','));
@@ -185,28 +189,7 @@ export default function AgendamentoList({ agendamentoDestaque }: { agendamentoDe
     finally { setHistoricoLoading(false); }
   };
 
-  const obterOpcoesPermitidas = (statusAtual: string, tipoConsulta: string, dataHoraConsulta: string): string[] => {
-    if (tipoUsuario === "Paciente") return [];
 
-    const hojeStr = new Date().toISOString().split('T')[0];
-    const dataConsultaStr = new Date(dataHoraConsulta).toISOString().split('T')[0];
-    const ehHojeOuPassado = dataConsultaStr <= hojeStr;
-
-    switch (statusAtual) {
-      case "Agendado": 
-        return ehHojeOuPassado ? ["EmAtendimento", "Faltou"] : [];
-      case "EmAtendimento":
-        if (tipoConsulta === "ConsultaMédica" || tipoConsulta === "Consulta Médica" || tipoConsulta === "ConsultaMedica")
-          return ["AguardandoRetorno", "Finalizado"];
-        if (tipoConsulta === "Exame")
-          return []; // exames usam o botão de concluir com checkbox
-        return ["Finalizado"];
-      case "AguardandoRetorno": return [];
-      case "RetornoAgendado": 
-        return ehHojeOuPassado ? ["Finalizado", "Faltou"] : [];
-      default: return [];
-    }
-  };
 
 
   const concluirExame = async () => {
@@ -291,6 +274,8 @@ export default function AgendamentoList({ agendamentoDestaque }: { agendamentoDe
   const agendamentosHoje = agendamentos.filter(a => a.dataHoraConsulta.startsWith(hoje) && a.status === "Agendado");
   const riscoAltoHoje = agendamentosHoje.filter(a => a.nivelProbabilidadeFalta === "Alta").length;
   const riscoMedioHoje = agendamentosHoje.filter(a => a.nivelProbabilidadeFalta === "Média").length;
+
+
 
   if (erro) return (
     <div className="flex flex-col items-center justify-center py-20">
@@ -382,70 +367,48 @@ export default function AgendamentoList({ agendamentoDestaque }: { agendamentoDe
           filtroDataConsulta={filtroDataConsulta} setFiltroDataConsulta={setFiltroDataConsulta}
           ordemData={ordemData} setOrdemData={setOrdemData}
           limparFiltros={limparFiltros}
+          modoExibicao={modoExibicao} setModoExibicao={setModoExibicao}
         />
 
-        {/* Grid de Cards */}
-        <div className={`grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 ${carregando ? "animate-pulse" : ""}`}>
+        {/* Modos de Exibição */}
+        <div className={`space-y-10 ${carregando ? "animate-pulse" : ""}`}>
           {carregando ? (
-            [1, 2, 3, 4, 5, 6].map(i => (
-              <div key={i} className="bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col h-full min-h-[250px]">
-                <div className="p-4 sm:p-6 pb-3 flex justify-between items-start">
-                  <div className="flex flex-col gap-2 w-1/3">
-                    <div className="h-8 bg-gray-200 rounded w-full"></div>
-                    <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+            <div className="space-y-6">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="bg-white rounded-3xl p-6 border border-gray-100 flex flex-col gap-4 shadow-sm">
+                  <div className="flex items-center gap-3">
+                    <div className="w-4 h-4 bg-gray-200 rounded-full"></div>
+                    <div className="h-6 bg-gray-200 rounded w-48"></div>
                   </div>
-                  <div className="h-6 bg-gray-200 rounded-full w-24"></div>
+                  <div className="h-12 bg-gray-200 rounded-2xl w-full"></div>
                 </div>
-                <div className="px-4 sm:px-6 py-4 flex-1 flex flex-col justify-center">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-gray-200 shrink-0"></div>
-                    <div className="flex flex-col gap-2 w-full">
-                      <div className="h-5 bg-gray-200 rounded w-3/4"></div>
-                      <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-                    </div>
-                  </div>
-                </div>
-                <div className="px-4 sm:px-6 py-4 border-t border-gray-100 flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-gray-200 shrink-0"></div>
-                  <div className="flex flex-col gap-2 w-full">
-                    <div className="h-4 bg-gray-200 rounded w-1/3"></div>
-                    <div className="h-3 bg-gray-200 rounded w-1/4"></div>
-                  </div>
-                </div>
-              </div>
-            ))
-          ) : agendamentosFiltrados.length === 0 ? (
-            <div className="col-span-full py-20 bg-white rounded-[2.5rem] border border-dashed border-purple-200 text-center">
-              <p className="text-gray-400 font-bold uppercase tracking-widest text-sm">Nenhum agendamento para exibir</p>
+              ))}
             </div>
           ) : (
-            agendamentosFiltrados.map((agenda) => (
-               <AgendamentoCard
-                key={agenda.id}
-                agenda={agenda}
-                highlighted={agenda.id === agendamentoDestaque}
-                opcoesValidas={obterOpcoesPermitidas(agenda.status, agenda.tipoConsulta, agenda.dataHoraConsulta)}
-                podeCancelar={agenda.status === "Agendado" || agenda.status === "RetornoAgendado"}
-                podeRemarcar={agenda.status !== "Finalizado" && agenda.status !== "Cancelado"}
-                onAlterarStatus={alterarStatus}
-                onCancelar={(id, nome) => setCancelarAlvo({ id, nome })}
-                onRemarcar={(a) => setAlterarAlvo(a)}
-                onHistorico={abrirHistorico}
-                tipoUsuarioLogado={tipoUsuario}
-                onMarcarResultadoDisponivel={marcarResultadoDisponivel}
-                onMarcarResultadoRetirado={marcarResultadoRetirado}
-                onConcluirExame={(a) => { setConcluirExameAlvo(a); setExigeResultadoPosterior(false); }}
-                onAgendarRetorno={(a) => {
-                  setDadosRetornoPreenchido({
-                    pacienteId: a.pacienteId,
-                    pacienteNome: a.pacienteNome,
-                    origemId: a.id,
-                    nomeProfissional: a.nomeProfissional,
-                    dataHoraOrigem: a.dataHoraConsulta,
-                  });
-                }}
-              />
-            ))
+            <AgendamentoVisualizador
+              agendamentos={agendamentosFiltrados}
+              modoExibicao={modoExibicao}
+              ordemData={ordemData}
+              tipoUsuario={tipoUsuario}
+              isAdmin={isAdmin}
+              agendamentoDestaque={agendamentoDestaque}
+              onAlterarStatus={alterarStatus}
+              onCancelar={(id, nome) => setCancelarAlvo({ id, nome })}
+              onRemarcar={setAlterarAlvo}
+              onHistorico={abrirHistorico}
+              onConcluirExame={(agenda) => { setConcluirExameAlvo(agenda); setExigeResultadoPosterior(false); }}
+              onAgendarRetorno={(agenda) => {
+                setDadosRetornoPreenchido({
+                  pacienteId: agenda.pacienteId,
+                  pacienteNome: agenda.pacienteNome,
+                  origemId: agenda.id,
+                  nomeProfissional: agenda.nomeProfissional,
+                  dataHoraOrigem: agenda.dataHoraConsulta,
+                });
+              }}
+              onMarcarResultadoDisponivel={marcarResultadoDisponivel}
+              onMarcarResultadoRetirado={marcarResultadoRetirado}
+            />
           )}
         </div>
 

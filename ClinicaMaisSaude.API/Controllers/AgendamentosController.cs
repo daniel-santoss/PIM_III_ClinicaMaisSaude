@@ -57,7 +57,7 @@ namespace ClinicaMaisSaude.API.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> ObterTodos([FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] string? busca = null, [FromQuery] string? data = null, [FromQuery] string? status = null, [FromQuery] bool riscoAltoApenas = false)
+        public async Task<IActionResult> ObterTodos([FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] string? busca = null, [FromQuery] string? data = null, [FromQuery] string? status = null, [FromQuery] bool riscoAltoApenas = false, [FromQuery] string ordem = "asc")
         {
             var tipoUsuario = User.FindFirstValue("TipoUsuario") ?? User.FindFirstValue(ClaimTypes.Role);
             var isAdmin = User.FindFirstValue("IsAdmin") == "true";
@@ -79,8 +79,24 @@ namespace ClinicaMaisSaude.API.Controllers
             }
             // Enfermeira e Admin: sem filtro de ID, veem tudo (sujeito aos parâmetros de busca)
 
-            var result = await _agendamentoService.ObterTodosPaginadoAsync(page, pageSize, filtroProf, filtroPac, busca, data, status, riscoAltoApenas);
+            var result = await _agendamentoService.ObterTodosPaginadoAsync(page, pageSize, filtroProf, filtroPac, busca, data, status, riscoAltoApenas, ordem);
             return Ok(result);
+        }
+
+        [HttpGet("{id}")]
+        public async Task<IActionResult> ObterPorId(Guid id)
+        {
+            try
+            {
+                var agendamento = await _agendamentoService.ObterPorIdAsync(id);
+                if (agendamento == null)
+                    return NotFound("Agendamento não encontrado.");
+                return Ok(agendamento);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
         [HttpGet("horarios-disponiveis")]
@@ -113,12 +129,31 @@ namespace ClinicaMaisSaude.API.Controllers
             }
         }
 
-        [Authorize(Roles = "Medico,Enfermeira")]
+        [Authorize]
         [HttpPatch("{id}/status")]
         public async Task<IActionResult> AlterarStatus(Guid id, [FromBody] int novoStatus)
         {
             try
             {
+                var tipoUsuario = User.FindFirstValue("TipoUsuario") ?? User.FindFirstValue(ClaimTypes.Role);
+                if (tipoUsuario == "Paciente")
+                {
+                    if (novoStatus != 6)
+                    {
+                        return StatusCode(403, "Pacientes só podem alterar o status para Cancelado.");
+                    }
+                    var agendamento = await _agendamentoService.ObterPorIdAsync(id);
+                    if (agendamento == null)
+                    {
+                        return NotFound("Agendamento não encontrado.");
+                    }
+                    var pacienteIdToken = User.FindFirstValue("PacienteId");
+                    if (agendamento.PacienteId != Guid.Parse(pacienteIdToken!))
+                    {
+                        return StatusCode(403, "Você não pode cancelar consultas de outros pacientes.");
+                    }
+                }
+
                 var usuarioLogadoId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
                 var resultado = await _agendamentoService.AlterarStatusAsync(id, novoStatus, usuarioLogadoId);
                 return Ok(resultado);
@@ -145,7 +180,16 @@ namespace ClinicaMaisSaude.API.Controllers
 
                 if (isAdminClaim != "true" && tipoUsuario == "Paciente")
                 {
-                    return StatusCode(403, "Pacientes não têm permissão para remarcar consultas livremente. Entre em contato com a clínica.");
+                    var agendamento = await _agendamentoService.ObterPorIdAsync(id);
+                    if (agendamento == null)
+                    {
+                        return NotFound("Agendamento não encontrado.");
+                    }
+                    var pacienteIdToken = User.FindFirstValue("PacienteId");
+                    if (agendamento.PacienteId != Guid.Parse(pacienteIdToken!))
+                    {
+                        return StatusCode(403, "Você não pode remarcar consultas de outros pacientes.");
+                    }
                 }
 
                 var usuarioLogadoId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);

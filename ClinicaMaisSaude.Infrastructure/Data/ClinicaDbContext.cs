@@ -95,9 +95,9 @@ namespace ClinicaMaisSaude.Infrastructure.Data
                 entidade.Property(a => a.TextoInserido).IsRequired().HasMaxLength(500);
                 entidade.Property(a => a.DtCriado).HasColumnName("Dt_Criado");
 
-                entidade.HasOne(a => a.Paciente)
-                    .WithMany(p => p.Violacoes)
-                    .HasForeignKey(a => a.PacienteId)
+                entidade.HasOne(a => a.Usuario)
+                    .WithMany(u => u.Violacoes)
+                    .HasForeignKey(a => a.UsuarioId)
                     .OnDelete(DeleteBehavior.Cascade);
             });
 

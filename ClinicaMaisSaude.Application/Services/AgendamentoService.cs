@@ -381,9 +381,9 @@ namespace ClinicaMaisSaude.Application.Services
             return responses;
         }
 
-        public async Task<DTOs.PagedResult<AgendamentoResponse>> ObterTodosPaginadoAsync(int page, int pageSize, Guid? profissionalId = null, Guid? pacienteId = null, string? buscaPaciente = null, string? dataConsulta = null, string? status = null, bool riscoAltoApenas = false)
+        public async Task<DTOs.PagedResult<AgendamentoResponse>> ObterTodosPaginadoAsync(int page, int pageSize, Guid? profissionalId = null, Guid? pacienteId = null, string? buscaPaciente = null, string? dataConsulta = null, string? status = null, bool riscoAltoApenas = false, string ordem = "asc")
         {
-            var (items, totalCount) = await _repository.ObterTodosPaginadoAsync(page, pageSize, profissionalId, pacienteId, buscaPaciente, dataConsulta, status, riscoAltoApenas);
+            var (items, totalCount) = await _repository.ObterTodosPaginadoAsync(page, pageSize, profissionalId, pacienteId, buscaPaciente, dataConsulta, status, riscoAltoApenas, ordem);
             var profissionais = await _profissionalRepository.ObterTodosAsync();
             var profDict = profissionais.ToDictionary(p => p.Id, p => p.Nome);
 

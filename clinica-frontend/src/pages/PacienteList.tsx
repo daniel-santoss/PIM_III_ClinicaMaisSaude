@@ -1,7 +1,7 @@
 import { API_URL } from "../constants/api";
 import { useEffect, useState } from "react";
 import { mascaraCpf, mascaraTelefone } from "../utils/validators";
-import { AlertCircle, Users, Clock, Search, Filter, RefreshCw, Inbox, Pencil, Key, Trash, Check, Copy } from 'lucide-react';
+import { AlertCircle, Users, Clock, Search, Filter, RefreshCw, Inbox, Pencil, Key, Trash, Check, Copy, X } from 'lucide-react';
 import type { PacienteResponse } from "../types/PacienteResponse";
 import { useScrollBlock } from "../hooks/useScrollBlock";
 import { useToast } from "../hooks/useToast";
@@ -580,9 +580,17 @@ export default function PacienteList({
 
       {/* Modal de Edição */}
       {editandoId && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-gray-900/60 backdrop-blur-sm p-0 sm:p-4 animate-in fade-in duration-300">
-          <div className="bg-white rounded-none sm:rounded-[2.5rem] shadow-2xl w-full h-[100dvh] sm:h-auto sm:max-w-2xl overflow-hidden border-0 sm:border border-purple-50 animate-in slide-in-from-bottom-4 sm:zoom-in duration-300 flex flex-col">
-            <div className="p-6 sm:p-8 border-b border-purple-50 bg-purple-50/30 shrink-0 flex justify-between items-center">
+        <div className="fixed inset-0 z-[3000] flex items-end sm:items-center justify-center bg-gray-900/60 backdrop-blur-sm p-0 sm:p-4 animate-in fade-in duration-300">
+          <div className="bg-white rounded-none sm:rounded-[2.5rem] shadow-2xl w-full h-[100dvh] sm:h-auto sm:max-w-2xl overflow-hidden border-0 sm:border border-purple-50 animate-in slide-in-from-bottom-4 sm:zoom-in duration-300 flex flex-col relative">
+            <div className="p-6 sm:p-8 border-b border-purple-50 bg-purple-50/30 shrink-0 flex justify-between items-center relative">
+              {/* Botão Fechar X */}
+              <button
+                onClick={fecharModal}
+                className="absolute right-4 top-4 sm:right-6 sm:top-6 p-2 text-gray-400 hover:text-gray-600 hover:bg-purple-100/50 rounded-full transition-colors cursor-pointer border-none bg-transparent flex items-center justify-center shadow-sm"
+                aria-label="Fechar"
+              >
+                <X className="w-5 h-5" />
+              </button>
               <div>
                 <h3 className="text-xl sm:text-2xl font-black text-gray-800">Editar Paciente</h3>
                 <p className="text-[10px] font-black text-purple-400 uppercase tracking-widest mt-1">Atualize as informações cadastrais</p>
@@ -670,8 +678,17 @@ export default function PacienteList({
       />
       {/* Modal de Reset de Senha */}
       {pacienteReset && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="bg-white rounded-t-[2.5rem] sm:rounded-2xl shadow-xl w-full sm:max-w-md p-6 sm:p-8 flex flex-col max-h-[90vh] animate-in slide-in-from-bottom-4 sm:zoom-in duration-300 overflow-y-auto">
+        <div className="fixed inset-0 z-[3000] flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-white rounded-t-[2.5rem] sm:rounded-2xl shadow-xl w-full sm:max-w-md p-6 sm:p-8 flex flex-col max-h-[90vh] animate-in slide-in-from-bottom-4 sm:zoom-in duration-300 overflow-y-auto relative">
+            {/* Botão Fechar X */}
+            <button
+              onClick={fecharModalReset}
+              className="absolute right-4 top-4 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors cursor-pointer border-none bg-transparent flex items-center justify-center shadow-sm"
+              aria-label="Fechar"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            
             <h3 className="text-xl font-black text-gray-800 mb-2">Redefinir Senha</h3>
             <p className="text-sm text-gray-600 mb-4">Paciente: <span className="font-semibold">{pacienteReset.nome}</span></p>
             

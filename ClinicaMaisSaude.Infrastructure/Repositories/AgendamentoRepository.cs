@@ -76,7 +76,7 @@ namespace ClinicaMaisSaude.Infrastructure.Repositories
                 .ToListAsync();
         }
 
-        public async Task<(IEnumerable<Agendamento> Items, int TotalCount)> ObterTodosPaginadoAsync(int page, int pageSize, Guid? profissionalId = null, Guid? pacienteId = null, string? buscaPaciente = null, string? dataConsulta = null, string? status = null, bool riscoAltoApenas = false)
+        public async Task<(IEnumerable<Agendamento> Items, int TotalCount)> ObterTodosPaginadoAsync(int page, int pageSize, Guid? profissionalId = null, Guid? pacienteId = null, string? buscaPaciente = null, string? dataConsulta = null, string? status = null, bool riscoAltoApenas = false, string ordem = "asc")
         {
             var query = _context.Agendamentos
                                 .AsNoTracking()
@@ -115,7 +115,14 @@ namespace ClinicaMaisSaude.Infrastructure.Repositories
                 query = query.Where(a => a.ProbabilidadeFalta > 30);
             }
 
-            query = query.OrderByDescending(a => a.DataHoraConsulta);
+            if (ordem.ToLower() == "desc")
+            {
+                query = query.OrderByDescending(a => a.DataHoraConsulta);
+            }
+            else
+            {
+                query = query.OrderBy(a => a.DataHoraConsulta);
+            }
 
             var totalCount = await query.CountAsync();
             var items = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();

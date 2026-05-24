@@ -1,4 +1,4 @@
-import { Search, ArrowDownUp, RefreshCw, Filter } from "lucide-react";
+import { Search, ArrowDownUp, RefreshCw, Filter, List, CalendarDays } from "lucide-react";
 import { MapNomesStatus } from "../constants/statusMap";
 import { useState } from "react";
 
@@ -13,6 +13,8 @@ interface AgendamentoFiltrosProps {
   setOrdemData: (v: "asc" | "desc") => void;
   limparFiltros: () => void;
   placeholderBusca?: string;
+  modoExibicao?: "tabela" | "agenda";
+  setModoExibicao?: (v: "tabela" | "agenda") => void;
 }
 
 export default function AgendamentoFiltros({
@@ -26,6 +28,8 @@ export default function AgendamentoFiltros({
   setOrdemData,
   limparFiltros,
   placeholderBusca,
+  modoExibicao,
+  setModoExibicao,
 }: AgendamentoFiltrosProps) {
   const [menuStatusAberto, setMenuStatusAberto] = useState(false);
 
@@ -127,6 +131,36 @@ export default function AgendamentoFiltros({
           <RefreshCw className="w-5 h-5" />
           <span className="text-[10px] font-black uppercase tracking-widest hidden lg:inline">Limpar Filtros</span>
         </button>
+
+        {/* Modo de Exibição */}
+        {modoExibicao && setModoExibicao && (
+          <div className="flex bg-gray-100/80 p-1.5 rounded-2xl border border-gray-200/50 shadow-inner shrink-0">
+            <button
+              onClick={() => setModoExibicao("tabela")}
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                modoExibicao === "tabela"
+                  ? "bg-[#7C3AED] text-white shadow-md shadow-purple-200/40"
+                  : "text-gray-500 hover:text-[#7C3AED] hover:bg-white/50"
+              }`}
+              title="Visualização em Tabela"
+            >
+              <List className="w-4 h-4" />
+              <span className="hidden xs:inline">Tabela</span>
+            </button>
+            <button
+              onClick={() => setModoExibicao("agenda")}
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                modoExibicao === "agenda"
+                  ? "bg-[#7C3AED] text-white shadow-md shadow-purple-200/40"
+                  : "text-gray-500 hover:text-[#7C3AED] hover:bg-white/50"
+              }`}
+              title="Visualização em Agenda"
+            >
+              <CalendarDays className="w-4 h-4" />
+              <span className="hidden xs:inline">Agenda</span>
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

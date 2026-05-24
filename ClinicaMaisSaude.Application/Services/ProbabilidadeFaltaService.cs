@@ -40,9 +40,11 @@ namespace ClinicaMaisSaude.Application.Services
             // Cancelamentos: +10% por ocorrência
             // Regra 1: Cancelado mais de 1 hora após a criação (ignorar erros imediatos da recepção)
             // Regra 2: Cancelado faltando menos de 4 dias para a consulta (penalidade por cancelar tarde)
+            // Regra 3: Apenas se cancelado pelo próprio paciente
             int qtdCancelamentos = historicoTodosAgendamentos.Count(h => 
                 (h.TipoEvento == TipoEventoHistorico.Cancelamento || h.TipoEvento == TipoEventoHistorico.MudancaStatus) && 
                 h.StatusNovo == StatusAgendamento.Cancelado &&
+                paciente.UsuarioId.HasValue && h.RealizadoPor == paciente.UsuarioId.Value &&
                 (h.Dt_Criado - h.Agendamento.DtCriado).TotalHours > 1 &&
                 (h.Agendamento.DataHoraConsulta - h.Dt_Criado).TotalDays < 4);
             probabilidade += qtdCancelamentos * 10;

@@ -14,7 +14,7 @@ export default function ModalHistorico({ historico, loading, onFechar }: ModalHi
   useScrollBlock(true);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4 backdrop-blur-sm animate-in fade-in duration-300">
+    <div className="fixed inset-0 z-[3000] flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4 backdrop-blur-sm animate-in fade-in duration-300">
       {/* Largura total no mobile (sem margens), centralizado no tablet/desktop */}
       <div className="bg-white w-full h-[100dvh] sm:h-auto sm:rounded-lg sm:max-w-lg shadow-xl flex flex-col sm:max-h-[80vh] rounded-none sm:rounded-lg overflow-hidden animate-in slide-in-from-bottom-4 sm:zoom-in duration-300">
         {/* Cabeçalho */}
@@ -50,7 +50,7 @@ export default function ModalHistorico({ historico, loading, onFechar }: ModalHi
                   <span className="absolute -left-[9px] top-1.5 w-4 h-4 rounded-full bg-blue-500 border-2 border-white shadow"></span>
                   <div className="flex flex-col">
                     <span className="text-sm font-bold text-gray-400 mb-0.5">
-                      {getRealDate(h.dtCriado)!.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}
+                      {getRealDate(h.dtCriado, true)!.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}
                     </span>
                     <h4 className="text-base font-bold text-gray-800">
                       {h.tipoEvento}

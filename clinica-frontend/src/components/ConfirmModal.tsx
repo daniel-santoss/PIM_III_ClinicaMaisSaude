@@ -1,4 +1,4 @@
-import { AlertTriangle, Info } from 'lucide-react';
+import { AlertTriangle, Info, X } from 'lucide-react';
 import { useScrollBlock } from '../hooks/useScrollBlock';
 
 interface ConfirmModalProps {
@@ -39,8 +39,16 @@ export default function ConfirmModal({
     : 'bg-[#7C3AED] hover:bg-[#6D28D9] text-white shadow-purple-200';
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className={`bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center animate-in zoom-in-95 duration-200`}>
+    <div className="fixed inset-0 z-[3000] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+      <div className={`bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center animate-in zoom-in-95 duration-200 relative max-h-[92dvh] overflow-y-auto custom-scrollbar`}>
+        {/* Botão Fechar X */}
+        <button
+          onClick={onCancel}
+          className="absolute right-4 top-4 p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors cursor-pointer border-none bg-transparent flex items-center justify-center"
+          aria-label="Fechar"
+        >
+          <X className="w-4 h-4" />
+        </button>
         
         <div className={`w-14 h-14 ${iconBg} ${iconColor} rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm`}>
           <Icon className="w-7 h-7" />
