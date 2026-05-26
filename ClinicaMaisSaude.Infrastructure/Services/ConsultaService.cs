@@ -2,6 +2,7 @@ using ClinicaMaisSaude.Application.Interfaces;
 using ClinicaMaisSaude.Application.Exceptions;
 using ClinicaMaisSaude.Domain.Entities;
 using ClinicaMaisSaude.Domain.Enums;
+using ClinicaMaisSaude.Domain.Constants;
 using ClinicaMaisSaude.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
@@ -45,7 +46,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             var agora = DateTime.UtcNow;
 
             // 1. Rate Limit Global (100 requisições por hora)
-            var globalKey = "RateLimit_Global";
+            var globalKey = ConfigKeys.RateLimitGlobal;
             if (!_cache.TryGetValue(globalKey, out List<DateTime> globalRequests))
             {
                 globalRequests = new List<DateTime>();
@@ -57,7 +58,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             }
 
             // 2. Rate Limit por Usuário (5 requisições por dia)
-            var userKey = $"RateLimit_User_{usuarioLogadoId}";
+            var userKey = $"{ConfigKeys.RateLimitUser}{usuarioLogadoId}";
             if (!_cache.TryGetValue(userKey, out List<DateTime> userRequests))
             {
                 userRequests = new List<DateTime>();
@@ -91,7 +92,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                     throw new UnauthorizedAccessException($"Acesso à IA bloqueado até {dataBloqueio}. Se acha que é um erro, entre em contato: suporte@clinicamaissaude.com");
                 }
             }
-            else if (tipoUsuario != "Enfermeira" && tipoUsuario != "Medico" && !isAdmin)
+            else if (tipoUsuario != PerfisUsuario.Enfermeira && tipoUsuario != PerfisUsuario.Medico && !isAdmin)
             {
                 throw new UnauthorizedAccessException("Usuário não é um paciente válido.");
             }
@@ -102,8 +103,8 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             if (sintomas.Length > 300)
                 throw new ArgumentException("Limite de 300 caracteres para a descrição dos sintomas.");
 
-            var apiKey = _config["GeminiAI:ApiKey"];
-            var model = _config["GeminiAI:Model"] ?? "gemini-2.5-flash";
+            var apiKey = _config[ConfigKeys.GeminiApiKey];
+            var model = _config[ConfigKeys.GeminiModel] ?? "gemini-2.5-flash";
 
             if (string.IsNullOrWhiteSpace(apiKey) || apiKey == "SUA_CHAVE_AQUI")
                 throw new InvalidOperationException("Serviço de IA não configurado. Contate o administrador.");
@@ -333,11 +334,11 @@ Formato:
                                    ?? _context.Profissionais.Where(p => p.UsuarioId == a.UsuarioId).Select(p => p.Nome).FirstOrDefault()
                                    ?? (a.Usuario.IsAdmin ? "Administrador" : a.Usuario.Email),
                     PacienteCpf = a.Usuario.Cpf,
-                    PacienteTipo = _context.Pacientes.Any(p => p.UsuarioId == a.UsuarioId) ? "Paciente"
+                    PacienteTipo = _context.Pacientes.Any(p => p.UsuarioId == a.UsuarioId) ? PerfisUsuario.Paciente
                                    : _context.Profissionais.Where(p => p.UsuarioId == a.UsuarioId)
-                                       .Select(p => p.TipoProfissional == TipoProfissional.Medico ? "Medico" : "Enfermeira")
+                                       .Select(p => p.TipoProfissional == TipoProfissional.Medico ? PerfisUsuario.Medico : PerfisUsuario.Enfermeira)
                                        .FirstOrDefault()
-                                   ?? (a.Usuario.IsAdmin ? "Administrador" : "Paciente"),
+                                   ?? (a.Usuario.IsAdmin ? "Administrador" : PerfisUsuario.Paciente),
                     PacienteFotoBase64 = a.Usuario.FotoBase64,
                     TipoViolacao = a.TipoViolacao.ToString(),
                     a.TextoInserido,

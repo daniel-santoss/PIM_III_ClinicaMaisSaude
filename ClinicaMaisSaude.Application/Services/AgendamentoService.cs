@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using ClinicaMaisSaude.Application.DTOs.AgendamentoHistorico;
+using Microsoft.Extensions.Configuration;
 
 namespace ClinicaMaisSaude.Application.Services
 {
@@ -20,6 +21,7 @@ namespace ClinicaMaisSaude.Application.Services
         private readonly IUsuarioRepository _usuarioRepository;
         private readonly IProbabilidadeFaltaService _probabilidadeFaltaService;
         private readonly INotificacaoRepository _notificacaoRepository;
+        private readonly IConfiguration _configuration;
 
         public AgendamentoService(
             IAgendamentoRepository repository, 
@@ -27,7 +29,8 @@ namespace ClinicaMaisSaude.Application.Services
             IProfissionalRepository profissionalRepository,
             IUsuarioRepository usuarioRepository,
             IProbabilidadeFaltaService probabilidadeFaltaService,
-            INotificacaoRepository notificacaoRepository)
+            INotificacaoRepository notificacaoRepository,
+            IConfiguration configuration)
         {
             _repository = repository;
             _pacienteRepository = pacienteRepository;
@@ -35,6 +38,7 @@ namespace ClinicaMaisSaude.Application.Services
             _usuarioRepository = usuarioRepository;
             _probabilidadeFaltaService = probabilidadeFaltaService;
             _notificacaoRepository = notificacaoRepository;
+            _configuration = configuration;
         }
 
         public async Task<AgendamentoResponse> AdicionarAsync(AgendamentoRequest request, Guid usuarioLogadoId)
@@ -46,10 +50,75 @@ namespace ClinicaMaisSaude.Application.Services
             if (paciente == null || !paciente.Ativo)
                 throw new Exception("Paciente inválido ou inativo.");
 
+            bool ehProprioPaciente = paciente.UsuarioId.HasValue && paciente.UsuarioId.Value == usuarioLogadoId;
+            if (ehProprioPaciente)
+            {
+                var maxConsultasNoMesmoDia = int.TryParse(_configuration["AgendamentoConfig:MaxConsultasNoMesmoDia"], out int limitA) ? limitA : 2;
+                var maxAgendamentosCriadosPorDia = int.TryParse(_configuration["AgendamentoConfig:MaxAgendamentosCriadosPorDia"], out int limitB) ? limitB : 3;
+
+                var todosAgendamentosPaciente = await _repository.ObterTodosPorPacienteIdAsync(request.PacienteId);
+
+                // 1. Limite A: Consultas no mesmo dia
+                var consultasNoMesmoDia = todosAgendamentosPaciente.Count(a =>
+                    a.DataHoraConsulta.Date == request.DataHoraConsulta.Date &&
+                    a.Status != StatusAgendamento.Cancelado &&
+                    a.Status != StatusAgendamento.Faltou);
+
+                if (consultasNoMesmoDia >= maxConsultasNoMesmoDia)
+                {
+                    throw new Exception($"Você já atingiu o limite de {maxConsultasNoMesmoDia} consultas ativas agendadas para o dia {request.DataHoraConsulta:dd/MM/yyyy}.");
+                }
+
+                // 2. Limite B: Agendamentos criados hoje (fuso local UTC-3)
+                var hojeLocal = DateTime.UtcNow.AddHours(-3).Date;
+                var agendamentosCriadosHoje = todosAgendamentosPaciente.Count(a =>
+                    a.DtCriado.AddHours(-3).Date == hojeLocal);
+
+                if (agendamentosCriadosHoje >= maxAgendamentosCriadosPorDia)
+                {
+                    throw new Exception($"Você atingiu o limite de {maxAgendamentosCriadosPorDia} agendamentos criados por dia. Tente novamente amanhã.");
+                }
+
+                // 3. Regra de Especialidade Ativa Única
+                if (request.EspecialidadeId.HasValue)
+                {
+                    var temEspecialidadeAtiva = todosAgendamentosPaciente.Any(a =>
+                        a.EspecialidadeId == request.EspecialidadeId &&
+                        a.Status != StatusAgendamento.Cancelado &&
+                        a.Status != StatusAgendamento.Faltou &&
+                        a.Status != StatusAgendamento.Finalizado);
+
+                    if (temEspecialidadeAtiva)
+                    {
+                        var nomeEspecialidade = ((EspecialidadeMedica)request.EspecialidadeId.Value).ToString();
+                        throw new Exception($"Você já possui um agendamento ativo para a especialidade {nomeEspecialidade}. Não é permitido possuir mais de um agendamento ativo para a mesma especialidade simultaneamente.");
+                    }
+
+                    // 4. Regra de Intervalo de 60 Dias para Consultas Finalizadas
+                    var sessentaDiasAtras = DateTime.UtcNow.AddHours(-3).AddDays(-60);
+                    var temConsultaRecenteFinalizada = todosAgendamentosPaciente.Any(a =>
+                        a.EspecialidadeId == request.EspecialidadeId &&
+                        a.Status == StatusAgendamento.Finalizado &&
+                        a.DataHoraConsulta >= sessentaDiasAtras);
+
+                    if (temConsultaRecenteFinalizada)
+                    {
+                        var nomeEspecialidade = ((EspecialidadeMedica)request.EspecialidadeId.Value).ToString();
+                        throw new Exception($"Consulta Recente: Você realizou uma consulta de {nomeEspecialidade} há menos de 60 dias. Por razões clínicas, um novo agendamento para esta especialidade só pode ser efetuado diretamente pela equipe da clínica.");
+                    }
+                }
+            }
+
             ValidarCriacao(tipoProfissional, tipoConsulta);
 
             if (request.DataHoraConsulta <= DateTime.UtcNow.AddHours(-3))
                 throw new Exception("Não é possível agendar em datas passadas.");
+
+            bool temConflitoPaciente = await ExisteConflitoPaciente(request.PacienteId, request.DataHoraConsulta, tipoConsulta, null);
+            if (temConflitoPaciente)
+            {
+                throw new Exception("O paciente já possui um agendamento neste horário ou em horário conflitante.");
+            }
 
             if (tipoConsulta == TipoConsulta.Retorno)
             {
@@ -158,6 +227,12 @@ namespace ClinicaMaisSaude.Application.Services
 
             if (request.DataHoraConsulta <= DateTime.UtcNow.AddHours(-3))
                 throw new Exception("Não é permitido reagendar para datas/horários passados.");
+
+            bool temConflitoPaciente = await ExisteConflitoPaciente(agendamento.PacienteId, request.DataHoraConsulta, (TipoConsulta)request.TipoConsulta, agendamento.Id);
+            if (temConflitoPaciente)
+            {
+                throw new Exception("O paciente já possui um agendamento neste horário ou em horário conflitante.");
+            }
 
             var tipoProf = (TipoProfissional)request.TipoProfissional;
             var tipoCons = (TipoConsulta)request.TipoConsulta;
@@ -286,6 +361,49 @@ namespace ClinicaMaisSaude.Application.Services
 
             if (request.NovaDataHora <= DateTime.UtcNow.AddHours(-3))
                 throw new Exception("Não é permitido remarcar para datas/horários passados.");
+
+            var pacienteAgendamento = await _pacienteRepository.ObterPorIdAsync(agendamento.PacienteId);
+            bool ehProprioPaciente = pacienteAgendamento?.UsuarioId.HasValue == true && pacienteAgendamento.UsuarioId.Value == usuarioLogadoId;
+            if (ehProprioPaciente)
+            {
+                var maxConsultasNoMesmoDia = int.TryParse(_configuration["AgendamentoConfig:MaxConsultasNoMesmoDia"], out int limitA) ? limitA : 2;
+                var todosAgendamentosPaciente = await _repository.ObterTodosPorPacienteIdAsync(agendamento.PacienteId);
+
+                // Limite A: Consultas no mesmo dia (excluindo este próprio agendamento)
+                var consultasNoMesmoDia = todosAgendamentosPaciente.Count(a =>
+                    a.Id != agendamento.Id &&
+                    a.DataHoraConsulta.Date == request.NovaDataHora.Date &&
+                    a.Status != StatusAgendamento.Cancelado &&
+                    a.Status != StatusAgendamento.Faltou);
+
+                if (consultasNoMesmoDia >= maxConsultasNoMesmoDia)
+                {
+                    throw new Exception($"Você já atingiu o limite de {maxConsultasNoMesmoDia} consultas ativas agendadas para o dia {request.NovaDataHora:dd/MM/yyyy}.");
+                }
+
+                // Validação de Especialidade Ativa Única ao remarcar (excluindo este próprio agendamento)
+                if (agendamento.EspecialidadeId.HasValue)
+                {
+                    var temOutraEspecialidadeAtiva = todosAgendamentosPaciente.Any(a =>
+                        a.Id != agendamento.Id &&
+                        a.EspecialidadeId == agendamento.EspecialidadeId &&
+                        a.Status != StatusAgendamento.Cancelado &&
+                        a.Status != StatusAgendamento.Faltou &&
+                        a.Status != StatusAgendamento.Finalizado);
+
+                    if (temOutraEspecialidadeAtiva)
+                    {
+                        var nomeEspecialidade = ((EspecialidadeMedica)agendamento.EspecialidadeId.Value).ToString();
+                        throw new Exception($"Você já possui outro agendamento ativo para a especialidade {nomeEspecialidade}. Não é permitido possuir mais de um agendamento ativo para a mesma especialidade simultaneamente.");
+                    }
+                }
+            }
+
+            bool temConflitoPaciente = await ExisteConflitoPaciente(agendamento.PacienteId, request.NovaDataHora, agendamento.TipoConsulta, agendamento.Id);
+            if (temConflitoPaciente)
+            {
+                throw new Exception("O paciente já possui um agendamento neste horário ou em horário conflitante.");
+            }
 
             bool temConflito = await ExisteConflito(agendamento.ProfissionalId, request.NovaDataHora, agendamento.TipoConsulta, agendamento.Id);
             if (temConflito)
@@ -573,6 +691,26 @@ namespace ClinicaMaisSaude.Application.Services
              
              return historicoProfissional.Any(a => 
                  a.ProfissionalId == profissionalId && 
+                 a.Id != ignorarAgendamentoId &&
+                 a.Status != StatusAgendamento.Cancelado &&
+                 a.Status != StatusAgendamento.Finalizado &&
+                 a.Status != StatusAgendamento.Faltou &&
+                 (
+                    (novoInicio >= a.DataHoraConsulta && novoInicio < a.DataHoraConsulta.AddMinutes(TipoConsultaDuracao.ObterDuracao(a.TipoConsulta))) ||
+                    (novoFim > a.DataHoraConsulta && novoFim <= a.DataHoraConsulta.AddMinutes(TipoConsultaDuracao.ObterDuracao(a.TipoConsulta))) ||
+                    (novoInicio <= a.DataHoraConsulta && novoFim >= a.DataHoraConsulta.AddMinutes(TipoConsultaDuracao.ObterDuracao(a.TipoConsulta)))
+                 ));
+        }
+
+        private async Task<bool> ExisteConflitoPaciente(Guid pacienteId, DateTime novoInicio, TipoConsulta novaConsulta, Guid? ignorarAgendamentoId)
+        {
+             var duracaoMin = TipoConsultaDuracao.ObterDuracao(novaConsulta);
+             var novoFim = novoInicio.AddMinutes(duracaoMin);
+
+             var todosAgendamentos = await _repository.ObterTodosAsync();
+             
+             return todosAgendamentos.Any(a => 
+                 a.PacienteId == pacienteId && 
                  a.Id != ignorarAgendamentoId &&
                  a.Status != StatusAgendamento.Cancelado &&
                  a.Status != StatusAgendamento.Finalizado &&

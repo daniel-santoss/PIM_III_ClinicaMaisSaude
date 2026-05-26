@@ -1,5 +1,6 @@
 using ClinicaMaisSaude.Application.DTOs.Auth;
 using ClinicaMaisSaude.Application.Interfaces;
+using ClinicaMaisSaude.Domain.Constants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Linq;
@@ -22,15 +23,15 @@ namespace ClinicaMaisSaude.API.Controllers
         [Authorize]
         public async Task<IActionResult> CadastroAdmin([FromBody] CadastroRequest request)
         {
-            var isAdminClaim = User.Claims.FirstOrDefault(c => c.Type == "IsAdmin")?.Value;
-            var tipoUsuario = User.Claims.FirstOrDefault(c => c.Type == "TipoUsuario")?.Value;
+            var isAdminClaim = User.Claims.FirstOrDefault(c => c.Type == ClinicaClaims.IsAdmin)?.Value;
+            var tipoUsuario = User.Claims.FirstOrDefault(c => c.Type == ClinicaClaims.TipoUsuario)?.Value;
 
-            if (isAdminClaim != "true" && tipoUsuario != "Enfermeira")
+            if (isAdminClaim != "true" && tipoUsuario != PerfisUsuario.Enfermeira)
             {
                 return Forbid();
             }
 
-            if (isAdminClaim != "true" && request.TipoUsuario != "Paciente")
+            if (isAdminClaim != "true" && request.TipoUsuario != PerfisUsuario.Paciente)
             {
                 return BadRequest("Enfermeiras só podem cadastrar novos Pacientes.");
             }
@@ -49,10 +50,10 @@ namespace ClinicaMaisSaude.API.Controllers
         [Authorize]
         public async Task<IActionResult> ListarUsuarios()
         {
-            var isAdminClaim = User.Claims.FirstOrDefault(c => c.Type == "IsAdmin")?.Value;
-            var tipoUsuario = User.Claims.FirstOrDefault(c => c.Type == "TipoUsuario")?.Value;
+            var isAdminClaim = User.Claims.FirstOrDefault(c => c.Type == ClinicaClaims.IsAdmin)?.Value;
+            var tipoUsuario = User.Claims.FirstOrDefault(c => c.Type == ClinicaClaims.TipoUsuario)?.Value;
 
-            if (isAdminClaim != "true" && tipoUsuario != "Enfermeira")
+            if (isAdminClaim != "true" && tipoUsuario != PerfisUsuario.Enfermeira)
             {
                 return Forbid();
             }
@@ -65,10 +66,10 @@ namespace ClinicaMaisSaude.API.Controllers
         [Authorize]
         public async Task<IActionResult> ResetarSenha(Guid id, [FromBody] ResetSenhaRequest request)
         {
-            var isAdminClaim = User.Claims.FirstOrDefault(c => c.Type == "IsAdmin")?.Value;
-            var tipoUsuario = User.Claims.FirstOrDefault(c => c.Type == "TipoUsuario")?.Value;
+            var isAdminClaim = User.Claims.FirstOrDefault(c => c.Type == ClinicaClaims.IsAdmin)?.Value;
+            var tipoUsuario = User.Claims.FirstOrDefault(c => c.Type == ClinicaClaims.TipoUsuario)?.Value;
 
-            if (isAdminClaim != "true" && tipoUsuario != "Enfermeira")
+            if (isAdminClaim != "true" && tipoUsuario != PerfisUsuario.Enfermeira)
             {
                 return Forbid();
             }

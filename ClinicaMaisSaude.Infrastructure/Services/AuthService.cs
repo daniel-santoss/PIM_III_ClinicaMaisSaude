@@ -3,6 +3,7 @@ using ClinicaMaisSaude.Application.DTOs.Auth;
 using ClinicaMaisSaude.Application.Interfaces;
 using ClinicaMaisSaude.Domain.Entities;
 using ClinicaMaisSaude.Domain.Enums;
+using ClinicaMaisSaude.Domain.Constants;
 using ClinicaMaisSaude.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -90,7 +91,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                 await _context.SaveChangesAsync();
             }
 
-            string tipoUsuarioStr = "Admin";
+            string tipoUsuarioStr = PerfisUsuario.Admin;
             Guid? pacienteId = null;
 
             if (perfilProfissional != null)
@@ -99,31 +100,31 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             }
             else if (perfilPaciente != null)
             {
-                tipoUsuarioStr = "Paciente";
+                tipoUsuarioStr = PerfisUsuario.Paciente;
                 pacienteId = perfilPaciente.Id;
             }
 
             var tokenHandler = new JwtSecurityTokenHandler();
-            var secretKey = _configuration["JwtConfig:Secret"] ?? throw new InvalidOperationException("JwtConfig:Secret não configurado.");
+            var secretKey = _configuration[ConfigKeys.JwtSecret] ?? throw new InvalidOperationException($"{ConfigKeys.JwtSecret} não configurado.");
             var key = Encoding.ASCII.GetBytes(secretKey);
 
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.NameIdentifier, usuario.Id.ToString()),
                 new Claim(ClaimTypes.Role, tipoUsuarioStr),
-                new Claim("TipoUsuario", tipoUsuarioStr),
-                new Claim("IsAdmin", usuario.IsAdmin.ToString().ToLower()),
+                new Claim(ClinicaClaims.TipoUsuario, tipoUsuarioStr),
+                new Claim(ClinicaClaims.IsAdmin, usuario.IsAdmin.ToString().ToLower()),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
 
             if (pacienteId.HasValue)
             {
-                claims.Add(new Claim("PacienteId", pacienteId.Value.ToString()));
+                claims.Add(new Claim(ClinicaClaims.PacienteId, pacienteId.Value.ToString()));
             }
 
             if (perfilProfissional != null)
             {
-                claims.Add(new Claim("ProfissionalId", perfilProfissional.Id.ToString()));
+                claims.Add(new Claim(ClinicaClaims.ProfissionalId, perfilProfissional.Id.ToString()));
             }
 
             var tokenDescriptor = new SecurityTokenDescriptor
@@ -168,9 +169,8 @@ namespace ClinicaMaisSaude.Infrastructure.Services
         public async Task<LoginResponse> RefreshTokenAsync(RefreshTokenRequest request)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
-            var secretKey = _configuration["JwtConfig:Secret"] ?? throw new InvalidOperationException("JwtConfig:Secret não configurado.");
+            var secretKey = _configuration[ConfigKeys.JwtSecret] ?? throw new InvalidOperationException($"{ConfigKeys.JwtSecret} não configurado.");
             var key = Encoding.ASCII.GetBytes(secretKey);
-
             var storedToken = await _context.RefreshTokens.FirstOrDefaultAsync(x => x.Token == request.RefreshToken);
 
             if (storedToken == null) throw new Exception("Refresh token não existe.");
@@ -188,14 +188,14 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             var perfilProfissional = await _context.Profissionais.AsNoTracking().FirstOrDefaultAsync(p => p.UsuarioId == usuario.Id);
             var perfilPaciente = await _context.Pacientes.AsNoTracking().FirstOrDefaultAsync(p => p.UsuarioId == usuario.Id);
 
-            string tipoUsuarioStr = "Admin";
+            string tipoUsuarioStr = PerfisUsuario.Admin;
             Guid? pacienteId = null;
 
             if (perfilProfissional != null)
                 tipoUsuarioStr = perfilProfissional.TipoProfissional.ToString();
             else if (perfilPaciente != null)
             {
-                tipoUsuarioStr = "Paciente";
+                tipoUsuarioStr = PerfisUsuario.Paciente;
                 pacienteId = perfilPaciente.Id;
             }
 
@@ -203,13 +203,13 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             {
                 new Claim(ClaimTypes.NameIdentifier, usuario.Id.ToString()),
                 new Claim(ClaimTypes.Role, tipoUsuarioStr),
-                new Claim("TipoUsuario", tipoUsuarioStr),
-                new Claim("IsAdmin", usuario.IsAdmin.ToString().ToLower()),
+                new Claim(ClinicaClaims.TipoUsuario, tipoUsuarioStr),
+                new Claim(ClinicaClaims.IsAdmin, usuario.IsAdmin.ToString().ToLower()),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
 
-            if (pacienteId.HasValue) claims.Add(new Claim("PacienteId", pacienteId.Value.ToString()));
-            if (perfilProfissional != null) claims.Add(new Claim("ProfissionalId", perfilProfissional.Id.ToString()));
+            if (pacienteId.HasValue) claims.Add(new Claim(ClinicaClaims.PacienteId, pacienteId.Value.ToString()));
+            if (perfilProfissional != null) claims.Add(new Claim(ClinicaClaims.ProfissionalId, perfilProfissional.Id.ToString()));
 
             var tokenDescriptor = new SecurityTokenDescriptor
             {

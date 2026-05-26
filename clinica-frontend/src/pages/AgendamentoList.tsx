@@ -1,4 +1,7 @@
 import { API_URL } from "../constants/api";
+import { storageKeys } from "../constants/storage";
+import { perfis } from "../constants/perfis";
+import { statusAgendamento } from "../constants/status";
 import { useEffect, useState } from "react";
 import { mascaraCpf, mascaraTelefone } from "../utils/validators";
 import { AlertTriangle, Calendar, TrendingUp, BarChart3, Plus, User, X, FileText, Mail, Phone, Pencil } from 'lucide-react';
@@ -50,8 +53,13 @@ export interface AgendamentoHistoricoResponse {
 }
 
 const EnumStatusUrl = {
-  "Agendado": 0, "EmAtendimento": 1, "AguardandoRetorno": 2,
-  "RetornoAgendado": 3, "Finalizado": 4, "Faltou": 5, "Cancelado": 6
+  [statusAgendamento.agendado]: 0,
+  [statusAgendamento.emAtendimento]: 1,
+  [statusAgendamento.aguardandoRetorno]: 2,
+  [statusAgendamento.retornoAgendado]: 3,
+  [statusAgendamento.finalizado]: 4,
+  [statusAgendamento.faltou]: 5,
+  [statusAgendamento.cancelado]: 6
 };
 
 
@@ -85,13 +93,16 @@ export default function AgendamentoList({ agendamentoDestaque }: { agendamentoDe
 
   const [filtroAgenda, setFiltroAgenda] = useState("");
   const [statusSelecionados, setStatusSelecionados] = useState<string[]>(Object.keys(EnumStatusUrl));
-  const [filtroDataConsulta, setFiltroDataConsulta] = useState(() => new Date().toISOString().split('T')[0]);
+  const [filtroDataConsulta, setFiltroDataConsulta] = useState(() => {
+    const hojeObj = new Date();
+    return `${hojeObj.getFullYear()}-${String(hojeObj.getMonth() + 1).padStart(2, '0')}-${String(hojeObj.getDate()).padStart(2, '0')}`;
+  });
   const [filtroRiscoApenas, setFiltroRiscoApenas] = useState(false);
   const [ordemData, setOrdemData] = useState<"asc" | "desc">("asc");
   const [modoExibicao, setModoExibicao] = useState<"tabela" | "agenda">("tabela");
 
-  const tipoUsuario = localStorage.getItem("tipoUsuario");
-  const isAdmin = localStorage.getItem("isAdmin") === "true";
+  const tipoUsuario = localStorage.getItem(storageKeys.tipoUsuario);
+  const isAdmin = localStorage.getItem(storageKeys.isAdmin) === "true";
 
   const [page, setPage] = useState(1);
   const pageSize = 20;
@@ -106,7 +117,7 @@ export default function AgendamentoList({ agendamentoDestaque }: { agendamentoDe
     setCarregando(true);
     setErro(null);
     try {
-      const token = localStorage.getItem("authToken");
+      const token = localStorage.getItem(storageKeys.authToken);
       const headers = { "Authorization": `Bearer ${token}` };
       
       const queryParams = new URLSearchParams();
@@ -139,10 +150,10 @@ export default function AgendamentoList({ agendamentoDestaque }: { agendamentoDe
     if (!cancelarAlvo) return;
     setCancelando(true);
     try {
-      const token = localStorage.getItem("authToken");
+      const token = localStorage.getItem(storageKeys.authToken);
       const response = await fetch(`${API_URL}/api/Agendamentos/${cancelarAlvo.id}/status`, {
         method: "PATCH", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-        body: JSON.stringify(EnumStatusUrl["Cancelado"])
+        body: JSON.stringify(EnumStatusUrl[statusAgendamento.cancelado])
       });
       if (!response.ok) { 
         if (response.status === 400) toast.error(await response.text());
@@ -159,7 +170,7 @@ export default function AgendamentoList({ agendamentoDestaque }: { agendamentoDe
     const valorEnum = EnumStatusUrl[novoStatusString as keyof typeof EnumStatusUrl];
     if (valorEnum === undefined) return;
     try {
-      const token = localStorage.getItem("authToken");
+      const token = localStorage.getItem(storageKeys.authToken);
       const response = await fetch(`${API_URL}/api/Agendamentos/${id}/status`, {
         method: "PATCH", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify(valorEnum)
@@ -176,7 +187,7 @@ export default function AgendamentoList({ agendamentoDestaque }: { agendamentoDe
   const abrirHistorico = async (agendamentoId: string) => {
     setHistoricoLoading(true); setModalHistoricoAberto(true); setHistoricoAtual([]);
     try {
-      const token = localStorage.getItem("authToken");
+      const token = localStorage.getItem(storageKeys.authToken);
       const resp = await fetch(`${API_URL}/api/Agendamentos/${agendamentoId}/historico`, {
         headers: { "Authorization": `Bearer ${token}` }
       });
@@ -196,7 +207,7 @@ export default function AgendamentoList({ agendamentoDestaque }: { agendamentoDe
     if (!concluirExameAlvo) return;
     setConcluindoExame(true);
     try {
-      const token = localStorage.getItem("authToken");
+      const token = localStorage.getItem(storageKeys.authToken);
       const response = await fetch(`${API_URL}/api/Agendamentos/${concluirExameAlvo.id}/concluir-exame`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
@@ -217,7 +228,7 @@ export default function AgendamentoList({ agendamentoDestaque }: { agendamentoDe
 
   const marcarResultadoDisponivel = async (id: string) => {
     try {
-      const token = localStorage.getItem("authToken");
+      const token = localStorage.getItem(storageKeys.authToken);
       const response = await fetch(`${API_URL}/api/Agendamentos/${id}/resultado-disponivel`, {
         method: "PATCH",
         headers: { "Authorization": `Bearer ${token}` }
@@ -234,7 +245,7 @@ export default function AgendamentoList({ agendamentoDestaque }: { agendamentoDe
 
   const marcarResultadoRetirado = async (id: string) => {
     try {
-      const token = localStorage.getItem("authToken");
+      const token = localStorage.getItem(storageKeys.authToken);
       const response = await fetch(`${API_URL}/api/Agendamentos/${id}/resultado-retirado`, {
         method: "PATCH",
         headers: { "Authorization": `Bearer ${token}` }
@@ -262,16 +273,17 @@ export default function AgendamentoList({ agendamentoDestaque }: { agendamentoDe
     }
   }, [agendamentoDestaque]);
 
-  const hoje = new Date().toISOString().split('T')[0];
+  const hojeObj = new Date();
+  const hoje = `${hojeObj.getFullYear()}-${String(hojeObj.getMonth() + 1).padStart(2, '0')}-${String(hojeObj.getDate()).padStart(2, '0')}`;
   const atendimentosHoje = agendamentos.filter(a => a.dataHoraConsulta.startsWith(hoje)).length;
 
   const statusResumo = {
-    agendados: agendamentos.filter(a => a.status === "Agendado" || a.status === "RetornoAgendado").length,
-    finalizados: agendamentos.filter(a => a.status === "Finalizado").length,
-    faltas: agendamentos.filter(a => a.status === "Faltou").length
+    agendados: agendamentos.filter(a => a.status === statusAgendamento.agendado || a.status === statusAgendamento.retornoAgendado).length,
+    finalizados: agendamentos.filter(a => a.status === statusAgendamento.finalizado).length,
+    faltas: agendamentos.filter(a => a.status === statusAgendamento.faltou).length
   };
 
-  const agendamentosHoje = agendamentos.filter(a => a.dataHoraConsulta.startsWith(hoje) && a.status === "Agendado");
+  const agendamentosHoje = agendamentos.filter(a => a.dataHoraConsulta.startsWith(hoje) && a.status === statusAgendamento.agendado);
   const riscoAltoHoje = agendamentosHoje.filter(a => a.nivelProbabilidadeFalta === "Alta").length;
   const riscoMedioHoje = agendamentosHoje.filter(a => a.nivelProbabilidadeFalta === "Média").length;
 
@@ -328,14 +340,14 @@ export default function AgendamentoList({ agendamentoDestaque }: { agendamentoDe
               <div className="flex flex-col items-center"><span className="text-[9px] font-black text-orange-600 uppercase">Faltas</span><span className="text-xs font-black text-gray-700">{statusResumo.faltas}</span></div>
             </div>
           </div>
-          {(isAdmin || tipoUsuario === "Medico" || tipoUsuario === "Enfermeira") && (
+          {(isAdmin || tipoUsuario === perfis.medico || tipoUsuario === perfis.enfermeira) && (
             <button 
               onClick={() => {
                 const novoEstado = !filtroRiscoApenas;
                 setFiltroRiscoApenas(novoEstado);
                 if (novoEstado) {
                   setFiltroDataConsulta(hoje);
-                  setStatusSelecionados(["Agendado"]);
+                  setStatusSelecionados([statusAgendamento.agendado]);
                 } else {
                   limparFiltros();
                 }
@@ -465,7 +477,7 @@ export default function AgendamentoList({ agendamentoDestaque }: { agendamentoDe
         </div>
 
         {/* FAB */}
-        {(tipoUsuario !== "Medico" || isAdmin) && (
+        {(tipoUsuario !== perfis.medico || isAdmin) && (
           <button
             onClick={() => setModalNovoAgendamento(true)}
             className="fixed bottom-8 right-8 w-16 h-16 bg-[#7C3AED] text-white rounded-full shadow-2xl shadow-purple-400/50 flex items-center justify-center hover:scale-110 active:scale-95 transition-all z-40 group"

@@ -1,4 +1,5 @@
 import { API_URL } from "../constants/api";
+import { perfis, type TipoUsuario } from "../constants/perfis";
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { mascaraCpf } from "../utils/validators";
@@ -11,7 +12,7 @@ export function CadastroUsuario({ onUserCreated, tipoUsuarioLogado }: { onUserCr
   const [email, setEmail] = useState("");
   const [cpf, setCpf] = useState("");
   const [senha, setSenha] = useState("");
-  const [tipoUsuario, setTipoUsuario] = useState("Paciente");
+  const [tipoUsuario, setTipoUsuario] = useState<TipoUsuario>(perfis.paciente);
   const [crm, setCrm] = useState("");
   const [ufCrm, setUfCrm] = useState("");
   const [temProblemaMemoria, setTemProblemaMemoria] = useState(false);
@@ -21,13 +22,13 @@ export function CadastroUsuario({ onUserCreated, tipoUsuarioLogado }: { onUserCr
   const toast = useToast();
 
   const todasOpcoesPerfil = [
-    { id: 'Paciente', nome: 'Paciente' },
-    { id: 'Enfermeira', nome: 'Enfermeira' },
-    { id: 'Medico', nome: 'Médico' },
+    { id: perfis.paciente, nome: 'Paciente' },
+    { id: perfis.enfermeira, nome: 'Enfermeira' },
+    { id: perfis.medico, nome: 'Médico' },
   ];
 
-  const opcoesPerfil = tipoUsuarioLogado === 'Enfermeira'
-    ? todasOpcoesPerfil.filter(o => o.id === 'Paciente')
+  const opcoesPerfil = tipoUsuarioLogado === perfis.enfermeira
+    ? todasOpcoesPerfil.filter(o => o.id === perfis.paciente)
     : todasOpcoesPerfil;
 
 
@@ -38,7 +39,7 @@ export function CadastroUsuario({ onUserCreated, tipoUsuarioLogado }: { onUserCr
     setEmail("");
     setCpf("");
     setSenha("");
-    setTipoUsuario("Paciente");
+    setTipoUsuario(perfis.paciente);
     setCrm("");
     setUfCrm("");
     setTemProblemaMemoria(false);
@@ -63,9 +64,9 @@ export function CadastroUsuario({ onUserCreated, tipoUsuarioLogado }: { onUserCr
           cpf,
           senha,
           tipoUsuario,
-          crm: tipoUsuario === "Medico" ? crm : null,
-          ufCrm: tipoUsuario === "Medico" ? ufCrm : null,
-          temProblemaMemoria: tipoUsuario === "Paciente" ? temProblemaMemoria : false,
+          crm: tipoUsuario === perfis.medico ? crm : null,
+          ufCrm: tipoUsuario === perfis.medico ? ufCrm : null,
+          temProblemaMemoria: tipoUsuario === perfis.paciente ? temProblemaMemoria : false,
         }),
       });
 
@@ -195,7 +196,7 @@ export function CadastroUsuario({ onUserCreated, tipoUsuarioLogado }: { onUserCr
           )}
         </div>
 
-        {tipoUsuario === "Medico" && (
+        {tipoUsuario === perfis.medico && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5 bg-purple-50/50 p-5 rounded-2xl border border-purple-100">
             <div>
               <label className="block text-sm font-medium text-blue-800 mb-1">CRM (6 dígitos numéricos) *</label>
@@ -250,7 +251,7 @@ export function CadastroUsuario({ onUserCreated, tipoUsuarioLogado }: { onUserCr
           </div>
         )}
 
-        {tipoUsuario === "Paciente" && (
+        {tipoUsuario === perfis.paciente && (
           <div className="flex items-center gap-3 bg-purple-50/50 p-4 rounded-xl border border-purple-100">
             <input
               type="checkbox"

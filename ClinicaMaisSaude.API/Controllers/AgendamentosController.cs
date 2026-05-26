@@ -1,5 +1,6 @@
 using ClinicaMaisSaude.Application.DTOs.Agendamento;
 using ClinicaMaisSaude.Application.Interfaces;
+using ClinicaMaisSaude.Domain.Constants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System;
@@ -28,18 +29,18 @@ namespace ClinicaMaisSaude.API.Controllers
         {
             try
             {
-                var tipoUsuario = User.FindFirstValue("TipoUsuario") ?? User.FindFirstValue(ClaimTypes.Role);
-                var isAdmin = User.FindFirstValue("IsAdmin") == "true";
+                var tipoUsuario = User.FindFirstValue(ClinicaClaims.TipoUsuario) ?? User.FindFirstValue(ClaimTypes.Role);
+                var isAdmin = User.FindFirstValue(ClinicaClaims.IsAdmin) == "true";
 
                 // Bloqueia a criação por médicos, exceto o Admin
-                if (tipoUsuario == "Medico" && !isAdmin)
+                if (tipoUsuario == PerfisUsuario.Medico && !isAdmin)
                 {
                     return StatusCode(403, "Médicos não têm permissão para agendar consultas. Apenas Enfermeiras e Pacientes.");
                 }
 
-                if (tipoUsuario == "Paciente")
+                if (tipoUsuario == PerfisUsuario.Paciente)
                 {
-                    var pacienteIdToken = User.FindFirstValue("PacienteId");
+                    var pacienteIdToken = User.FindFirstValue(ClinicaClaims.PacienteId);
                     if (request.PacienteId != Guid.Parse(pacienteIdToken!))
                     {
                         return StatusCode(403, "Você não pode agendar consultas para outros pacientes.");
@@ -59,21 +60,21 @@ namespace ClinicaMaisSaude.API.Controllers
         [HttpGet]
         public async Task<IActionResult> ObterTodos([FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] string? busca = null, [FromQuery] string? data = null, [FromQuery] string? status = null, [FromQuery] bool riscoAltoApenas = false, [FromQuery] string ordem = "asc")
         {
-            var tipoUsuario = User.FindFirstValue("TipoUsuario") ?? User.FindFirstValue(ClaimTypes.Role);
-            var isAdmin = User.FindFirstValue("IsAdmin") == "true";
+            var tipoUsuario = User.FindFirstValue(ClinicaClaims.TipoUsuario) ?? User.FindFirstValue(ClaimTypes.Role);
+            var isAdmin = User.FindFirstValue(ClinicaClaims.IsAdmin) == "true";
 
             Guid? filtroProf = null;
             Guid? filtroPac = null;
 
-            if (!isAdmin && tipoUsuario == "Paciente")
+            if (!isAdmin && tipoUsuario == PerfisUsuario.Paciente)
             {
-                var pacienteIdStr = User.FindFirstValue("PacienteId");
+                var pacienteIdStr = User.FindFirstValue(ClinicaClaims.PacienteId);
                 if (Guid.TryParse(pacienteIdStr, out var pacienteId))
                     filtroPac = pacienteId;
             }
-            else if (!isAdmin && tipoUsuario == "Medico")
+            else if (!isAdmin && tipoUsuario == PerfisUsuario.Medico)
             {
-                var profissionalIdStr = User.FindFirstValue("ProfissionalId");
+                var profissionalIdStr = User.FindFirstValue(ClinicaClaims.ProfissionalId);
                 if (Guid.TryParse(profissionalIdStr, out var profissionalId))
                     filtroProf = profissionalId;
             }
@@ -113,7 +114,7 @@ namespace ClinicaMaisSaude.API.Controllers
             }
         }
 
-        [Authorize(Roles = "Medico,Enfermeira")]
+        [Authorize(Roles = PerfisUsuario.Medico + "," + PerfisUsuario.Enfermeira)]
         [HttpPut("{id}")]
         public async Task<IActionResult> AtualizarAgendamento(Guid id, [FromBody] AgendamentoRequest request)
         {
@@ -135,8 +136,8 @@ namespace ClinicaMaisSaude.API.Controllers
         {
             try
             {
-                var tipoUsuario = User.FindFirstValue("TipoUsuario") ?? User.FindFirstValue(ClaimTypes.Role);
-                if (tipoUsuario == "Paciente")
+                var tipoUsuario = User.FindFirstValue(ClinicaClaims.TipoUsuario) ?? User.FindFirstValue(ClaimTypes.Role);
+                if (tipoUsuario == PerfisUsuario.Paciente)
                 {
                     if (novoStatus != 6)
                     {
@@ -147,7 +148,7 @@ namespace ClinicaMaisSaude.API.Controllers
                     {
                         return NotFound("Agendamento não encontrado.");
                     }
-                    var pacienteIdToken = User.FindFirstValue("PacienteId");
+                    var pacienteIdToken = User.FindFirstValue(ClinicaClaims.PacienteId);
                     if (agendamento.PacienteId != Guid.Parse(pacienteIdToken!))
                     {
                         return StatusCode(403, "Você não pode cancelar consultas de outros pacientes.");
@@ -175,17 +176,17 @@ namespace ClinicaMaisSaude.API.Controllers
 
             try
             {
-                var isAdminClaim = User.Claims.FirstOrDefault(c => c.Type == "IsAdmin")?.Value;
-                var tipoUsuario = User.FindFirstValue("TipoUsuario") ?? User.FindFirstValue(ClaimTypes.Role);
+                var isAdminClaim = User.Claims.FirstOrDefault(c => c.Type == ClinicaClaims.IsAdmin)?.Value;
+                var tipoUsuario = User.FindFirstValue(ClinicaClaims.TipoUsuario) ?? User.FindFirstValue(ClaimTypes.Role);
 
-                if (isAdminClaim != "true" && tipoUsuario == "Paciente")
+                if (isAdminClaim != "true" && tipoUsuario == PerfisUsuario.Paciente)
                 {
                     var agendamento = await _agendamentoService.ObterPorIdAsync(id);
                     if (agendamento == null)
                     {
                         return NotFound("Agendamento não encontrado.");
                     }
-                    var pacienteIdToken = User.FindFirstValue("PacienteId");
+                    var pacienteIdToken = User.FindFirstValue(ClinicaClaims.PacienteId);
                     if (agendamento.PacienteId != Guid.Parse(pacienteIdToken!))
                     {
                         return StatusCode(403, "Você não pode remarcar consultas de outros pacientes.");
@@ -202,7 +203,7 @@ namespace ClinicaMaisSaude.API.Controllers
             }
         }
 
-        [Authorize(Roles = "Medico,Enfermeira")]
+        [Authorize(Roles = PerfisUsuario.Medico + "," + PerfisUsuario.Enfermeira)]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeletarAgendamento(Guid id)
         {
@@ -231,7 +232,7 @@ namespace ClinicaMaisSaude.API.Controllers
                 return BadRequest(new { Mensagem = ex.Message });
             }
         }
-        [Authorize(Roles = "Medico,Enfermeira")]
+        [Authorize(Roles = PerfisUsuario.Medico + "," + PerfisUsuario.Enfermeira)]
         [HttpPatch("{id}/concluir-exame")]
         public async Task<IActionResult> ConcluirExame(Guid id, [FromBody] bool exigeResultadoPosterior)
         {
@@ -247,7 +248,7 @@ namespace ClinicaMaisSaude.API.Controllers
             }
         }
 
-        [Authorize(Roles = "Medico,Enfermeira")]
+        [Authorize(Roles = PerfisUsuario.Medico + "," + PerfisUsuario.Enfermeira)]
         [HttpPatch("{id}/resultado-disponivel")]
         public async Task<IActionResult> MarcarResultadoDisponivel(Guid id)
         {
@@ -262,7 +263,7 @@ namespace ClinicaMaisSaude.API.Controllers
             }
         }
 
-        [Authorize(Roles = "Medico,Enfermeira")]
+        [Authorize(Roles = PerfisUsuario.Medico + "," + PerfisUsuario.Enfermeira)]
         [HttpPatch("{id}/resultado-retirado")]
         public async Task<IActionResult> MarcarResultadoRetirado(Guid id)
         {

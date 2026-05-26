@@ -1,4 +1,5 @@
 import { API_URL } from './constants/api';
+import { storageKeys } from './constants/storage';
 
 const originalFetch = window.fetch;
 let isRefreshing = false;
@@ -19,8 +20,8 @@ window.fetch = async (...args) => {
   let response = await originalFetch(...args);
 
   if (response.status === 401 && !args[0].toString().includes('/login') && !args[0].toString().includes('/refresh')) {
-    const token = localStorage.getItem("authToken");
-    const refreshToken = localStorage.getItem("refreshToken");
+    const token = localStorage.getItem(storageKeys.authToken);
+    const refreshToken = localStorage.getItem(storageKeys.refreshToken);
 
     if (token && refreshToken) {
       if (isRefreshing) {
@@ -49,8 +50,8 @@ window.fetch = async (...args) => {
 
         if (refreshResponse.ok) {
           const data = await refreshResponse.json();
-          localStorage.setItem("authToken", data.token);
-          localStorage.setItem("refreshToken", data.refreshToken);
+          localStorage.setItem(storageKeys.authToken, data.token);
+          localStorage.setItem(storageKeys.refreshToken, data.refreshToken);
           
           processQueue(null, data.token);
           if (args[1]) {
@@ -63,21 +64,21 @@ window.fetch = async (...args) => {
           response = await originalFetch(...args);
         } else {
           processQueue(new Error("Refresh failed"), null);
-          localStorage.removeItem("authToken");
-          localStorage.removeItem("refreshToken");
+          localStorage.removeItem(storageKeys.authToken);
+          localStorage.removeItem(storageKeys.refreshToken);
           window.location.reload();
         }
       } catch (e) {
         processQueue(e, null);
-        localStorage.removeItem("authToken");
-        localStorage.removeItem("refreshToken");
+        localStorage.removeItem(storageKeys.authToken);
+        localStorage.removeItem(storageKeys.refreshToken);
         window.location.reload();
       } finally {
         isRefreshing = false;
       }
     } else {
-        localStorage.removeItem("authToken");
-        localStorage.removeItem("refreshToken");
+        localStorage.removeItem(storageKeys.authToken);
+        localStorage.removeItem(storageKeys.refreshToken);
         window.location.reload();
     }
   }

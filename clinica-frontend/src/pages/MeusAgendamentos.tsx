@@ -1,4 +1,6 @@
 import { API_URL } from "../constants/api";
+import { storageKeys } from "../constants/storage";
+import { perfis } from "../constants/perfis";
 import { useEffect, useState } from "react";
 import { Calendar, Plus } from 'lucide-react';
 import AgendamentoFiltros from "../components/AgendamentoFiltros";
@@ -24,8 +26,8 @@ export default function MeusAgendamentos({ onNovoAgendamento, agendamentoDestaqu
   const [cancelarAlvo, setCancelarAlvo] = useState<{ id: string; nome: string } | null>(null);
   const [cancelando, setCancelando] = useState(false);
   const [alterarAlvo, setAlterarAlvo] = useState<any | null>(null);
-  const pacienteId = localStorage.getItem("pacienteId");
-  const token = localStorage.getItem("authToken");
+  const pacienteId = localStorage.getItem(storageKeys.pacienteId);
+  const token = localStorage.getItem(storageKeys.authToken);
 
   const STATUS_PADRAO = Object.keys(MapNomesStatus);
 
@@ -45,7 +47,7 @@ export default function MeusAgendamentos({ onNovoAgendamento, agendamentoDestaqu
   const carregarAgendamentos = async () => {
     setCarregando(true);
     try {
-      const res = await fetch(`${API_URL}/api/Agendamentos`, {
+      const res = await fetch(`${API_URL}/api/Agendamentos?pageSize=1000&ordem=${ordemData}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
@@ -90,7 +92,7 @@ export default function MeusAgendamentos({ onNovoAgendamento, agendamentoDestaqu
 
   useEffect(() => {
     carregarAgendamentos();
-  }, [pacienteId, token]);
+  }, [pacienteId, token, ordemData]);
 
   useEffect(() => {
     if (agendamentoDestaque) {
@@ -118,7 +120,7 @@ export default function MeusAgendamentos({ onNovoAgendamento, agendamentoDestaqu
     });
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in duration-700 pb-20 px-4 xl:px-0">
+    <div className="space-y-8 animate-in fade-in duration-700">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-black text-gray-900 tracking-tight">Meus Agendamentos</h1>
@@ -154,7 +156,7 @@ export default function MeusAgendamentos({ onNovoAgendamento, agendamentoDestaqu
             agendamentos={agendamentosFiltrados}
             modoExibicao={modoExibicao}
             ordemData={ordemData}
-            tipoUsuario="Paciente"
+            tipoUsuario={perfis.paciente}
             agendamentoDestaque={agendamentoDestaque}
             onCancelar={(id, nome) => setCancelarAlvo({ id, nome })}
             onRemarcar={(agenda) => setAlterarAlvo(agenda)}

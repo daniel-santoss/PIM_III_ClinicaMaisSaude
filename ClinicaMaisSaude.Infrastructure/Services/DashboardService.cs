@@ -103,27 +103,40 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             if (profId.HasValue)
                 queryAg = queryAg.Where(a => a.ProfissionalId == profId.Value);
 
-            var profIds = await queryAg.Select(a => a.ProfissionalId).Distinct().ToListAsync();
+            var agendamentos = await queryAg
+                .Select(a => new { a.EspecialidadeId, a.ProfissionalId })
+                .ToListAsync();
 
-            var agrupadoDb = await _db.ProfissionalEspecialidades
+            var profEspecialidades = await _db.ProfissionalEspecialidades
                 .AsNoTracking()
-                .Where(pe => profIds.Contains(pe.ProfissionalId))
-                .GroupBy(pe => pe.EspecialidadeId)
-                .Select(g => new
+                .Select(pe => new { pe.ProfissionalId, pe.EspecialidadeId })
+                .ToListAsync();
+
+            var profEspDict = profEspecialidades
+                .GroupBy(pe => pe.ProfissionalId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.Select(pe => pe.EspecialidadeId).FirstOrDefault()
+                );
+
+            var agrupado = agendamentos
+                .Select(a =>
                 {
-                    EspecialidadeId = g.Key,
+                    if (a.EspecialidadeId.HasValue)
+                        return (EspecialidadeMedica?)a.EspecialidadeId.Value;
+                    if (profEspDict.TryGetValue(a.ProfissionalId, out var esp))
+                        return esp;
+                    return null;
+                })
+                .Where(e => e.HasValue)
+                .GroupBy(e => e!.Value)
+                .Select(g => new EspecialidadeRankingDto
+                {
+                    Nome = FormatarNomeEspecialidade(g.Key),
                     Total = g.Count()
                 })
                 .OrderByDescending(x => x.Total)
                 .Take(10)
-                .ToListAsync();
-
-            var agrupado = agrupadoDb
-                .Select(x => new EspecialidadeRankingDto
-                {
-                    Nome = x.EspecialidadeId.ToString(),
-                    Total = x.Total
-                })
                 .ToList();
 
             return agrupado;
@@ -265,6 +278,29 @@ namespace ClinicaMaisSaude.Infrastructure.Services
         {
             return _mapaEspecialidades.TryGetValue(nome, out var val) ? val : null;
         }
+
+        private static string FormatarNomeEspecialidade(EspecialidadeMedica e) => e switch
+        {
+            EspecialidadeMedica.ClinicaGeral => "Clínica Geral",
+            EspecialidadeMedica.MedicinaDeFamilia => "Medicina de Família",
+            EspecialidadeMedica.Pediatria => "Pediatria",
+            EspecialidadeMedica.GinecologiaEObstetricia => "Ginecologia e Obstetrícia",
+            EspecialidadeMedica.Cardiologia => "Cardiologia",
+            EspecialidadeMedica.Dermatologia => "Dermatologia",
+            EspecialidadeMedica.Endocrinologia => "Endocrinologia",
+            EspecialidadeMedica.Gastroenterologia => "Gastroenterologia",
+            EspecialidadeMedica.Neurologia => "Neurologia",
+            EspecialidadeMedica.OrtopediaETraumatologia => "Ortopedia e Traumatologia",
+            EspecialidadeMedica.Psiquiatria => "Psiquiatria",
+            EspecialidadeMedica.Otorrinolaringologia => "Otorrinolaringologia",
+            EspecialidadeMedica.Oftalmologia => "Oftalmologia",
+            EspecialidadeMedica.Urologia => "Urologia",
+            EspecialidadeMedica.Pneumologia => "Pneumologia",
+            EspecialidadeMedica.Reumatologia => "Reumatologia",
+            EspecialidadeMedica.Geriatria => "Geriatria",
+            EspecialidadeMedica.MedicinaEsportiva => "Medicina Esportiva",
+            _ => e.ToString()
+        };
 
         private string MontarTextoFiltros(string[]? status, string[]? especialidades)
         {

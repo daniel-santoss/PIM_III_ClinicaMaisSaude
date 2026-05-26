@@ -1,6 +1,7 @@
 using ClinicaMaisSaude.Application.DTOs.Consulta;
 using ClinicaMaisSaude.Application.Interfaces;
 using ClinicaMaisSaude.Application.Exceptions;
+using ClinicaMaisSaude.Domain.Constants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -30,9 +31,9 @@ namespace ClinicaMaisSaude.API.Controllers
         {
             try
             {
-                var pacienteIdClaim = User.FindFirst("PacienteId")?.Value;
-                var tipoUsuario = User.FindFirst("TipoUsuario")?.Value;
-                var isAdmin = User.FindFirst("IsAdmin")?.Value?.ToLower() == "true";
+                var pacienteIdClaim = User.FindFirst(ClinicaClaims.PacienteId)?.Value;
+                var tipoUsuario = User.FindFirst(ClinicaClaims.TipoUsuario)?.Value;
+                var isAdmin = User.FindFirst(ClinicaClaims.IsAdmin)?.Value?.ToLower() == "true";
 
                 Guid? pId = null;
                 if (!string.IsNullOrEmpty(pacienteIdClaim) && Guid.TryParse(pacienteIdClaim, out var parsedId))
@@ -75,7 +76,7 @@ namespace ClinicaMaisSaude.API.Controllers
         [HttpGet("violacoes")]
         public async Task<IActionResult> GetViolacoes()
         {
-            var adminClaim = User.FindFirst("IsAdmin")?.Value;
+            var adminClaim = User.FindFirst(ClinicaClaims.IsAdmin)?.Value;
             if (adminClaim?.ToLower() != "true") return Forbid("Apenas administradores podem ver as violações.");
 
             var violacoes = await _consultaService.ObterViolacoesAsync();
@@ -85,7 +86,7 @@ namespace ClinicaMaisSaude.API.Controllers
         [HttpDelete("violacoes/{pacienteId}/penalidade")]
         public async Task<IActionResult> RemoverPenalidade(Guid pacienteId)
         {
-            var adminClaim = User.FindFirst("IsAdmin")?.Value;
+            var adminClaim = User.FindFirst(ClinicaClaims.IsAdmin)?.Value;
             if (adminClaim?.ToLower() != "true") return Forbid("Apenas administradores podem remover penalidades.");
 
             try
@@ -102,7 +103,7 @@ namespace ClinicaMaisSaude.API.Controllers
         [HttpGet("violacoes-debug")]
         public async Task<IActionResult> GetViolacoesDebug()
         {
-            var adminClaim = User.FindFirst("IsAdmin")?.Value;
+            var adminClaim = User.FindFirst(ClinicaClaims.IsAdmin)?.Value;
             if (adminClaim?.ToLower() != "true") return StatusCode(403, "Apenas administradores podem ver as violações.");
 
             var violacoes = await _consultaService.ObterViolacoesDebugAsync();

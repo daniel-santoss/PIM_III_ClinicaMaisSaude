@@ -1,11 +1,13 @@
+import { statusAgendamento } from "./status";
+
 export const MapNomesStatus: Record<string, string> = {
-  "Agendado": "Agendado",
-  "EmAtendimento": "Em Atendimento",
-  "AguardandoRetorno": "Aguardando Retorno",
-  "RetornoAgendado": "Retorno Agendado",
-  "Finalizado": "Finalizado",
-  "Faltou": "Faltou",
-  "Cancelado": "Cancelado"
+  [statusAgendamento.agendado]: "Agendado",
+  [statusAgendamento.emAtendimento]: "Em Atendimento",
+  [statusAgendamento.aguardandoRetorno]: "Aguardando Retorno",
+  [statusAgendamento.retornoAgendado]: "Retorno Agendado",
+  [statusAgendamento.finalizado]: "Finalizado",
+  [statusAgendamento.faltou]: "Faltou",
+  [statusAgendamento.cancelado]: "Cancelado"
 };
 
 export const MapNomesTipoConsulta: Record<string, string> = {

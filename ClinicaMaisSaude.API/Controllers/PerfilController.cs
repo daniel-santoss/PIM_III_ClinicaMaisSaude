@@ -1,5 +1,6 @@
 using ClinicaMaisSaude.Application.DTOs.Perfil;
 using ClinicaMaisSaude.Application.Interfaces;
+using ClinicaMaisSaude.Domain.Constants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -24,7 +25,7 @@ namespace ClinicaMaisSaude.API.Controllers
             var usuarioId = ObterUsuarioId();
             if (usuarioId == null) return Unauthorized();
 
-            var tipoUsuario = User.FindFirstValue("TipoUsuario") ?? User.FindFirstValue(ClaimTypes.Role);
+            var tipoUsuario = User.FindFirstValue(ClinicaClaims.TipoUsuario) ?? User.FindFirstValue(ClaimTypes.Role);
             var resultado = await _perfilService.ObterPerfilAsync(usuarioId.Value, tipoUsuario ?? "");
             if (resultado == null) return NotFound("Perfil não encontrado.");
             return Ok(resultado);
@@ -36,7 +37,7 @@ namespace ClinicaMaisSaude.API.Controllers
             var usuarioId = ObterUsuarioId();
             if (usuarioId == null) return Unauthorized();
 
-            var tipoUsuario = User.FindFirstValue("TipoUsuario") ?? User.FindFirstValue(ClaimTypes.Role);
+            var tipoUsuario = User.FindFirstValue(ClinicaClaims.TipoUsuario) ?? User.FindFirstValue(ClaimTypes.Role);
             var erro = await _perfilService.AtualizarPerfilAsync(usuarioId.Value, tipoUsuario ?? "", request.Nome, request.Email, request.Telefone);
             if (erro != null) return BadRequest(erro);
             return Ok(new { Mensagem = "Perfil atualizado com sucesso." });
@@ -82,7 +83,7 @@ namespace ClinicaMaisSaude.API.Controllers
 
         private Guid? ObterUsuarioId()
         {
-            var claim = User.FindFirstValue("UsuarioId") ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var claim = User.FindFirstValue(ClinicaClaims.UsuarioId) ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
             return Guid.TryParse(claim, out var id) ? id : null;
         }
     }

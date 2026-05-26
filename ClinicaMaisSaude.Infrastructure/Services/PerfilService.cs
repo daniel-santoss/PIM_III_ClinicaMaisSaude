@@ -1,4 +1,5 @@
 using ClinicaMaisSaude.Application.Interfaces;
+using ClinicaMaisSaude.Domain.Constants;
 using ClinicaMaisSaude.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -15,7 +16,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
 
         public async Task<object?> ObterPerfilAsync(Guid usuarioId, string tipoUsuario)
         {
-            if (tipoUsuario == "Paciente")
+            if (tipoUsuario == PerfisUsuario.Paciente)
             {
                 var paciente = await _context.Pacientes
                     .AsNoTracking()
@@ -23,7 +24,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                 if (paciente == null) return null;
 
                 var usuario = await _context.Usuarios.AsNoTracking().FirstOrDefaultAsync(u => u.Id == usuarioId);
-                return new { tipo = "Paciente", paciente.Nome, paciente.Email, paciente.Telefone, paciente.Cpf, FotoBase64 = usuario?.FotoBase64 };
+                return new { tipo = PerfisUsuario.Paciente, paciente.Nome, paciente.Email, paciente.Telefone, paciente.Cpf, FotoBase64 = usuario?.FotoBase64 };
             }
 
             var profissional = await _context.Profissionais
@@ -49,7 +50,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
 
         public async Task<string?> AtualizarPerfilAsync(Guid usuarioId, string tipoUsuario, string? nome, string? email, string? telefone)
         {
-            if (tipoUsuario == "Paciente")
+            if (tipoUsuario == PerfisUsuario.Paciente)
             {
                 var paciente = await _context.Pacientes.FirstOrDefaultAsync(p => p.UsuarioId == usuarioId);
                 if (paciente == null) return "Perfil de paciente não encontrado.";

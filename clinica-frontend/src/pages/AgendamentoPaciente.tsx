@@ -1,9 +1,9 @@
-import { API_URL, ADMIN_EMAIL, MAX_PROMPT_LENGTH } from "../constants/api";
+import { API_URL, ADMIN_EMAIL, MAX_PROMPT_LENGTH, CLINIC_PHONE } from "../constants/api";
 import { useEffect, useState } from "react";
 
 import { ESPECIALIDADES } from "../constants/especialidades";
 import { AlertCircle, Calendar, Zap, Check, AlertTriangle, Sliders, CheckCircle, Search, User, MessageSquare } from 'lucide-react';
-import { getRealDate } from '../utils/dates';
+import { getRealDate, obterMinDate } from '../utils/dates';
 import { useScrollBlock } from "../hooks/useScrollBlock";
 
 interface AgendamentoPacienteProps {
@@ -188,7 +188,11 @@ export default function AgendamentoPaciente({
       onLimparPrePreenchidos?.();
       if (onSucesso) setTimeout(onSucesso, 2000);
     } catch (err: any) {
-      setErro(err.message);
+      if (err.message.includes("60 dias") || err.message.includes("recente") || err.message.includes("Recente")) {
+        setModalMensagem(err.message);
+      } else {
+        setErro(err.message);
+      }
     } finally {
       setCarregando(false);
     }
@@ -240,24 +244,46 @@ export default function AgendamentoPaciente({
           </div>
         ))}
         {/* Modal Mensagem de Erro (Estilo Reaproveitado) */}
-      {modalMensagem && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-gray-900/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-sm p-8 text-center border border-purple-50">
-            <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <AlertTriangle className="w-8 h-8" />
+      {modalMensagem && (() => {
+        const is60DiasBlock = modalMensagem.includes("60 dias") || modalMensagem.includes("recente") || modalMensagem.includes("Recente");
+        return (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-gray-900/60 backdrop-blur-sm p-4">
+            <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-sm p-8 text-center border border-purple-50">
+              <div className="w-16 h-16 bg-purple-100 text-[#7C3AED] rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <AlertTriangle className="w-8 h-8" />
+              </div>
+              <h3 className="text-xl font-black text-gray-800 mb-2 uppercase tracking-tight">
+                {is60DiasBlock ? "Consulta Recente" : "Aviso"}
+              </h3>
+              <p className="text-gray-500 text-sm mb-6 font-medium leading-relaxed">
+                {modalMensagem}
+              </p>
+              {is60DiasBlock && (
+                <div className="bg-purple-50 border border-purple-100 rounded-2xl p-4 mb-6 text-left">
+                  <span className="text-[9px] font-black text-purple-600 uppercase tracking-widest block mb-1">Como proceder:</span>
+                  <p className="text-[11px] font-bold text-gray-700 leading-normal">
+                    Entre em contato com nossa recepção pelo telefone <strong className="text-[#7C3AED]">{CLINIC_PHONE}</strong> e solicite o agendamento informando o <strong className="text-gray-800">motivo da consulta</strong> para a atendente ou enfermeira de plantão.
+                  </p>
+                </div>
+              )}
+              <button 
+                className="w-full bg-[#7C3AED] text-white font-black py-4 rounded-2xl uppercase tracking-widest text-[10px] shadow-lg shadow-purple-100 hover:scale-105 transition-all" 
+                onClick={() => setModalMensagem(null)}
+              >
+                Entendido
+              </button>
+              {!is60DiasBlock && (
+                <a 
+                  href={`mailto:${ADMIN_EMAIL}?subject=Solicita%C3%A7%C3%A3o%20de%20revis%C3%A3o%20de%20bloqueio%20-%20${localStorage.getItem("userName") || "[Seu Nome]"}`}
+                  className="w-full block mt-3 bg-gray-100 hover:bg-gray-200 text-gray-600 font-black py-4 rounded-2xl uppercase tracking-widest text-[10px] shadow-sm transition-colors"
+                >
+                  Acredito que isso é um erro
+                </a>
+              )}
             </div>
-            <h3 className="text-xl font-black text-gray-800 mb-2 uppercase tracking-tight">Aviso</h3>
-            <p className="text-gray-500 text-sm mb-8 font-medium leading-relaxed">{modalMensagem}</p>
-            <button className="w-full bg-[#7C3AED] text-white font-black py-4 rounded-2xl uppercase tracking-widest text-[10px] shadow-lg shadow-purple-100" onClick={() => setModalMensagem(null)}>Entendido</button>
-            <a 
-              href={`mailto:${ADMIN_EMAIL}?subject=Solicita%C3%A7%C3%A3o%20de%20revis%C3%A3o%20de%20bloqueio%20-%20${localStorage.getItem("userName") || "[Seu Nome]"}`}
-              className="w-full block mt-3 bg-gray-100 hover:bg-gray-200 text-gray-600 font-black py-4 rounded-2xl uppercase tracking-widest text-[10px] shadow-sm transition-colors"
-            >
-              Acredito que isso é um erro
-            </a>
           </div>
-        </div>
-      )}
+        );
+      })()}
       </div>
 
       <div className="bg-white rounded-2xl sm:rounded-[3rem] p-5 sm:p-8 lg:p-10 shadow-2xl shadow-purple-100/50 border border-purple-50">
@@ -496,7 +522,7 @@ export default function AgendamentoPaciente({
                 <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 ml-1">Data da Consulta</label>
                 <input
                   type="date"
-                  min={new Date().toISOString().split('T')[0]}
+                  min={obterMinDate()}
                   value={dataSelecionada}
                   onChange={(e) => {
                     if (isFimDeSemana(e.target.value)) {
@@ -635,9 +661,15 @@ export default function AgendamentoPaciente({
               </div>
             </div>
 
+            {erro && (
+              <div className="p-4 bg-red-50 border border-red-100 text-red-600 rounded-2xl text-[11px] font-black uppercase tracking-wider text-center animate-in fade-in duration-300">
+                {erro}
+              </div>
+            )}
+
             <div className="flex flex-col sm:flex-row justify-between gap-4 pt-4">
               <button
-                onClick={() => setPasso(3)}
+                onClick={() => { setErro(null); setPasso(3); }}
                 className="px-10 py-5 bg-gray-100 text-gray-400 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-gray-200 hover:text-gray-600 transition-all"
               >
                 Voltar e Alterar

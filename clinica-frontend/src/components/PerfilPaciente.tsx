@@ -5,12 +5,13 @@ import { Pencil } from "lucide-react";
 import { useScrollBlock } from "../hooks/useScrollBlock";
 import { useToast } from "../hooks/useToast";
 import AvatarUpload from "./AvatarUpload";
+import { storageKeys } from "../constants/storage";
 
 export default function PerfilPaciente() {
   const [paciente, setPaciente] = useState<any>(null);
   const [carregando, setCarregando] = useState(true);
   const [modalExcluir, setModalExcluir] = useState(false);
-  const [fotoBase64, setFotoBase64] = useState<string | null>(localStorage.getItem("fotoBase64"));
+  const [fotoBase64, setFotoBase64] = useState<string | null>(localStorage.getItem(storageKeys.fotoBase64));
   const toast = useToast();
 
   const [editMode, setEditMode] = useState(false);
@@ -26,8 +27,8 @@ export default function PerfilPaciente() {
   });
   const [salvando, setSalvando] = useState(false);
 
-  const pacienteId = localStorage.getItem("pacienteId");
-  const token = localStorage.getItem("authToken");
+  const pacienteId = localStorage.getItem(storageKeys.pacienteId);
+  const token = localStorage.getItem(storageKeys.authToken);
 
   useScrollBlock(!!(modalExcluir || editMode || editSenha));
 
@@ -41,7 +42,7 @@ export default function PerfilPaciente() {
         setPaciente(dados);
         if (dados.fotoBase64) {
           setFotoBase64(dados.fotoBase64);
-          localStorage.setItem("fotoBase64", dados.fotoBase64);
+          localStorage.setItem(storageKeys.fotoBase64, dados.fotoBase64);
         }
         setEditData({
           nome: dados.nome,

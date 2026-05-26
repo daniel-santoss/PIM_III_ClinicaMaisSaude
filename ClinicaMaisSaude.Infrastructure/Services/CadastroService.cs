@@ -2,6 +2,7 @@ using ClinicaMaisSaude.Application.DTOs.Auth;
 using ClinicaMaisSaude.Application.Interfaces;
 using ClinicaMaisSaude.Domain.Entities;
 using ClinicaMaisSaude.Domain.Enums;
+using ClinicaMaisSaude.Domain.Constants;
 using ClinicaMaisSaude.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -39,7 +40,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             }
 
             // Validação de CRM obrigatório para Médicos
-            if (request.TipoUsuario == "Medico")
+            if (request.TipoUsuario == PerfisUsuario.Medico)
             {
                 if (string.IsNullOrWhiteSpace(request.Crm) || request.Crm.Length != 6 || !request.Crm.All(char.IsDigit))
                 {
@@ -59,15 +60,15 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             _context.Usuarios.Add(novoUsuario);
 
             // Criação do perfil associado
-            if (request.TipoUsuario == "Paciente")
+            if (request.TipoUsuario == PerfisUsuario.Paciente)
             {
                 var paciente = new Paciente(request.Nome, cpfLimpo, "00000000000", request.Email, request.TemProblemaMemoria);
                 paciente.VincularUsuario(novoUsuario.Id);
                 _context.Pacientes.Add(paciente);
             }
-            else if (request.TipoUsuario == "Medico" || request.TipoUsuario == "Enfermeira")
+            else if (request.TipoUsuario == PerfisUsuario.Medico || request.TipoUsuario == PerfisUsuario.Enfermeira)
             {
-                var tipo = request.TipoUsuario == "Medico" ? TipoProfissional.Medico : TipoProfissional.Enfermeira;
+                var tipo = request.TipoUsuario == PerfisUsuario.Medico ? TipoProfissional.Medico : TipoProfissional.Enfermeira;
                 var profissional = new Profissional(novoUsuario.Id, tipo, request.Nome, request.Crm, request.UfCrm);
                 _context.Profissionais.Add(profissional);
             }
@@ -103,7 +104,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                 }
                 else if (pac != null)
                 {
-                    tipo = "Paciente";
+                    tipo = PerfisUsuario.Paciente;
                     nome = pac.Nome;
                 }
 

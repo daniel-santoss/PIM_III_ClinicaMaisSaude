@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { Camera, Loader2 } from "lucide-react";
 import { API_URL } from "../constants/api";
 import { useToast } from "../hooks/useToast";
+import { storageKeys } from "../constants/storage";
 
 interface AvatarUploadProps {
   /** Base64 atual (data:image/...;base64,...) ou null */
@@ -49,7 +50,7 @@ export default function AvatarUpload({
       const formData = new FormData();
       formData.append("foto", file);
 
-      const token = localStorage.getItem("authToken");
+      const token = localStorage.getItem(storageKeys.authToken);
       const res = await fetch(`${API_URL}/api/Perfil/foto`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
@@ -63,7 +64,7 @@ export default function AvatarUpload({
       }
 
       const data = await res.json();
-      localStorage.setItem("fotoBase64", data.fotoBase64);
+      localStorage.setItem(storageKeys.fotoBase64, data.fotoBase64);
       onFotoAtualizada?.(data.fotoBase64);
       toast.success("Foto de perfil atualizada!");
     } catch {

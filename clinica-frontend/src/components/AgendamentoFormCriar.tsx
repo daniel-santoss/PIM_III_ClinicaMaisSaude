@@ -6,6 +6,9 @@ import type { PacienteResponse } from "../types/PacienteResponse";
 import { X, Lightbulb, AlertTriangle, Search } from 'lucide-react';
 import { useScrollBlock } from "../hooks/useScrollBlock";
 import { useToast } from "../hooks/useToast";
+import { perfis } from "../constants/perfis";
+import { statusAgendamento } from "../constants/status";
+import { storageKeys } from "../constants/storage";
 
 interface AgendamentoFormCriarProps {
   onFechar: () => void;
@@ -57,7 +60,7 @@ export default function AgendamentoFormCriar({
 
   useEffect(() => {
     if (tipoProfissional === 1 && listaEspecialidades.length === 0) {
-      const token = localStorage.getItem("authToken");
+      const token = localStorage.getItem(storageKeys.authToken);
       fetch(`${API_URL}/api/Especialidades/lista`, { headers: { Authorization: `Bearer ${token}` } })
         .then(r => r.ok ? r.json() : [])
         .then(setListaEspecialidades)
@@ -79,7 +82,7 @@ export default function AgendamentoFormCriar({
       }
       setCarregandoHorarios(true);
       try {
-        const token = localStorage.getItem("authToken");
+        const token = localStorage.getItem(storageKeys.authToken);
         let queryParams = `?data=${dataSelecionada}&tipoConsulta=${tipoConsulta}`;
         if (tipoConsulta === 3 && especialidadeId) {
           queryParams += `&especialidadeId=${especialidadeId}`;
@@ -107,8 +110,8 @@ export default function AgendamentoFormCriar({
     if (!pacienteSelecionado || tipoConsulta !== 4) return;
     const fetchRetornos = async () => {
       try {
-        const token = localStorage.getItem("authToken");
-        const res = await fetch(`${API_URL}/api/Agendamentos?pacienteId=${pacienteSelecionado}&status=AguardandoRetorno`, {
+        const token = localStorage.getItem(storageKeys.authToken);
+        const res = await fetch(`${API_URL}/api/Agendamentos?pacienteId=${pacienteSelecionado}&status=${statusAgendamento.aguardandoRetorno}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (res.ok) {
@@ -125,14 +128,14 @@ export default function AgendamentoFormCriar({
     setBuscandoPacientes(true);
     setMostrarListaPacientes(false);
     try {
-      const token = localStorage.getItem("authToken");
+      const token = localStorage.getItem(storageKeys.authToken);
       const response = await fetch(`${API_URL}/api/Pacientes?nome=${encodeURIComponent(buscaPaciente)}&pageSize=10`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (response.ok) {
         const data = await response.json();
         const pacs = data.items || data;
-        setPacientesLista(pacs.filter((p: any) => p.tipo === "Paciente" && !p.isBanidoPermanente));
+        setPacientesLista(pacs.filter((p: any) => p.tipo === perfis.paciente && !p.isBanidoPermanente));
         setTotalPacientesBusca(data.totalCount || pacs.length);
         setMostrarListaPacientes(true);
       } else {
@@ -164,7 +167,7 @@ export default function AgendamentoFormCriar({
     setCriando(true);
 
     try {
-      const token = localStorage.getItem("authToken");
+      const token = localStorage.getItem(storageKeys.authToken);
       const response = await fetch(`${API_URL}/api/Agendamentos`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
@@ -261,7 +264,7 @@ export default function AgendamentoFormCriar({
                   onClick={async () => {
                     setCarregandoIA(true); setSugestaoIA(null);
                     try {
-                      const token = localStorage.getItem("authToken");
+                      const token = localStorage.getItem(storageKeys.authToken);
                       const res = await fetch(`${API_URL}/api/Consultas/sugerir-tipo`, {
                         method: "POST",
                         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -275,7 +278,7 @@ export default function AgendamentoFormCriar({
                         }
                         setSugestaoIA(dados);
                         // Auto-preencher
-                        if (dados.tipoProfissional === "Medico") { setTipoProfissional(1); }
+                        if (dados.tipoProfissional === perfis.medico) { setTipoProfissional(1); }
                         else { setTipoProfissional(0); }
                         if (dados.tipoConsulta === "Triagem") setTipoConsulta(0);
                         else if (dados.tipoConsulta === "Exame") setTipoConsulta(1);
@@ -452,7 +455,7 @@ export default function AgendamentoFormCriar({
                 >
                   <option value="">Selecione a consulta anterior...</option>
                   {agendamentos
-                    .filter(a => a.pacienteId === pacienteSelecionado && a.status === "AguardandoRetorno")
+                    .filter(a => a.pacienteId === pacienteSelecionado && a.status === statusAgendamento.aguardandoRetorno)
                     .map(a => (
                       <option key={a.id} value={a.id}>
                         {getRealDate(a.dataHoraConsulta)!.toLocaleDateString('pt-BR')} - {a.tipoConsulta} ({a.nomeProfissional})
@@ -460,7 +463,7 @@ export default function AgendamentoFormCriar({
                     ))
                   }
                 </select>
-                {agendamentos.filter(a => a.pacienteId === pacienteSelecionado && a.status === "AguardandoRetorno").length === 0 && (
+                {agendamentos.filter(a => a.pacienteId === pacienteSelecionado && a.status === statusAgendamento.aguardandoRetorno).length === 0 && (
                   <p className="mt-2 text-[10px] text-red-400 font-bold ml-1 uppercase tracking-tighter">Nenhuma consulta pendente de retorno para este paciente.</p>
                 )}
               </div>

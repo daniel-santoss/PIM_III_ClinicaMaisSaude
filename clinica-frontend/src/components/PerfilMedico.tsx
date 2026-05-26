@@ -6,6 +6,8 @@ import { X, Pencil } from 'lucide-react';
 import { useScrollBlock } from "../hooks/useScrollBlock";
 import { useToast } from "../hooks/useToast";
 import AvatarUpload from "./AvatarUpload";
+import { storageKeys } from "../constants/storage";
+import { perfis } from "../constants/perfis";
 
 export default function PerfilMedico() {
   const [medico, setMedico] = useState<any>(null);
@@ -14,7 +16,7 @@ export default function PerfilMedico() {
   const [especialidades, setEspecialidades] = useState<{ id: number, nome: string }[]>([]);
   const [salvando, setSalvando] = useState(false);
   const [focado, setFocado] = useState(false);
-  const [fotoBase64, setFotoBase64] = useState<string | null>(localStorage.getItem("fotoBase64"));
+  const [fotoBase64, setFotoBase64] = useState<string | null>(localStorage.getItem(storageKeys.fotoBase64));
 
   const [editMode, setEditMode] = useState(false);
   const [editSenha, setEditSenha] = useState(false);
@@ -28,9 +30,9 @@ export default function PerfilMedico() {
   const [salvandoPerfil, setSalvandoPerfil] = useState(false);
   const toast = useToast();
 
-  const profissionalId = localStorage.getItem("profissionalId");
-  const token = localStorage.getItem("authToken");
-  const isEnfermeira = localStorage.getItem("tipoUsuario") === "Enfermeira";
+  const profissionalId = localStorage.getItem(storageKeys.profissionalId);
+  const token = localStorage.getItem(storageKeys.authToken);
+  const isEnfermeira = localStorage.getItem(storageKeys.tipoUsuario) === perfis.enfermeira;
 
   useScrollBlock(!!(editMode || editSenha));
 
@@ -45,7 +47,7 @@ export default function PerfilMedico() {
         setMedico(dados);
         if (dados.fotoBase64) {
           setFotoBase64(dados.fotoBase64);
-          localStorage.setItem("fotoBase64", dados.fotoBase64);
+          localStorage.setItem(storageKeys.fotoBase64, dados.fotoBase64);
         }
         setFormEdit(f => ({ ...f, nome: dados.nome || "", email: dados.email || "" }));
       }

@@ -1,4 +1,6 @@
 import { API_URL } from "../constants/api";
+import { storageKeys } from "../constants/storage";
+import { perfis, type TipoUsuario } from "../constants/perfis";
 import { useEffect, useState } from "react";
 import { mascaraCpf, mascaraTelefone } from "../utils/validators";
 import { AlertCircle, Users, Clock, Search, Filter, RefreshCw, Inbox, Pencil, Key, Trash, Check, Copy, X } from 'lucide-react';
@@ -33,7 +35,7 @@ export default function PacienteList({
 
   const [buscaNome, setBuscaNome] = useState("");
   const [buscaCpf, setBuscaCpf] = useState("");
-  const [perfisSelecionados, setPerfisSelecionados] = useState<string[]>(["Paciente", "Medico", "Enfermeira"]);
+  const [perfisSelecionados, setPerfisSelecionados] = useState<TipoUsuario[]>([perfis.paciente, perfis.medico, perfis.enfermeira]);
   const [menuFiltroAberto, setMenuFiltroAberto] = useState(false);
   const [copiado, setCopiado] = useState(false);
   const toast = useToast();
@@ -41,7 +43,7 @@ export default function PacienteList({
   const limparFiltros = () => {
     setBuscaNome("");
     setBuscaCpf("");
-    setPerfisSelecionados(["Paciente", "Medico", "Enfermeira"]);
+    setPerfisSelecionados([perfis.paciente, perfis.medico, perfis.enfermeira]);
   };
 
   const [editandoId, setEditandoId] = useState<string | null>(null);
@@ -57,8 +59,8 @@ export default function PacienteList({
   const [resetLoading, setResetLoading] = useState(false);
   const [resetMensagem, setResetMensagem] = useState<{ texto: string; erro: boolean } | null>(null);
 
-  const isAdmin = localStorage.getItem("isAdmin") === "true";
-  const isEnfermeira = localStorage.getItem("tipoUsuario") === "Enfermeira";
+  const isAdmin = localStorage.getItem(storageKeys.isAdmin) === "true";
+  const isEnfermeira = localStorage.getItem(storageKeys.tipoUsuario) === perfis.enfermeira;
 
   useScrollBlock(!!(editandoId || pacienteReset));
 
@@ -88,7 +90,7 @@ export default function PacienteList({
       const queryString = params.toString();
       const url = `${API_URL}/api/Pacientes${queryString ? `?${queryString}` : ""}`;
 
-      const token = localStorage.getItem("authToken");
+      const token = localStorage.getItem(storageKeys.authToken);
       
       fetch(url, { headers: { 'Authorization': `Bearer ${token}` } })
         .then(r => {
@@ -139,7 +141,7 @@ export default function PacienteList({
     if (!editandoId) return;
     setSalvando(true);
     try {
-      const token = localStorage.getItem("authToken");
+      const token = localStorage.getItem(storageKeys.authToken);
       const response = await fetch(`${API_URL}/api/Pacientes/${editandoId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
@@ -171,7 +173,7 @@ export default function PacienteList({
     if (!excluindoPaciente) return;
     setExcluindoLoader(true);
     try {
-      const token = localStorage.getItem("authToken");
+      const token = localStorage.getItem(storageKeys.authToken);
       const response = await fetch(`${API_URL}/api/Pacientes/${excluindoPaciente.id}`, {
         method: "DELETE",
         headers: { "Authorization": `Bearer ${token}` }
@@ -196,7 +198,7 @@ export default function PacienteList({
     setResetLoading(true);
     setResetMensagem(null);
     try {
-      const token = localStorage.getItem("authToken");
+      const token = localStorage.getItem(storageKeys.authToken);
       const response = await fetch(`${API_URL}/api/LoginPortal/${pacienteReset.usuarioId}/reset-senha`, {
         method: "PATCH",
         headers: {
@@ -240,9 +242,9 @@ export default function PacienteList({
     return <p className="text-center text-red-500 py-8">{erro}</p>;
   }
 
-  const totalPacientes = pacientes.filter(p => p.tipo === "Paciente").length;
-  const totalMedicos = pacientes.filter(p => p.tipo === "Medico").length;
-  const totalEnfermeiras = pacientes.filter(p => p.tipo === "Enfermeira").length;
+  const totalPacientes = pacientes.filter(p => p.tipo === perfis.paciente).length;
+  const totalMedicos = pacientes.filter(p => p.tipo === perfis.medico).length;
+  const totalEnfermeiras = pacientes.filter(p => p.tipo === perfis.enfermeira).length;
 
   
   const sessentaDiasAtras = new Date();
@@ -255,7 +257,7 @@ export default function PacienteList({
 
 
   const pacientesInativos = pacientes.filter(p => {
-    if (p.tipo !== "Paciente") return false;
+    if (p.tipo !== perfis.paciente) return false;
     const data = getRealDate(p.ultimoAcesso);
     return !data || data < sessentaDiasAtras;
   });
@@ -346,7 +348,7 @@ export default function PacienteList({
                       <div className="px-4 py-1 mb-2 border-b border-gray-50">
                         <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Filtrar Categoria</span>
                       </div>
-                      {["Paciente", "Medico", "Enfermeira"].map((perfil) => (
+                      {[perfis.paciente, perfis.medico, perfis.enfermeira].map((perfil) => (
                         <label key={perfil} className="flex items-center gap-3 px-4 py-2.5 hover:bg-purple-50 cursor-pointer transition-colors group">
                           <input
                             type="checkbox"
@@ -358,7 +360,7 @@ export default function PacienteList({
                             }}
                           />
                           <span className="text-sm font-bold text-gray-600 group-hover:text-purple-700">
-                            {perfil === "Medico" ? "Médico" : perfil}
+                            {perfil === perfis.medico ? "Médico" : perfil}
                           </span>
                         </label>
                       ))}
@@ -425,7 +427,7 @@ export default function PacienteList({
                     </td>
                   </tr>
                 ))
-              ) : pacientes.filter(p => perfisSelecionados.includes(p.tipo)).length === 0 ? (
+              ) : pacientes.filter(p => perfisSelecionados.includes(p.tipo as TipoUsuario)).length === 0 ? (
                   <tr>
                     <td colSpan={5} className="px-6 py-20 text-center">
                       <div className="flex flex-col items-center gap-2 opacity-30">
@@ -436,7 +438,7 @@ export default function PacienteList({
                   </tr>
                 ) : (
                   pacientes
-                    .filter(p => perfisSelecionados.includes(p.tipo))
+                    .filter(p => perfisSelecionados.includes(p.tipo as TipoUsuario))
                     .map((p) => (
                     <tr key={p.id} className="group hover:bg-purple-50/30 transition-colors">
                       {/* Avatar + Nome */}
@@ -462,16 +464,16 @@ export default function PacienteList({
                       {/* Perfil Badge */}
                       <td className="px-6 py-4 hidden md:table-cell">
                         <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider border ${
-                          p.tipo === 'Paciente' ? 'bg-green-50 text-green-600 border-green-100' : 
-                          p.tipo === 'Medico' ? 'bg-purple-50 text-purple-600 border-purple-100' : 
+                          p.tipo === perfis.paciente ? 'bg-green-50 text-green-600 border-green-100' : 
+                          p.tipo === perfis.medico ? 'bg-purple-50 text-purple-600 border-purple-100' : 
                           'bg-blue-50 text-blue-600 border-blue-100'
                         }`}>
                           <span className={`w-1.5 h-1.5 rounded-full ${
-                             p.tipo === 'Paciente' ? 'bg-green-500' : 
-                             p.tipo === 'Medico' ? 'bg-purple-500' : 
+                             p.tipo === perfis.paciente ? 'bg-green-500' : 
+                             p.tipo === perfis.medico ? 'bg-purple-500' : 
                              'bg-blue-500'
                           }`}></span>
-                          {p.tipo === 'Medico' ? 'Médico' : p.tipo}
+                          {p.tipo === perfis.medico ? 'Médico' : p.tipo}
                         </span>
                       </td>
 

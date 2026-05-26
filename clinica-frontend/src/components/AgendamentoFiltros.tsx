@@ -154,7 +154,7 @@ export default function AgendamentoFiltros({
                   ? "bg-[#7C3AED] text-white shadow-md shadow-purple-200/40"
                   : "text-gray-500 hover:text-[#7C3AED] hover:bg-white/50"
               }`}
-              title="Visualização em Agenda"
+              title="Visualização em Card"
             >
               <CalendarDays className="w-4 h-4" />
               <span className="hidden xs:inline">Agenda</span>

@@ -2,6 +2,7 @@ using ClinicaMaisSaude.Application.DTOs.Dashboard;
 using ClinicaMaisSaude.Application.Interfaces;
 using ClinicaMaisSaude.Domain.Entities;
 using ClinicaMaisSaude.Domain.Enums;
+using ClinicaMaisSaude.Domain.Constants;
 using ClinicaMaisSaude.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -10,7 +11,7 @@ using System.Security.Claims;
 
 namespace ClinicaMaisSaude.API.Controllers
 {
-    [Authorize(Roles = "Medico,Enfermeira")]
+    [Authorize(Roles = PerfisUsuario.Medico + "," + PerfisUsuario.Enfermeira)]
     [ApiController]
     [Route("api/[controller]")]
     public class DashboardController : ControllerBase
@@ -24,11 +25,11 @@ namespace ClinicaMaisSaude.API.Controllers
 
         private (bool isAdmin, Guid? profissionalId) ObterContextoUsuario()
         {
-            var isAdmin = User.FindFirstValue("IsAdmin") == "true";
+            var isAdmin = User.FindFirstValue(ClinicaClaims.IsAdmin) == "true";
             Guid? profId = null;
             if (!isAdmin)
             {
-                var profIdStr = User.FindFirstValue("ProfissionalId");
+                var profIdStr = User.FindFirstValue(ClinicaClaims.ProfissionalId);
                 if (Guid.TryParse(profIdStr, out var parsed))
                     profId = parsed;
             }

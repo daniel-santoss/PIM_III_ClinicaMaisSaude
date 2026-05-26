@@ -1,5 +1,7 @@
 import { X, CalendarDays } from 'lucide-react';
 import { CLINIC_NAME, API_URL } from "./constants/api";
+import { perfis } from "./constants/perfis";
+import { storageKeys } from "./constants/storage";
 import { useState, useEffect } from "react";
 import AppLayout from "./components/AppLayout";
 import PacienteList from "./pages/PacienteList";
@@ -52,7 +54,7 @@ export default function App() {
   const [canceladosExpandido, setCanceladosExpandido] = useState(true);
 
   const mapTipoProfissional = (tipo: string) => {
-    return tipo === "Medico" || tipo === "Médico" ? 1 : 0;
+    return tipo === perfis.medico || tipo === "Médico" ? 1 : 0;
   };
 
   const mapTipoConsulta = (tipo: string) => {
@@ -83,7 +85,7 @@ export default function App() {
           .filter(id => !!id) as string[];
 
         const uniqueIds = Array.from(new Set(ids));
-        const token = localStorage.getItem('authToken');
+        const token = localStorage.getItem(storageKeys.authToken);
 
         const promessas = uniqueIds.map(async (id) => {
           try {
@@ -114,7 +116,7 @@ export default function App() {
   useEffect(() => {
     const handler = () => {
       localStorage.clear();
-      localStorage.setItem("violacaoDetectada", "true");
+      localStorage.setItem(storageKeys.violacaoDetectada, "true");
       setAutenticado(false);
       window.location.href = "/login";
     };
@@ -123,15 +125,15 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const token = localStorage.getItem("authToken");
-    const tipo = localStorage.getItem("tipoUsuario");
-    const admin = localStorage.getItem("isAdmin") === "true";
+    const token = localStorage.getItem(storageKeys.authToken);
+    const tipo = localStorage.getItem(storageKeys.tipoUsuario);
+    const admin = localStorage.getItem(storageKeys.isAdmin) === "true";
     
     if (token) {
       setAutenticado(true);
-      setTipoUsuario(tipo || "Paciente");
+      setTipoUsuario(tipo || perfis.paciente);
       setIsAdmin(admin);
-      setAbaAtiva((tipo === "Paciente" || tipo === "Medico") ? "agendamentos" : "pacientes");
+      setAbaAtiva((tipo === perfis.paciente || tipo === perfis.medico) ? "agendamentos" : "pacientes");
       if (window.location.pathname === "/") {
         window.history.replaceState(null, "", "/app");
       }
@@ -140,7 +142,7 @@ export default function App() {
   }, []);
 
   const fetchNotificacoes = async () => {
-    const token = localStorage.getItem('authToken');
+    const token = localStorage.getItem(storageKeys.authToken);
     if (!token) return;
     try {
       const response = await fetch(`${API_URL}/api/Notificacoes`, {
@@ -168,7 +170,7 @@ export default function App() {
     try {
       const res = await fetch(`${API_URL}/api/Notificacoes/${id}/lida`, {
         method: "PATCH",
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` }
+        headers: { 'Authorization': `Bearer ${localStorage.getItem(storageKeys.authToken)}` }
       });
       if (res.ok) {
         setNotificacoes(prev => prev.map(n => n.id === id ? { ...n, lida: true } : n));
@@ -180,7 +182,7 @@ export default function App() {
     try {
       const res = await fetch(`${API_URL}/api/Notificacoes/${id}`, {
         method: "DELETE",
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` }
+        headers: { 'Authorization': `Bearer ${localStorage.getItem(storageKeys.authToken)}` }
       });
       if (res.ok) {
         setNotificacoes(prev => prev.filter(n => n.id !== id));
@@ -207,7 +209,7 @@ export default function App() {
         const id = params.get('id');
         if (id) {
           setAgendamentoDestaque(id);
-          if (tipoUsuario === 'Paciente') {
+          if (tipoUsuario === perfis.paciente) {
             setAbaAtiva('minhas-consultas');
           } else {
             setAbaAtiva('agendamentos');
@@ -218,7 +220,7 @@ export default function App() {
     } else if (n.agendamentoId) {
       // Fallback para notificações legadas sem a coluna Link
       setAgendamentoDestaque(n.agendamentoId);
-      if (tipoUsuario === 'Paciente') {
+      if (tipoUsuario === perfis.paciente) {
         setAbaAtiva('minhas-consultas');
       } else {
         setAbaAtiva('agendamentos');
@@ -228,12 +230,12 @@ export default function App() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("authToken");
-    localStorage.removeItem("tipoUsuario");
-    localStorage.removeItem("isAdmin");
-    localStorage.removeItem("pacienteId");
-    localStorage.removeItem("profissionalId");
-    localStorage.removeItem("fotoBase64");
+    localStorage.removeItem(storageKeys.authToken);
+    localStorage.removeItem(storageKeys.tipoUsuario);
+    localStorage.removeItem(storageKeys.isAdmin);
+    localStorage.removeItem(storageKeys.pacienteId);
+    localStorage.removeItem(storageKeys.profissionalId);
+    localStorage.removeItem(storageKeys.fotoBase64);
     setAutenticado(false);
     window.location.href = "/login"; // Força redirecionamento para o login ao sair
   };
@@ -288,11 +290,11 @@ export default function App() {
     return (
       <Login onLogado={() => {
         setAutenticado(true);
-        const tipo = localStorage.getItem("tipoUsuario");
-        const admin = localStorage.getItem("isAdmin") === "true";
-        setTipoUsuario(tipo || "Paciente");
+        const tipo = localStorage.getItem(storageKeys.tipoUsuario);
+        const admin = localStorage.getItem(storageKeys.isAdmin) === "true";
+        setTipoUsuario(tipo || perfis.paciente);
         setIsAdmin(admin);
-        setAbaAtiva((tipo === "Paciente" || tipo === "Medico") ? "agendamentos" : "pacientes");
+        setAbaAtiva((tipo === perfis.paciente || tipo === perfis.medico) ? "agendamentos" : "pacientes");
 
         if (window.location.pathname === "/" || window.location.pathname === "/login") {
            window.history.replaceState(null, "", "/app");
@@ -328,7 +330,7 @@ export default function App() {
       )}
 
       {/* ── Usuários / Pacientes ─────────────────────────────────────────── */}
-      {abaAtiva === "pacientes" && (tipoUsuario === "Enfermeira" || isAdmin) && (
+      {abaAtiva === "pacientes" && (tipoUsuario === perfis.enfermeira || isAdmin) && (
         <section aria-label="Gerenciamento de pacientes">
           <div style={{ marginBottom: 32 }}>
             <CadastroUsuario tipoUsuarioLogado={tipoUsuario} onUserCreated={() => setRecarregarUsuarios((prev) => prev + 1)} />
@@ -347,7 +349,7 @@ export default function App() {
       {/* ── Agendamentos ─────────────────────────────────────────────────── */}
       {abaAtiva === "agendamentos" && (
         <section aria-label="Gerenciamento de agendamentos">
-          {tipoUsuario === "Paciente" ? (
+          {tipoUsuario === perfis.paciente ? (
             <AgendamentoPaciente
               onSucesso={() => setAbaAtiva("minhas-consultas")}
               dadosPrePreenchidos={dadosReagendamentoPrePreenchidos}
@@ -360,14 +362,14 @@ export default function App() {
       )}
 
       {/* ── Minhas Consultas (Histórico do Paciente) ───────────────────────── */}
-      {abaAtiva === "minhas-consultas" && tipoUsuario === "Paciente" && (
+      {abaAtiva === "minhas-consultas" && tipoUsuario === perfis.paciente && (
         <section aria-label="Minhas consultas">
           <MeusAgendamentos onNovoAgendamento={() => setAbaAtiva("agendamentos")} agendamentoDestaque={agendamentoDestaque} />
         </section>
       )}
 
       {/* ── Relatórios ────────────────────────────────────────────────────── */}
-      {abaAtiva === "relatorios" && tipoUsuario !== "Paciente" && (
+      {abaAtiva === "relatorios" && tipoUsuario !== perfis.paciente && (
         <section aria-label="Relatórios">
           <Relatorios />
         </section>
@@ -399,7 +401,7 @@ export default function App() {
             {/* Conteúdo com scroll */}
             <div className="flex-1 overflow-y-auto custom-scrollbar scroll-smooth">
               <div className="p-4 pt-5 sm:p-8 sm:pt-10">
-                {tipoUsuario === "Medico" || tipoUsuario === "Enfermeira"
+                {tipoUsuario === perfis.medico || tipoUsuario === perfis.enfermeira
                   ? <PerfilMedico />
                   : <PerfilPaciente />
                 }
@@ -439,7 +441,7 @@ export default function App() {
                   <div>
                     <div className="h-px bg-indigo-100/70 my-4" />
                     <p className="text-indigo-600 text-xs font-bold leading-relaxed">
-                      {tipoUsuario === "Medico" || tipoUsuario === "Enfermeira"
+                      {tipoUsuario === perfis.medico || tipoUsuario === perfis.enfermeira
                         ? "O paciente associado a estes agendamentos foi banido de forma permanente. As consultas listadas foram canceladas pelo sistema automaticamente."
                         : "Nossa prioridade máxima é a sua saúde e a segurança operacional das consultas. Sugerimos agendar uma nova consulta em nosso painel de marcações."}
                     </p>
@@ -476,14 +478,14 @@ export default function App() {
                               <div key={a.id} className="p-4 bg-white rounded-xl border border-indigo-50 flex items-center justify-between gap-4 shadow-sm hover:border-indigo-100 transition-colors">
                                 <div className="flex-1 min-w-0">
                                   <h4 className="text-sm font-black text-gray-800 leading-snug line-clamp-1">
-                                    {tipoUsuario === "Medico" || tipoUsuario === "Enfermeira" ? `Paciente: ${a.pacienteNome}` : a.nomeProfissional}
+                                    {tipoUsuario === perfis.medico || tipoUsuario === perfis.enfermeira ? `Paciente: ${a.pacienteNome}` : a.nomeProfissional}
                                   </h4>
                                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tight mt-1">
                                     {a.tipoConsulta === "ConsultaMedica" && a.especialidade ? a.especialidade : a.tipoConsulta}
                                   </p>
                                   <p className="text-[10px] font-semibold text-indigo-600 mt-1">{dataStr}</p>
                                 </div>
-                                {!(tipoUsuario === "Medico" || tipoUsuario === "Enfermeira") && (
+                                {!(tipoUsuario === perfis.medico || tipoUsuario === perfis.enfermeira) && (
                                   <button
                                     onClick={() => {
                                       setDadosReagendamentoPrePreenchidos({

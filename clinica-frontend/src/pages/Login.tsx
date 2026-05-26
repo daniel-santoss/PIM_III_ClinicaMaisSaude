@@ -1,4 +1,5 @@
 import { API_URL, ADMIN_EMAIL, CLINIC_NAME, CLINIC_PHONE, CLINIC_ADDRESS } from "../constants/api";
+import { storageKeys } from "../constants/storage";
 import { useState } from "react";
 import { useScrollBlock } from "../hooks/useScrollBlock";
 import { isCpfValido, isEmailValido, mascaraCpf } from "../utils/validators";
@@ -17,7 +18,7 @@ export default function Login({ onLogado }: { onLogado: () => void }) {
   const [modalCadastro, setModalCadastro] = useState(false);
   const [isCpfMask, setIsCpfMask] = useState(false);
   const [modalPenalidadeRemovida, setModalPenalidadeRemovida] = useState(false);
-  const [violacaoDetectada, setViolacaoDetectada] = useState(() => localStorage.getItem("violacaoDetectada") === "true");
+  const [violacaoDetectada, setViolacaoDetectada] = useState(() => localStorage.getItem(storageKeys.violacaoDetectada) === "true");
   const toast = useToast();
 
   useScrollBlock(modalEsqueciSenha || modalCadastro || modalPenalidadeRemovida || violacaoDetectada);
@@ -66,15 +67,15 @@ export default function Login({ onLogado }: { onLogado: () => void }) {
       }
 
       const data = await response.json();
-      localStorage.setItem("authToken", data.token);
-      if (data.refreshToken) localStorage.setItem("refreshToken", data.refreshToken);
-      localStorage.setItem("tipoUsuario", data.tipoUsuario);
-      localStorage.setItem("isAdmin", data.isAdmin ? "true" : "false");
-      if (data.pacienteId) localStorage.setItem("pacienteId", data.pacienteId);
-      if (data.profissionalId) localStorage.setItem("profissionalId", data.profissionalId);
+      localStorage.setItem(storageKeys.authToken, data.token);
+      if (data.refreshToken) localStorage.setItem(storageKeys.refreshToken, data.refreshToken);
+      localStorage.setItem(storageKeys.tipoUsuario, data.tipoUsuario);
+      localStorage.setItem(storageKeys.isAdmin, data.isAdmin ? "true" : "false");
+      if (data.pacienteId) localStorage.setItem(storageKeys.pacienteId, data.pacienteId);
+      if (data.profissionalId) localStorage.setItem(storageKeys.profissionalId, data.profissionalId);
       const nomeSalvar = data.nome || data.Nome;
-      if (nomeSalvar) localStorage.setItem("nomeUsuario", nomeSalvar);
-      if (data.fotoBase64) localStorage.setItem("fotoBase64", data.fotoBase64);
+      if (nomeSalvar) localStorage.setItem(storageKeys.nomeUsuario, nomeSalvar);
+      if (data.fotoBase64) localStorage.setItem(storageKeys.fotoBase64, data.fotoBase64);
 
       if (data.penalidadeRemovida) {
         // Exibe modal antes de entrar; onLogado() será chamado ao fechar
@@ -364,7 +365,7 @@ export default function Login({ onLogado }: { onLogado: () => void }) {
             <button 
               className="w-full bg-red-600 hover:bg-red-700 text-white font-black py-5 rounded-2xl uppercase tracking-widest text-xs shadow-lg shadow-red-200 transition-colors cursor-pointer" 
               onClick={() => { 
-                localStorage.removeItem("violacaoDetectada"); 
+                localStorage.removeItem(storageKeys.violacaoDetectada); 
                 setViolacaoDetectada(false); 
               }}
             >
