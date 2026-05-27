@@ -32,8 +32,8 @@ namespace ClinicaMaisSaude.API.Controllers
                 var tipoUsuario = User.FindFirstValue(ClinicaClaims.TipoUsuario) ?? User.FindFirstValue(ClaimTypes.Role);
                 var isAdmin = User.FindFirstValue(ClinicaClaims.IsAdmin) == "true";
 
-                // Bloqueia a criação por médicos, exceto o Admin
-                if (tipoUsuario == PerfisUsuario.Medico && !isAdmin)
+                // Bloqueia a criação por médicos, exceto o Admin ou se for um agendamento de Retorno
+                if (tipoUsuario == PerfisUsuario.Medico && !isAdmin && request.TipoConsulta != (int)ClinicaMaisSaude.Domain.Enums.TipoConsulta.Retorno)
                 {
                     return StatusCode(403, "Médicos não têm permissão para agendar consultas. Apenas Enfermeiras e Pacientes.");
                 }

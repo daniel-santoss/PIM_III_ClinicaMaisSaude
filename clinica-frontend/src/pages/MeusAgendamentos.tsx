@@ -29,7 +29,12 @@ export default function MeusAgendamentos({ onNovoAgendamento, agendamentoDestaqu
   const pacienteId = localStorage.getItem(storageKeys.pacienteId);
   const token = localStorage.getItem(storageKeys.authToken);
 
-  const STATUS_PADRAO = Object.keys(MapNomesStatus);
+  const STATUS_PADRAO = [
+    "Agendado",
+    "EmAtendimento",
+    "AguardandoRetorno",
+    "RetornoAgendado"
+  ];
 
   const [filtroAgenda, setFiltroAgenda] = useState("");
   const [statusSelecionados, setStatusSelecionados] = useState<string[]>(STATUS_PADRAO);

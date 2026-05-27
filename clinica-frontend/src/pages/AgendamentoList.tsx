@@ -92,7 +92,12 @@ export default function AgendamentoList({ agendamentoDestaque }: { agendamentoDe
   useScrollBlock(!!pacienteDetalhesModal);
 
   const [filtroAgenda, setFiltroAgenda] = useState("");
-  const [statusSelecionados, setStatusSelecionados] = useState<string[]>(Object.keys(EnumStatusUrl));
+  const [statusSelecionados, setStatusSelecionados] = useState<string[]>([
+    statusAgendamento.agendado,
+    statusAgendamento.emAtendimento,
+    statusAgendamento.aguardandoRetorno,
+    statusAgendamento.retornoAgendado
+  ]);
   const [filtroDataConsulta, setFiltroDataConsulta] = useState(() => {
     const hojeObj = new Date();
     return `${hojeObj.getFullYear()}-${String(hojeObj.getMonth() + 1).padStart(2, '0')}-${String(hojeObj.getDate()).padStart(2, '0')}`;
@@ -109,7 +114,18 @@ export default function AgendamentoList({ agendamentoDestaque }: { agendamentoDe
   const [totalCount, setTotalCount] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
 
-  const limparFiltros = () => { setFiltroAgenda(""); setStatusSelecionados(Object.keys(EnumStatusUrl)); setFiltroDataConsulta(""); setFiltroRiscoApenas(false); setPage(1); };
+  const limparFiltros = () => {
+    setFiltroAgenda("");
+    setStatusSelecionados([
+      statusAgendamento.agendado,
+      statusAgendamento.emAtendimento,
+      statusAgendamento.aguardandoRetorno,
+      statusAgendamento.retornoAgendado
+    ]);
+    setFiltroDataConsulta("");
+    setFiltroRiscoApenas(false);
+    setPage(1);
+  };
 
   useEffect(() => { carregarDados(); }, [refreshContador, page, filtroAgenda, statusSelecionados, filtroDataConsulta, filtroRiscoApenas, ordemData]);
 

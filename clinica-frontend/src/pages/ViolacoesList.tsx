@@ -18,6 +18,7 @@ type Violacao = {
   dtCriado: string;
   penalidadeRemovidaAguardandoLogin: boolean;
   iaBloqueadaAte: string | null;
+  contaBloqueadaAte: string | null;
 };
 
 export default function ViolacoesList({ buscaInicial = "", onLimparBusca }: { buscaInicial?: string; onLimparBusca?: () => void }) {
@@ -70,7 +71,7 @@ export default function ViolacoesList({ buscaInicial = "", onLimparBusca }: { bu
       if (res.ok) {
         setViolacoes(prev => prev.map(v =>
           v.pacienteId === pacienteId
-            ? { ...v, penalidadeRemovidaAguardandoLogin: true, iaBloqueadaAte: null }
+            ? { ...v, penalidadeRemovidaAguardandoLogin: true, iaBloqueadaAte: null, contaBloqueadaAte: null }
             : v
         ));
         toast.success("Penalidade removida com sucesso.");
@@ -201,6 +202,10 @@ export default function ViolacoesList({ buscaInicial = "", onLimparBusca }: { bu
           <div className="grid grid-cols-1 gap-4">
             {violacoesFiltradas.map((v) => {
               const isGrave = v.tipoViolacao === "Injecao";
+              const agora = new Date();
+              const iaBloqueada = v.iaBloqueadaAte ? new Date(v.iaBloqueadaAte) > agora : false;
+              const contaBloqueada = v.contaBloqueadaAte ? new Date(v.contaBloqueadaAte) > agora : false;
+              const temPenalidadeAtiva = iaBloqueada || contaBloqueada;
               return (
                 <div
                   key={v.id}
@@ -249,7 +254,7 @@ export default function ViolacoesList({ buscaInicial = "", onLimparBusca }: { bu
 
                   {/* Botão */}
                   <div className="flex justify-end gap-2 pt-1">
-                    {v.penalidadeRemovidaAguardandoLogin ? (
+                    {v.penalidadeRemovidaAguardandoLogin || !temPenalidadeAtiva ? (
                       <span className="flex items-center gap-1.5 text-xs font-black text-green-600 bg-green-50 border border-green-200 px-4 py-2 rounded-xl">
                         <ShieldCheck className="w-4 h-4" />
                         PENALIDADE REMOVIDA

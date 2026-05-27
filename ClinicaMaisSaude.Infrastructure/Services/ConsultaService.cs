@@ -344,7 +344,8 @@ Formato:
                     a.TextoInserido,
                     a.DtCriado,
                     PenalidadeRemovidaAguardandoLogin = _context.Pacientes.Where(p => p.UsuarioId == a.UsuarioId).Select(p => p.PenalidadeRemovidaAvisar).FirstOrDefault(),
-                    IABloqueadaAte = _context.Pacientes.Where(p => p.UsuarioId == a.UsuarioId).Select(p => p.BloqueadoIAAte).FirstOrDefault()
+                    IABloqueadaAte = _context.Pacientes.Where(p => p.UsuarioId == a.UsuarioId).Select(p => p.BloqueadoIAAte).FirstOrDefault(),
+                    ContaBloqueadaAte = a.Usuario.BloqueadoAte
                 })
                 .OrderByDescending(a => a.DtCriado)
                 .ToListAsync();
