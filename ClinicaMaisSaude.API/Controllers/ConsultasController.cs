@@ -77,7 +77,7 @@ namespace ClinicaMaisSaude.API.Controllers
         public async Task<IActionResult> GetViolacoes()
         {
             var adminClaim = User.FindFirst(ClinicaClaims.IsAdmin)?.Value;
-            if (adminClaim?.ToLower() != "true") return Forbid("Apenas administradores podem ver as violações.");
+            if (adminClaim?.ToLower() != "true") return StatusCode(403, "Apenas administradores podem ver as violações.");
 
             var violacoes = await _consultaService.ObterViolacoesAsync();
             return Ok(violacoes);
@@ -87,7 +87,7 @@ namespace ClinicaMaisSaude.API.Controllers
         public async Task<IActionResult> RemoverPenalidade(Guid pacienteId)
         {
             var adminClaim = User.FindFirst(ClinicaClaims.IsAdmin)?.Value;
-            if (adminClaim?.ToLower() != "true") return Forbid("Apenas administradores podem remover penalidades.");
+            if (adminClaim?.ToLower() != "true") return StatusCode(403, "Apenas administradores podem remover penalidades.");
 
             try
             {

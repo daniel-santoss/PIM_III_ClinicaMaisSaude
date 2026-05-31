@@ -89,5 +89,26 @@ namespace ClinicaMaisSaude.API.Controllers
             return Ok(new { Mensagem = resultado.Mensagem });
         }
 
+        [HttpDelete("purge-tests")]
+        [Authorize]
+        public async Task<IActionResult> PurgeTests()
+        {
+            var isAdminClaim = User.Claims.FirstOrDefault(c => c.Type == ClinicaClaims.IsAdmin)?.Value;
+            if (isAdminClaim != "true")
+            {
+                return Forbid("Apenas administradores de sistemas podem purgar dados de homologação.");
+            }
+
+            try
+            {
+                await _cadastroService.PurgeTestsAsync();
+                return Ok(new { Mensagem = "Restauração completa de banco de dados (Pristine Purge) executada com sucesso!" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Erro ao purgar dados: {ex.Message}");
+            }
+        }
+
     }
 }

@@ -11,7 +11,7 @@ using System.Security.Claims;
 
 namespace ClinicaMaisSaude.API.Controllers
 {
-    [Authorize(Roles = PerfisUsuario.Medico + "," + PerfisUsuario.Enfermeira)]
+    [Authorize(Roles = PerfisUsuario.Medico + "," + PerfisUsuario.Enfermeira + "," + PerfisUsuario.Admin)]
     [ApiController]
     [Route("api/[controller]")]
     public class DashboardController : ControllerBase

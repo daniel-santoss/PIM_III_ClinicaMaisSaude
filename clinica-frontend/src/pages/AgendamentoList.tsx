@@ -96,7 +96,10 @@ export default function AgendamentoList({ agendamentoDestaque }: { agendamentoDe
     statusAgendamento.agendado,
     statusAgendamento.emAtendimento,
     statusAgendamento.aguardandoRetorno,
-    statusAgendamento.retornoAgendado
+    statusAgendamento.retornoAgendado,
+    statusAgendamento.finalizado,
+    statusAgendamento.faltou,
+    statusAgendamento.cancelado
   ]);
   const [filtroDataConsulta, setFiltroDataConsulta] = useState(() => {
     const hojeObj = new Date();
@@ -120,7 +123,10 @@ export default function AgendamentoList({ agendamentoDestaque }: { agendamentoDe
       statusAgendamento.agendado,
       statusAgendamento.emAtendimento,
       statusAgendamento.aguardandoRetorno,
-      statusAgendamento.retornoAgendado
+      statusAgendamento.retornoAgendado,
+      statusAgendamento.finalizado,
+      statusAgendamento.faltou,
+      statusAgendamento.cancelado
     ]);
     setFiltroDataConsulta("");
     setFiltroRiscoApenas(false);

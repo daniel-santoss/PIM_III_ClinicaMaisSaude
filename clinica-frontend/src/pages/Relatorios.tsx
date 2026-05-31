@@ -452,8 +452,9 @@ export default function Relatorios() {
                   <YAxis tick={{ fontSize: 11, fill: '#9CA3AF' }} allowDecimals={false} />
                   <Tooltip content={<CustomTooltip />} />
                   <Bar dataKey="valor" radius={[6, 6, 0, 0]} barSize={40}>
-                    <Cell fill="#10B981" />
-                    <Cell fill="#F59E0B" />
+                    {examesBarData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.nome === 'Liberados' ? '#10B981' : '#F59E0B'} />
+                    ))}
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>

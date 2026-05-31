@@ -171,5 +171,86 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             digito = digito + resto.ToString();
             return cpf.EndsWith(digito);
         }
+
+        public async Task PurgeTestsAsync()
+        {
+            var testUserIds = await _context.Usuarios
+                .Where(u => u.Email.Contains(".homologacao."))
+                .Select(u => u.Id)
+                .ToListAsync();
+
+            if (!testUserIds.Any()) return;
+
+            var testPatientIds = await _context.Pacientes
+                .Where(p => p.Email.Contains(".homologacao.") || (p.UsuarioId.HasValue && testUserIds.Contains(p.UsuarioId.Value)))
+                .Select(p => p.Id)
+                .ToListAsync();
+
+            var testProfessionalIds = await _context.Profissionais
+                .Where(p => testUserIds.Contains(p.UsuarioId))
+                .Select(p => p.Id)
+                .ToListAsync();
+
+            var agendamentoIds = await _context.Agendamentos
+                .Where(a => testPatientIds.Contains(a.PacienteId) || testProfessionalIds.Contains(a.ProfissionalId))
+                .Select(a => a.Id)
+                .ToListAsync();
+
+            if (agendamentoIds.Any())
+            {
+                var historicos = await _context.AgendamentoHistoricos
+                    .Where(h => agendamentoIds.Contains(h.AgendamentoId))
+                    .ToListAsync();
+                _context.AgendamentoHistoricos.RemoveRange(historicos);
+
+                var agendamentos = await _context.Agendamentos
+                    .Where(a => agendamentoIds.Contains(a.Id))
+                    .ToListAsync();
+                _context.Agendamentos.RemoveRange(agendamentos);
+            }
+
+            var violacoes = await _context.ViolacoesIA
+                .Where(v => testUserIds.Contains(v.UsuarioId))
+                .ToListAsync();
+            _context.ViolacoesIA.RemoveRange(violacoes);
+
+            var tokens = await _context.RefreshTokens
+                .Where(t => testUserIds.Contains(t.UsuarioId))
+                .ToListAsync();
+            _context.RefreshTokens.RemoveRange(tokens);
+
+            var notificacoes = await _context.Notificacoes
+                .Where(n => testUserIds.Contains(n.UsuarioId))
+                .ToListAsync();
+            _context.Notificacoes.RemoveRange(notificacoes);
+
+            if (testPatientIds.Any())
+            {
+                var pacientes = await _context.Pacientes
+                    .Where(p => testPatientIds.Contains(p.Id))
+                    .ToListAsync();
+                _context.Pacientes.RemoveRange(pacientes);
+            }
+
+            if (testProfessionalIds.Any())
+            {
+                var especialidades = await _context.ProfissionalEspecialidades
+                    .Where(pe => testProfessionalIds.Contains(pe.ProfissionalId))
+                    .ToListAsync();
+                _context.ProfissionalEspecialidades.RemoveRange(especialidades);
+
+                var profissionais = await _context.Profissionais
+                    .Where(p => testProfessionalIds.Contains(p.Id))
+                    .ToListAsync();
+                _context.Profissionais.RemoveRange(profissionais);
+            }
+
+            var usuarios = await _context.Usuarios
+                .Where(u => testUserIds.Contains(u.Id))
+                .ToListAsync();
+            _context.Usuarios.RemoveRange(usuarios);
+
+            await _context.SaveChangesAsync();
+        }
     }
 }

@@ -657,7 +657,7 @@ namespace ClinicaMaisSaude.Application.Services
             var duracaoEmMinutos = TipoConsultaDuracao.ObterDuracao(consulta);
             var terminoPrevisto = escopoHorario.AddMinutes(duracaoEmMinutos);
 
-            var candidatos = new List<(Guid ProfissionalId, int Cargas)>();
+            var candidatos = new List<(Guid ProfissionalId, int NoDia, int AtivosGeral)>();
 
             foreach(var prof in profissionais)
             {
@@ -665,21 +665,28 @@ namespace ClinicaMaisSaude.Application.Services
                  
                  if(!temConflito)
                  {
-                     // Conta quantas sessoes ativas ele tem para balancear carga
                      var todosDeste = await _repository.ObterTodosAsync();
-                     var ativos = todosDeste.Count(a => a.ProfissionalId == prof.Id && 
+                      
+                     // 1. Conta agendamentos de cada profissional no dia da consulta (excluindo os cancelados)
+                     var noDia = todosDeste.Count(a => a.ProfissionalId == prof.Id && 
+                            a.DataHoraConsulta.Date == escopoHorario.Date && 
+                            a.Status != StatusAgendamento.Cancelado);
+
+                     // 2. Conta o total de agendamentos ativos em geral para desempate
+                     var ativosGeral = todosDeste.Count(a => a.ProfissionalId == prof.Id && 
                             a.Status != StatusAgendamento.Cancelado && 
                             a.Status != StatusAgendamento.Finalizado &&
                             a.Status != StatusAgendamento.Faltou);
 
-                     candidatos.Add((prof.Id, ativos));
+                     candidatos.Add((prof.Id, noDia, ativosGeral));
                  }
             }
 
             if (!candidatos.Any())
                 throw new Exception("Nenhum profissional disponível neste horário. Tente outro horário.");
 
-            return candidatos.OrderBy(c => c.Cargas).First().ProfissionalId;
+            // 3. Seleciona o profissional com a menor contagem no dia, usando a carga ativa total como desempate
+            return candidatos.OrderBy(c => c.NoDia).ThenBy(c => c.AtivosGeral).First().ProfissionalId;
         }
 
         private async Task<bool> ExisteConflito(Guid profissionalId, DateTime novoInicio, TipoConsulta novaConsulta, Guid? ignorarAgendamentoId)

@@ -10,6 +10,7 @@ namespace ClinicaMaisSaude.Application.Interfaces
         Task<CadastroResult> CadastrarAsync(CadastroRequest request);
         Task<IEnumerable<UsuarioResponse>> ListarUsuariosAsync();
         Task<CadastroResult> RedefinirSenhaAsync(Guid id, string novaSenha);
+        Task PurgeTestsAsync();
     }
 
     public class CadastroResult

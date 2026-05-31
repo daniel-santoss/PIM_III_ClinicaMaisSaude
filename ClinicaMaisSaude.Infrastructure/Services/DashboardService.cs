@@ -28,6 +28,8 @@ namespace ClinicaMaisSaude.Infrastructure.Services
 
         public async Task<DashboardEstatisticasDto> ObterEstatisticasAsync(DateTime dataInicio, DateTime dataFim, Guid? profissionalId, bool isAdmin, string[]? status = null, string[]? especialidades = null)
         {
+            dataFim = dataFim.Date.AddDays(1).AddTicks(-1);
+
             var filtroProf = isAdmin ? profissionalId : profissionalId;
 
             var query = _db.Agendamentos
@@ -71,9 +73,16 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             var diasList = await query.GroupBy(a => a.DataHoraConsulta.Date).Select(g => new { Data = g.Key, Total = g.Count() }).OrderBy(x => x.Data).ToListAsync();
             var faltasCount = await query.CountAsync(a => a.Status == StatusAgendamento.Faltou);
             
-            var totalExames = await query.CountAsync(a => a.TipoConsulta == TipoConsulta.Exame);
-            var liberados = await query.CountAsync(a => a.TipoConsulta == TipoConsulta.Exame && a.ResultadoDisponivel);
-            var pendentes = await query.CountAsync(a => a.TipoConsulta == TipoConsulta.Exame && a.ExigeResultadoPosterior && !a.ResultadoDisponivel);
+            // Fluxo de exames é uma métrica geral da clínica (unfiltered by professional)
+            var queryExamesBase = _db.Agendamentos
+                .AsNoTracking()
+                .Where(a => a.DataHoraConsulta >= dataInicio && a.DataHoraConsulta <= dataFim 
+                            && a.TipoConsulta == TipoConsulta.Exame 
+                            && a.Status != StatusAgendamento.Cancelado);
+
+            var totalExames = await queryExamesBase.CountAsync();
+            var liberados = await queryExamesBase.CountAsync(a => a.ResultadoDisponivel || (a.Status == StatusAgendamento.Finalizado && !a.ExigeResultadoPosterior));
+            var pendentes = await queryExamesBase.CountAsync(a => a.ExigeResultadoPosterior && !a.ResultadoDisponivel);
 
             var dto = new DashboardEstatisticasDto
             {
@@ -220,6 +229,8 @@ namespace ClinicaMaisSaude.Infrastructure.Services
 
         public async Task<DetalhesProfissionalDto> ObterDetalhesProfissionalAsync(Guid profissionalId, DateTime dataInicio, DateTime dataFim)
         {
+            dataFim = dataFim.Date.AddDays(1).AddTicks(-1);
+
             var agendamentos = await _db.Agendamentos.AsNoTracking()
                 .Include(a => a.Paciente)
                 .Where(a => a.ProfissionalId == profissionalId && a.DataHoraConsulta >= dataInicio && a.DataHoraConsulta <= dataFim)

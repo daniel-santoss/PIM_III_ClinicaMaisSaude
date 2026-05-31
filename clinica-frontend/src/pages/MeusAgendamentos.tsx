@@ -33,7 +33,10 @@ export default function MeusAgendamentos({ onNovoAgendamento, agendamentoDestaqu
     "Agendado",
     "EmAtendimento",
     "AguardandoRetorno",
-    "RetornoAgendado"
+    "RetornoAgendado",
+    "Finalizado",
+    "Faltou",
+    "Cancelado"
   ];
 
   const [filtroAgenda, setFiltroAgenda] = useState("");
