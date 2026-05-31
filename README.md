@@ -1,12 +1,12 @@
 # 🏥 Clínica Mais Saúde — Sistema de Gestão Inteligente
 
-![Status](https://img.shields.io/badge/STATUS-EM%20DESENVOLVIMENTO-7C3AED?style=for-the-badge)
-![.NET](https://img.shields.io/badge/.NET-10-512BD4?style=for-the-badge&logo=dotnet&logoColor=white)
-![React](https://img.shields.io/badge/REACT-19-61DAFB?style=for-the-badge&logo=react&logoColor=white)
-![Google Gemini](https://img.shields.io/badge/AI-GEMINI%202.5%20FLASH-F15A24?style=for-the-badge&logo=google-gemini&logoColor=white)
-![Architecture](https://img.shields.io/badge/ARCHITECTURE-CLEAN%20ARCHITECTURE-A4C639?style=for-the-badge)
+![Status](https://img.shields.io/badge/STATUS-EM%20DESENVOLVIMENTO-7C3AED?style=for-the-badge&labelColor=4C1D95)<br>
+![.NET](https://img.shields.io/badge/.NET-10-512BD4?style=for-the-badge&logo=dotnet&logoColor=white&labelColor=31108F)
+![React](https://img.shields.io/badge/REACT-19-149ECA?style=for-the-badge&logo=react&logoColor=white&labelColor=0B4F6C)
+![Google Gemini](https://img.shields.io/badge/AI-GEMINI%202.5%20FLASH-F15A24?style=for-the-badge&logo=google-gemini&logoColor=white&labelColor=9A2E08)
+![Architecture](https://img.shields.io/badge/ARCHITECTURE-CLEAN%20ARCHITECTURE-A4C639?style=for-the-badge&labelColor=657B20)
 
-O **Clínica Mais Saúde** é uma solução corporativa de gestão clínica inteligente projetada para otimizar a rotina operacional de consultórios, clínicas e hospitais. Focado em alta usabilidade e eficiência, o sistema centraliza todas as etapas do ciclo de atendimento — da triagem inteligente do paciente até a geração de relatórios de desempenho —, resolvendo problemas históricos da gestão de saúde, como salas de espera lotadas, desorganização de agendas e absenteísmo médico.
+O **Clínica Mais Saúde** é uma solução corporativa de gestão clínica inteligente projetada para otimizar a rotina operacional de consultórios, clínicas e hospitais. Focado em alta usabilidade e eficiência, o sistema centraliza todas as etapas do ciclo de atendimento — da triagem inteligente do paciente até a geração de relatórios de desempenho —, resolvendo problemas históricos da gestão de saúde, como salas de espera lotadas, desorganização de agendas e ausência médico.
 
 ---
 
@@ -17,28 +17,42 @@ Permite que o paciente descreva livremente seus sintomas durante a marcação da
 
 Para garantir a estabilidade do sistema, o módulo conta com filtros avançados contra abusos: mensagens fora do contexto de saúde ou tentativas de burlar as regras de segurança disparam bloqueio automático da conta e cancelamento dos agendamentos vinculados, notificando imediatamente a administração. Um limite diário de uso por usuário garante o controle dos recursos computacionais.
 
-### 📊 Previsão Analítica de Faltas (Combate ao Absenteísmo)
-Estima automaticamente a chance de um paciente não comparecer a uma consulta agendada. O motor do sistema cruza o histórico comportamental do paciente — faltas anteriores, remarcações recorrentes, cancelamentos em cima da hora, antecedência do agendamento e necessidades especiais registradas — com sua taxa de assiduidade.
+---
+
+### 📊 Previsão Analítica de Faltas (em %)
+Estima automaticamente a chance de um paciente não comparecer a uma consulta agendada. O motor do sistema cruza o histórico comportamental do paciente — faltas anteriores, remarcações recorrentes, cancelamentos em cima da hora e necessidades especiais registradas — com sua taxa de assiduidade.
 
 A consulta é classificada em três categorias visuais de risco: **Baixo, Médio ou Alto**, capacitando a recepção a realizar confirmações ativas com antecedência nos agendamentos de maior risco.
 
+---
+
 ### 📅 Distribuição Dinâmica e Regras de Agendamento
-- **Balanceamento de Carga:** Novas consultas são direcionadas automaticamente ao profissional habilitado com menor quantidade de agendamentos no dia.
+- **Balanceamento de Carga:** Novas consultas são direcionadas automaticamente ao profissional habilitado com menor quantidade de agendamentos no dia. Em caso de empate na quantidade de agendamentos do dia, será utilizada a quantidade total de agendamentos ativos como critério de desempate.
 - **Slot de Atendimento:** Cada tipo de consulta possui duração padronizada (Triagem, Vacina, Exame, Consulta Médica, Retorno).
 - **Retornos Vinculados:** Agendamentos de retorno direcionam o paciente obrigatoriamente ao mesmo médico do atendimento inicial.
 - **Divisão de Competências:** Separação clara entre procedimentos de enfermagem e consultas médicas.
 
+---
+
 ### 📊 Dashboard e Relatórios de Desempenho Administrativo
-Visão em tempo real sobre a saúde operacional da clínica: volume de atendimentos, distribuição por especialidade, taxa de absenteísmo e métricas de risco. Exportação de relatórios detalhados em **Excel** e **PDF** para fins de auditoria e planejamento.
+Visão em tempo real sobre a saúde operacional da clínica: volume de atendimentos, distribuição por especialidade, taxa de ausência e métricas de risco. Exportação de relatórios detalhados em **Excel** e **PDF** para fins de auditoria e planejamento.
+
+---
 
 ### 🔔 Central de Notificações e Acompanhamento de Exames
 Rastreia consultas que necessitam de emissão ou avaliação de exames clínicos. Gera alertas automáticos ao paciente quando o resultado estiver disponível, direcionando-o diretamente para o registro em destaque no histórico.
 
+---
+
 ### 🔒 Segurança de Acesso Baseada em Perfis (RBAC)
 Cada usuário possui uma experiência personalizada conforme seu papel (Administrador, Médico, Enfermeira ou Paciente). O sistema protege contas com limite de tentativas de login, bloqueio temporário por força bruta, sessões JWT com expiração controlada e renovação dinâmica via refresh token.
 
+---
+
 ### 📋 Trilha de Auditoria Permanente
 Todas as interações com agendamentos — criação, alteração de status, remarcações e cancelamentos — são registradas permanentemente com data, horário exato e identificação do operador responsável.
+
+---
 
 ### 👤 Perfil do Usuário
 Pacientes e profissionais podem visualizar e atualizar seus dados cadastrais, foto de perfil e, para médicos, suas especialidades médicas cadastradas.
