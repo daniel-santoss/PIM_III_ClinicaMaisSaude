@@ -105,6 +105,6 @@ homologar.bat
 
 ## 📄 Licença
 
-Copyright © 2026 Daniel Vinicius Carvalho dos Santos e colaboradores. Todos os direitos reservados.
+Copyright © 2026 Daniel Vinicius Carvalho dos Santos. Todos os direitos reservados.
 
-Este software e seu código-fonte são propriedade exclusiva dos autores. É proibida a reprodução, distribuição, modificação ou uso comercial, total ou parcial, sem autorização expressa por escrito dos autores.
+Este software e seu código-fonte são propriedade exclusiva do autor. É proibida a reprodução, distribuição, modificação ou uso comercial, total ou parcial, sem autorização expressa por escrito do autor.
