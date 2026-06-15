@@ -234,11 +234,16 @@ export default function AgendamentoPaciente({
       <div className="flex items-center justify-between px-4 max-w-2xl mx-auto">
         {[1, 2, 3, 4].map(num => (
           <div key={num} className="flex flex-col items-center gap-2 relative">
-            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black transition-all duration-500 z-10 ${passo >= num ? 'bg-[#7C3AED] text-white shadow-xl shadow-purple-200 scale-110' : 'bg-gray-100 text-gray-400'
-              }`}>
+            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black transition-all duration-500 z-10 ${
+              passo >= num 
+                ? 'bg-[#7C3AED] text-white shadow-xl shadow-purple-200 scale-110' 
+                : 'bg-gray-200 text-gray-600'
+            }`}>
               {num}
             </div>
-            <span className={`text-[9px] font-black uppercase tracking-tighter ${passo >= num ? 'text-purple-600' : 'text-gray-300'}`}>
+            <span className={`text-[11px] font-black uppercase tracking-wider ${
+              passo >= num ? 'text-[#7C3AED]' : 'text-gray-500'
+            }`}>
               {num === 1 ? 'Início' : num === 2 ? 'Tipo' : num === 3 ? 'Horário' : 'OK'}
             </span>
           </div>

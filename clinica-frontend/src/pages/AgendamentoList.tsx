@@ -4,7 +4,7 @@ import { perfis } from "../constants/perfis";
 import { statusAgendamento } from "../constants/status";
 import { useEffect, useState } from "react";
 import { mascaraCpf, mascaraTelefone } from "../utils/validators";
-import { AlertTriangle, Calendar, TrendingUp, BarChart3, Plus, User, X, FileText, Mail, Phone, Pencil } from 'lucide-react';
+import { AlertTriangle, Calendar, BarChart3, Plus, User, X, FileText, Mail, Phone, Pencil } from 'lucide-react';
 import type { PacienteResponse } from "../types/PacienteResponse";
 import AgendamentoFiltros from "../components/AgendamentoFiltros";
 import AgendamentoFormCriar from "../components/AgendamentoFormCriar";
@@ -336,10 +336,6 @@ export default function AgendamentoList({ agendamentoDestaque }: { agendamentoDe
             </div>
             <div className="flex items-end gap-2">
               <span className="text-2xl sm:text-4xl font-black text-gray-800 leading-none">{atendimentosHoje}</span>
-              <div className="flex items-center gap-1 mb-1 px-1.5 py-0.5 bg-green-100 text-green-600 rounded-full text-[9px] font-black">
-                <TrendingUp className="w-2.5 h-2.5" />
-                <span>+12%</span>
-              </div>
             </div>
           </div>
 
