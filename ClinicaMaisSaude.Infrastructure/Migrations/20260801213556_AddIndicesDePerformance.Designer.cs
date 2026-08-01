@@ -4,6 +4,7 @@ using ClinicaMaisSaude.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ClinicaMaisSaude.Infrastructure.Migrations
 {
     [DbContext(typeof(ClinicaDbContext))]
-    partial class ClinicaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260801213556_AddIndicesDePerformance")]
+    partial class AddIndicesDePerformance
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -268,6 +271,18 @@ namespace ClinicaMaisSaude.Infrastructure.Migrations
                     b.HasIndex("UsuarioId");
 
                     b.ToTable("Profissionais");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("22222222-2222-2222-2222-222222222222"),
+                            Crm = "123456",
+                            DtCriado = new DateTime(2026, 4, 26, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Nome = "Dr. Admin",
+                            TipoProfissional = 1,
+                            UfCrm = "SP",
+                            UsuarioId = new Guid("11111111-1111-1111-1111-111111111111")
+                        });
                 });
 
             modelBuilder.Entity("ClinicaMaisSaude.Domain.Entities.ProfissionalEspecialidade", b =>
@@ -465,6 +480,18 @@ namespace ClinicaMaisSaude.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("LoginPortal", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("11111111-1111-1111-1111-111111111111"),
+                            Cpf = "00000000000",
+                            DtCriado = new DateTime(2026, 4, 26, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Email = "admin@clinicamaissaude.com.br",
+                            IsAdmin = true,
+                            SenhaHash = "$2a$11$DaDuHHaqAhlkdCbeVcw6l.ttRvVjLZ8AnOcXvugreEbhe0C1K1YPK",
+                            TentativasLogin = 0
+                        });
                 });
 
             modelBuilder.Entity("ClinicaMaisSaude.Domain.Entities.Agendamento", b =>

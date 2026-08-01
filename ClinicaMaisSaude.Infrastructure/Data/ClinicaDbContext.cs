@@ -44,6 +44,8 @@ namespace ClinicaMaisSaude.Infrastructure.Data
                 entidade.Property(p => p.Ativo).HasDefaultValue(true);
                 entidade.Property(p => p.TemProblemaMemoria).HasDefaultValue(false);
                 entidade.Property(p => p.DtCriado).HasColumnName("Dt_Criado");
+                // Busca por CPF (exact match no cadastro/login e StartsWith na listagem).
+                entidade.HasIndex(p => p.Cpf);
             });
 
             modelBuilder.Entity<Agendamento>(entidade =>
@@ -58,6 +60,13 @@ namespace ClinicaMaisSaude.Infrastructure.Data
                 entidade.Property(a => a.LembreteManhaEnviado).HasDefaultValue(false);
                 entidade.Property(a => a.LembreteDuasHorasEnviado).HasDefaultValue(false);
                 entidade.Property(a => a.DtCriado).HasColumnName("Dt_Criado");
+
+                // Índices para os caminhos de acesso quentes (agenda do profissional,
+                // consultas do paciente, varredura por status), sempre com a data como
+                // chave secundária para cobrir a ordenação por DataHoraConsulta.
+                entidade.HasIndex(a => new { a.ProfissionalId, a.DataHoraConsulta });
+                entidade.HasIndex(a => new { a.PacienteId, a.DataHoraConsulta });
+                entidade.HasIndex(a => new { a.Status, a.DataHoraConsulta });
 
                 entidade.HasOne(a => a.Paciente)
                     .WithMany(p => p.Agendamentos)
@@ -107,6 +116,8 @@ namespace ClinicaMaisSaude.Infrastructure.Data
                 entidade.HasKey(r => r.Id);
                 entidade.Property(r => r.Token).IsRequired().HasMaxLength(255);
                 entidade.Property(r => r.JwtId).IsRequired().HasMaxLength(255);
+                // Todo refresh faz WHERE Token = @token; único evita table scan e duplicidade.
+                entidade.HasIndex(r => r.Token).IsUnique();
                 entidade.HasOne(r => r.Usuario)
                     .WithMany()
                     .HasForeignKey(r => r.UsuarioId)
@@ -122,6 +133,8 @@ namespace ClinicaMaisSaude.Infrastructure.Data
                 entidade.Property(n => n.Link).HasMaxLength(255).IsRequired(false);
                 entidade.Property(n => n.Lida).HasDefaultValue(false);
                 entidade.Property(n => n.DtCriado).HasColumnName("Dt_Criado");
+                // Polling a cada 60s: WHERE UsuarioId = @id ORDER BY DtCriado DESC.
+                entidade.HasIndex(n => new { n.UsuarioId, n.DtCriado });
 
                 entidade.HasOne<Usuario>()
                     .WithMany()
@@ -146,17 +159,8 @@ namespace ClinicaMaisSaude.Infrastructure.Data
                 entidade.Property(u => u.IsAdmin).HasDefaultValue(false);
                 entidade.Property(u => u.DtCriado).HasColumnName("Dt_Criado");
                 entidade.Property(u => u.FotoBase64).HasColumnType("nvarchar(max)").IsRequired(false);
-
-                // SEED do Admin
-                var adminId = Guid.Parse("11111111-1111-1111-1111-111111111111");
-                entidade.HasData(new Usuario(
-                    adminId,
-                    "admin@clinicamaissaude.com.br",
-                    "00000000000",
-                    "$2a$11$DaDuHHaqAhlkdCbeVcw6l.ttRvVjLZ8AnOcXvugreEbhe0C1K1YPK", // admin123
-                    true,
-                    new DateTime(2026, 04, 26, 0, 0, 0, DateTimeKind.Utc)
-                ));
+                // O administrador inicial é criado em runtime por AdminSeeder (senha via
+                // configuração), nunca semeado com credencial fixa no código-fonte.
             });
 
             modelBuilder.Entity<Profissional>(entidade =>
@@ -172,18 +176,6 @@ namespace ClinicaMaisSaude.Infrastructure.Data
                     .WithMany()
                     .HasForeignKey(p => p.UsuarioId)
                     .OnDelete(DeleteBehavior.Cascade);
-
-                var adminProfissionalId = Guid.Parse("22222222-2222-2222-2222-222222222222");
-                var adminUsuarioId = Guid.Parse("11111111-1111-1111-1111-111111111111");
-                entidade.HasData(new Profissional(
-                    adminProfissionalId,
-                    adminUsuarioId,
-                    TipoProfissional.Medico,
-                    "Dr. Admin",
-                    "123456",
-                    "SP",
-                    new DateTime(2026, 04, 26, 0, 0, 0, DateTimeKind.Utc)
-                ));
             });
 
             modelBuilder.Entity<StatusAgendamentoLookup>(entidade =>
