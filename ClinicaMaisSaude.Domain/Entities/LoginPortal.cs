@@ -1,4 +1,5 @@
 using System;
+using ClinicaMaisSaude.Domain.Common;
 
 namespace ClinicaMaisSaude.Domain.Entities
 {
@@ -20,7 +21,7 @@ namespace ClinicaMaisSaude.Domain.Entities
 
         public Usuario(string email, string cpf, string senhaHash, bool isAdmin = false)
         {
-            Id = Guid.NewGuid();
+            Id = SequentialGuid.Next();
             Email = email;
             Cpf = cpf;
             SenhaHash = senhaHash;

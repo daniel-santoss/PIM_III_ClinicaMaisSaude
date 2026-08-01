@@ -1,5 +1,6 @@
 using ClinicaMaisSaude.Domain.Enums;
 using System;
+using ClinicaMaisSaude.Domain.Common;
 
 namespace ClinicaMaisSaude.Domain.Entities
 {
@@ -20,7 +21,7 @@ namespace ClinicaMaisSaude.Domain.Entities
 
         public Profissional(Guid usuarioId, TipoProfissional tipoProfissional, string nome, string? crm = null, string? ufCrm = null)
         {
-            Id = Guid.NewGuid();
+            Id = SequentialGuid.Next();
             UsuarioId = usuarioId;
             TipoProfissional = tipoProfissional;
             Nome = nome;

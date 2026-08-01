@@ -1,4 +1,5 @@
 using System;
+using ClinicaMaisSaude.Domain.Common;
 
 namespace ClinicaMaisSaude.Domain.Entities
 {
@@ -22,7 +23,7 @@ namespace ClinicaMaisSaude.Domain.Entities
 
         public UsoInadequadoIA(Guid usuarioId, TipoViolacao tipoViolacao, string textoInserido)
         {
-            Id = Guid.NewGuid();
+            Id = SequentialGuid.Next();
             UsuarioId = usuarioId;
             TipoViolacao = tipoViolacao;
             TextoInserido = textoInserido;

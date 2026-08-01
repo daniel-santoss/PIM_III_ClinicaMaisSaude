@@ -1,4 +1,5 @@
 using System;
+using ClinicaMaisSaude.Domain.Common;
 
 namespace ClinicaMaisSaude.Domain.Entities
 {
@@ -15,7 +16,7 @@ namespace ClinicaMaisSaude.Domain.Entities
 
         public Notificacao(Guid usuarioId, string titulo, string mensagem, Guid? agendamentoId = null, string? link = null)
         {
-            Id = Guid.NewGuid();
+            Id = SequentialGuid.Next();
             UsuarioId = usuarioId;
             Titulo = titulo;
             Mensagem = mensagem;

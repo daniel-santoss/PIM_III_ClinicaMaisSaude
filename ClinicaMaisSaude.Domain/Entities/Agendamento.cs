@@ -1,5 +1,6 @@
 using ClinicaMaisSaude.Domain.Enums;
 using System;
+using ClinicaMaisSaude.Domain.Common;
 
 namespace ClinicaMaisSaude.Domain.Entities
 {
@@ -28,7 +29,7 @@ namespace ClinicaMaisSaude.Domain.Entities
         public Agendamento(Guid pacienteId, Guid profissionalId, DateTime dataHoraConsulta,
             TipoProfissional tipoProfissional, TipoConsulta tipoConsulta, Guid? agendamentoOrigemId = null)
         {
-            Id = Guid.NewGuid();
+            Id = SequentialGuid.Next();
             PacienteId = pacienteId;
             ProfissionalId = profissionalId;
             DataHoraConsulta = dataHoraConsulta;
