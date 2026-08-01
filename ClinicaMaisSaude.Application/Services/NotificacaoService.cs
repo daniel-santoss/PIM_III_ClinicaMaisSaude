@@ -1,4 +1,5 @@
 using ClinicaMaisSaude.Application.DTOs;
+using ClinicaMaisSaude.Application.Exceptions;
 using ClinicaMaisSaude.Application.Interfaces;
 using ClinicaMaisSaude.Domain.Interfaces;
 using System;
@@ -36,7 +37,7 @@ namespace ClinicaMaisSaude.Application.Services
         {
             var notificacao = await _notificacaoRepository.ObterPorIdAsync(id);
             if (notificacao == null || notificacao.UsuarioId != usuarioId)
-                throw new Exception("Notificação não encontrada ou acesso negado.");
+                throw new NotFoundException("Notificação não encontrada ou acesso negado.");
 
             notificacao.MarcarComoLida();
             await _notificacaoRepository.AtualizarAsync(notificacao);
@@ -46,7 +47,7 @@ namespace ClinicaMaisSaude.Application.Services
         {
             var notificacao = await _notificacaoRepository.ObterPorIdAsync(id);
             if (notificacao == null || notificacao.UsuarioId != usuarioId)
-                throw new Exception("Notificação não encontrada ou acesso negado.");
+                throw new NotFoundException("Notificação não encontrada ou acesso negado.");
 
             await _notificacaoRepository.RemoverAsync(notificacao);
         }
