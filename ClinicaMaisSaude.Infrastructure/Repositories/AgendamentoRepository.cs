@@ -1,4 +1,5 @@
 using ClinicaMaisSaude.Domain.Entities;
+using ClinicaMaisSaude.Domain.Enums;
 using ClinicaMaisSaude.Domain.Interfaces;
 using ClinicaMaisSaude.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -141,6 +142,67 @@ namespace ClinicaMaisSaude.Infrastructure.Repositories
             return await _context.Agendamentos
                 .AsNoTracking()
                 .AnyAsync(a => a.ProfissionalId == profissionalId && a.DataHoraConsulta == dataHora);
+        }
+
+        public async Task<IEnumerable<Agendamento>> ObterAtivosDoProfissionalNoDiaAsync(Guid profissionalId, DateTime dia, Guid? ignorarAgendamentoId)
+        {
+            var inicioDia = dia.Date;
+            var fimDia = inicioDia.AddDays(1);
+
+            return await _context.Agendamentos
+                .AsNoTracking()
+                .Where(a => a.ProfissionalId == profissionalId &&
+                            a.DataHoraConsulta >= inicioDia && a.DataHoraConsulta < fimDia &&
+                            a.Status != StatusAgendamento.Cancelado &&
+                            a.Status != StatusAgendamento.Finalizado &&
+                            a.Status != StatusAgendamento.Faltou &&
+                            (ignorarAgendamentoId == null || a.Id != ignorarAgendamentoId))
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<Agendamento>> ObterAtivosDoPacienteNoDiaAsync(Guid pacienteId, DateTime dia, Guid? ignorarAgendamentoId)
+        {
+            var inicioDia = dia.Date;
+            var fimDia = inicioDia.AddDays(1);
+
+            return await _context.Agendamentos
+                .AsNoTracking()
+                .Where(a => a.PacienteId == pacienteId &&
+                            a.DataHoraConsulta >= inicioDia && a.DataHoraConsulta < fimDia &&
+                            a.Status != StatusAgendamento.Cancelado &&
+                            a.Status != StatusAgendamento.Finalizado &&
+                            a.Status != StatusAgendamento.Faltou &&
+                            (ignorarAgendamentoId == null || a.Id != ignorarAgendamentoId))
+                .ToListAsync();
+        }
+
+        public async Task<int> ContarNaoCanceladosNoDiaAsync(Guid profissionalId, DateTime dia)
+        {
+            var inicioDia = dia.Date;
+            var fimDia = inicioDia.AddDays(1);
+
+            return await _context.Agendamentos
+                .AsNoTracking()
+                .CountAsync(a => a.ProfissionalId == profissionalId &&
+                                 a.DataHoraConsulta >= inicioDia && a.DataHoraConsulta < fimDia &&
+                                 a.Status != StatusAgendamento.Cancelado);
+        }
+
+        public async Task<int> ContarAtivosDoProfissionalAsync(Guid profissionalId)
+        {
+            return await _context.Agendamentos
+                .AsNoTracking()
+                .CountAsync(a => a.ProfissionalId == profissionalId &&
+                                 a.Status != StatusAgendamento.Cancelado &&
+                                 a.Status != StatusAgendamento.Finalizado &&
+                                 a.Status != StatusAgendamento.Faltou);
+        }
+
+        public async Task<bool> ExisteAgendamentoDoPacienteComStatusAsync(Guid pacienteId, StatusAgendamento status)
+        {
+            return await _context.Agendamentos
+                .AsNoTracking()
+                .AnyAsync(a => a.PacienteId == pacienteId && a.Status == status);
         }
 
         public async Task AdicionarHistoricoAsync(AgendamentoHistorico historico)

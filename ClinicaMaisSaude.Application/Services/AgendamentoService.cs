@@ -123,10 +123,8 @@ namespace ClinicaMaisSaude.Application.Services
 
             if (tipoConsulta == TipoConsulta.Retorno)
             {
-                var todosA = await _repository.ObterTodosAsync();
-                var possuiAguardandoRetorno = todosA.Any(a =>
-                    a.PacienteId == request.PacienteId &&
-                    a.Status == StatusAgendamento.AguardandoRetorno);
+                var possuiAguardandoRetorno = await _repository.ExisteAgendamentoDoPacienteComStatusAsync(
+                    request.PacienteId, StatusAgendamento.AguardandoRetorno);
 
                 if (!possuiAguardandoRetorno)
                     throw new BusinessRuleException("Retorno só pode ser agendado após uma consulta inicial pendente.");
@@ -663,21 +661,14 @@ namespace ClinicaMaisSaude.Application.Services
             foreach(var prof in profissionais)
             {
                  bool temConflito = await ExisteConflito(prof.Id, escopoHorario, consulta, ignorarAgendamentoId);
-                 
+
                  if(!temConflito)
                  {
-                     var todosDeste = await _repository.ObterTodosAsync();
-                      
-                     // 1. Conta agendamentos de cada profissional no dia da consulta (excluindo os cancelados)
-                     var noDia = todosDeste.Count(a => a.ProfissionalId == prof.Id && 
-                            a.DataHoraConsulta.Date == escopoHorario.Date && 
-                            a.Status != StatusAgendamento.Cancelado);
+                     // 1. Conta agendamentos do profissional no dia da consulta (excluindo os cancelados) — filtro no banco
+                     var noDia = await _repository.ContarNaoCanceladosNoDiaAsync(prof.Id, escopoHorario);
 
-                     // 2. Conta o total de agendamentos ativos em geral para desempate
-                     var ativosGeral = todosDeste.Count(a => a.ProfissionalId == prof.Id && 
-                            a.Status != StatusAgendamento.Cancelado && 
-                            a.Status != StatusAgendamento.Finalizado &&
-                            a.Status != StatusAgendamento.Faltou);
+                     // 2. Conta o total de agendamentos ativos em geral para desempate — filtro no banco
+                     var ativosGeral = await _repository.ContarAtivosDoProfissionalAsync(prof.Id);
 
                      candidatos.Add((prof.Id, noDia, ativosGeral));
                  }
@@ -695,19 +686,10 @@ namespace ClinicaMaisSaude.Application.Services
              var duracaoMin = TipoConsultaDuracao.ObterDuracao(novaConsulta);
              var novoFim = novoInicio.AddMinutes(duracaoMin);
 
-             var historicoProfissional = await _repository.ObterTodosAsync();
-             
-             return historicoProfissional.Any(a => 
-                 a.ProfissionalId == profissionalId && 
-                 a.Id != ignorarAgendamentoId &&
-                 a.Status != StatusAgendamento.Cancelado &&
-                 a.Status != StatusAgendamento.Finalizado &&
-                 a.Status != StatusAgendamento.Faltou &&
-                 (
-                    (novoInicio >= a.DataHoraConsulta && novoInicio < a.DataHoraConsulta.AddMinutes(TipoConsultaDuracao.ObterDuracao(a.TipoConsulta))) ||
-                    (novoFim > a.DataHoraConsulta && novoFim <= a.DataHoraConsulta.AddMinutes(TipoConsultaDuracao.ObterDuracao(a.TipoConsulta))) ||
-                    (novoInicio <= a.DataHoraConsulta && novoFim >= a.DataHoraConsulta.AddMinutes(TipoConsultaDuracao.ObterDuracao(a.TipoConsulta)))
-                 ));
+             // Carrega apenas os agendamentos ativos do profissional no dia (filtro no banco, aproveitando índice).
+             var agendamentosDoDia = await _repository.ObterAtivosDoProfissionalNoDiaAsync(profissionalId, novoInicio, ignorarAgendamentoId);
+
+             return agendamentosDoDia.Any(a => HaSobreposicao(novoInicio, novoFim, a));
         }
 
         private async Task<bool> ExisteConflitoPaciente(Guid pacienteId, DateTime novoInicio, TipoConsulta novaConsulta, Guid? ignorarAgendamentoId)
@@ -715,19 +697,21 @@ namespace ClinicaMaisSaude.Application.Services
              var duracaoMin = TipoConsultaDuracao.ObterDuracao(novaConsulta);
              var novoFim = novoInicio.AddMinutes(duracaoMin);
 
-             var todosAgendamentos = await _repository.ObterTodosAsync();
-             
-             return todosAgendamentos.Any(a => 
-                 a.PacienteId == pacienteId && 
-                 a.Id != ignorarAgendamentoId &&
-                 a.Status != StatusAgendamento.Cancelado &&
-                 a.Status != StatusAgendamento.Finalizado &&
-                 a.Status != StatusAgendamento.Faltou &&
-                 (
-                    (novoInicio >= a.DataHoraConsulta && novoInicio < a.DataHoraConsulta.AddMinutes(TipoConsultaDuracao.ObterDuracao(a.TipoConsulta))) ||
-                    (novoFim > a.DataHoraConsulta && novoFim <= a.DataHoraConsulta.AddMinutes(TipoConsultaDuracao.ObterDuracao(a.TipoConsulta))) ||
-                    (novoInicio <= a.DataHoraConsulta && novoFim >= a.DataHoraConsulta.AddMinutes(TipoConsultaDuracao.ObterDuracao(a.TipoConsulta)))
-                 ));
+             // Carrega apenas os agendamentos ativos do paciente no dia (filtro no banco, aproveitando índice).
+             var agendamentosDoDia = await _repository.ObterAtivosDoPacienteNoDiaAsync(pacienteId, novoInicio, ignorarAgendamentoId);
+
+             return agendamentosDoDia.Any(a => HaSobreposicao(novoInicio, novoFim, a));
+        }
+
+        // Verifica sobreposição de janela de tempo entre um novo intervalo e um agendamento existente.
+        // A duração depende do TipoConsulta (regra de negócio em C#), por isso a checagem roda em memória
+        // sobre o conjunto já reduzido pelo banco.
+        private static bool HaSobreposicao(DateTime novoInicio, DateTime novoFim, Agendamento existente)
+        {
+            var fimExistente = existente.DataHoraConsulta.AddMinutes(TipoConsultaDuracao.ObterDuracao(existente.TipoConsulta));
+            return (novoInicio >= existente.DataHoraConsulta && novoInicio < fimExistente) ||
+                   (novoFim > existente.DataHoraConsulta && novoFim <= fimExistente) ||
+                   (novoInicio <= existente.DataHoraConsulta && novoFim >= fimExistente);
         }
 
         private void ValidarCriacao(TipoProfissional tipo, TipoConsulta consulta)
@@ -854,7 +838,7 @@ namespace ClinicaMaisSaude.Application.Services
 
         public async Task MarcarResultadoDisponivelAsync(Guid id)
         {
-            var agendamento = (await _repository.ObterTodosAsync()).FirstOrDefault(a => a.Id == id);
+            var agendamento = await _repository.ObterPorIdAsync(id);
             if (agendamento == null)
                 throw new NotFoundException("Agendamento não encontrado.");
 

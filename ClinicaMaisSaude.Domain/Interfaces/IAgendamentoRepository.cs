@@ -1,4 +1,5 @@
 using ClinicaMaisSaude.Domain.Entities;
+using ClinicaMaisSaude.Domain.Enums;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -23,6 +24,18 @@ namespace ClinicaMaisSaude.Domain.Interfaces
 
         Task DeletarAsync(Agendamento agendamento);
         Task<bool> ExisteAgendamentoNoHorarioAsync(Guid profissionalId, DateTime dataHora);
+
+        // --- Consultas filtradas no banco (evitam carregar a tabela inteira em memória) ---
+        // Agendamentos ativos (não Cancelado/Finalizado/Faltou) de um profissional no dia informado — usado na checagem de conflito.
+        Task<IEnumerable<Agendamento>> ObterAtivosDoProfissionalNoDiaAsync(Guid profissionalId, DateTime dia, Guid? ignorarAgendamentoId);
+        // Agendamentos ativos de um paciente no dia informado — usado na checagem de conflito do paciente.
+        Task<IEnumerable<Agendamento>> ObterAtivosDoPacienteNoDiaAsync(Guid pacienteId, DateTime dia, Guid? ignorarAgendamentoId);
+        // Contagem de agendamentos não cancelados de um profissional num dia — critério primário de delegação.
+        Task<int> ContarNaoCanceladosNoDiaAsync(Guid profissionalId, DateTime dia);
+        // Contagem de agendamentos ativos (não Cancelado/Finalizado/Faltou) de um profissional — desempate na delegação.
+        Task<int> ContarAtivosDoProfissionalAsync(Guid profissionalId);
+        // Existe algum agendamento do paciente com determinado status? — usado na regra de retorno.
+        Task<bool> ExisteAgendamentoDoPacienteComStatusAsync(Guid pacienteId, StatusAgendamento status);
 
         Task AdicionarHistoricoAsync(AgendamentoHistorico historico);
         Task<IEnumerable<AgendamentoHistorico>> ObterHistoricoPorAgendamentoAsync(Guid agendamentoId);
