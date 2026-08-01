@@ -1,4 +1,5 @@
 using ClinicaMaisSaude.Application.DTOs.Paciente;
+using ClinicaMaisSaude.Application.Exceptions;
 using ClinicaMaisSaude.Application.Interfaces;
 using ClinicaMaisSaude.Domain.Entities;
 using ClinicaMaisSaude.Domain.Interfaces;
@@ -28,7 +29,7 @@ namespace ClinicaMaisSaude.Application.Services
 
             if (pacienteExistente != null)
             {
-                throw new Exception("Já existe um cadastro para o CPF informado.");
+                throw new BusinessRuleException("Já existe um cadastro para o CPF informado.");
             }
 
             var paciente = new Paciente(
@@ -202,7 +203,7 @@ namespace ClinicaMaisSaude.Application.Services
             var paciente = await _repository.ObterPorIdAsync(id);
 
             if (paciente == null)
-                throw new Exception("Paciente não encontrado.");
+                throw new NotFoundException("Paciente não encontrado.");
 
             paciente.Atualizar(
                 request.Nome,
@@ -231,7 +232,7 @@ namespace ClinicaMaisSaude.Application.Services
             var paciente = await _repository.ObterPorIdAsync(id);
 
             if (paciente == null)
-                throw new Exception("Paciente não encontrado.");
+                throw new NotFoundException("Paciente não encontrado.");
 
             paciente.Desativar();
             await _repository.AtualizarAsync(paciente);
