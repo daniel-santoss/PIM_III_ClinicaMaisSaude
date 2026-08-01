@@ -6,6 +6,7 @@ using ClinicaMaisSaude.Domain.Interfaces;
 using ClinicaMaisSaude.Infrastructure.Data;
 using ClinicaMaisSaude.API.Services;
 using ClinicaMaisSaude.API.Converters;
+using ClinicaMaisSaude.API.Middleware;
 using ClinicaMaisSaude.Infrastructure.Repositories;
 using FluentValidation;
 using FluentValidation.AspNetCore;
@@ -41,6 +42,10 @@ builder.Services.AddCors(options =>
 builder.Services.AddValidatorsFromAssemblyContaining<PacienteRequestValidator>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+// Tratamento global de exceções → respostas ProblemDetails com status HTTP correto.
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
 
 // String de conexão com o banco de dados
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
@@ -88,6 +93,9 @@ builder.Services.AddHostedService<NotificacaoBackgroundService>();
 
 var app = builder.Build();
 
+// Primeiro middleware do pipeline: captura exceções de toda a aplicação.
+app.UseExceptionHandler();
+
 // Ativa a tela visual do Swagger apenas em ambiente de desenvolvimento
 if (app.Environment.IsDevelopment())
 {
@@ -125,5 +133,16 @@ app.UseAuthorization();  // <-- Exigido pra aplicar políticas (ex: [Authorize])
 
 // Mapeia as rotas (Endpoints)
 app.MapControllers();
+
+// Garante o administrador inicial (senha vinda da configuração; ver AdminSeeder).
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    await AdminSeeder.SeedAdminAsync(
+        services.GetRequiredService<ClinicaDbContext>(),
+        services.GetRequiredService<IConfiguration>(),
+        app.Environment.IsDevelopment(),
+        services.GetRequiredService<ILogger<Program>>());
+}
 
 app.Run();

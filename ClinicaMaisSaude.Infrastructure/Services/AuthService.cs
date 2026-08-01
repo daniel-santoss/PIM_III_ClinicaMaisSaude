@@ -1,5 +1,6 @@
 using BCrypt.Net;
 using ClinicaMaisSaude.Application.DTOs.Auth;
+using ClinicaMaisSaude.Application.Exceptions;
 using ClinicaMaisSaude.Application.Interfaces;
 using ClinicaMaisSaude.Domain.Entities;
 using ClinicaMaisSaude.Domain.Enums;
@@ -39,7 +40,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
 
             if (usuario == null)
             {
-                throw new Exception("Credenciais inválidas.");
+                throw new UnauthorizedException("Credenciais inválidas.");
             }
 
             if (usuario.IsBloqueado())
@@ -49,10 +50,10 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                 // Se o bloqueio for de 100 anos (bloqueio permanente)
                 if (minutosRestantes > 50000000) 
                 {
-                    throw new Exception("PERMANENT_BAN:Sua conta foi banida permanentemente devido a violações graves das políticas de segurança.");
+                    throw new UnauthorizedException("PERMANENT_BAN:Sua conta foi banida permanentemente devido a violações graves das políticas de segurança.");
                 }
 
-                throw new Exception($"Conta bloqueada. Tente novamente em {minutosRestantes} minuto(s).");
+                throw new UnauthorizedException($"Conta bloqueada. Tente novamente em {minutosRestantes} minuto(s).");
             }
 
             if (!BCrypt.Net.BCrypt.Verify(request.Senha, usuario.SenhaHash.Trim()))
@@ -62,16 +63,16 @@ namespace ClinicaMaisSaude.Infrastructure.Services
 
                 if (usuario.IsBloqueado())
                 {
-                    throw new Exception("Conta bloqueada por excesso de tentativas. Tente novamente em 15 minutos.");
+                    throw new UnauthorizedException("Conta bloqueada por excesso de tentativas. Tente novamente em 15 minutos.");
                 }
 
                 int tentativasRestantes = 5 - usuario.TentativasLogin;
                 if (tentativasRestantes > 0)
                 {
-                    throw new Exception($"Credenciais inválidas. Você tem mais {tentativasRestantes} tentativa(s) antes do bloqueio.");
+                    throw new UnauthorizedException($"Credenciais inválidas. Você tem mais {tentativasRestantes} tentativa(s) antes do bloqueio.");
                 }
 
-                throw new Exception("Credenciais inválidas.");
+                throw new UnauthorizedException("Credenciais inválidas.");
             }
 
             usuario.RegistrarSucessoLogin();
@@ -173,17 +174,17 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             var key = Encoding.ASCII.GetBytes(secretKey);
             var storedToken = await _context.RefreshTokens.FirstOrDefaultAsync(x => x.Token == request.RefreshToken);
 
-            if (storedToken == null) throw new Exception("Refresh token não existe.");
-            if (storedToken.IsUsed) throw new Exception("Refresh token já foi utilizado.");
-            if (storedToken.IsRevoked) throw new Exception("Refresh token foi revogado.");
-            if (storedToken.ExpiryDate < DateTime.UtcNow) throw new Exception("Refresh token expirado.");
+            if (storedToken == null) throw new UnauthorizedException("Refresh token não existe.");
+            if (storedToken.IsUsed) throw new UnauthorizedException("Refresh token já foi utilizado.");
+            if (storedToken.IsRevoked) throw new UnauthorizedException("Refresh token foi revogado.");
+            if (storedToken.ExpiryDate < DateTime.UtcNow) throw new UnauthorizedException("Refresh token expirado.");
 
             storedToken.IsUsed = true;
             _context.RefreshTokens.Update(storedToken);
             await _context.SaveChangesAsync();
 
             var usuario = await _context.Usuarios.AsNoTracking().FirstOrDefaultAsync(u => u.Id == storedToken.UsuarioId);
-            if (usuario == null) throw new Exception("Usuário não encontrado.");
+            if (usuario == null) throw new UnauthorizedException("Usuário não encontrado.");
 
             var perfilProfissional = await _context.Profissionais.AsNoTracking().FirstOrDefaultAsync(p => p.UsuarioId == usuario.Id);
             var perfilPaciente = await _context.Pacientes.AsNoTracking().FirstOrDefaultAsync(p => p.UsuarioId == usuario.Id);
