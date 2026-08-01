@@ -22,15 +22,17 @@ namespace ClinicaMaisSaude.Application.Services
         private readonly IUsuarioRepository _usuarioRepository;
         private readonly IProbabilidadeFaltaService _probabilidadeFaltaService;
         private readonly INotificacaoRepository _notificacaoRepository;
+        private readonly IUnitOfWork _unitOfWork;
         private readonly IConfiguration _configuration;
 
         public AgendamentoService(
-            IAgendamentoRepository repository, 
+            IAgendamentoRepository repository,
             IPacienteRepository pacienteRepository,
             IProfissionalRepository profissionalRepository,
             IUsuarioRepository usuarioRepository,
             IProbabilidadeFaltaService probabilidadeFaltaService,
             INotificacaoRepository notificacaoRepository,
+            IUnitOfWork unitOfWork,
             IConfiguration configuration)
         {
             _repository = repository;
@@ -39,6 +41,7 @@ namespace ClinicaMaisSaude.Application.Services
             _usuarioRepository = usuarioRepository;
             _probabilidadeFaltaService = probabilidadeFaltaService;
             _notificacaoRepository = notificacaoRepository;
+            _unitOfWork = unitOfWork;
             _configuration = configuration;
         }
 
@@ -161,55 +164,63 @@ namespace ClinicaMaisSaude.Application.Services
             var (prob, _) = await _probabilidadeFaltaService.CalcularProbabilidadeAsync(agendamento.PacienteId, agendamento.DataHoraConsulta);
             agendamento.AtualizarProbabilidadeFalta(prob);
 
-            await _repository.AdicionarAsync(agendamento);
+            // Criação atômica: agendamento + histórico + (atualização da origem) + notificações.
+            // Se qualquer passo falhar, tudo é revertido (nada de agendamento sem histórico/notificação).
+            Profissional? profissional = null;
+            var profissionalNome = "N/A";
 
-            var historico = new AgendamentoHistorico(
-                agendamento.Id,
-                TipoEventoHistorico.Criacao,
-                usuarioLogadoId,
-                statusNovo: agendamento.Status
-            );
-            await _repository.AdicionarHistoricoAsync(historico);
-
-            if (tipoConsulta == TipoConsulta.Retorno && origem != null && origem.Status == StatusAgendamento.AguardandoRetorno)
+            await _unitOfWork.ExecuteInTransactionAsync(async () =>
             {
-                origem.AlterarStatus(StatusAgendamento.RetornoAgendado);
-                await _repository.AtualizarAsync(origem);
+                await _repository.AdicionarAsync(agendamento);
 
-                var historicoOrigem = new AgendamentoHistorico(
-                    origem.Id,
-                    TipoEventoHistorico.MudancaStatus,
+                var historico = new AgendamentoHistorico(
+                    agendamento.Id,
+                    TipoEventoHistorico.Criacao,
                     usuarioLogadoId,
-                    statusAnterior: StatusAgendamento.AguardandoRetorno,
-                    statusNovo: StatusAgendamento.RetornoAgendado,
-                    observacao: "Agendamento de retorno vinculado."
+                    statusNovo: agendamento.Status
                 );
-                await _repository.AdicionarHistoricoAsync(historicoOrigem);
-            }
+                await _repository.AdicionarHistoricoAsync(historico);
 
-            var profissional = await _profissionalRepository.ObterPorIdAsync(agendamento.ProfissionalId);
-            var profissionalNome = profissional?.Nome ?? "N/A";
-            
-            if (profissional != null)
-            {
-                var msgProf = tipoConsulta == TipoConsulta.Retorno 
-                    ? $"Retorno de {paciente.Nome} agendado para {agendamento.DataHoraConsulta:dd/MM/yyyy HH:mm}."
-                    : $"Nova consulta de {paciente.Nome} agendada para {agendamento.DataHoraConsulta:dd/MM/yyyy HH:mm}.";
-                
-                var notifProfissional = new Notificacao(profissional.UsuarioId, "Novo Agendamento", msgProf, agendamento.Id, link: $"agendamentos?id={agendamento.Id}");
-                await _notificacaoRepository.AdicionarAsync(notifProfissional);
-            }
+                if (tipoConsulta == TipoConsulta.Retorno && origem != null && origem.Status == StatusAgendamento.AguardandoRetorno)
+                {
+                    origem.AlterarStatus(StatusAgendamento.RetornoAgendado);
+                    await _repository.AtualizarAsync(origem);
 
-            if (paciente.UsuarioId.HasValue)
-            {
-                var msgPac = tipoConsulta == TipoConsulta.Retorno 
-                    ? $"Seu retorno com {profissionalNome} foi agendado para {agendamento.DataHoraConsulta:dd/MM/yyyy HH:mm}."
-                    : $"Sua consulta com {profissionalNome} foi agendada para {agendamento.DataHoraConsulta:dd/MM/yyyy HH:mm}.";
+                    var historicoOrigem = new AgendamentoHistorico(
+                        origem.Id,
+                        TipoEventoHistorico.MudancaStatus,
+                        usuarioLogadoId,
+                        statusAnterior: StatusAgendamento.AguardandoRetorno,
+                        statusNovo: StatusAgendamento.RetornoAgendado,
+                        observacao: "Agendamento de retorno vinculado."
+                    );
+                    await _repository.AdicionarHistoricoAsync(historicoOrigem);
+                }
 
-                var notifPaciente = new Notificacao(paciente.UsuarioId.Value, "Consulta Agendada", msgPac, agendamento.Id, link: $"agendamentos?id={agendamento.Id}");
-                await _notificacaoRepository.AdicionarAsync(notifPaciente);
-            }
-            
+                profissional = await _profissionalRepository.ObterPorIdAsync(agendamento.ProfissionalId);
+                profissionalNome = profissional?.Nome ?? "N/A";
+
+                if (profissional != null)
+                {
+                    var msgProf = tipoConsulta == TipoConsulta.Retorno
+                        ? $"Retorno de {paciente.Nome} agendado para {agendamento.DataHoraConsulta:dd/MM/yyyy HH:mm}."
+                        : $"Nova consulta de {paciente.Nome} agendada para {agendamento.DataHoraConsulta:dd/MM/yyyy HH:mm}.";
+
+                    var notifProfissional = new Notificacao(profissional.UsuarioId, "Novo Agendamento", msgProf, agendamento.Id, link: $"agendamentos?id={agendamento.Id}");
+                    await _notificacaoRepository.AdicionarAsync(notifProfissional);
+                }
+
+                if (paciente.UsuarioId.HasValue)
+                {
+                    var msgPac = tipoConsulta == TipoConsulta.Retorno
+                        ? $"Seu retorno com {profissionalNome} foi agendado para {agendamento.DataHoraConsulta:dd/MM/yyyy HH:mm}."
+                        : $"Sua consulta com {profissionalNome} foi agendada para {agendamento.DataHoraConsulta:dd/MM/yyyy HH:mm}.";
+
+                    var notifPaciente = new Notificacao(paciente.UsuarioId.Value, "Consulta Agendada", msgPac, agendamento.Id, link: $"agendamentos?id={agendamento.Id}");
+                    await _notificacaoRepository.AdicionarAsync(notifPaciente);
+                }
+            });
+
             var response = MapearResponse(agendamento, paciente.Nome, profissionalNome, paciente.Usuario?.FotoBase64, profissional?.Usuario?.FotoBase64);
             var (probFinal, nivelFinal) = await _probabilidadeFaltaService.CalcularProbabilidadeAsync(agendamento.PacienteId, agendamento.DataHoraConsulta);
             response.NivelProbabilidadeFalta = nivelFinal;

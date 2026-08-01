@@ -72,6 +72,7 @@ builder.Services.AddAuthentication(x =>
 });
 
 // Injeção de Dependências
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IPacienteRepository, PacienteRepository>();
 builder.Services.AddScoped<IAgendamentoRepository, AgendamentoRepository>();
 builder.Services.AddScoped<IProfissionalRepository, ProfissionalRepository>();
