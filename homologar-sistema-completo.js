@@ -419,16 +419,9 @@ async function rodarHomologacao() {
     console.log(`  🔴 [FALHA] Falha ao obter especialidades disponíveis!`);
   }
 
-  // T4.3: Obter detalhes do profissional (Admin/Medico)
-  const profissionalInfo = await request("/api/Profissionais/22222222-2222-2222-2222-222222222222", {
-    method: "GET",
-    headers: { "Authorization": `Bearer ${adminToken}` }
-  });
-  if (profissionalInfo.ok) {
-    console.log(`  🟢 [OK] Detalhes do profissional recuperados pelo Id de semente (${profissionalInfo.latency}ms)`);
-  } else {
-    console.log(`  🔴 [FALHA] Profissional de semente Dr. Admin não foi localizado pelo Id!`);
-  }
+  // Obs.: o teste de "obter profissional por Id" foi movido para a Fase 6, onde há
+  // um profissionalId real (delegado na criação do agendamento). Os Ids de semente
+  // deixaram de ser fixos após a adoção de GUID sequencial não-enumerável (Fase 1).
 
   console.log(`\n${CORES.bold}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${CORES.reset}`);
   console.log(`${CORES.bold}${CORES.ciano} FASE 5: DIRETÓRIO DE TRIAGEM INTELIGENTE COM INTELIGÊNCIA ARTIFICIAL (GEMINI) ${CORES.reset}`);
@@ -517,6 +510,18 @@ async function rodarHomologacao() {
   } else {
     console.log(`  🔴 [FALHA] Criação de agendamento válido falhou! Status: ${criarAgendamento.status}. Erro: ${JSON.stringify(criarAgendamento.data)}`);
     process.exit(1);
+  }
+
+  // T6.3b: Obter detalhes do profissional por Id (usa o profissional delegado no agendamento acima)
+  const profissionalDelegadoId = criarAgendamento.data.profissionalId;
+  const profissionalInfo = await request(`/api/Profissionais/${profissionalDelegadoId}`, {
+    method: "GET",
+    headers: { "Authorization": `Bearer ${adminToken}` }
+  });
+  if (profissionalInfo.ok) {
+    console.log(`  🟢 [OK] Detalhes do profissional recuperados por Id (${profissionalInfo.latency}ms)`);
+  } else {
+    console.log(`  🔴 [FALHA] Profissional delegado não foi localizado pelo Id!`);
   }
 
   // T6.4: TESTE NEGATIVO - Tentativa de agendar consulta em duplicidade para a mesma especialidade
