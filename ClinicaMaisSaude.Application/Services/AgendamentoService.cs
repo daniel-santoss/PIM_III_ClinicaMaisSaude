@@ -285,41 +285,50 @@ namespace ClinicaMaisSaude.Application.Services
 
             var statusAntigo = agendamento.Status;
             agendamento.AlterarStatus(novoStatus);
-            await _repository.AtualizarAsync(agendamento);
 
-            var tipoEvento = novoStatus == StatusAgendamento.Cancelado 
-                ? TipoEventoHistorico.Cancelamento 
+            var tipoEvento = novoStatus == StatusAgendamento.Cancelado
+                ? TipoEventoHistorico.Cancelamento
                 : TipoEventoHistorico.MudancaStatus;
 
-            var historico = new AgendamentoHistorico(
-                agendamento.Id,
-                tipoEvento,
-                usuarioLogadoId,
-                statusAnterior: statusAntigo,
-                statusNovo: novoStatus
-            );
-            await _repository.AdicionarHistoricoAsync(historico);
+            // Atômico: atualização de status + histórico + notificações de cancelamento.
+            Paciente? paciente = null;
+            Profissional? profissional = null;
 
-            var paciente = await _pacienteRepository.ObterPorIdAsync(agendamento.PacienteId);
-            var pacienteNome = paciente?.Nome ?? "N/A";
-            var profissional = await _profissionalRepository.ObterPorIdAsync(agendamento.ProfissionalId);
-            var profissionalNome = profissional?.Nome ?? "N/A";
-
-            if (novoStatus == StatusAgendamento.Cancelado)
+            await _unitOfWork.ExecuteInTransactionAsync(async () =>
             {
-                if (paciente != null && paciente.UsuarioId.HasValue)
+                await _repository.AtualizarAsync(agendamento);
+
+                var historico = new AgendamentoHistorico(
+                    agendamento.Id,
+                    tipoEvento,
+                    usuarioLogadoId,
+                    statusAnterior: statusAntigo,
+                    statusNovo: novoStatus
+                );
+                await _repository.AdicionarHistoricoAsync(historico);
+
+                paciente = await _pacienteRepository.ObterPorIdAsync(agendamento.PacienteId);
+                profissional = await _profissionalRepository.ObterPorIdAsync(agendamento.ProfissionalId);
+
+                if (novoStatus == StatusAgendamento.Cancelado)
                 {
-                    var msg = $"Sua consulta com {profissionalNome} em {agendamento.DataHoraConsulta:dd/MM/yyyy HH:mm} foi cancelada.";
-                    var notif = new Notificacao(paciente.UsuarioId.Value, "Consulta Cancelada", msg, agendamento.Id, link: $"agendamentos?id={agendamento.Id}");
-                    await _notificacaoRepository.AdicionarAsync(notif);
+                    if (paciente != null && paciente.UsuarioId.HasValue)
+                    {
+                        var msg = $"Sua consulta com {profissional?.Nome ?? "N/A"} em {agendamento.DataHoraConsulta:dd/MM/yyyy HH:mm} foi cancelada.";
+                        var notif = new Notificacao(paciente.UsuarioId.Value, "Consulta Cancelada", msg, agendamento.Id, link: $"agendamentos?id={agendamento.Id}");
+                        await _notificacaoRepository.AdicionarAsync(notif);
+                    }
+                    if (profissional != null)
+                    {
+                        var msg = $"A consulta com {paciente?.Nome ?? "N/A"} em {agendamento.DataHoraConsulta:dd/MM/yyyy HH:mm} foi cancelada.";
+                        var notif = new Notificacao(profissional.UsuarioId, "Consulta Cancelada", msg, agendamento.Id, link: $"agendamentos?id={agendamento.Id}");
+                        await _notificacaoRepository.AdicionarAsync(notif);
+                    }
                 }
-                if (profissional != null)
-                {
-                    var msg = $"A consulta com {pacienteNome} em {agendamento.DataHoraConsulta:dd/MM/yyyy HH:mm} foi cancelada.";
-                    var notif = new Notificacao(profissional.UsuarioId, "Consulta Cancelada", msg, agendamento.Id, link: $"agendamentos?id={agendamento.Id}");
-                    await _notificacaoRepository.AdicionarAsync(notif);
-                }
-            }
+            });
+
+            var pacienteNome = paciente?.Nome ?? "N/A";
+            var profissionalNome = profissional?.Nome ?? "N/A";
 
             var response = MapearResponse(agendamento, pacienteNome, profissionalNome, paciente?.Usuario?.FotoBase64, profissional?.Usuario?.FotoBase64);
             var (probFinal, nivelFinal) = await _probabilidadeFaltaService.CalcularProbabilidadeAsync(agendamento.PacienteId, agendamento.DataHoraConsulta);
@@ -427,35 +436,43 @@ namespace ClinicaMaisSaude.Application.Services
             var (prob, _) = await _probabilidadeFaltaService.CalcularProbabilidadeAsync(agendamento.PacienteId, agendamento.DataHoraConsulta);
             agendamento.AtualizarProbabilidadeFalta(prob);
 
-            await _repository.AtualizarAsync(agendamento);
+            // Atômico: remarcação + histórico + notificações de paciente e profissional.
+            Paciente? paciente = null;
+            Profissional? profissional = null;
 
-            var historico = new AgendamentoHistorico(
-                agendamento.Id,
-                TipoEventoHistorico.Remarcacao,
-                usuarioLogadoId,
-                dataAnterior: dataAntiga,
-                dataNova: request.NovaDataHora,
-                observacao: request.Observacao
-            );
-            await _repository.AdicionarHistoricoAsync(historico);
+            await _unitOfWork.ExecuteInTransactionAsync(async () =>
+            {
+                await _repository.AtualizarAsync(agendamento);
 
-            var paciente = await _pacienteRepository.ObterPorIdAsync(agendamento.PacienteId);
+                var historico = new AgendamentoHistorico(
+                    agendamento.Id,
+                    TipoEventoHistorico.Remarcacao,
+                    usuarioLogadoId,
+                    dataAnterior: dataAntiga,
+                    dataNova: request.NovaDataHora,
+                    observacao: request.Observacao
+                );
+                await _repository.AdicionarHistoricoAsync(historico);
+
+                paciente = await _pacienteRepository.ObterPorIdAsync(agendamento.PacienteId);
+                profissional = await _profissionalRepository.ObterPorIdAsync(agendamento.ProfissionalId);
+
+                if (paciente != null && paciente.UsuarioId.HasValue)
+                {
+                    var msg = $"Sua consulta foi remarcada para {request.NovaDataHora:dd/MM/yyyy HH:mm}.";
+                    var notif = new Notificacao(paciente.UsuarioId.Value, "Consulta Remarcada", msg, agendamento.Id, link: $"agendamentos?id={agendamento.Id}");
+                    await _notificacaoRepository.AdicionarAsync(notif);
+                }
+                if (profissional != null)
+                {
+                    var msg = $"A consulta com {paciente?.Nome ?? "N/A"} foi remarcada para {request.NovaDataHora:dd/MM/yyyy HH:mm}.";
+                    var notif = new Notificacao(profissional.UsuarioId, "Consulta Remarcada", msg, agendamento.Id, link: $"agendamentos?id={agendamento.Id}");
+                    await _notificacaoRepository.AdicionarAsync(notif);
+                }
+            });
+
             var pacienteNome = paciente?.Nome ?? "N/A";
-            var profissional = await _profissionalRepository.ObterPorIdAsync(agendamento.ProfissionalId);
             var profissionalNome = profissional?.Nome ?? "N/A";
-
-            if (paciente != null && paciente.UsuarioId.HasValue)
-            {
-                var msg = $"Sua consulta foi remarcada para {request.NovaDataHora:dd/MM/yyyy HH:mm}.";
-                var notif = new Notificacao(paciente.UsuarioId.Value, "Consulta Remarcada", msg, agendamento.Id, link: $"agendamentos?id={agendamento.Id}");
-                await _notificacaoRepository.AdicionarAsync(notif);
-            }
-            if (profissional != null)
-            {
-                var msg = $"A consulta com {pacienteNome} foi remarcada para {request.NovaDataHora:dd/MM/yyyy HH:mm}.";
-                var notif = new Notificacao(profissional.UsuarioId, "Consulta Remarcada", msg, agendamento.Id, link: $"agendamentos?id={agendamento.Id}");
-                await _notificacaoRepository.AdicionarAsync(notif);
-            }
 
             var response = MapearResponse(agendamento, pacienteNome, profissionalNome, paciente?.Usuario?.FotoBase64, profissional?.Usuario?.FotoBase64);
             var (probFinal, nivelFinal) = await _probabilidadeFaltaService.CalcularProbabilidadeAsync(agendamento.PacienteId, agendamento.DataHoraConsulta);
@@ -911,17 +928,21 @@ namespace ClinicaMaisSaude.Application.Services
             if (exigeResultadoPosterior)
                 agendamento.ExigirResultadoPosterior();
 
-            await _repository.AtualizarAsync(agendamento);
+            // Atômico: finalização do exame + histórico.
+            await _unitOfWork.ExecuteInTransactionAsync(async () =>
+            {
+                await _repository.AtualizarAsync(agendamento);
 
-            var historico = new AgendamentoHistorico(
-                agendamento.Id,
-                TipoEventoHistorico.MudancaStatus,
-                usuarioLogadoId,
-                statusAnterior: statusAntigo,
-                statusNovo: StatusAgendamento.Finalizado,
-                observacao: exigeResultadoPosterior ? "Exame concluído — resultado posterior pendente." : null
-            );
-            await _repository.AdicionarHistoricoAsync(historico);
+                var historico = new AgendamentoHistorico(
+                    agendamento.Id,
+                    TipoEventoHistorico.MudancaStatus,
+                    usuarioLogadoId,
+                    statusAnterior: statusAntigo,
+                    statusNovo: StatusAgendamento.Finalizado,
+                    observacao: exigeResultadoPosterior ? "Exame concluído — resultado posterior pendente." : null
+                );
+                await _repository.AdicionarHistoricoAsync(historico);
+            });
         }
     }
 }
