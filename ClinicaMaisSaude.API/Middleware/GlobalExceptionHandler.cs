@@ -60,6 +60,7 @@ namespace ClinicaMaisSaude.API.Middleware
             ForbiddenException => (StatusCodes.Status403Forbidden, "Acesso negado"),
             UnauthorizedException => (StatusCodes.Status401Unauthorized, "Não autorizado"),
             RateLimitExceededException => (StatusCodes.Status429TooManyRequests, "Limite de requisições excedido"),
+            ServiceUnavailableException => (StatusCodes.Status503ServiceUnavailable, "Serviço indisponível"),
 
             // Exceções de framework já lançadas no código atual, mapeadas para bons status
             // enquanto os demais services não migram para as exceções tipadas.

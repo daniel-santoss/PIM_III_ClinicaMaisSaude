@@ -76,7 +76,9 @@ export default function AgendamentoPaciente({
         }
         setSugestaoIA(dados);
       } else {
-        const erroMsg = await response.text();
+        const raw = await response.text();
+        let erroMsg = raw;
+        try { const j = JSON.parse(raw); erroMsg = j.message || j.detail || j.title || raw; } catch { /* corpo não-JSON: usa texto puro */ }
         setModalMensagem(erroMsg);
       }
     } catch (e) {

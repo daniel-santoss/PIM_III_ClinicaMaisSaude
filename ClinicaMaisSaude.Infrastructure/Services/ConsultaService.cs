@@ -81,7 +81,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             {
                 paciente = await _context.Pacientes.FirstOrDefaultAsync(p => p.Id == pacienteId.Value);
                 if (paciente == null)
-                    throw new KeyNotFoundException("Paciente não encontrado.");
+                    throw new NotFoundException("Paciente não encontrado.");
 
                 if (paciente.IsIABloqueada())
                 {
@@ -89,25 +89,25 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                         OperatingSystem.IsWindows() ? "E. South America Standard Time" : "America/Sao_Paulo"
                     );
                     var dataBloqueio = TimeZoneInfo.ConvertTimeFromUtc(paciente.BloqueadoIAAte!.Value, brasilia).ToString("dd/MM/yyyy HH:mm");
-                    throw new UnauthorizedAccessException($"Acesso à IA bloqueado até {dataBloqueio}. Se acha que é um erro, entre em contato: suporte@clinicamaissaude.com");
+                    throw new ForbiddenException($"Acesso à IA bloqueado até {dataBloqueio}. Se acha que é um erro, entre em contato: suporte@clinicamaissaude.com");
                 }
             }
             else if (tipoUsuario != PerfisUsuario.Enfermeira && tipoUsuario != PerfisUsuario.Medico && !isAdmin)
             {
-                throw new UnauthorizedAccessException("Usuário não é um paciente válido.");
+                throw new ForbiddenException("Usuário não é um paciente válido.");
             }
 
             if (string.IsNullOrWhiteSpace(sintomas) || sintomas.Length < 10)
-                throw new ArgumentException("Descreva os sintomas com pelo menos 10 caracteres.");
+                throw new ValidationException("Descreva os sintomas com pelo menos 10 caracteres.");
 
             if (sintomas.Length > 300)
-                throw new ArgumentException("Limite de 300 caracteres para a descrição dos sintomas.");
+                throw new ValidationException("Limite de 300 caracteres para a descrição dos sintomas.");
 
             var apiKey = _config[ConfigKeys.GeminiApiKey];
             var model = _config[ConfigKeys.GeminiModel] ?? "gemini-2.5-flash";
 
             if (string.IsNullOrWhiteSpace(apiKey) || apiKey == "SUA_CHAVE_AQUI")
-                throw new InvalidOperationException("Serviço de IA não configurado. Contate o administrador.");
+                throw new ServiceUnavailableException("Serviço de IA não configurado. Contate o administrador.");
 
             var sintomasLimpos = sintomas.Trim().Replace("\r", " ").Replace("\n", " ");
             var userPrompt = $"Sintomas do paciente: \"{sintomasLimpos}\"";
@@ -162,14 +162,14 @@ Formato:
             {
                 if (response.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
                 {
-                    throw new HttpRequestException("A triagem inteligente atingiu o limite de consultas gratuitas. Tente novamente mais tarde.", null, System.Net.HttpStatusCode.TooManyRequests);
+                    throw new ServiceUnavailableException("A triagem inteligente atingiu o limite de consultas gratuitas. Tente novamente mais tarde.");
                 }
                 if (response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
                 {
-                    throw new HttpRequestException("O serviço de IA está temporariamente indisponível. Tente novamente mais tarde.", null, System.Net.HttpStatusCode.ServiceUnavailable);
+                    throw new ServiceUnavailableException("O serviço de IA está temporariamente indisponível. Tente novamente mais tarde.");
                 }
 
-                throw new HttpRequestException("Não foi possível conectar com a Inteligência Artificial no momento.", null, response.StatusCode);
+                throw new ServiceUnavailableException("Não foi possível conectar com a Inteligência Artificial no momento.");
             }
 
             _logger.LogDebug("Gemini raw response: {ResponseBody}", responseBody);
@@ -212,7 +212,7 @@ Formato:
                     return new { justificativa = "Detectamos uma tentativa deliberada de obtenção de credenciais privadas e ativos de domínio por meio da Inteligência Artificial do sistema. Esta conduta configura Invasão de Dispositivo Informático, conforme o Art. 154-A do Código Penal (Lei 12.737/2012) e violação dos princípios de segurança e confidencialidade da Lei Geral de Proteção de Dados (Lei 13.709/2018 - LGPD)." };
                 }
 
-                throw new Exception($"A IA não retornou texto válido. Motivo: {finishReason}");
+                throw new ServiceUnavailableException($"A IA não retornou texto válido. Motivo: {finishReason}");
             }
 
             var textoResposta = partsElement[0].GetProperty("text").GetString();
@@ -295,7 +295,7 @@ Formato:
 
                     await _context.SaveChangesAsync();
                 }
-                throw new ArgumentException("Seus sintomas não estão relacionados à saúde. Por favor, descreva uma queixa médica real para prosseguir.");
+                throw new ValidationException("Seus sintomas não estão relacionados à saúde. Por favor, descreva uma queixa médica real para prosseguir.");
             }
 
             var serializeOptions = new JsonSerializerOptions { AllowTrailingCommas = true, ReadCommentHandling = JsonCommentHandling.Skip };
@@ -305,7 +305,7 @@ Formato:
         public async Task RemoverPenalidadeAsync(Guid usuarioId)
         {
             var usuario = await _context.Usuarios.FindAsync(usuarioId);
-            if (usuario == null) throw new KeyNotFoundException("Usuário não encontrado.");
+            if (usuario == null) throw new NotFoundException("Usuário não encontrado.");
 
             if (usuario.IsBloqueado())
             {
