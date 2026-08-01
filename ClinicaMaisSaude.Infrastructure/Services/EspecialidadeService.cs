@@ -1,3 +1,4 @@
+using ClinicaMaisSaude.Application.Exceptions;
 using ClinicaMaisSaude.Application.Interfaces;
 using ClinicaMaisSaude.Domain.Entities;
 using ClinicaMaisSaude.Domain.Enums;
@@ -40,7 +41,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
 
             if (prof == null) return null;
             if (prof.TipoProfissional == TipoProfissional.Enfermeira)
-                throw new InvalidOperationException("Enfermeiras não possuem especialidades.");
+                throw new BusinessRuleException("Enfermeiras não possuem especialidades.");
 
             return prof.Especialidades
                 .Select(e => new { id = (int)e.EspecialidadeId, nome = FormatarNome(e.EspecialidadeId) })
@@ -55,14 +56,14 @@ namespace ClinicaMaisSaude.Infrastructure.Services
 
             if (prof == null) return null;
             if (prof.TipoProfissional == TipoProfissional.Enfermeira)
-                throw new InvalidOperationException("Enfermeiras não possuem especialidades.");
+                throw new BusinessRuleException("Enfermeiras não possuem especialidades.");
 
             var validos = Enum.GetValues<EspecialidadeMedica>().Cast<int>().ToHashSet();
             var idsValidos = especialidadeIds.Where(id => validos.Contains(id)).Distinct().ToList();
 
             if (idsValidos.Count > 2)
             {
-                throw new InvalidOperationException("Médicos podem ter no máximo 2 especialidades.");
+                throw new BusinessRuleException("Médicos podem ter no máximo 2 especialidades.");
             }
 
             prof.Especialidades.Clear();
