@@ -1,3 +1,4 @@
+using ClinicaMaisSaude.Application.Exceptions;
 using ClinicaMaisSaude.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -20,7 +21,7 @@ namespace ClinicaMaisSaude.API.Controllers
         public async Task<IActionResult> ObterPorId(Guid id)
         {
             var resultado = await _profissionalService.ObterPorIdAsync(id);
-            if (resultado == null) return NotFound("Profissional não encontrado.");
+            if (resultado == null) throw new NotFoundException("Profissional não encontrado.");
             return Ok(resultado);
         }
     }
