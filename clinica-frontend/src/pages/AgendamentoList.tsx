@@ -237,7 +237,7 @@ export default function AgendamentoList({ agendamentoDestaque }: { agendamentoDe
       });
       if (!response.ok) {
         const err = await response.json();
-        toast.error(err.mensagem || "Erro ao concluir exame.");
+        toast.error(err.message || err.mensagem ||"Erro ao concluir exame.");
         return;
       }
       toast.success("Exame concluído com sucesso.");
@@ -257,7 +257,7 @@ export default function AgendamentoList({ agendamentoDestaque }: { agendamentoDe
       });
       if (!response.ok) {
         const err = await response.json();
-        toast.error(err.mensagem || "Erro ao notificar resultado.");
+        toast.error(err.message || err.mensagem ||"Erro ao notificar resultado.");
         return;
       }
       toast.success("Paciente notificado sobre resultado pronto.");
@@ -274,7 +274,7 @@ export default function AgendamentoList({ agendamentoDestaque }: { agendamentoDe
       });
       if (!response.ok) {
         const err = await response.json();
-        toast.error(err.mensagem || "Erro ao confirmar retirada.");
+        toast.error(err.message || err.mensagem ||"Erro ao confirmar retirada.");
         return;
       }
       toast.success("Retirada de resultado confirmada.");

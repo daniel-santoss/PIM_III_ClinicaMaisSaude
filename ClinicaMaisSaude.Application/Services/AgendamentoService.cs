@@ -1,4 +1,5 @@
 using ClinicaMaisSaude.Application.DTOs.Agendamento;
+using ClinicaMaisSaude.Application.Exceptions;
 using ClinicaMaisSaude.Application.Interfaces;
 using ClinicaMaisSaude.Domain.Constants;
 using ClinicaMaisSaude.Domain.Entities;
@@ -48,7 +49,7 @@ namespace ClinicaMaisSaude.Application.Services
 
             var paciente = await _pacienteRepository.ObterPorIdAsync(request.PacienteId);
             if (paciente == null || !paciente.Ativo)
-                throw new Exception("Paciente inválido ou inativo.");
+                throw new BusinessRuleException("Paciente inválido ou inativo.");
 
             bool ehProprioPaciente = paciente.UsuarioId.HasValue && paciente.UsuarioId.Value == usuarioLogadoId;
             if (ehProprioPaciente)
@@ -66,7 +67,7 @@ namespace ClinicaMaisSaude.Application.Services
 
                 if (consultasNoMesmoDia >= maxConsultasNoMesmoDia)
                 {
-                    throw new Exception($"Você já atingiu o limite de {maxConsultasNoMesmoDia} consultas ativas agendadas para o dia {request.DataHoraConsulta:dd/MM/yyyy}.");
+                    throw new BusinessRuleException($"Você já atingiu o limite de {maxConsultasNoMesmoDia} consultas ativas agendadas para o dia {request.DataHoraConsulta:dd/MM/yyyy}.");
                 }
 
                 // 2. Limite B: Agendamentos criados hoje (fuso local UTC-3)
@@ -76,7 +77,7 @@ namespace ClinicaMaisSaude.Application.Services
 
                 if (agendamentosCriadosHoje >= maxAgendamentosCriadosPorDia)
                 {
-                    throw new Exception($"Você atingiu o limite de {maxAgendamentosCriadosPorDia} agendamentos criados por dia. Tente novamente amanhã.");
+                    throw new BusinessRuleException($"Você atingiu o limite de {maxAgendamentosCriadosPorDia} agendamentos criados por dia. Tente novamente amanhã.");
                 }
 
                 // 3. Regra de Especialidade Ativa Única
@@ -91,7 +92,7 @@ namespace ClinicaMaisSaude.Application.Services
                     if (temEspecialidadeAtiva)
                     {
                         var nomeEspecialidade = ((EspecialidadeMedica)request.EspecialidadeId.Value).ToString();
-                        throw new Exception($"Você já possui um agendamento ativo para a especialidade {nomeEspecialidade}. Não é permitido possuir mais de um agendamento ativo para a mesma especialidade simultaneamente.");
+                        throw new BusinessRuleException($"Você já possui um agendamento ativo para a especialidade {nomeEspecialidade}. Não é permitido possuir mais de um agendamento ativo para a mesma especialidade simultaneamente.");
                     }
 
                     // 4. Regra de Intervalo de 60 Dias para Consultas Finalizadas
@@ -104,7 +105,7 @@ namespace ClinicaMaisSaude.Application.Services
                     if (temConsultaRecenteFinalizada)
                     {
                         var nomeEspecialidade = ((EspecialidadeMedica)request.EspecialidadeId.Value).ToString();
-                        throw new Exception($"Consulta Recente: Você realizou uma consulta de {nomeEspecialidade} há menos de 60 dias. Por razões clínicas, um novo agendamento para esta especialidade só pode ser efetuado diretamente pela equipe da clínica.");
+                        throw new BusinessRuleException($"Consulta Recente: Você realizou uma consulta de {nomeEspecialidade} há menos de 60 dias. Por razões clínicas, um novo agendamento para esta especialidade só pode ser efetuado diretamente pela equipe da clínica.");
                     }
                 }
             }
@@ -112,12 +113,12 @@ namespace ClinicaMaisSaude.Application.Services
             ValidarCriacao(tipoProfissional, tipoConsulta);
 
             if (request.DataHoraConsulta <= DateTime.UtcNow.AddHours(-3))
-                throw new Exception("Não é possível agendar em datas passadas.");
+                throw new BusinessRuleException("Não é possível agendar em datas passadas.");
 
             bool temConflitoPaciente = await ExisteConflitoPaciente(request.PacienteId, request.DataHoraConsulta, tipoConsulta, null);
             if (temConflitoPaciente)
             {
-                throw new Exception("O paciente já possui um agendamento neste horário ou em horário conflitante.");
+                throw new BusinessRuleException("O paciente já possui um agendamento neste horário ou em horário conflitante.");
             }
 
             if (tipoConsulta == TipoConsulta.Retorno)
@@ -128,7 +129,7 @@ namespace ClinicaMaisSaude.Application.Services
                     a.Status == StatusAgendamento.AguardandoRetorno);
 
                 if (!possuiAguardandoRetorno)
-                    throw new Exception("Retorno só pode ser agendado após uma consulta inicial pendente.");
+                    throw new BusinessRuleException("Retorno só pode ser agendado após uma consulta inicial pendente.");
             }
 
             Agendamento? origem = null;
@@ -136,11 +137,11 @@ namespace ClinicaMaisSaude.Application.Services
             if (tipoConsulta == TipoConsulta.Retorno && request.AgendamentoOrigemId.HasValue)
             {
                 origem = await _repository.ObterPorIdAsync(request.AgendamentoOrigemId.Value);
-                if (origem == null) throw new Exception("Agendamento de origem inválido.");
+                if (origem == null) throw new NotFoundException("Agendamento de origem inválido.");
                 
                 bool temConflito = await ExisteConflito(origem.ProfissionalId, request.DataHoraConsulta, tipoConsulta, null);
                 if (temConflito) {
-                    throw new Exception("O profissional responsável pela sua consulta de origem não tem disponibilidade neste horário.");
+                    throw new BusinessRuleException("O profissional responsável pela sua consulta de origem não tem disponibilidade neste horário.");
                 }
                 profissionalDelegado = origem.ProfissionalId;
             }
@@ -223,15 +224,15 @@ namespace ClinicaMaisSaude.Application.Services
         {
             var agendamento = await _repository.ObterPorIdAsync(id);
             if (agendamento == null)
-                throw new Exception("Agendamento não encontrado.");
+                throw new NotFoundException("Agendamento não encontrado.");
 
             if (request.DataHoraConsulta <= DateTime.UtcNow.AddHours(-3))
-                throw new Exception("Não é permitido reagendar para datas/horários passados.");
+                throw new BusinessRuleException("Não é permitido reagendar para datas/horários passados.");
 
             bool temConflitoPaciente = await ExisteConflitoPaciente(agendamento.PacienteId, request.DataHoraConsulta, (TipoConsulta)request.TipoConsulta, agendamento.Id);
             if (temConflitoPaciente)
             {
-                throw new Exception("O paciente já possui um agendamento neste horário ou em horário conflitante.");
+                throw new BusinessRuleException("O paciente já possui um agendamento neste horário ou em horário conflitante.");
             }
 
             var tipoProf = (TipoProfissional)request.TipoProfissional;
@@ -243,7 +244,7 @@ namespace ClinicaMaisSaude.Application.Services
             var conflitoOriginal = await ExisteConflito(agendamento.ProfissionalId, request.DataHoraConsulta, tipoCons, agendamento.Id);
             if(conflitoOriginal)
             {
-               throw new Exception("O profissional original não possui agenda para esse reagendamento. Tente outro horário.");
+               throw new BusinessRuleException("O profissional original não possui agenda para esse reagendamento. Tente outro horário.");
             }
 
             var (prob, _) = await _probabilidadeFaltaService.CalcularProbabilidadeAsync(agendamento.PacienteId, agendamento.DataHoraConsulta);
@@ -268,7 +269,7 @@ namespace ClinicaMaisSaude.Application.Services
         {
             var agendamento = await _repository.ObterPorIdAsync(id);
             if (agendamento == null)
-                throw new Exception("Agendamento não encontrado.");
+                throw new NotFoundException("Agendamento não encontrado.");
 
             var novoStatus = (StatusAgendamento)novoStatusInt;
             ValidarTransicao(agendamento, novoStatus);
@@ -323,7 +324,7 @@ namespace ClinicaMaisSaude.Application.Services
         {
             var agendamento = await _repository.ObterPorIdAsync(id);
             if (agendamento == null)
-                throw new Exception("Agendamento não encontrado.");
+                throw new NotFoundException("Agendamento não encontrado.");
 
             await _repository.DeletarAsync(agendamento);
         }
@@ -332,7 +333,7 @@ namespace ClinicaMaisSaude.Application.Services
         {
             var agendamento = await _repository.ObterPorIdAsync(id);
             if (agendamento == null)
-                throw new Exception("Agendamento não encontrado.");
+                throw new NotFoundException("Agendamento não encontrado.");
 
             var paciente = await _pacienteRepository.ObterPorIdAsync(agendamento.PacienteId);
             var pacienteNome = paciente?.Nome ?? "N/A";
@@ -351,16 +352,16 @@ namespace ClinicaMaisSaude.Application.Services
         {
             var agendamento = await _repository.ObterPorIdAsync(id);
             if (agendamento == null)
-                throw new Exception("Agendamento não encontrado.");
+                throw new NotFoundException("Agendamento não encontrado.");
 
             if (agendamento.Status == StatusAgendamento.Cancelado || 
                 agendamento.Status == StatusAgendamento.Finalizado)
             {
-                throw new Exception("Não é possível remarcar um agendamento cancelado ou finalizado.");
+                throw new BusinessRuleException("Não é possível remarcar um agendamento cancelado ou finalizado.");
             }
 
             if (request.NovaDataHora <= DateTime.UtcNow.AddHours(-3))
-                throw new Exception("Não é permitido remarcar para datas/horários passados.");
+                throw new BusinessRuleException("Não é permitido remarcar para datas/horários passados.");
 
             var pacienteAgendamento = await _pacienteRepository.ObterPorIdAsync(agendamento.PacienteId);
             bool ehProprioPaciente = pacienteAgendamento?.UsuarioId.HasValue == true && pacienteAgendamento.UsuarioId.Value == usuarioLogadoId;
@@ -378,7 +379,7 @@ namespace ClinicaMaisSaude.Application.Services
 
                 if (consultasNoMesmoDia >= maxConsultasNoMesmoDia)
                 {
-                    throw new Exception($"Você já atingiu o limite de {maxConsultasNoMesmoDia} consultas ativas agendadas para o dia {request.NovaDataHora:dd/MM/yyyy}.");
+                    throw new BusinessRuleException($"Você já atingiu o limite de {maxConsultasNoMesmoDia} consultas ativas agendadas para o dia {request.NovaDataHora:dd/MM/yyyy}.");
                 }
 
                 // Validação de Especialidade Ativa Única ao remarcar (excluindo este próprio agendamento)
@@ -394,7 +395,7 @@ namespace ClinicaMaisSaude.Application.Services
                     if (temOutraEspecialidadeAtiva)
                     {
                         var nomeEspecialidade = ((EspecialidadeMedica)agendamento.EspecialidadeId.Value).ToString();
-                        throw new Exception($"Você já possui outro agendamento ativo para a especialidade {nomeEspecialidade}. Não é permitido possuir mais de um agendamento ativo para a mesma especialidade simultaneamente.");
+                        throw new BusinessRuleException($"Você já possui outro agendamento ativo para a especialidade {nomeEspecialidade}. Não é permitido possuir mais de um agendamento ativo para a mesma especialidade simultaneamente.");
                     }
                 }
             }
@@ -402,13 +403,13 @@ namespace ClinicaMaisSaude.Application.Services
             bool temConflitoPaciente = await ExisteConflitoPaciente(agendamento.PacienteId, request.NovaDataHora, agendamento.TipoConsulta, agendamento.Id);
             if (temConflitoPaciente)
             {
-                throw new Exception("O paciente já possui um agendamento neste horário ou em horário conflitante.");
+                throw new BusinessRuleException("O paciente já possui um agendamento neste horário ou em horário conflitante.");
             }
 
             bool temConflito = await ExisteConflito(agendamento.ProfissionalId, request.NovaDataHora, agendamento.TipoConsulta, agendamento.Id);
             if (temConflito)
             {
-                throw new Exception("O profissional responsável já possui um agendamento neste horário. Escolha outro horário.");
+                throw new BusinessRuleException("O profissional responsável já possui um agendamento neste horário. Escolha outro horário.");
             }
 
             var dataAntiga = agendamento.DataHoraConsulta;
@@ -639,7 +640,7 @@ namespace ClinicaMaisSaude.Application.Services
         {
             var profissionais = await _profissionalRepository.ObterTodosPorTipoAsync(tipo);
             if (!profissionais.Any())
-                throw new Exception("Nenhum profissional deste tipo cadastrado no sistema.");
+                throw new BusinessRuleException("Nenhum profissional deste tipo cadastrado no sistema.");
 
             // F2: Filtra por especialidade quando informada (apenas para médicos)
             if (especialidadeId.HasValue && tipo == TipoProfissional.Medico)
@@ -651,7 +652,7 @@ namespace ClinicaMaisSaude.Application.Services
                 if (comEspecialidade.Any())
                     profissionais = comEspecialidade;
                 else
-                    throw new Exception("Nenhum médico com a especialidade solicitada encontrado.");
+                    throw new BusinessRuleException("Nenhum médico com a especialidade solicitada encontrado.");
             }
 
             var duracaoEmMinutos = TipoConsultaDuracao.ObterDuracao(consulta);
@@ -683,7 +684,7 @@ namespace ClinicaMaisSaude.Application.Services
             }
 
             if (!candidatos.Any())
-                throw new Exception("Nenhum profissional disponível neste horário. Tente outro horário.");
+                throw new BusinessRuleException("Nenhum profissional disponível neste horário. Tente outro horário.");
 
             // 3. Seleciona o profissional com a menor contagem no dia, usando a carga ativa total como desempate
             return candidatos.OrderBy(c => c.NoDia).ThenBy(c => c.AtivosGeral).First().ProfissionalId;
@@ -739,10 +740,10 @@ namespace ClinicaMaisSaude.Application.Services
                              consulta == TipoConsulta.Retorno;
 
             if (tipo == TipoProfissional.Enfermeira && !enfermeiraPode)
-                throw new Exception("Profissional não habilitado para este tipo de consulta.");
+                throw new BusinessRuleException("Profissional não habilitado para este tipo de consulta.");
 
             if (tipo == TipoProfissional.Medico && !medicoPode)
-                throw new Exception("Profissional não habilitado para este tipo de consulta.");
+                throw new BusinessRuleException("Profissional não habilitado para este tipo de consulta.");
         }
 
         private void ValidarTransicao(Agendamento agendamento, StatusAgendamento novoStatus)
@@ -777,10 +778,10 @@ namespace ClinicaMaisSaude.Application.Services
                 if (novoStatus == StatusAgendamento.AguardandoRetorno &&
                     agendamento.TipoConsulta != TipoConsulta.ConsultaMedica)
                 {
-                    throw new Exception("Apenas consultas médicas podem gerar retorno.");
+                    throw new BusinessRuleException("Apenas consultas médicas podem gerar retorno.");
                 }
 
-                throw new Exception($"Transição de '{atual}' para '{novoStatus}' não é permitida.");
+                throw new BusinessRuleException($"Transição de '{atual}' para '{novoStatus}' não é permitida.");
             }
 
             if (novoStatus == StatusAgendamento.EmAtendimento)
@@ -788,13 +789,13 @@ namespace ClinicaMaisSaude.Application.Services
                 var limiteMinimo = agendamento.DataHoraConsulta.AddMinutes(-15);
                 if (DateTime.UtcNow.AddHours(-3) < limiteMinimo)
                 {
-                    throw new Exception("Só é possível iniciar o atendimento a partir de 15 minutos antes do horário agendado.");
+                    throw new BusinessRuleException("Só é possível iniciar o atendimento a partir de 15 minutos antes do horário agendado.");
                 }
             }
 
             if (novoStatus == StatusAgendamento.Faltou && agendamento.DataHoraConsulta > DateTime.UtcNow.AddHours(-3))
             {
-                throw new Exception("Não é possível registrar falta em agendamento futuro.");
+                throw new BusinessRuleException("Não é possível registrar falta em agendamento futuro.");
             }
         }
 
@@ -855,16 +856,16 @@ namespace ClinicaMaisSaude.Application.Services
         {
             var agendamento = (await _repository.ObterTodosAsync()).FirstOrDefault(a => a.Id == id);
             if (agendamento == null)
-                throw new Exception("Agendamento não encontrado.");
+                throw new NotFoundException("Agendamento não encontrado.");
 
             if (agendamento.TipoConsulta != TipoConsulta.Exame)
-                throw new Exception("Apenas agendamentos do tipo Exame podem ter resultado marcado.");
+                throw new BusinessRuleException("Apenas agendamentos do tipo Exame podem ter resultado marcado.");
 
             if (agendamento.Status != StatusAgendamento.Finalizado)
-                throw new Exception("O exame precisa estar finalizado para marcar resultado disponível.");
+                throw new BusinessRuleException("O exame precisa estar finalizado para marcar resultado disponível.");
 
             if (!agendamento.ExigeResultadoPosterior)
-                throw new Exception("Este exame não requer notificação de resultado posterior.");
+                throw new BusinessRuleException("Este exame não requer notificação de resultado posterior.");
 
             agendamento.MarcarResultadoDisponivel();
             await _repository.AtualizarAsync(agendamento);
@@ -886,13 +887,13 @@ namespace ClinicaMaisSaude.Application.Services
         {
             var agendamento = await _repository.ObterPorIdAsync(id);
             if (agendamento == null)
-                throw new Exception("Agendamento não encontrado.");
+                throw new NotFoundException("Agendamento não encontrado.");
 
             if (!agendamento.ExigeResultadoPosterior)
-                throw new Exception("Este exame não possui controle de resultado.");
+                throw new BusinessRuleException("Este exame não possui controle de resultado.");
 
             if (!agendamento.ResultadoDisponivel)
-                throw new Exception("O resultado ainda não foi marcado como disponível.");
+                throw new BusinessRuleException("O resultado ainda não foi marcado como disponível.");
 
             agendamento.MarcarResultadoRetirado();
             await _repository.AtualizarAsync(agendamento);
@@ -902,10 +903,10 @@ namespace ClinicaMaisSaude.Application.Services
         {
             var agendamento = await _repository.ObterPorIdAsync(id);
             if (agendamento == null)
-                throw new Exception("Agendamento não encontrado.");
+                throw new NotFoundException("Agendamento não encontrado.");
 
             if (agendamento.TipoConsulta != TipoConsulta.Exame)
-                throw new Exception("Endpoint exclusivo para exames.");
+                throw new BusinessRuleException("Endpoint exclusivo para exames.");
 
             ValidarTransicao(agendamento, StatusAgendamento.Finalizado);
 

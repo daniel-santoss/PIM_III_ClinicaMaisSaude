@@ -183,7 +183,12 @@ export default function AgendamentoPaciente({
         })
       });
 
-      if (!response.ok) throw new Error(await response.text());
+      if (!response.ok) {
+        const raw = await response.text();
+        let msg = raw;
+        try { const j = JSON.parse(raw); msg = j.message || j.detail || j.title || raw; } catch { /* corpo não-JSON: usa texto puro */ }
+        throw new Error(msg);
+      }
       setSucesso(true);
       onLimparPrePreenchidos?.();
       if (onSucesso) setTimeout(onSucesso, 2000);
