@@ -12,16 +12,23 @@ namespace ClinicaMaisSaude.Infrastructure.Repositories
     public class NotificacaoRepository : INotificacaoRepository
     {
         private readonly ClinicaDbContext _context;
+        private readonly INotificadorTempoReal _notificadorTempoReal;
 
-        public NotificacaoRepository(ClinicaDbContext context)
+        public NotificacaoRepository(ClinicaDbContext context, INotificadorTempoReal notificadorTempoReal)
         {
             _context = context;
+            _notificadorTempoReal = notificadorTempoReal;
         }
 
         public async Task AdicionarAsync(Notificacao notificacao)
         {
             await _context.Notificacoes.AddAsync(notificacao);
             await _context.SaveChangesAsync();
+
+            // Push em tempo real (best-effort). Este é o funil de todas as notificações
+            // criadas pela camada de aplicação (ex.: AgendamentoService), então cobrir aqui
+            // dá cobertura automática a agendar/cancelar/remarcar/resultado de exame.
+            await _notificadorTempoReal.NotificarAsync(notificacao);
         }
 
         public async Task<IEnumerable<Notificacao>> ObterPorUsuarioIdAsync(Guid usuarioId)

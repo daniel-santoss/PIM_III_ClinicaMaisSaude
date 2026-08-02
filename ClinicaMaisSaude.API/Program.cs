@@ -6,6 +6,7 @@ using ClinicaMaisSaude.Domain.Constants;
 using ClinicaMaisSaude.Domain.Interfaces;
 using ClinicaMaisSaude.Infrastructure.Data;
 using ClinicaMaisSaude.API.Services;
+using ClinicaMaisSaude.API.Hubs;
 using ClinicaMaisSaude.API.Converters;
 using ClinicaMaisSaude.API.Middleware;
 using ClinicaMaisSaude.Infrastructure.Repositories;
@@ -63,7 +64,10 @@ builder.Services.AddCors(options =>
     {
         policy.WithOrigins(corsOrigins)
               .AllowAnyHeader()
-              .AllowAnyMethod();
+              .AllowAnyMethod()
+              // Necessário para o handshake do SignalR (WebSocket autenticado) cross-origin.
+              // Permitido porque usamos origens explícitas (WithOrigins), não AllowAnyOrigin.
+              .AllowCredentials();
     });
 });
 builder.Services.AddValidatorsFromAssemblyContaining<PacienteRequestValidator>();
@@ -121,7 +125,28 @@ builder.Services.AddAuthentication(x =>
         ValidateLifetime = true,
         ClockSkew = TimeSpan.FromMinutes(1)
     };
+
+    // WebSocket não envia o header Authorization no handshake; o cliente SignalR
+    // passa o JWT via query string (?access_token=...). Aqui copiamos esse token
+    // para o contexto de autenticação, mas SÓ para as rotas do Hub — as APIs REST
+    // continuam exigindo o token no header, como antes.
+    x.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            var accessToken = context.Request.Query["access_token"];
+            var path = context.HttpContext.Request.Path;
+            if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
+            {
+                context.Token = accessToken;
+            }
+            return Task.CompletedTask;
+        }
+    };
 });
+
+// SignalR: notificações em tempo real (push), substituindo o polling do front-end.
+builder.Services.AddSignalR();
 
 // Injeção de Dependências
 builder.Services.AddSingleton<IDataHoraService, DataHoraService>();
@@ -142,6 +167,7 @@ builder.Services.AddScoped<IPerfilService, PerfilService>();
 builder.Services.AddScoped<IProfissionalService, ProfissionalService>();
 builder.Services.AddScoped<INotificacaoRepository, NotificacaoRepository>();
 builder.Services.AddScoped<INotificacaoService, NotificacaoService>();
+builder.Services.AddScoped<INotificadorTempoReal, NotificadorTempoRealSignalR>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IConsultaService, ConsultaService>();
 
@@ -191,6 +217,10 @@ app.UseAuthorization();  // <-- Exigido pra aplicar políticas (ex: [Authorize])
 
 // Mapeia as rotas (Endpoints)
 app.MapControllers();
+
+// Endpoint do canal de tempo real. O cliente conecta em /hubs/notificacoes
+// passando o JWT via query string (ver JwtBearerEvents.OnMessageReceived).
+app.MapHub<NotificacaoHub>("/hubs/notificacoes");
 
 // Garante o administrador inicial (senha vinda da configuração; ver AdminSeeder).
 using (var scope = app.Services.CreateScope())

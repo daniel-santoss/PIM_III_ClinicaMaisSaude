@@ -3,6 +3,7 @@ using ClinicaMaisSaude.Application.Exceptions;
 using ClinicaMaisSaude.Domain.Entities;
 using ClinicaMaisSaude.Domain.Enums;
 using ClinicaMaisSaude.Domain.Constants;
+using ClinicaMaisSaude.Domain.Interfaces;
 using ClinicaMaisSaude.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
@@ -27,6 +28,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
         private readonly ILogger<ConsultaService> _logger;
         private readonly IDistributedCache _cache;
         private readonly IDataHoraService _dataHora;
+        private readonly INotificadorTempoReal _notificadorTempoReal;
 
         public ConsultaService(
             ClinicaDbContext context,
@@ -34,7 +36,8 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             IHttpClientFactory httpClientFactory,
             ILogger<ConsultaService> logger,
             IDistributedCache cache,
-            IDataHoraService dataHora)
+            IDataHoraService dataHora,
+            INotificadorTempoReal notificadorTempoReal)
         {
             _context = context;
             _config = config;
@@ -42,6 +45,17 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             _logger = logger;
             _cache = cache;
             _dataHora = dataHora;
+            _notificadorTempoReal = notificadorTempoReal;
+        }
+
+        // Empurra em tempo real (best-effort) todas as notificações criadas num bloco,
+        // após o commit. Centralizado aqui para não repetir o loop nos vários pontos.
+        private async Task PushRealtimeAsync(IEnumerable<Notificacao> notificacoes)
+        {
+            foreach (var n in notificacoes)
+            {
+                await _notificadorTempoReal.NotificarAsync(n);
+            }
         }
 
         // Lê a janela deslizante de timestamps (ticks UTC) do cache distribuído.
@@ -206,7 +220,7 @@ Formato:
                         var novaViolacao = new UsoInadequadoIA(usuarioLogadoId, TipoViolacao.Injecao, sintomas);
                         _context.ViolacoesIA.Add(novaViolacao);
 
-                        await CancelarAgendamentosENotificarAsync(usuarioLogadoId);
+                        var notificacoes = await CancelarAgendamentosENotificarAsync(usuarioLogadoId);
 
                         var admins = await _context.Usuarios.AsNoTracking().Where(u => u.IsAdmin).ToListAsync();
                         foreach (var admin in admins)
@@ -218,9 +232,11 @@ Formato:
                                 link: $"violacoes?busca={userObj.Cpf}"
                             );
                             _context.Notificacoes.Add(notificacao);
+                            notificacoes.Add(notificacao);
                         }
 
                         await _context.SaveChangesAsync();
+                        await PushRealtimeAsync(notificacoes);
                     }
 
                     return new { justificativa = "Detectamos uma tentativa deliberada de obtenção de credenciais privadas e ativos de domínio por meio da Inteligência Artificial do sistema. Esta conduta configura Invasão de Dispositivo Informático, conforme o Art. 154-A do Código Penal (Lei 12.737/2012) e violação dos princípios de segurança e confidencialidade da Lei Geral de Proteção de Dados (Lei 13.709/2018 - LGPD)." };
@@ -259,7 +275,7 @@ Formato:
                     var novaViolacao = new UsoInadequadoIA(usuarioLogadoId, TipoViolacao.Injecao, sintomas);
                     _context.ViolacoesIA.Add(novaViolacao);
 
-                    await CancelarAgendamentosENotificarAsync(usuarioLogadoId);
+                    var notificacoes = await CancelarAgendamentosENotificarAsync(usuarioLogadoId);
 
                     var admins = await _context.Usuarios.AsNoTracking().Where(u => u.IsAdmin).ToListAsync();
                     foreach (var admin in admins)
@@ -271,9 +287,11 @@ Formato:
                             link: $"violacoes?busca={userObj.Cpf}"
                         );
                         _context.Notificacoes.Add(notificacao);
+                        notificacoes.Add(notificacao);
                     }
 
                     await _context.SaveChangesAsync();
+                    await PushRealtimeAsync(notificacoes);
                 }
                 return new { justificativa = textoResposta };
             }
@@ -295,6 +313,7 @@ Formato:
                         paciente.BloquearIA(DateTime.UtcNow.AddDays(7));
                     }
 
+                    var notificacoes = new List<Notificacao>();
                     var admins = await _context.Usuarios.AsNoTracking().Where(u => u.IsAdmin).ToListAsync();
                     foreach (var admin in admins)
                     {
@@ -305,9 +324,11 @@ Formato:
                             link: $"violacoes?busca={paciente.Cpf}"
                         );
                         _context.Notificacoes.Add(notificacao);
+                        notificacoes.Add(notificacao);
                     }
 
                     await _context.SaveChangesAsync();
+                    await PushRealtimeAsync(notificacoes);
                 }
                 throw new ValidationException("Seus sintomas não estão relacionados à saúde. Por favor, descreva uma queixa médica real para prosseguir.");
             }
@@ -384,8 +405,10 @@ Formato:
             return violacoes.Cast<object>();
         }
 
-        private async Task CancelarAgendamentosENotificarAsync(Guid usuarioId)
+        private async Task<List<Notificacao>> CancelarAgendamentosENotificarAsync(Guid usuarioId)
         {
+            var notificacoesCriadas = new List<Notificacao>();
+
             // 1. Verificar se o usuário banido é um profissional
             var profissional = await _context.Profissionais.FirstOrDefaultAsync(p => p.UsuarioId == usuarioId);
             if (profissional != null)
@@ -412,6 +435,7 @@ Formato:
                             link: $"aviso-cancelamento-banimento?agendamentoId={agendamento.Id}"
                         );
                         _context.Notificacoes.Add(notificacao);
+                        notificacoesCriadas.Add(notificacao);
                     }
                 }
             }
@@ -442,9 +466,12 @@ Formato:
                             link: $"aviso-cancelamento-banimento?agendamentoId={agendamento.Id}"
                         );
                         _context.Notificacoes.Add(notificacao);
+                        notificacoesCriadas.Add(notificacao);
                     }
                 }
             }
+
+            return notificacoesCriadas;
         }
     }
 }

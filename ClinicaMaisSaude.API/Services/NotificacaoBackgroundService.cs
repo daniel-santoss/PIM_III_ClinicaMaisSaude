@@ -1,11 +1,13 @@
 using ClinicaMaisSaude.Domain.Entities;
 using ClinicaMaisSaude.Domain.Enums;
+using ClinicaMaisSaude.Domain.Interfaces;
 using ClinicaMaisSaude.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -44,6 +46,10 @@ namespace ClinicaMaisSaude.API.Services
         {
             using var scope = _serviceProvider.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<ClinicaDbContext>();
+            var notificador = scope.ServiceProvider.GetRequiredService<INotificadorTempoReal>();
+
+            // Notificações criadas neste ciclo, para push em tempo real após o commit.
+            var novasNotificacoes = new List<Notificacao>();
 
             var agora = DateTime.UtcNow;
 
@@ -73,6 +79,7 @@ namespace ClinicaMaisSaude.API.Services
                         var notificacao = new Notificacao(profissional.UsuarioId, "Consulta não finalizada", msg, a.Id, link: $"agendamentos?id={a.Id}");
                         
                         dbContext.Notificacoes.Add(notificacao);
+                        novasNotificacoes.Add(notificacao);
                         a.MarcarNotificacaoPendenteGerada();
                     }
                 }
@@ -84,6 +91,7 @@ namespace ClinicaMaisSaude.API.Services
                     var notificacao = new Notificacao(a.Paciente.UsuarioId.Value, "Você tem consulta hoje", msg, a.Id, link: $"agendamentos?id={a.Id}");
 
                     dbContext.Notificacoes.Add(notificacao);
+                    novasNotificacoes.Add(notificacao);
                     a.MarcarLembreteManhaEnviado();
                 }
 
@@ -95,11 +103,18 @@ namespace ClinicaMaisSaude.API.Services
                     var notificacao = new Notificacao(a.Paciente.UsuarioId.Value, "Lembrete de consulta", msg, a.Id, link: $"agendamentos?id={a.Id}");
 
                     dbContext.Notificacoes.Add(notificacao);
+                    novasNotificacoes.Add(notificacao);
                     a.MarcarLembreteDuasHorasEnviado();
                 }
             }
 
             await dbContext.SaveChangesAsync(stoppingToken);
+
+            // Após o commit, empurra cada notificação ao respectivo usuário em tempo real.
+            foreach (var notificacao in novasNotificacoes)
+            {
+                await notificador.NotificarAsync(notificacao);
+            }
         }
     }
 }
