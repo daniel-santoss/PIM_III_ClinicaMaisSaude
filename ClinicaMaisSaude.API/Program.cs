@@ -124,6 +124,7 @@ builder.Services.AddAuthentication(x =>
 });
 
 // Injeção de Dependências
+builder.Services.AddSingleton<IDataHoraService, DataHoraService>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IPacienteRepository, PacienteRepository>();
 builder.Services.AddScoped<IAgendamentoRepository, AgendamentoRepository>();

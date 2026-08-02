@@ -26,19 +26,22 @@ namespace ClinicaMaisSaude.Infrastructure.Services
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILogger<ConsultaService> _logger;
         private readonly IDistributedCache _cache;
+        private readonly IDataHoraService _dataHora;
 
         public ConsultaService(
             ClinicaDbContext context,
             IConfiguration config,
             IHttpClientFactory httpClientFactory,
             ILogger<ConsultaService> logger,
-            IDistributedCache cache)
+            IDistributedCache cache,
+            IDataHoraService dataHora)
         {
             _context = context;
             _config = config;
             _httpClientFactory = httpClientFactory;
             _logger = logger;
             _cache = cache;
+            _dataHora = dataHora;
         }
 
         // Lê a janela deslizante de timestamps (ticks UTC) do cache distribuído.
@@ -99,10 +102,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
 
                 if (paciente.IsIABloqueada())
                 {
-                    var brasilia = TimeZoneInfo.FindSystemTimeZoneById(
-                        OperatingSystem.IsWindows() ? "E. South America Standard Time" : "America/Sao_Paulo"
-                    );
-                    var dataBloqueio = TimeZoneInfo.ConvertTimeFromUtc(paciente.BloqueadoIAAte!.Value, brasilia).ToString("dd/MM/yyyy HH:mm");
+                    var dataBloqueio = _dataHora.ParaBrasilia(paciente.BloqueadoIAAte!.Value).ToString("dd/MM/yyyy HH:mm");
                     throw new ForbiddenException($"Acesso à IA bloqueado até {dataBloqueio}. Se acha que é um erro, entre em contato: suporte@clinicamaissaude.com");
                 }
             }
