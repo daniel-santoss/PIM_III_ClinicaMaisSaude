@@ -23,6 +23,7 @@ namespace ClinicaMaisSaude.Application.Services
         private readonly IUsuarioRepository _usuarioRepository;
         private readonly IProbabilidadeFaltaService _probabilidadeFaltaService;
         private readonly INotificacaoRepository _notificacaoRepository;
+        private readonly IConflitoHorarioService _conflitoService;
         private readonly IUnitOfWork _unitOfWork;
         private readonly IConfiguration _configuration;
 
@@ -33,6 +34,7 @@ namespace ClinicaMaisSaude.Application.Services
             IUsuarioRepository usuarioRepository,
             IProbabilidadeFaltaService probabilidadeFaltaService,
             INotificacaoRepository notificacaoRepository,
+            IConflitoHorarioService conflitoService,
             IUnitOfWork unitOfWork,
             IConfiguration configuration)
         {
@@ -42,6 +44,7 @@ namespace ClinicaMaisSaude.Application.Services
             _usuarioRepository = usuarioRepository;
             _probabilidadeFaltaService = probabilidadeFaltaService;
             _notificacaoRepository = notificacaoRepository;
+            _conflitoService = conflitoService;
             _unitOfWork = unitOfWork;
             _configuration = configuration;
         }
@@ -121,7 +124,7 @@ namespace ClinicaMaisSaude.Application.Services
             if (request.DataHoraConsulta <= DateTime.UtcNow.AddHours(-3))
                 throw new BusinessRuleException("Não é possível agendar em datas passadas.");
 
-            bool temConflitoPaciente = await ExisteConflitoPaciente(request.PacienteId, request.DataHoraConsulta, tipoConsulta, null);
+            bool temConflitoPaciente = await _conflitoService.ExisteConflitoPacienteAsync(request.PacienteId, request.DataHoraConsulta, tipoConsulta, null);
             if (temConflitoPaciente)
             {
                 throw new BusinessRuleException("O paciente já possui um agendamento neste horário ou em horário conflitante.");
@@ -143,7 +146,7 @@ namespace ClinicaMaisSaude.Application.Services
                 origem = await _repository.ObterPorIdAsync(request.AgendamentoOrigemId.Value);
                 if (origem == null) throw new NotFoundException("Agendamento de origem inválido.");
                 
-                bool temConflito = await ExisteConflito(origem.ProfissionalId, request.DataHoraConsulta, tipoConsulta, null);
+                bool temConflito = await _conflitoService.ExisteConflitoProfissionalAsync(origem.ProfissionalId, request.DataHoraConsulta, tipoConsulta, null);
                 if (temConflito) {
                     throw new BusinessRuleException("O profissional responsável pela sua consulta de origem não tem disponibilidade neste horário.");
                 }
@@ -241,7 +244,7 @@ namespace ClinicaMaisSaude.Application.Services
             if (request.DataHoraConsulta <= DateTime.UtcNow.AddHours(-3))
                 throw new BusinessRuleException("Não é permitido reagendar para datas/horários passados.");
 
-            bool temConflitoPaciente = await ExisteConflitoPaciente(agendamento.PacienteId, request.DataHoraConsulta, (TipoConsulta)request.TipoConsulta, agendamento.Id);
+            bool temConflitoPaciente = await _conflitoService.ExisteConflitoPacienteAsync(agendamento.PacienteId, request.DataHoraConsulta, (TipoConsulta)request.TipoConsulta, agendamento.Id);
             if (temConflitoPaciente)
             {
                 throw new BusinessRuleException("O paciente já possui um agendamento neste horário ou em horário conflitante.");
@@ -253,7 +256,7 @@ namespace ClinicaMaisSaude.Application.Services
             var profissionalDelegado = await DelegarProfissionalAsync(tipoProf, tipoCons, request.DataHoraConsulta, agendamento.Id, null);
             
             agendamento.AlterarDataHora(request.DataHoraConsulta);
-            var conflitoOriginal = await ExisteConflito(agendamento.ProfissionalId, request.DataHoraConsulta, tipoCons, agendamento.Id);
+            var conflitoOriginal = await _conflitoService.ExisteConflitoProfissionalAsync(agendamento.ProfissionalId, request.DataHoraConsulta, tipoCons, agendamento.Id);
             if(conflitoOriginal)
             {
                throw new BusinessRuleException("O profissional original não possui agenda para esse reagendamento. Tente outro horário.");
@@ -423,13 +426,13 @@ namespace ClinicaMaisSaude.Application.Services
                 }
             }
 
-            bool temConflitoPaciente = await ExisteConflitoPaciente(agendamento.PacienteId, request.NovaDataHora, agendamento.TipoConsulta, agendamento.Id);
+            bool temConflitoPaciente = await _conflitoService.ExisteConflitoPacienteAsync(agendamento.PacienteId, request.NovaDataHora, agendamento.TipoConsulta, agendamento.Id);
             if (temConflitoPaciente)
             {
                 throw new BusinessRuleException("O paciente já possui um agendamento neste horário ou em horário conflitante.");
             }
 
-            bool temConflito = await ExisteConflito(agendamento.ProfissionalId, request.NovaDataHora, agendamento.TipoConsulta, agendamento.Id);
+            bool temConflito = await _conflitoService.ExisteConflitoProfissionalAsync(agendamento.ProfissionalId, request.NovaDataHora, agendamento.TipoConsulta, agendamento.Id);
             if (temConflito)
             {
                 throw new BusinessRuleException("O profissional responsável já possui um agendamento neste horário. Escolha outro horário.");
@@ -648,7 +651,7 @@ namespace ClinicaMaisSaude.Application.Services
                 bool algumDisponivel = false;
                 foreach (var prof in profissionais)
                 {
-                    bool temConflito = await ExisteConflito(prof.Id, dataHoraSlot, tipoConsulta, null);
+                    bool temConflito = await _conflitoService.ExisteConflitoProfissionalAsync(prof.Id, dataHoraSlot, tipoConsulta, null);
                     if (!temConflito)
                     {
                         algumDisponivel = true;
@@ -693,7 +696,7 @@ namespace ClinicaMaisSaude.Application.Services
 
             foreach(var prof in profissionais)
             {
-                 bool temConflito = await ExisteConflito(prof.Id, escopoHorario, consulta, ignorarAgendamentoId);
+                 bool temConflito = await _conflitoService.ExisteConflitoProfissionalAsync(prof.Id, escopoHorario, consulta, ignorarAgendamentoId);
 
                  if(!temConflito)
                  {
@@ -712,39 +715,6 @@ namespace ClinicaMaisSaude.Application.Services
 
             // 3. Seleciona o profissional com a menor contagem no dia, usando a carga ativa total como desempate
             return candidatos.OrderBy(c => c.NoDia).ThenBy(c => c.AtivosGeral).First().ProfissionalId;
-        }
-
-        private async Task<bool> ExisteConflito(Guid profissionalId, DateTime novoInicio, TipoConsulta novaConsulta, Guid? ignorarAgendamentoId)
-        {
-             var duracaoMin = TipoConsultaDuracao.ObterDuracao(novaConsulta);
-             var novoFim = novoInicio.AddMinutes(duracaoMin);
-
-             // Carrega apenas os agendamentos ativos do profissional no dia (filtro no banco, aproveitando índice).
-             var agendamentosDoDia = await _repository.ObterAtivosDoProfissionalNoDiaAsync(profissionalId, novoInicio, ignorarAgendamentoId);
-
-             return agendamentosDoDia.Any(a => HaSobreposicao(novoInicio, novoFim, a));
-        }
-
-        private async Task<bool> ExisteConflitoPaciente(Guid pacienteId, DateTime novoInicio, TipoConsulta novaConsulta, Guid? ignorarAgendamentoId)
-        {
-             var duracaoMin = TipoConsultaDuracao.ObterDuracao(novaConsulta);
-             var novoFim = novoInicio.AddMinutes(duracaoMin);
-
-             // Carrega apenas os agendamentos ativos do paciente no dia (filtro no banco, aproveitando índice).
-             var agendamentosDoDia = await _repository.ObterAtivosDoPacienteNoDiaAsync(pacienteId, novoInicio, ignorarAgendamentoId);
-
-             return agendamentosDoDia.Any(a => HaSobreposicao(novoInicio, novoFim, a));
-        }
-
-        // Verifica sobreposição de janela de tempo entre um novo intervalo e um agendamento existente.
-        // A duração depende do TipoConsulta (regra de negócio em C#), por isso a checagem roda em memória
-        // sobre o conjunto já reduzido pelo banco.
-        private static bool HaSobreposicao(DateTime novoInicio, DateTime novoFim, Agendamento existente)
-        {
-            var fimExistente = existente.DataHoraConsulta.AddMinutes(TipoConsultaDuracao.ObterDuracao(existente.TipoConsulta));
-            return (novoInicio >= existente.DataHoraConsulta && novoInicio < fimExistente) ||
-                   (novoFim > existente.DataHoraConsulta && novoFim <= fimExistente) ||
-                   (novoInicio <= existente.DataHoraConsulta && novoFim >= fimExistente);
         }
 
         public async Task<IEnumerable<AgendamentoHistoricoResponse>> ObterHistoricoAsync(Guid agendamentoId)
