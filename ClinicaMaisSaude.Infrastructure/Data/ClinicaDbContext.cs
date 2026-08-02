@@ -107,10 +107,14 @@ namespace ClinicaMaisSaude.Infrastructure.Data
                 entidade.Property(h => h.RealizadoPor).IsRequired();
                 entidade.Property(h => h.Dt_Criado).IsRequired();
 
+                // Restrict (não Cascade): a trilha de auditoria (RF09) nunca é apagada
+                // automaticamente ao remover um agendamento. A exclusão de agendamento é
+                // soft-delete (Cancelado); a limpeza de dados de teste remove o histórico
+                // explicitamente antes.
                 entidade.HasOne(h => h.Agendamento)
                     .WithMany()
                     .HasForeignKey(h => h.AgendamentoId)
-                    .OnDelete(DeleteBehavior.Cascade);
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             modelBuilder.Entity<ProfissionalEspecialidade>(entidade =>

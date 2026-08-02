@@ -355,7 +355,29 @@ namespace ClinicaMaisSaude.Application.Services
             if (agendamento == null)
                 throw new NotFoundException("Agendamento não encontrado.");
 
-            await _repository.DeletarAsync(agendamento);
+            // Soft-delete: em vez de remover fisicamente (o que apagaria a trilha de
+            // auditoria via cascade), marca como Cancelado e registra o evento. O registro
+            // e o histórico ficam preservados (RF09).
+            if (agendamento.Status == StatusAgendamento.Cancelado)
+                return; // idempotente
+
+            var statusAntigo = agendamento.Status;
+            agendamento.AlterarStatus(StatusAgendamento.Cancelado);
+
+            await _unitOfWork.ExecuteInTransactionAsync(async () =>
+            {
+                await _repository.AtualizarAsync(agendamento);
+
+                var historico = new AgendamentoHistorico(
+                    agendamento.Id,
+                    TipoEventoHistorico.Cancelamento,
+                    usuarioLogadoId,
+                    statusAnterior: statusAntigo,
+                    statusNovo: StatusAgendamento.Cancelado,
+                    observacao: "Agendamento removido (soft-delete) — registro preservado para auditoria."
+                );
+                await _repository.AdicionarHistoricoAsync(historico);
+            });
         }
 
         public async Task<AgendamentoResponse> ObterPorIdAsync(Guid id)
