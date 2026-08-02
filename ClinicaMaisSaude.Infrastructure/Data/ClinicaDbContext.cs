@@ -65,7 +65,8 @@ namespace ClinicaMaisSaude.Infrastructure.Data
                 entidade.Property(p => p.TemProblemaMemoria).HasDefaultValue(false);
                 entidade.Property(p => p.DtCriado).HasColumnName("Dt_Criado");
                 // Busca por CPF (exact match no cadastro/login e StartsWith na listagem).
-                entidade.HasIndex(p => p.Cpf);
+                // Único: um CPF não pode ter dois cadastros de paciente.
+                entidade.HasIndex(p => p.Cpf).IsUnique();
             });
 
             modelBuilder.Entity<Agendamento>(entidade =>
@@ -179,7 +180,7 @@ namespace ClinicaMaisSaude.Infrastructure.Data
                 entidade.HasIndex(u => u.Email).IsUnique();
                 entidade.HasIndex(u => u.Cpf).IsUnique();
                 entidade.Property(u => u.Email).IsRequired().HasMaxLength(150);
-                entidade.Property(u => u.Cpf).IsRequired().HasMaxLength(14);
+                entidade.Property(u => u.Cpf).HasColumnType("varchar(11)").IsRequired();
                 entidade.Property(u => u.SenhaHash).IsRequired();
                 entidade.Property(u => u.IsAdmin).HasDefaultValue(false);
                 entidade.Property(u => u.DtCriado).HasColumnName("Dt_Criado");
