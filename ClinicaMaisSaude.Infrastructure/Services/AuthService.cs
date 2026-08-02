@@ -108,7 +108,9 @@ namespace ClinicaMaisSaude.Infrastructure.Services
 
             var tokenHandler = new JwtSecurityTokenHandler();
             var secretKey = _configuration[ConfigKeys.JwtSecret] ?? throw new InvalidOperationException($"{ConfigKeys.JwtSecret} não configurado.");
-            var key = Encoding.ASCII.GetBytes(secretKey);
+            var key = Encoding.UTF8.GetBytes(secretKey);
+            var issuer = _configuration[ConfigKeys.JwtIssuer] ?? ConfigKeys.JwtIssuerPadrao;
+            var audience = _configuration[ConfigKeys.JwtAudience] ?? ConfigKeys.JwtAudiencePadrao;
 
             var claims = new List<Claim>
             {
@@ -133,6 +135,8 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             {
                 Subject = new ClaimsIdentity(claims),
                 Expires = DateTime.UtcNow.AddHours(3),
+                Issuer = issuer,
+                Audience = audience,
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
             };
 
@@ -172,7 +176,9 @@ namespace ClinicaMaisSaude.Infrastructure.Services
         {
             var tokenHandler = new JwtSecurityTokenHandler();
             var secretKey = _configuration[ConfigKeys.JwtSecret] ?? throw new InvalidOperationException($"{ConfigKeys.JwtSecret} não configurado.");
-            var key = Encoding.ASCII.GetBytes(secretKey);
+            var key = Encoding.UTF8.GetBytes(secretKey);
+            var issuer = _configuration[ConfigKeys.JwtIssuer] ?? ConfigKeys.JwtIssuerPadrao;
+            var audience = _configuration[ConfigKeys.JwtAudience] ?? ConfigKeys.JwtAudiencePadrao;
             var storedToken = await _context.RefreshTokens.FirstOrDefaultAsync(x => x.Token == request.RefreshToken);
 
             if (storedToken == null) throw new UnauthorizedException("Refresh token não existe.");
@@ -217,6 +223,8 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             {
                 Subject = new ClaimsIdentity(claims),
                 Expires = DateTime.UtcNow.AddHours(3),
+                Issuer = issuer,
+                Audience = audience,
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
             };
 
