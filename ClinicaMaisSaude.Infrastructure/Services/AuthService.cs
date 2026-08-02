@@ -36,6 +36,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             var emailNormalizado = request.Identificador.Trim().ToLowerInvariant();
 
             var usuario = await _context.Usuarios
+                .Include(u => u.Foto)
                 .FirstOrDefaultAsync(u => u.Email == emailNormalizado || u.Cpf == cleanIdentificador);
 
             if (usuario == null)
@@ -183,7 +184,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             _context.RefreshTokens.Update(storedToken);
             await _context.SaveChangesAsync();
 
-            var usuario = await _context.Usuarios.AsNoTracking().FirstOrDefaultAsync(u => u.Id == storedToken.UsuarioId);
+            var usuario = await _context.Usuarios.AsNoTracking().Include(u => u.Foto).FirstOrDefaultAsync(u => u.Id == storedToken.UsuarioId);
             if (usuario == null) throw new UnauthorizedException("Usuário não encontrado.");
 
             var perfilProfissional = await _context.Profissionais.AsNoTracking().FirstOrDefaultAsync(p => p.UsuarioId == usuario.Id);

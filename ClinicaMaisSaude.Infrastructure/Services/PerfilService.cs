@@ -23,13 +23,13 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                     .FirstOrDefaultAsync(p => p.UsuarioId == usuarioId);
                 if (paciente == null) return null;
 
-                var usuario = await _context.Usuarios.AsNoTracking().FirstOrDefaultAsync(u => u.Id == usuarioId);
+                var usuario = await _context.Usuarios.AsNoTracking().Include(u => u.Foto).FirstOrDefaultAsync(u => u.Id == usuarioId);
                 return new { tipo = PerfisUsuario.Paciente, paciente.Nome, paciente.Email, paciente.Telefone, paciente.Cpf, FotoBase64 = usuario?.FotoBase64 };
             }
 
             var profissional = await _context.Profissionais
                 .AsNoTracking()
-                .Include(p => p.Usuario)
+                .Include(p => p.Usuario).ThenInclude(u => u.Foto)
                 .Include(p => p.Especialidades)
                 .FirstOrDefaultAsync(p => p.UsuarioId == usuarioId);
 
@@ -105,7 +105,9 @@ namespace ClinicaMaisSaude.Infrastructure.Services
         }
         public async Task<string?> AtualizarFotoAsync(Guid usuarioId, string base64)
         {
-            var usuario = await _context.Usuarios.FindAsync(usuarioId);
+            // Carrega a navegação Foto para que AtualizarFoto faça UPDATE (se já existe) em
+            // vez de tentar um INSERT duplicado na tabela UsuarioFotos.
+            var usuario = await _context.Usuarios.Include(u => u.Foto).FirstOrDefaultAsync(u => u.Id == usuarioId);
             if (usuario == null) return "Usuário não encontrado.";
 
             usuario.AtualizarFoto(base64);

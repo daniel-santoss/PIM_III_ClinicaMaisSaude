@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel.DataAnnotations.Schema;
 using ClinicaMaisSaude.Domain.Common;
 
 namespace ClinicaMaisSaude.Domain.Entities
@@ -15,8 +16,17 @@ namespace ClinicaMaisSaude.Domain.Entities
         
         public int TentativasLogin { get; private set; }
         public DateTime? BloqueadoAte { get; private set; }
-        public string? FotoBase64 { get; private set; }
-        
+
+        // Foto de perfil movida para uma tabela separada (1:1). Só é carregada quando a
+        // query faz .Include(u => u.Foto); do contrário, esta navegação fica nula.
+        public UsuarioFoto? Foto { get; private set; }
+
+        // Conveniência de leitura: mantém o contrato antigo (usuario.FotoBase64) para o
+        // código que já materializou a entidade. Não é mapeada para coluna (a fonte é a
+        // tabela UsuarioFotos via a navegação Foto). Retorna null se a foto não foi carregada.
+        [NotMapped]
+        public string? FotoBase64 => Foto?.FotoBase64;
+
         public virtual ICollection<UsoInadequadoIA> Violacoes { get; private set; } = new List<UsoInadequadoIA>();
 
         public Usuario(string email, string cpf, string senhaHash, bool isAdmin = false)
@@ -50,7 +60,17 @@ namespace ClinicaMaisSaude.Domain.Entities
 
         public void AtualizarFoto(string? base64)
         {
-            FotoBase64 = base64;
+            if (string.IsNullOrEmpty(base64))
+            {
+                // Remover a foto: descarta a linha em UsuarioFotos (orfã → deletada no SaveChanges).
+                Foto = null;
+                return;
+            }
+
+            if (Foto == null)
+                Foto = new UsuarioFoto(Id, base64);
+            else
+                Foto.Atualizar(base64);
         }
 
         public void AtualizarUltimoAcesso()

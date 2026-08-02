@@ -353,7 +353,7 @@ Formato:
                                        .Select(p => p.TipoProfissional == TipoProfissional.Medico ? PerfisUsuario.Medico : PerfisUsuario.Enfermeira)
                                        .FirstOrDefault()
                                    ?? (a.Usuario.IsAdmin ? "Administrador" : PerfisUsuario.Paciente),
-                    PacienteFotoBase64 = a.Usuario.FotoBase64,
+                    PacienteFotoBase64 = a.Usuario.Foto != null ? a.Usuario.Foto.FotoBase64 : null,
                     TipoViolacao = a.TipoViolacao.ToString(),
                     a.TextoInserido,
                     a.DtCriado,

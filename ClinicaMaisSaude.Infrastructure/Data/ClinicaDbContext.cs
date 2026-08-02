@@ -46,6 +46,7 @@ namespace ClinicaMaisSaude.Infrastructure.Data
         public DbSet<UsoInadequadoIA> ViolacoesIA { get; set; } = null!;
         public DbSet<RefreshToken> RefreshTokens { get; set; } = null!;
         public DbSet<Notificacao> Notificacoes { get; set; } = null!;
+        public DbSet<UsuarioFoto> UsuarioFotos { get; set; } = null!;
 
         // Método que intercepta a criação das tabelas no SQL Server
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -182,9 +183,24 @@ namespace ClinicaMaisSaude.Infrastructure.Data
                 entidade.Property(u => u.SenhaHash).IsRequired();
                 entidade.Property(u => u.IsAdmin).HasDefaultValue(false);
                 entidade.Property(u => u.DtCriado).HasColumnName("Dt_Criado");
-                entidade.Property(u => u.FotoBase64).HasColumnType("nvarchar(max)").IsRequired(false);
+
+                // Foto 1:1 em tabela separada (UsuarioFotos), com PK compartilhada. Só é
+                // materializada via .Include(u => u.Foto). Cascade: remover o usuário (ou
+                // orfanar a navegação) apaga a linha da foto.
+                entidade.HasOne(u => u.Foto)
+                    .WithOne()
+                    .HasForeignKey<UsuarioFoto>(f => f.UsuarioId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
                 // O administrador inicial é criado em runtime por AdminSeeder (senha via
                 // configuração), nunca semeado com credencial fixa no código-fonte.
+            });
+
+            modelBuilder.Entity<UsuarioFoto>(entidade =>
+            {
+                entidade.ToTable("UsuarioFotos");
+                entidade.HasKey(f => f.UsuarioId);
+                entidade.Property(f => f.FotoBase64).HasColumnType("nvarchar(max)").IsRequired();
             });
 
             modelBuilder.Entity<Profissional>(entidade =>

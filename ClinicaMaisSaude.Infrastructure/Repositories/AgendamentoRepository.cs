@@ -49,6 +49,7 @@ namespace ClinicaMaisSaude.Infrastructure.Repositories
             return await _context.Agendamentos
                 .Include(a => a.Paciente)
                 .ThenInclude(p => p.Usuario)
+                .ThenInclude(u => u.Foto)
                 .FirstOrDefaultAsync(a => a.Id == id);
         }
 
@@ -74,6 +75,7 @@ namespace ClinicaMaisSaude.Infrastructure.Repositories
                 .AsNoTracking()
                 .Include(a => a.Paciente)
                 .ThenInclude(p => p.Usuario)
+                .ThenInclude(u => u.Foto)
                 .ToListAsync();
         }
 
@@ -83,6 +85,7 @@ namespace ClinicaMaisSaude.Infrastructure.Repositories
                                 .AsNoTracking()
                                 .Include(a => a.Paciente)
                                 .ThenInclude(p => p.Usuario)
+                                .ThenInclude(u => u.Foto)
                                 .AsQueryable();
 
             if (profissionalId.HasValue)

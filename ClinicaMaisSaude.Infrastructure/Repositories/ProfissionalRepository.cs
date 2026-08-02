@@ -33,7 +33,7 @@ namespace ClinicaMaisSaude.Infrastructure.Repositories
         {
             return await _context.Profissionais
                 .AsNoTracking()
-                .Include(p => p.Usuario)
+                .Include(p => p.Usuario).ThenInclude(u => u.Foto)
                 .FirstOrDefaultAsync(p => p.Id == id);
         }
 
@@ -41,7 +41,7 @@ namespace ClinicaMaisSaude.Infrastructure.Repositories
         {
             return await _context.Profissionais
                 .AsNoTracking()
-                .Include(p => p.Usuario)
+                .Include(p => p.Usuario).ThenInclude(u => u.Foto)
                 .Include(p => p.Especialidades)
                 .ToListAsync();
         }
