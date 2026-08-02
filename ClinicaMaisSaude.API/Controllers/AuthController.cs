@@ -1,6 +1,8 @@
 using ClinicaMaisSaude.Application.DTOs.Auth;
+using ClinicaMaisSaude.Application.Exceptions;
 using ClinicaMaisSaude.Application.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using System;
 using System.Threading.Tasks;
 
@@ -18,37 +20,21 @@ namespace ClinicaMaisSaude.API.Controllers
         }
 
         [HttpPost("login")]
+        [EnableRateLimiting("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
             if (string.IsNullOrWhiteSpace(request.Identificador) || string.IsNullOrWhiteSpace(request.Senha))
-            {
-                return BadRequest("O identificador e a senha são obrigatórios.");
-            }
+                throw new ValidationException("O identificador e a senha são obrigatórios.");
 
-            try
-            {
-                var response = await _authService.AutenticarAsync(request);
-                return Ok(response);
-            }
-            catch (Exception ex)
-            {
-                // Tratando erro de login mal sucedido
-                return Unauthorized(new { message = ex.Message });
-            }
+            var response = await _authService.AutenticarAsync(request);
+            return Ok(response);
         }
 
         [HttpPost("refresh")]
         public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest request)
         {
-            try
-            {
-                var response = await _authService.RefreshTokenAsync(request);
-                return Ok(response);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { mensagem = ex.Message });
-            }
+            var response = await _authService.RefreshTokenAsync(request);
+            return Ok(response);
         }
     }
 }

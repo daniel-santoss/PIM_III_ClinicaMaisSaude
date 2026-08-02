@@ -1,5 +1,6 @@
 using ClinicaMaisSaude.Domain.Enums;
 using System;
+using ClinicaMaisSaude.Domain.Common;
 
 namespace ClinicaMaisSaude.Domain.Entities
 {
@@ -30,7 +31,7 @@ namespace ClinicaMaisSaude.Domain.Entities
             DateTime? dataNova = null,
             string? observacao = null)
         {
-            Id = Guid.NewGuid();
+            Id = SequentialGuid.Next();
             AgendamentoId = agendamentoId;
             TipoEvento = tipoEvento;
             StatusAnterior = statusAnterior;

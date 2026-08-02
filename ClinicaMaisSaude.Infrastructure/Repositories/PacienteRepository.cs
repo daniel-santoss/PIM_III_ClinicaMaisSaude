@@ -24,7 +24,7 @@ namespace ClinicaMaisSaude.Infrastructure.Repositories
         public async Task<Paciente?> ObterPorIdAsync(Guid id)
         {
             return await _context.Pacientes
-                .Include(p => p.Usuario)
+                .Include(p => p.Usuario).ThenInclude(u => u.Foto)
                 .FirstOrDefaultAsync(p => p.Id == id);
         }
 
@@ -39,7 +39,7 @@ namespace ClinicaMaisSaude.Infrastructure.Repositories
         {
             var query = _context.Pacientes
                                 .AsNoTracking()
-                                .Include(p => p.Usuario)
+                                .Include(p => p.Usuario).ThenInclude(u => u.Foto)
                                 .Where(p => p.Ativo);
 
             if (!string.IsNullOrWhiteSpace(nome))
@@ -55,7 +55,7 @@ namespace ClinicaMaisSaude.Infrastructure.Repositories
         {
             var query = _context.Pacientes
                                 .AsNoTracking()
-                                .Include(p => p.Usuario)
+                                .Include(p => p.Usuario).ThenInclude(u => u.Foto)
                                 .Where(p => p.Ativo);
 
             if (!string.IsNullOrWhiteSpace(nome))

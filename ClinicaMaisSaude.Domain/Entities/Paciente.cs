@@ -1,4 +1,5 @@
 using System;
+using ClinicaMaisSaude.Domain.Common;
 
 namespace ClinicaMaisSaude.Domain.Entities
 {
@@ -23,7 +24,7 @@ namespace ClinicaMaisSaude.Domain.Entities
 
         public Paciente(string nome, string cpf, string telefone, string email, bool temProblemaMemoria = false)
         {
-            Id = Guid.NewGuid();
+            Id = SequentialGuid.Next();
             Nome = nome;
             Cpf = cpf;
             Telefone = telefone;

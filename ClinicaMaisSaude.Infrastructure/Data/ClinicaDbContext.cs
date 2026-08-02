@@ -1,14 +1,33 @@
+using ClinicaMaisSaude.Application.Exceptions;
 using ClinicaMaisSaude.Domain.Entities;
 using ClinicaMaisSaude.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace ClinicaMaisSaude.Infrastructure.Data
 {
     public class ClinicaDbContext : DbContext
     {
         public ClinicaDbContext(DbContextOptions<ClinicaDbContext> options) : base(options) { }
+
+        /// <summary>
+        /// Traduz o conflito de concorrência otimista do EF (RowVersion divergente) numa
+        /// exceção de domínio, que o middleware mapeia para HTTP 409 com mensagem amigável.
+        /// </summary>
+        public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                return await base.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                throw new ConflictException("O registro foi modificado por outra operação. Recarregue os dados e tente novamente.");
+            }
+        }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
@@ -27,6 +46,7 @@ namespace ClinicaMaisSaude.Infrastructure.Data
         public DbSet<UsoInadequadoIA> ViolacoesIA { get; set; } = null!;
         public DbSet<RefreshToken> RefreshTokens { get; set; } = null!;
         public DbSet<Notificacao> Notificacoes { get; set; } = null!;
+        public DbSet<UsuarioFoto> UsuarioFotos { get; set; } = null!;
 
         // Método que intercepta a criação das tabelas no SQL Server
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -44,6 +64,9 @@ namespace ClinicaMaisSaude.Infrastructure.Data
                 entidade.Property(p => p.Ativo).HasDefaultValue(true);
                 entidade.Property(p => p.TemProblemaMemoria).HasDefaultValue(false);
                 entidade.Property(p => p.DtCriado).HasColumnName("Dt_Criado");
+                // Busca por CPF (exact match no cadastro/login e StartsWith na listagem).
+                // Único: um CPF não pode ter dois cadastros de paciente.
+                entidade.HasIndex(p => p.Cpf).IsUnique();
             });
 
             modelBuilder.Entity<Agendamento>(entidade =>
@@ -59,6 +82,18 @@ namespace ClinicaMaisSaude.Infrastructure.Data
                 entidade.Property(a => a.LembreteDuasHorasEnviado).HasDefaultValue(false);
                 entidade.Property(a => a.DtCriado).HasColumnName("Dt_Criado");
 
+                // Token de concorrência otimista: SQL Server gera/atualiza automaticamente
+                // uma coluna rowversion a cada UPDATE; o EF a inclui na cláusula WHERE do
+                // update e lança DbUpdateConcurrencyException se a linha já mudou.
+                entidade.Property(a => a.RowVersion).IsRowVersion();
+
+                // Índices para os caminhos de acesso quentes (agenda do profissional,
+                // consultas do paciente, varredura por status), sempre com a data como
+                // chave secundária para cobrir a ordenação por DataHoraConsulta.
+                entidade.HasIndex(a => new { a.ProfissionalId, a.DataHoraConsulta });
+                entidade.HasIndex(a => new { a.PacienteId, a.DataHoraConsulta });
+                entidade.HasIndex(a => new { a.Status, a.DataHoraConsulta });
+
                 entidade.HasOne(a => a.Paciente)
                     .WithMany(p => p.Agendamentos)
                     .HasForeignKey(a => a.PacienteId)
@@ -72,10 +107,14 @@ namespace ClinicaMaisSaude.Infrastructure.Data
                 entidade.Property(h => h.RealizadoPor).IsRequired();
                 entidade.Property(h => h.Dt_Criado).IsRequired();
 
+                // Restrict (não Cascade): a trilha de auditoria (RF09) nunca é apagada
+                // automaticamente ao remover um agendamento. A exclusão de agendamento é
+                // soft-delete (Cancelado); a limpeza de dados de teste remove o histórico
+                // explicitamente antes.
                 entidade.HasOne(h => h.Agendamento)
                     .WithMany()
                     .HasForeignKey(h => h.AgendamentoId)
-                    .OnDelete(DeleteBehavior.Cascade);
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             modelBuilder.Entity<ProfissionalEspecialidade>(entidade =>
@@ -107,6 +146,8 @@ namespace ClinicaMaisSaude.Infrastructure.Data
                 entidade.HasKey(r => r.Id);
                 entidade.Property(r => r.Token).IsRequired().HasMaxLength(255);
                 entidade.Property(r => r.JwtId).IsRequired().HasMaxLength(255);
+                // Todo refresh faz WHERE Token = @token; único evita table scan e duplicidade.
+                entidade.HasIndex(r => r.Token).IsUnique();
                 entidade.HasOne(r => r.Usuario)
                     .WithMany()
                     .HasForeignKey(r => r.UsuarioId)
@@ -122,6 +163,8 @@ namespace ClinicaMaisSaude.Infrastructure.Data
                 entidade.Property(n => n.Link).HasMaxLength(255).IsRequired(false);
                 entidade.Property(n => n.Lida).HasDefaultValue(false);
                 entidade.Property(n => n.DtCriado).HasColumnName("Dt_Criado");
+                // Polling a cada 60s: WHERE UsuarioId = @id ORDER BY DtCriado DESC.
+                entidade.HasIndex(n => new { n.UsuarioId, n.DtCriado });
 
                 entidade.HasOne<Usuario>()
                     .WithMany()
@@ -141,22 +184,28 @@ namespace ClinicaMaisSaude.Infrastructure.Data
                 entidade.HasIndex(u => u.Email).IsUnique();
                 entidade.HasIndex(u => u.Cpf).IsUnique();
                 entidade.Property(u => u.Email).IsRequired().HasMaxLength(150);
-                entidade.Property(u => u.Cpf).IsRequired().HasMaxLength(14);
+                entidade.Property(u => u.Cpf).HasColumnType("varchar(11)").IsRequired();
                 entidade.Property(u => u.SenhaHash).IsRequired();
                 entidade.Property(u => u.IsAdmin).HasDefaultValue(false);
                 entidade.Property(u => u.DtCriado).HasColumnName("Dt_Criado");
-                entidade.Property(u => u.FotoBase64).HasColumnType("nvarchar(max)").IsRequired(false);
 
-                // SEED do Admin
-                var adminId = Guid.Parse("11111111-1111-1111-1111-111111111111");
-                entidade.HasData(new Usuario(
-                    adminId,
-                    "admin@clinicamaissaude.com.br",
-                    "00000000000",
-                    "$2a$11$DaDuHHaqAhlkdCbeVcw6l.ttRvVjLZ8AnOcXvugreEbhe0C1K1YPK", // admin123
-                    true,
-                    new DateTime(2026, 04, 26, 0, 0, 0, DateTimeKind.Utc)
-                ));
+                // Foto 1:1 em tabela separada (UsuarioFotos), com PK compartilhada. Só é
+                // materializada via .Include(u => u.Foto). Cascade: remover o usuário (ou
+                // orfanar a navegação) apaga a linha da foto.
+                entidade.HasOne(u => u.Foto)
+                    .WithOne()
+                    .HasForeignKey<UsuarioFoto>(f => f.UsuarioId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                // O administrador inicial é criado em runtime por AdminSeeder (senha via
+                // configuração), nunca semeado com credencial fixa no código-fonte.
+            });
+
+            modelBuilder.Entity<UsuarioFoto>(entidade =>
+            {
+                entidade.ToTable("UsuarioFotos");
+                entidade.HasKey(f => f.UsuarioId);
+                entidade.Property(f => f.FotoBase64).HasColumnType("nvarchar(max)").IsRequired();
             });
 
             modelBuilder.Entity<Profissional>(entidade =>
@@ -172,18 +221,6 @@ namespace ClinicaMaisSaude.Infrastructure.Data
                     .WithMany()
                     .HasForeignKey(p => p.UsuarioId)
                     .OnDelete(DeleteBehavior.Cascade);
-
-                var adminProfissionalId = Guid.Parse("22222222-2222-2222-2222-222222222222");
-                var adminUsuarioId = Guid.Parse("11111111-1111-1111-1111-111111111111");
-                entidade.HasData(new Profissional(
-                    adminProfissionalId,
-                    adminUsuarioId,
-                    TipoProfissional.Medico,
-                    "Dr. Admin",
-                    "123456",
-                    "SP",
-                    new DateTime(2026, 04, 26, 0, 0, 0, DateTimeKind.Utc)
-                ));
             });
 
             modelBuilder.Entity<StatusAgendamentoLookup>(entidade =>

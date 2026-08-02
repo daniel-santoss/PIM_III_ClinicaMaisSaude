@@ -1,5 +1,6 @@
 using BCrypt.Net;
 using ClinicaMaisSaude.Application.DTOs.Auth;
+using ClinicaMaisSaude.Application.Exceptions;
 using ClinicaMaisSaude.Application.Interfaces;
 using ClinicaMaisSaude.Domain.Entities;
 using ClinicaMaisSaude.Domain.Enums;
@@ -23,6 +24,10 @@ namespace ClinicaMaisSaude.Infrastructure.Services
         private readonly ClinicaDbContext _context;
         private readonly IConfiguration _configuration;
 
+        // Hash BCrypt "fantasma" (calculado uma vez) para verificação de tempo constante
+        // quando o usuário não existe — evita que o tempo de resposta revele a existência da conta.
+        private static readonly string HashFantasma = BCrypt.Net.BCrypt.HashPassword("timing-attack-mitigation");
+
         public AuthService(ClinicaDbContext context, IConfiguration configuration)
         {
             _context = context;
@@ -35,11 +40,15 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             var emailNormalizado = request.Identificador.Trim().ToLowerInvariant();
 
             var usuario = await _context.Usuarios
+                .Include(u => u.Foto)
                 .FirstOrDefaultAsync(u => u.Email == emailNormalizado || u.Cpf == cleanIdentificador);
 
             if (usuario == null)
             {
-                throw new Exception("Credenciais inválidas.");
+                // Verificação "fantasma" com custo equivalente ao BCrypt real: iguala o tempo
+                // de resposta ao caso "senha errada", para o tempo não revelar se a conta existe.
+                BCrypt.Net.BCrypt.Verify(request.Senha, HashFantasma);
+                throw new UnauthorizedException("Credenciais inválidas.");
             }
 
             if (usuario.IsBloqueado())
@@ -49,10 +58,10 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                 // Se o bloqueio for de 100 anos (bloqueio permanente)
                 if (minutosRestantes > 50000000) 
                 {
-                    throw new Exception("PERMANENT_BAN:Sua conta foi banida permanentemente devido a violações graves das políticas de segurança.");
+                    throw new UnauthorizedException("PERMANENT_BAN:Sua conta foi banida permanentemente devido a violações graves das políticas de segurança.");
                 }
 
-                throw new Exception($"Conta bloqueada. Tente novamente em {minutosRestantes} minuto(s).");
+                throw new UnauthorizedException($"Conta bloqueada. Tente novamente em {minutosRestantes} minuto(s).");
             }
 
             if (!BCrypt.Net.BCrypt.Verify(request.Senha, usuario.SenhaHash.Trim()))
@@ -62,16 +71,13 @@ namespace ClinicaMaisSaude.Infrastructure.Services
 
                 if (usuario.IsBloqueado())
                 {
-                    throw new Exception("Conta bloqueada por excesso de tentativas. Tente novamente em 15 minutos.");
+                    throw new UnauthorizedException("Conta bloqueada por excesso de tentativas. Tente novamente em 15 minutos.");
                 }
 
-                int tentativasRestantes = 5 - usuario.TentativasLogin;
-                if (tentativasRestantes > 0)
-                {
-                    throw new Exception($"Credenciais inválidas. Você tem mais {tentativasRestantes} tentativa(s) antes do bloqueio.");
-                }
-
-                throw new Exception("Credenciais inválidas.");
+                // Mensagem genérica e idêntica ao caso "usuário inexistente": não revela se a
+                // conta existe nem quantas tentativas restam (anti-enumeração). O contador e o
+                // bloqueio por 5 falhas continuam sendo aplicados internamente (acima).
+                throw new UnauthorizedException("Credenciais inválidas.");
             }
 
             usuario.RegistrarSucessoLogin();
@@ -106,7 +112,9 @@ namespace ClinicaMaisSaude.Infrastructure.Services
 
             var tokenHandler = new JwtSecurityTokenHandler();
             var secretKey = _configuration[ConfigKeys.JwtSecret] ?? throw new InvalidOperationException($"{ConfigKeys.JwtSecret} não configurado.");
-            var key = Encoding.ASCII.GetBytes(secretKey);
+            var key = Encoding.UTF8.GetBytes(secretKey);
+            var issuer = _configuration[ConfigKeys.JwtIssuer] ?? ConfigKeys.JwtIssuerPadrao;
+            var audience = _configuration[ConfigKeys.JwtAudience] ?? ConfigKeys.JwtAudiencePadrao;
 
             var claims = new List<Claim>
             {
@@ -131,6 +139,8 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             {
                 Subject = new ClaimsIdentity(claims),
                 Expires = DateTime.UtcNow.AddHours(3),
+                Issuer = issuer,
+                Audience = audience,
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
             };
 
@@ -148,6 +158,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                 ExpiryDate = DateTime.UtcNow.AddDays(7)
             };
 
+            await LimparRefreshTokensAsync(usuario.Id);
             await _context.RefreshTokens.AddAsync(refreshToken);
             await _context.SaveChangesAsync();
 
@@ -166,24 +177,39 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             };
         }
 
+        // Housekeeping dos refresh tokens do usuário: remove os expirados e os já usados
+        // há mais de 1 dia. Evita o crescimento indefinido da tabela; mantém os usados
+        // recentes para permitir detecção de reuso (um token roubado reapresentado).
+        private async Task LimparRefreshTokensAsync(Guid usuarioId)
+        {
+            var agora = DateTime.UtcNow;
+            var limiteUsados = agora.AddDays(-1);
+            await _context.RefreshTokens
+                .Where(t => t.UsuarioId == usuarioId &&
+                            (t.ExpiryDate < agora || (t.IsUsed && t.AddedDate < limiteUsados)))
+                .ExecuteDeleteAsync();
+        }
+
         public async Task<LoginResponse> RefreshTokenAsync(RefreshTokenRequest request)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
             var secretKey = _configuration[ConfigKeys.JwtSecret] ?? throw new InvalidOperationException($"{ConfigKeys.JwtSecret} não configurado.");
-            var key = Encoding.ASCII.GetBytes(secretKey);
+            var key = Encoding.UTF8.GetBytes(secretKey);
+            var issuer = _configuration[ConfigKeys.JwtIssuer] ?? ConfigKeys.JwtIssuerPadrao;
+            var audience = _configuration[ConfigKeys.JwtAudience] ?? ConfigKeys.JwtAudiencePadrao;
             var storedToken = await _context.RefreshTokens.FirstOrDefaultAsync(x => x.Token == request.RefreshToken);
 
-            if (storedToken == null) throw new Exception("Refresh token não existe.");
-            if (storedToken.IsUsed) throw new Exception("Refresh token já foi utilizado.");
-            if (storedToken.IsRevoked) throw new Exception("Refresh token foi revogado.");
-            if (storedToken.ExpiryDate < DateTime.UtcNow) throw new Exception("Refresh token expirado.");
+            if (storedToken == null) throw new UnauthorizedException("Refresh token não existe.");
+            if (storedToken.IsUsed) throw new UnauthorizedException("Refresh token já foi utilizado.");
+            if (storedToken.IsRevoked) throw new UnauthorizedException("Refresh token foi revogado.");
+            if (storedToken.ExpiryDate < DateTime.UtcNow) throw new UnauthorizedException("Refresh token expirado.");
 
             storedToken.IsUsed = true;
             _context.RefreshTokens.Update(storedToken);
             await _context.SaveChangesAsync();
 
-            var usuario = await _context.Usuarios.AsNoTracking().FirstOrDefaultAsync(u => u.Id == storedToken.UsuarioId);
-            if (usuario == null) throw new Exception("Usuário não encontrado.");
+            var usuario = await _context.Usuarios.AsNoTracking().Include(u => u.Foto).FirstOrDefaultAsync(u => u.Id == storedToken.UsuarioId);
+            if (usuario == null) throw new UnauthorizedException("Usuário não encontrado.");
 
             var perfilProfissional = await _context.Profissionais.AsNoTracking().FirstOrDefaultAsync(p => p.UsuarioId == usuario.Id);
             var perfilPaciente = await _context.Pacientes.AsNoTracking().FirstOrDefaultAsync(p => p.UsuarioId == usuario.Id);
@@ -215,6 +241,8 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             {
                 Subject = new ClaimsIdentity(claims),
                 Expires = DateTime.UtcNow.AddHours(3),
+                Issuer = issuer,
+                Audience = audience,
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
             };
 
@@ -232,6 +260,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                 ExpiryDate = DateTime.UtcNow.AddDays(7)
             };
 
+            await LimparRefreshTokensAsync(usuario.Id);
             await _context.RefreshTokens.AddAsync(refreshToken);
             await _context.SaveChangesAsync();
 

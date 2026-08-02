@@ -1,3 +1,4 @@
+using ClinicaMaisSaude.Application.Exceptions;
 using ClinicaMaisSaude.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -36,18 +37,11 @@ namespace ClinicaMaisSaude.API.Controllers
         {
             var profissionalId = ObterProfissionalId();
             if (profissionalId == null)
-                return Forbid("Apenas profissionais podem acessar especialidades.");
+                throw new ForbiddenException("Apenas profissionais podem acessar especialidades.");
 
-            try
-            {
-                var resultado = await _especialidadeService.ObterMinhasAsync(profissionalId.Value);
-                if (resultado == null) return NotFound();
-                return Ok(resultado);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            var resultado = await _especialidadeService.ObterMinhasAsync(profissionalId.Value);
+            if (resultado == null) throw new NotFoundException("Especialidades não encontradas.");
+            return Ok(resultado);
         }
 
         [HttpPut("minhas")]
@@ -55,18 +49,11 @@ namespace ClinicaMaisSaude.API.Controllers
         {
             var profissionalId = ObterProfissionalId();
             if (profissionalId == null)
-                return Forbid("Apenas profissionais podem acessar especialidades.");
+                throw new ForbiddenException("Apenas profissionais podem acessar especialidades.");
 
-            try
-            {
-                var resultado = await _especialidadeService.AtualizarMinhasAsync(profissionalId.Value, especialidadeIds);
-                if (resultado == null) return NotFound();
-                return Ok(resultado);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            var resultado = await _especialidadeService.AtualizarMinhasAsync(profissionalId.Value, especialidadeIds);
+            if (resultado == null) throw new NotFoundException("Especialidades não encontradas.");
+            return Ok(resultado);
         }
 
         private Guid? ObterProfissionalId()

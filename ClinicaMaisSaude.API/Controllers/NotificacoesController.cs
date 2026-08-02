@@ -1,3 +1,4 @@
+using ClinicaMaisSaude.Application.Exceptions;
 using ClinicaMaisSaude.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -22,7 +23,7 @@ namespace ClinicaMaisSaude.API.Controllers
         private Guid ObterUsuarioLogadoId()
         {
             var claim = User.FindFirst(ClaimTypes.NameIdentifier);
-            if (claim == null) throw new UnauthorizedAccessException("Usuário não autenticado.");
+            if (claim == null) throw new UnauthorizedException("Usuário não autenticado.");
             return Guid.Parse(claim.Value);
         }
 
@@ -37,31 +38,17 @@ namespace ClinicaMaisSaude.API.Controllers
         [HttpPatch("{id}/lida")]
         public async Task<IActionResult> MarcarComoLida(Guid id)
         {
-            try
-            {
-                var usuarioId = ObterUsuarioLogadoId();
-                await _notificacaoService.MarcarComoLidaAsync(id, usuarioId);
-                return NoContent();
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { Message = ex.Message });
-            }
+            var usuarioId = ObterUsuarioLogadoId();
+            await _notificacaoService.MarcarComoLidaAsync(id, usuarioId);
+            return NoContent();
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> Remover(Guid id)
         {
-            try
-            {
-                var usuarioId = ObterUsuarioLogadoId();
-                await _notificacaoService.RemoverAsync(id, usuarioId);
-                return NoContent();
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { Message = ex.Message });
-            }
+            var usuarioId = ObterUsuarioLogadoId();
+            await _notificacaoService.RemoverAsync(id, usuarioId);
+            return NoContent();
         }
     }
 }

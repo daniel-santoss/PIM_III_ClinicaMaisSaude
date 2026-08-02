@@ -1,4 +1,5 @@
 using ClinicaMaisSaude.Application.DTOs.Agendamento;
+using ClinicaMaisSaude.Application.Exceptions;
 using ClinicaMaisSaude.Application.Interfaces;
 using ClinicaMaisSaude.Domain.Constants;
 using Microsoft.AspNetCore.Authorization;
@@ -27,34 +28,23 @@ namespace ClinicaMaisSaude.API.Controllers
         [HttpPost]
         public async Task<IActionResult> CriarAgendamento([FromBody] AgendamentoRequest request)
         {
-            try
+            var tipoUsuario = User.FindFirstValue(ClinicaClaims.TipoUsuario) ?? User.FindFirstValue(ClaimTypes.Role);
+            var isAdmin = User.FindFirstValue(ClinicaClaims.IsAdmin) == "true";
+
+            // Bloqueia a criação por médicos, exceto o Admin ou se for um agendamento de Retorno
+            if (tipoUsuario == PerfisUsuario.Medico && !isAdmin && request.TipoConsulta != (int)ClinicaMaisSaude.Domain.Enums.TipoConsulta.Retorno)
+                throw new ForbiddenException("Médicos não têm permissão para agendar consultas. Apenas Enfermeiras e Pacientes.");
+
+            if (tipoUsuario == PerfisUsuario.Paciente)
             {
-                var tipoUsuario = User.FindFirstValue(ClinicaClaims.TipoUsuario) ?? User.FindFirstValue(ClaimTypes.Role);
-                var isAdmin = User.FindFirstValue(ClinicaClaims.IsAdmin) == "true";
-
-                // Bloqueia a criação por médicos, exceto o Admin ou se for um agendamento de Retorno
-                if (tipoUsuario == PerfisUsuario.Medico && !isAdmin && request.TipoConsulta != (int)ClinicaMaisSaude.Domain.Enums.TipoConsulta.Retorno)
-                {
-                    return StatusCode(403, "Médicos não têm permissão para agendar consultas. Apenas Enfermeiras e Pacientes.");
-                }
-
-                if (tipoUsuario == PerfisUsuario.Paciente)
-                {
-                    var pacienteIdToken = User.FindFirstValue(ClinicaClaims.PacienteId);
-                    if (request.PacienteId != Guid.Parse(pacienteIdToken!))
-                    {
-                        return StatusCode(403, "Você não pode agendar consultas para outros pacientes.");
-                    }
-                }
-
-                var usuarioLogadoId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-                var resultado = await _agendamentoService.AdicionarAsync(request, usuarioLogadoId);
-                return Created("", resultado);
+                var pacienteIdToken = User.FindFirstValue(ClinicaClaims.PacienteId);
+                if (request.PacienteId != Guid.Parse(pacienteIdToken!))
+                    throw new ForbiddenException("Você não pode agendar consultas para outros pacientes.");
             }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+
+            var usuarioLogadoId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var resultado = await _agendamentoService.AdicionarAsync(request, usuarioLogadoId);
+            return Created("", resultado);
         }
 
         [HttpGet]
@@ -87,82 +77,50 @@ namespace ClinicaMaisSaude.API.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> ObterPorId(Guid id)
         {
-            try
-            {
-                var agendamento = await _agendamentoService.ObterPorIdAsync(id);
-                if (agendamento == null)
-                    return NotFound("Agendamento não encontrado.");
-                return Ok(agendamento);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            var agendamento = await _agendamentoService.ObterPorIdAsync(id);
+            if (agendamento == null)
+                throw new NotFoundException("Agendamento não encontrado.");
+            return Ok(agendamento);
         }
 
         [HttpGet("horarios-disponiveis")]
         public async Task<IActionResult> ObterHorariosDisponiveis([FromQuery] DateTime data, [FromQuery] int tipoConsulta, [FromQuery] int? especialidadeId = null, [FromQuery] Guid? origemId = null)
         {
-            try
-            {
-                var horarios = await _agendamentoService.ObterHorariosDisponiveisAsync(data, tipoConsulta, especialidadeId, origemId);
-                return Ok(horarios);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            var horarios = await _agendamentoService.ObterHorariosDisponiveisAsync(data, tipoConsulta, especialidadeId, origemId);
+            return Ok(horarios);
         }
 
         [Authorize(Roles = PerfisUsuario.Medico + "," + PerfisUsuario.Enfermeira)]
         [HttpPut("{id}")]
         public async Task<IActionResult> AtualizarAgendamento(Guid id, [FromBody] AgendamentoRequest request)
         {
-            try
-            {
-                var usuarioLogadoId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-                var resultado = await _agendamentoService.AtualizarAsync(id, request, usuarioLogadoId);
-                return Ok(resultado);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            var usuarioLogadoId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var resultado = await _agendamentoService.AtualizarAsync(id, request, usuarioLogadoId);
+            return Ok(resultado);
         }
 
         [Authorize]
         [HttpPatch("{id}/status")]
         public async Task<IActionResult> AlterarStatus(Guid id, [FromBody] int novoStatus)
         {
-            try
+            var tipoUsuario = User.FindFirstValue(ClinicaClaims.TipoUsuario) ?? User.FindFirstValue(ClaimTypes.Role);
+            if (tipoUsuario == PerfisUsuario.Paciente)
             {
-                var tipoUsuario = User.FindFirstValue(ClinicaClaims.TipoUsuario) ?? User.FindFirstValue(ClaimTypes.Role);
-                if (tipoUsuario == PerfisUsuario.Paciente)
-                {
-                    if (novoStatus != 6)
-                    {
-                        return StatusCode(403, "Pacientes só podem alterar o status para Cancelado.");
-                    }
-                    var agendamento = await _agendamentoService.ObterPorIdAsync(id);
-                    if (agendamento == null)
-                    {
-                        return NotFound("Agendamento não encontrado.");
-                    }
-                    var pacienteIdToken = User.FindFirstValue(ClinicaClaims.PacienteId);
-                    if (agendamento.PacienteId != Guid.Parse(pacienteIdToken!))
-                    {
-                        return StatusCode(403, "Você não pode cancelar consultas de outros pacientes.");
-                    }
-                }
+                if (novoStatus != 6)
+                    throw new ForbiddenException("Pacientes só podem alterar o status para Cancelado.");
 
-                var usuarioLogadoId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-                var resultado = await _agendamentoService.AlterarStatusAsync(id, novoStatus, usuarioLogadoId);
-                return Ok(resultado);
+                var agendamento = await _agendamentoService.ObterPorIdAsync(id);
+                if (agendamento == null)
+                    throw new NotFoundException("Agendamento não encontrado.");
+
+                var pacienteIdToken = User.FindFirstValue(ClinicaClaims.PacienteId);
+                if (agendamento.PacienteId != Guid.Parse(pacienteIdToken!))
+                    throw new ForbiddenException("Você não pode cancelar consultas de outros pacientes.");
             }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+
+            var usuarioLogadoId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var resultado = await _agendamentoService.AlterarStatusAsync(id, novoStatus, usuarioLogadoId);
+            return Ok(resultado);
         }
 
         [HttpPatch("{id}/remarcar")]
@@ -170,136 +128,83 @@ namespace ClinicaMaisSaude.API.Controllers
         public async Task<IActionResult> RemarcarAgendamento(Guid id, [FromBody] RemarcarAgendamentoRequest request)
         {
             if (!ModelState.IsValid)
-            {
                 return BadRequest(ModelState);
-            }
 
-            try
+            var isAdminClaim = User.Claims.FirstOrDefault(c => c.Type == ClinicaClaims.IsAdmin)?.Value;
+            var tipoUsuario = User.FindFirstValue(ClinicaClaims.TipoUsuario) ?? User.FindFirstValue(ClaimTypes.Role);
+
+            if (isAdminClaim != "true" && tipoUsuario == PerfisUsuario.Paciente)
             {
-                var isAdminClaim = User.Claims.FirstOrDefault(c => c.Type == ClinicaClaims.IsAdmin)?.Value;
-                var tipoUsuario = User.FindFirstValue(ClinicaClaims.TipoUsuario) ?? User.FindFirstValue(ClaimTypes.Role);
+                var agendamento = await _agendamentoService.ObterPorIdAsync(id);
+                if (agendamento == null)
+                    throw new NotFoundException("Agendamento não encontrado.");
 
-                if (isAdminClaim != "true" && tipoUsuario == PerfisUsuario.Paciente)
-                {
-                    var agendamento = await _agendamentoService.ObterPorIdAsync(id);
-                    if (agendamento == null)
-                    {
-                        return NotFound("Agendamento não encontrado.");
-                    }
-                    var pacienteIdToken = User.FindFirstValue(ClinicaClaims.PacienteId);
-                    if (agendamento.PacienteId != Guid.Parse(pacienteIdToken!))
-                    {
-                        return StatusCode(403, "Você não pode remarcar consultas de outros pacientes.");
-                    }
-                }
+                var pacienteIdToken = User.FindFirstValue(ClinicaClaims.PacienteId);
+                if (agendamento.PacienteId != Guid.Parse(pacienteIdToken!))
+                    throw new ForbiddenException("Você não pode remarcar consultas de outros pacientes.");
+            }
 
-                var usuarioLogadoId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-                var resultado = await _agendamentoService.RemarcarAsync(id, request, usuarioLogadoId);
-                return Ok(resultado);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { Mensagem = ex.Message });
-            }
+            var usuarioLogadoId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var resultado = await _agendamentoService.RemarcarAsync(id, request, usuarioLogadoId);
+            return Ok(resultado);
         }
 
         [Authorize(Roles = PerfisUsuario.Medico + "," + PerfisUsuario.Enfermeira)]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeletarAgendamento(Guid id)
         {
-            try
-            {
-                var usuarioLogadoId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-                await _agendamentoService.DeletarAsync(id, usuarioLogadoId);
-                return NoContent();
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            var usuarioLogadoId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            await _agendamentoService.DeletarAsync(id, usuarioLogadoId);
+            return NoContent();
         }
 
         [HttpGet("{id}/historico")]
         public async Task<IActionResult> ObterHistorico(Guid id)
         {
-            try
-            {
-                var historico = await _agendamentoService.ObterHistoricoAsync(id);
-                return Ok(historico);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { Mensagem = ex.Message });
-            }
+            var historico = await _agendamentoService.ObterHistoricoAsync(id);
+            return Ok(historico);
         }
+
         [Authorize(Roles = PerfisUsuario.Medico + "," + PerfisUsuario.Enfermeira)]
         [HttpPatch("{id}/concluir-exame")]
         public async Task<IActionResult> ConcluirExame(Guid id, [FromBody] bool exigeResultadoPosterior)
         {
-            try
-            {
-                var usuarioLogadoId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-                await _agendamentoService.ConcluirExameAsync(id, exigeResultadoPosterior, usuarioLogadoId);
-                return Ok(new { Mensagem = "Exame concluído." });
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { Mensagem = ex.Message });
-            }
+            var usuarioLogadoId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            await _agendamentoService.ConcluirExameAsync(id, exigeResultadoPosterior, usuarioLogadoId);
+            return Ok(new { Mensagem = "Exame concluído." });
         }
 
         [Authorize(Roles = PerfisUsuario.Medico + "," + PerfisUsuario.Enfermeira)]
         [HttpPatch("{id}/resultado-disponivel")]
         public async Task<IActionResult> MarcarResultadoDisponivel(Guid id)
         {
-            try
-            {
-                await _agendamentoService.MarcarResultadoDisponivelAsync(id);
-                return Ok(new { Mensagem = "Resultado marcado como disponível." });
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { Mensagem = ex.Message });
-            }
+            await _agendamentoService.MarcarResultadoDisponivelAsync(id);
+            return Ok(new { Mensagem = "Resultado marcado como disponível." });
         }
 
         [Authorize(Roles = PerfisUsuario.Medico + "," + PerfisUsuario.Enfermeira)]
         [HttpPatch("{id}/resultado-retirado")]
         public async Task<IActionResult> MarcarResultadoRetirado(Guid id)
         {
-            try
-            {
-                await _agendamentoService.MarcarResultadoRetiradoAsync(id);
-                return Ok(new { Mensagem = "Resultado marcado como retirado." });
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { Mensagem = ex.Message });
-            }
+            await _agendamentoService.MarcarResultadoRetiradoAsync(id);
+            return Ok(new { Mensagem = "Resultado marcado como retirado." });
         }
 
         [HttpGet("{agendamentoId}/probabilidade-falta")]
         public async Task<IActionResult> ObterProbabilidadeFalta(Guid agendamentoId)
         {
-            try
-            {
-                var agendamento = await _agendamentoService.ObterPorIdAsync(agendamentoId);
-                if (agendamento == null)
-                    return NotFound("Agendamento não encontrado.");
+            var agendamento = await _agendamentoService.ObterPorIdAsync(agendamentoId);
+            if (agendamento == null)
+                throw new NotFoundException("Agendamento não encontrado.");
 
-                var (probabilidade, nivel) = await _probabilidadeFaltaService.CalcularProbabilidadeAsync(agendamento.PacienteId, agendamento.DataHoraConsulta);
+            var (probabilidade, nivel) = await _probabilidadeFaltaService.CalcularProbabilidadeAsync(agendamento.PacienteId, agendamento.DataHoraConsulta);
 
-                return Ok(new
-                {
-                    AgendamentoId = agendamentoId,
-                    Probabilidade = probabilidade,
-                    Nivel = nivel
-                });
-            }
-            catch (Exception ex)
+            return Ok(new
             {
-                return BadRequest(new { Mensagem = ex.Message });
-            }
+                AgendamentoId = agendamentoId,
+                Probabilidade = probabilidade,
+                Nivel = nivel
+            });
         }
     }
 }

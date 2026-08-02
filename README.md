@@ -82,7 +82,72 @@ graph TD
 | Banco de Dados | SQL Server, EF Core Migrations |
 | Inteligência Artificial | Google Gemini 2.5 Flash |
 | Autenticação | JWT com Refresh Token, BCrypt |
+| Cache / Rate-Limit | `IDistributedCache` — Redis (produção) com fallback em memória (dev) |
 | Exportação | QuestPDF (PDF), ClosedXML (Excel) |
+
+---
+
+## 📈 Escalabilidade — Cache Distribuído (Redis)
+
+O controle de rate-limit e anti-abuso da triagem por IA usa a abstração **`IDistributedCache`**, permitindo escala horizontal (múltiplas instâncias atrás de um load balancer) sem alterar o código de negócio:
+
+- **Sem Redis (desenvolvimento / instância única):** cai automaticamente no cache em memória (`AddDistributedMemoryCache`). Funciona out-of-the-box, sem infraestrutura extra.
+- **Com Redis (produção em escala):** os contadores ficam num store compartilhado, então os limites são corretos e determinísticos mesmo com várias réplicas — evitando que um usuário multiplique a cota alternando entre instâncias.
+
+A seleção é feita por configuração (`ConnectionStrings:Redis`) — o `ConsultaService` depende apenas da interface e **não muda entre ambientes**.
+
+### 🔀 Como alternar entre memória e Redis
+
+O sistema decide sozinho qual usar, com base numa única regra em [`Program.cs`](ClinicaMaisSaude.API/Program.cs): **se `ConnectionStrings:Redis` estiver vazio ou ausente, usa memória; se tiver um valor, usa Redis.** Não existe flag "modo memória/modo Redis" — é só essa string.
+
+**Passo a passo — ativar o Redis:**
+
+1. Suba o container do Redis (precisa do [Docker](https://www.docker.com/) instalado):
+   ```bash
+   docker compose up -d redis
+   ```
+2. Defina a connection string antes de rodar a API. Duas formas (escolha uma):
+   - Variável de ambiente (não fica salva em arquivo, boa para não vazar config):
+     ```bash
+     # PowerShell
+     $env:ConnectionStrings__Redis = "localhost:6379"
+     dotnet run --project ClinicaMaisSaude.API
+     ```
+   - Ou direto no `appsettings.Development.json` (mais prático para uso contínuo local):
+     ```json
+     "ConnectionStrings": {
+       "Redis": "localhost:6379"
+     }
+     ```
+3. Rode a API normalmente. Se o Redis cair ou a connection string estiver errada, a API vai lançar erro de conexão ao tentar gravar no cache (não há fallback silencioso depois de configurado).
+
+**Passo a passo — voltar para memória:**
+
+1. Apague o valor da connection string (deixe `""`) ou remova a variável de ambiente:
+   ```bash
+   # PowerShell — remove a variável da sessão atual
+   Remove-Item Env:ConnectionStrings__Redis
+   ```
+2. Rode a API novamente. Sem o valor configurado, ela volta a usar `AddDistributedMemoryCache` automaticamente.
+3. (Opcional) Derrube o container, já que não é mais necessário:
+   ```bash
+   docker compose down
+   ```
+
+**Como confirmar qual está ativo:** não há um endpoint dedicado hoje. Na prática, dá pra verificar de duas formas — (a) rodando `docker ps` e vendo se o container `clinica-redis` está de pé e recebendo conexões, ou (b) parando o Redis propositalmente com a connection string configurada: se a próxima chamada à IA quebrar com erro de conexão em vez de funcionar normalmente, é sinal de que a API está mesmo tentando falar com o Redis (e não caiu para memória).
+
+### 📚 Para entender melhor — o que pesquisar
+
+Se esses conceitos são novos, esta é uma ordem razoável para estudar (do mais fundamental ao mais específico deste projeto):
+
+1. **O que é cache e por que TTL/expiração importa** — conceito geral antes de entrar em Redis especificamente.
+2. **Redis — o que é e para que serve** (não precisa aprofundar em todos os tipos de dados do Redis; entender que é um "banco em memória" chave-valor, rápido, usado para cache/sessão/filas já cobre o necessário aqui).
+3. **Docker e Docker Compose — conceitos básicos** — o que é um container, o que o `docker-compose.yml` deste projeto está descrevendo (`docker compose up`/`down`, `ports`, `volumes`).
+4. **Escalabilidade horizontal vs. vertical** — por que "rodar 2 instâncias da API" quebra um contador que vive só na memória de uma delas (essa é a causa raiz do problema que o Redis resolve aqui).
+5. **`IDistributedCache` (ASP.NET Core / .NET)** — a interface abstrata que o código usa; documentação oficial da Microsoft sobre "Distributed caching in ASP.NET Core".
+6. **`IMemoryCache` vs `IDistributedCache`** — comparar os dois lado a lado ajuda a entender por que a troca foi só de dependência, sem mudar a lógica de negócio.
+7. **Connection strings e configuração em .NET** (`appsettings.json`, variáveis de ambiente, User Secrets) — para entender por que a Redis connection string nunca deve ir para o `appsettings.json` de produção com valor real.
+8. **Condição de corrida em "ler → modificar → salvar"** (read-modify-write race) — o padrão usado aqui (ler a lista, alterar, salvar de volta) não é atômico; pesquisar isso ajuda a entender a limitação documentada no `MELHORIAS_TECNICAS.md`.
 
 ---
 

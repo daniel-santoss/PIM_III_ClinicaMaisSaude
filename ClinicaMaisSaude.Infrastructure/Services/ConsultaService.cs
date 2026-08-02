@@ -3,9 +3,10 @@ using ClinicaMaisSaude.Application.Exceptions;
 using ClinicaMaisSaude.Domain.Entities;
 using ClinicaMaisSaude.Domain.Enums;
 using ClinicaMaisSaude.Domain.Constants;
+using ClinicaMaisSaude.Domain.Interfaces;
 using ClinicaMaisSaude.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System;
@@ -25,33 +26,66 @@ namespace ClinicaMaisSaude.Infrastructure.Services
         private readonly IConfiguration _config;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILogger<ConsultaService> _logger;
-        private readonly IMemoryCache _cache;
+        private readonly IDistributedCache _cache;
+        private readonly IDataHoraService _dataHora;
+        private readonly INotificadorTempoReal _notificadorTempoReal;
 
         public ConsultaService(
             ClinicaDbContext context,
             IConfiguration config,
             IHttpClientFactory httpClientFactory,
             ILogger<ConsultaService> logger,
-            IMemoryCache cache)
+            IDistributedCache cache,
+            IDataHoraService dataHora,
+            INotificadorTempoReal notificadorTempoReal)
         {
             _context = context;
             _config = config;
             _httpClientFactory = httpClientFactory;
             _logger = logger;
             _cache = cache;
+            _dataHora = dataHora;
+            _notificadorTempoReal = notificadorTempoReal;
+        }
+
+        // Empurra em tempo real (best-effort) todas as notificações criadas num bloco,
+        // após o commit. Centralizado aqui para não repetir o loop nos vários pontos.
+        private async Task PushRealtimeAsync(IEnumerable<Notificacao> notificacoes)
+        {
+            foreach (var n in notificacoes)
+            {
+                await _notificadorTempoReal.NotificarAsync(n);
+            }
+        }
+
+        // Lê a janela deslizante de timestamps (ticks UTC) do cache distribuído.
+        // Ticks (long) evitam qualquer ambiguidade de fuso/Kind na (de)serialização.
+        private async Task<List<long>> LerJanelaAsync(string key)
+        {
+            var json = await _cache.GetStringAsync(key);
+            if (string.IsNullOrEmpty(json)) return new List<long>();
+            try { return JsonSerializer.Deserialize<List<long>>(json) ?? new List<long>(); }
+            catch { return new List<long>(); }
+        }
+
+        // Grava a janela com expiração absoluta (o próprio store descarta a chave ociosa).
+        private async Task GravarJanelaAsync(string key, List<long> janela, TimeSpan ttl)
+        {
+            var json = JsonSerializer.Serialize(janela);
+            await _cache.SetStringAsync(key, json, new DistributedCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = ttl
+            });
         }
 
         public async Task<object> SugerirTipoAsync(string sintomas, Guid? pacienteId, string? tipoUsuario, bool isAdmin, Guid usuarioLogadoId)
         {
             var agora = DateTime.UtcNow;
 
-            // 1. Rate Limit Global (100 requisições por hora)
+            // 1. Rate Limit Global (100 requisições por hora) — janela deslizante em cache distribuído
             var globalKey = ConfigKeys.RateLimitGlobal;
-            if (!_cache.TryGetValue(globalKey, out List<DateTime> globalRequests))
-            {
-                globalRequests = new List<DateTime>();
-            }
-            globalRequests.RemoveAll(t => t < agora.AddHours(-1));
+            var globalRequests = await LerJanelaAsync(globalKey);
+            globalRequests.RemoveAll(t => t < agora.AddHours(-1).Ticks);
             if (globalRequests.Count >= 100)
             {
                 throw new RateLimitExceededException("O sistema de triagem está sob alta carga. Limite global excedido. Tente novamente em alguns minutos.");
@@ -59,21 +93,18 @@ namespace ClinicaMaisSaude.Infrastructure.Services
 
             // 2. Rate Limit por Usuário (5 requisições por dia)
             var userKey = $"{ConfigKeys.RateLimitUser}{usuarioLogadoId}";
-            if (!_cache.TryGetValue(userKey, out List<DateTime> userRequests))
-            {
-                userRequests = new List<DateTime>();
-            }
-            userRequests.RemoveAll(t => t < agora.AddDays(-1));
+            var userRequests = await LerJanelaAsync(userKey);
+            userRequests.RemoveAll(t => t < agora.AddDays(-1).Ticks);
             if (userRequests.Count >= 5)
             {
                 throw new RateLimitExceededException("Você atingiu o limite de 5 sugestões de triagem por dia. Tente novamente amanhã.");
             }
 
             // Registra as tentativas
-            globalRequests.Add(agora);
-            userRequests.Add(agora);
-            _cache.Set(globalKey, globalRequests, TimeSpan.FromHours(1));
-            _cache.Set(userKey, userRequests, TimeSpan.FromDays(1));
+            globalRequests.Add(agora.Ticks);
+            userRequests.Add(agora.Ticks);
+            await GravarJanelaAsync(globalKey, globalRequests, TimeSpan.FromHours(1));
+            await GravarJanelaAsync(userKey, userRequests, TimeSpan.FromDays(1));
 
             Paciente? paciente = null;
 
@@ -81,33 +112,30 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             {
                 paciente = await _context.Pacientes.FirstOrDefaultAsync(p => p.Id == pacienteId.Value);
                 if (paciente == null)
-                    throw new KeyNotFoundException("Paciente não encontrado.");
+                    throw new NotFoundException("Paciente não encontrado.");
 
                 if (paciente.IsIABloqueada())
                 {
-                    var brasilia = TimeZoneInfo.FindSystemTimeZoneById(
-                        OperatingSystem.IsWindows() ? "E. South America Standard Time" : "America/Sao_Paulo"
-                    );
-                    var dataBloqueio = TimeZoneInfo.ConvertTimeFromUtc(paciente.BloqueadoIAAte!.Value, brasilia).ToString("dd/MM/yyyy HH:mm");
-                    throw new UnauthorizedAccessException($"Acesso à IA bloqueado até {dataBloqueio}. Se acha que é um erro, entre em contato: suporte@clinicamaissaude.com");
+                    var dataBloqueio = _dataHora.ParaBrasilia(paciente.BloqueadoIAAte!.Value).ToString("dd/MM/yyyy HH:mm");
+                    throw new ForbiddenException($"Acesso à IA bloqueado até {dataBloqueio}. Se acha que é um erro, entre em contato: suporte@clinicamaissaude.com");
                 }
             }
             else if (tipoUsuario != PerfisUsuario.Enfermeira && tipoUsuario != PerfisUsuario.Medico && !isAdmin)
             {
-                throw new UnauthorizedAccessException("Usuário não é um paciente válido.");
+                throw new ForbiddenException("Usuário não é um paciente válido.");
             }
 
             if (string.IsNullOrWhiteSpace(sintomas) || sintomas.Length < 10)
-                throw new ArgumentException("Descreva os sintomas com pelo menos 10 caracteres.");
+                throw new ValidationException("Descreva os sintomas com pelo menos 10 caracteres.");
 
             if (sintomas.Length > 300)
-                throw new ArgumentException("Limite de 300 caracteres para a descrição dos sintomas.");
+                throw new ValidationException("Limite de 300 caracteres para a descrição dos sintomas.");
 
             var apiKey = _config[ConfigKeys.GeminiApiKey];
             var model = _config[ConfigKeys.GeminiModel] ?? "gemini-2.5-flash";
 
             if (string.IsNullOrWhiteSpace(apiKey) || apiKey == "SUA_CHAVE_AQUI")
-                throw new InvalidOperationException("Serviço de IA não configurado. Contate o administrador.");
+                throw new ServiceUnavailableException("Serviço de IA não configurado. Contate o administrador.");
 
             var sintomasLimpos = sintomas.Trim().Replace("\r", " ").Replace("\n", " ");
             var userPrompt = $"Sintomas do paciente: \"{sintomasLimpos}\"";
@@ -162,14 +190,14 @@ Formato:
             {
                 if (response.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
                 {
-                    throw new HttpRequestException("A triagem inteligente atingiu o limite de consultas gratuitas. Tente novamente mais tarde.", null, System.Net.HttpStatusCode.TooManyRequests);
+                    throw new ServiceUnavailableException("A triagem inteligente atingiu o limite de consultas gratuitas. Tente novamente mais tarde.");
                 }
                 if (response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
                 {
-                    throw new HttpRequestException("O serviço de IA está temporariamente indisponível. Tente novamente mais tarde.", null, System.Net.HttpStatusCode.ServiceUnavailable);
+                    throw new ServiceUnavailableException("O serviço de IA está temporariamente indisponível. Tente novamente mais tarde.");
                 }
 
-                throw new HttpRequestException("Não foi possível conectar com a Inteligência Artificial no momento.", null, response.StatusCode);
+                throw new ServiceUnavailableException("Não foi possível conectar com a Inteligência Artificial no momento.");
             }
 
             _logger.LogDebug("Gemini raw response: {ResponseBody}", responseBody);
@@ -192,7 +220,7 @@ Formato:
                         var novaViolacao = new UsoInadequadoIA(usuarioLogadoId, TipoViolacao.Injecao, sintomas);
                         _context.ViolacoesIA.Add(novaViolacao);
 
-                        await CancelarAgendamentosENotificarAsync(usuarioLogadoId);
+                        var notificacoes = await CancelarAgendamentosENotificarAsync(usuarioLogadoId);
 
                         var admins = await _context.Usuarios.AsNoTracking().Where(u => u.IsAdmin).ToListAsync();
                         foreach (var admin in admins)
@@ -204,15 +232,17 @@ Formato:
                                 link: $"violacoes?busca={userObj.Cpf}"
                             );
                             _context.Notificacoes.Add(notificacao);
+                            notificacoes.Add(notificacao);
                         }
 
                         await _context.SaveChangesAsync();
+                        await PushRealtimeAsync(notificacoes);
                     }
 
                     return new { justificativa = "Detectamos uma tentativa deliberada de obtenção de credenciais privadas e ativos de domínio por meio da Inteligência Artificial do sistema. Esta conduta configura Invasão de Dispositivo Informático, conforme o Art. 154-A do Código Penal (Lei 12.737/2012) e violação dos princípios de segurança e confidencialidade da Lei Geral de Proteção de Dados (Lei 13.709/2018 - LGPD)." };
                 }
 
-                throw new Exception($"A IA não retornou texto válido. Motivo: {finishReason}");
+                throw new ServiceUnavailableException($"A IA não retornou texto válido. Motivo: {finishReason}");
             }
 
             var textoResposta = partsElement[0].GetProperty("text").GetString();
@@ -245,7 +275,7 @@ Formato:
                     var novaViolacao = new UsoInadequadoIA(usuarioLogadoId, TipoViolacao.Injecao, sintomas);
                     _context.ViolacoesIA.Add(novaViolacao);
 
-                    await CancelarAgendamentosENotificarAsync(usuarioLogadoId);
+                    var notificacoes = await CancelarAgendamentosENotificarAsync(usuarioLogadoId);
 
                     var admins = await _context.Usuarios.AsNoTracking().Where(u => u.IsAdmin).ToListAsync();
                     foreach (var admin in admins)
@@ -257,9 +287,11 @@ Formato:
                             link: $"violacoes?busca={userObj.Cpf}"
                         );
                         _context.Notificacoes.Add(notificacao);
+                        notificacoes.Add(notificacao);
                     }
 
                     await _context.SaveChangesAsync();
+                    await PushRealtimeAsync(notificacoes);
                 }
                 return new { justificativa = textoResposta };
             }
@@ -281,6 +313,7 @@ Formato:
                         paciente.BloquearIA(DateTime.UtcNow.AddDays(7));
                     }
 
+                    var notificacoes = new List<Notificacao>();
                     var admins = await _context.Usuarios.AsNoTracking().Where(u => u.IsAdmin).ToListAsync();
                     foreach (var admin in admins)
                     {
@@ -291,11 +324,13 @@ Formato:
                             link: $"violacoes?busca={paciente.Cpf}"
                         );
                         _context.Notificacoes.Add(notificacao);
+                        notificacoes.Add(notificacao);
                     }
 
                     await _context.SaveChangesAsync();
+                    await PushRealtimeAsync(notificacoes);
                 }
-                throw new ArgumentException("Seus sintomas não estão relacionados à saúde. Por favor, descreva uma queixa médica real para prosseguir.");
+                throw new ValidationException("Seus sintomas não estão relacionados à saúde. Por favor, descreva uma queixa médica real para prosseguir.");
             }
 
             var serializeOptions = new JsonSerializerOptions { AllowTrailingCommas = true, ReadCommentHandling = JsonCommentHandling.Skip };
@@ -305,7 +340,7 @@ Formato:
         public async Task RemoverPenalidadeAsync(Guid usuarioId)
         {
             var usuario = await _context.Usuarios.FindAsync(usuarioId);
-            if (usuario == null) throw new KeyNotFoundException("Usuário não encontrado.");
+            if (usuario == null) throw new NotFoundException("Usuário não encontrado.");
 
             if (usuario.IsBloqueado())
             {
@@ -339,7 +374,7 @@ Formato:
                                        .Select(p => p.TipoProfissional == TipoProfissional.Medico ? PerfisUsuario.Medico : PerfisUsuario.Enfermeira)
                                        .FirstOrDefault()
                                    ?? (a.Usuario.IsAdmin ? "Administrador" : PerfisUsuario.Paciente),
-                    PacienteFotoBase64 = a.Usuario.FotoBase64,
+                    PacienteFotoBase64 = a.Usuario.Foto != null ? a.Usuario.Foto.FotoBase64 : null,
                     TipoViolacao = a.TipoViolacao.ToString(),
                     a.TextoInserido,
                     a.DtCriado,
@@ -370,8 +405,10 @@ Formato:
             return violacoes.Cast<object>();
         }
 
-        private async Task CancelarAgendamentosENotificarAsync(Guid usuarioId)
+        private async Task<List<Notificacao>> CancelarAgendamentosENotificarAsync(Guid usuarioId)
         {
+            var notificacoesCriadas = new List<Notificacao>();
+
             // 1. Verificar se o usuário banido é um profissional
             var profissional = await _context.Profissionais.FirstOrDefaultAsync(p => p.UsuarioId == usuarioId);
             if (profissional != null)
@@ -398,6 +435,7 @@ Formato:
                             link: $"aviso-cancelamento-banimento?agendamentoId={agendamento.Id}"
                         );
                         _context.Notificacoes.Add(notificacao);
+                        notificacoesCriadas.Add(notificacao);
                     }
                 }
             }
@@ -428,9 +466,12 @@ Formato:
                             link: $"aviso-cancelamento-banimento?agendamentoId={agendamento.Id}"
                         );
                         _context.Notificacoes.Add(notificacao);
+                        notificacoesCriadas.Add(notificacao);
                     }
                 }
             }
+
+            return notificacoesCriadas;
         }
     }
 }

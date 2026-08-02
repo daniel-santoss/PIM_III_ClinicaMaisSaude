@@ -74,6 +74,12 @@ namespace ClinicaMaisSaude.Infrastructure.Migrations
                     b.Property<bool>("ResultadoRetirado")
                         .HasColumnType("bit");
 
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
@@ -85,7 +91,11 @@ namespace ClinicaMaisSaude.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("PacienteId");
+                    b.HasIndex("PacienteId", "DataHoraConsulta");
+
+                    b.HasIndex("ProfissionalId", "DataHoraConsulta");
+
+                    b.HasIndex("Status", "DataHoraConsulta");
 
                     b.ToTable("Agendamentos");
                 });
@@ -169,7 +179,7 @@ namespace ClinicaMaisSaude.Infrastructure.Migrations
 
                     b.HasIndex("AgendamentoId");
 
-                    b.HasIndex("UsuarioId");
+                    b.HasIndex("UsuarioId", "DtCriado");
 
                     b.ToTable("Notificacoes", (string)null);
                 });
@@ -223,6 +233,9 @@ namespace ClinicaMaisSaude.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Cpf")
+                        .IsUnique();
+
                     b.HasIndex("UsuarioId");
 
                     b.ToTable("Pacientes");
@@ -262,18 +275,6 @@ namespace ClinicaMaisSaude.Infrastructure.Migrations
                     b.HasIndex("UsuarioId");
 
                     b.ToTable("Profissionais");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = new Guid("22222222-2222-2222-2222-222222222222"),
-                            Crm = "123456",
-                            DtCriado = new DateTime(2026, 4, 26, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Nome = "Dr. Admin",
-                            TipoProfissional = 1,
-                            UfCrm = "SP",
-                            UsuarioId = new Guid("11111111-1111-1111-1111-111111111111")
-                        });
                 });
 
             modelBuilder.Entity("ClinicaMaisSaude.Domain.Entities.ProfissionalEspecialidade", b =>
@@ -321,6 +322,9 @@ namespace ClinicaMaisSaude.Infrastructure.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Token")
+                        .IsUnique();
 
                     b.HasIndex("UsuarioId");
 
@@ -429,8 +433,7 @@ namespace ClinicaMaisSaude.Infrastructure.Migrations
 
                     b.Property<string>("Cpf")
                         .IsRequired()
-                        .HasMaxLength(14)
-                        .HasColumnType("nvarchar(14)");
+                        .HasColumnType("varchar(11)");
 
                     b.Property<DateTime>("DtCriado")
                         .HasColumnType("datetime2")
@@ -440,9 +443,6 @@ namespace ClinicaMaisSaude.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(150)
                         .HasColumnType("nvarchar(150)");
-
-                    b.Property<string>("FotoBase64")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("IsAdmin")
                         .ValueGeneratedOnAdd()
@@ -468,18 +468,20 @@ namespace ClinicaMaisSaude.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("LoginPortal", (string)null);
+                });
 
-                    b.HasData(
-                        new
-                        {
-                            Id = new Guid("11111111-1111-1111-1111-111111111111"),
-                            Cpf = "00000000000",
-                            DtCriado = new DateTime(2026, 4, 26, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Email = "admin@clinicamaissaude.com.br",
-                            IsAdmin = true,
-                            SenhaHash = "$2a$11$DaDuHHaqAhlkdCbeVcw6l.ttRvVjLZ8AnOcXvugreEbhe0C1K1YPK",
-                            TentativasLogin = 0
-                        });
+            modelBuilder.Entity("ClinicaMaisSaude.Domain.Entities.UsuarioFoto", b =>
+                {
+                    b.Property<Guid>("UsuarioId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("FotoBase64")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("UsuarioId");
+
+                    b.ToTable("UsuarioFotos", (string)null);
                 });
 
             modelBuilder.Entity("ClinicaMaisSaude.Domain.Entities.Agendamento", b =>
@@ -498,7 +500,7 @@ namespace ClinicaMaisSaude.Infrastructure.Migrations
                     b.HasOne("ClinicaMaisSaude.Domain.Entities.Agendamento", "Agendamento")
                         .WithMany()
                         .HasForeignKey("AgendamentoId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Agendamento");
@@ -571,6 +573,15 @@ namespace ClinicaMaisSaude.Infrastructure.Migrations
                     b.Navigation("Usuario");
                 });
 
+            modelBuilder.Entity("ClinicaMaisSaude.Domain.Entities.UsuarioFoto", b =>
+                {
+                    b.HasOne("ClinicaMaisSaude.Domain.Entities.Usuario", null)
+                        .WithOne("Foto")
+                        .HasForeignKey("ClinicaMaisSaude.Domain.Entities.UsuarioFoto", "UsuarioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("ClinicaMaisSaude.Domain.Entities.Paciente", b =>
                 {
                     b.Navigation("Agendamentos");
@@ -583,6 +594,8 @@ namespace ClinicaMaisSaude.Infrastructure.Migrations
 
             modelBuilder.Entity("ClinicaMaisSaude.Domain.Entities.Usuario", b =>
                 {
+                    b.Navigation("Foto");
+
                     b.Navigation("Violacoes");
                 });
 #pragma warning restore 612, 618
