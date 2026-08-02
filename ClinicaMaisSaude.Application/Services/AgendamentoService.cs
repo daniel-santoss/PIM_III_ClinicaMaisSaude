@@ -497,41 +497,13 @@ namespace ClinicaMaisSaude.Application.Services
         {
             var agendamentos = await _repository.ObterTodosAsync();
             var profissionais = await _profissionalRepository.ObterTodosAsync();
-            var profDict = profissionais.ToDictionary(p => p.Id, p => p.Nome);
 
             var responses = new List<AgendamentoResponse>();
 
             foreach (var a in agendamentos)
             {
                 var prof = profissionais.FirstOrDefault(p => p.Id == a.ProfissionalId);
-                var esp = a.EspecialidadeId.HasValue 
-                    ? ((EspecialidadeMedica)a.EspecialidadeId.Value).ToString() 
-                    : (prof?.Especialidades.FirstOrDefault()?.EspecialidadeId.ToString() ?? "");
-                
-                var (prob, nivel) = await _probabilidadeFaltaService.CalcularProbabilidadeAsync(a.PacienteId, a.DataHoraConsulta);
-
-                responses.Add(new AgendamentoResponse
-                {
-                    Id = a.Id,
-                    PacienteId = a.PacienteId,
-                    PacienteNome = a.Paciente?.Nome ?? "N/A",
-                    ProfissionalId = a.ProfissionalId,
-                    NomeProfissional = prof?.Nome ?? "N/A",
-                    DataHoraConsulta = a.DataHoraConsulta,
-                    TipoProfissional = a.TipoProfissional.ToString(),
-                    TipoConsulta = a.TipoConsulta.ToString(),
-                    Especialidade = esp,
-                    Status = a.Status.ToString(),
-                    AgendamentoOrigemId = a.AgendamentoOrigemId,
-                    NivelProbabilidadeFalta = nivel,
-                    ProbabilidadeFalta = prob,
-                    ResultadoDisponivel = a.ResultadoDisponivel,
-                    ExigeResultadoPosterior = a.ExigeResultadoPosterior,
-                    ResultadoRetirado = a.ResultadoRetirado,
-                    DtCriado = a.DtCriado,
-                    PacienteFotoBase64 = a.Paciente?.Usuario?.FotoBase64,
-                    ProfissionalFotoBase64 = prof?.Usuario?.FotoBase64
-                });
+                responses.Add(await MapearComProbabilidadeAsync(a, prof));
             }
 
             return responses;
@@ -541,41 +513,13 @@ namespace ClinicaMaisSaude.Application.Services
         {
             var (items, totalCount) = await _repository.ObterTodosPaginadoAsync(page, pageSize, profissionalId, pacienteId, buscaPaciente, dataConsulta, status, riscoAltoApenas, ordem);
             var profissionais = await _profissionalRepository.ObterTodosAsync();
-            var profDict = profissionais.ToDictionary(p => p.Id, p => p.Nome);
 
             var responses = new List<AgendamentoResponse>();
 
             foreach(var a in items)
             {
                 var prof = profissionais.FirstOrDefault(p => p.Id == a.ProfissionalId);
-                var esp = a.EspecialidadeId.HasValue 
-                    ? ((EspecialidadeMedica)a.EspecialidadeId.Value).ToString() 
-                    : (prof?.Especialidades.FirstOrDefault()?.EspecialidadeId.ToString() ?? "");
-                
-                var (prob, nivel) = await _probabilidadeFaltaService.CalcularProbabilidadeAsync(a.PacienteId, a.DataHoraConsulta);
-
-                responses.Add(new AgendamentoResponse
-                {
-                    Id = a.Id,
-                    PacienteId = a.PacienteId,
-                    PacienteNome = a.Paciente?.Nome ?? "N/A",
-                    ProfissionalId = a.ProfissionalId,
-                    NomeProfissional = prof?.Nome ?? "N/A",
-                    DataHoraConsulta = a.DataHoraConsulta,
-                    TipoProfissional = a.TipoProfissional.ToString(),
-                    TipoConsulta = a.TipoConsulta.ToString(),
-                    Especialidade = esp,
-                    Status = a.Status.ToString(),
-                    AgendamentoOrigemId = a.AgendamentoOrigemId,
-                    NivelProbabilidadeFalta = nivel,
-                    ProbabilidadeFalta = prob,
-                    ResultadoDisponivel = a.ResultadoDisponivel,
-                    ExigeResultadoPosterior = a.ExigeResultadoPosterior,
-                    ResultadoRetirado = a.ResultadoRetirado,
-                    DtCriado = a.DtCriado,
-                    PacienteFotoBase64 = a.Paciente?.Usuario?.FotoBase64,
-                    ProfissionalFotoBase64 = prof?.Usuario?.FotoBase64
-                });
+                responses.Add(await MapearComProbabilidadeAsync(a, prof));
             }
 
             return new DTOs.PagedResult<AgendamentoResponse>
@@ -723,6 +667,41 @@ namespace ClinicaMaisSaude.Application.Services
                 DtCriado = a.DtCriado,
                 PacienteFotoBase64 = pacienteFoto,
                 ProfissionalFotoBase64 = profFoto
+            };
+        }
+
+        // Monta a resposta completa (incluindo especialidade derivada do profissional e o
+        // cálculo de probabilidade de falta) usada pelas listagens. Extraído para evitar a
+        // duplicação idêntica entre ObterTodosAsync e ObterTodosPaginadoAsync.
+        private async Task<AgendamentoResponse> MapearComProbabilidadeAsync(Agendamento a, Profissional? prof)
+        {
+            var esp = a.EspecialidadeId.HasValue
+                ? ((EspecialidadeMedica)a.EspecialidadeId.Value).ToString()
+                : (prof?.Especialidades.FirstOrDefault()?.EspecialidadeId.ToString() ?? "");
+
+            var (prob, nivel) = await _probabilidadeFaltaService.CalcularProbabilidadeAsync(a.PacienteId, a.DataHoraConsulta);
+
+            return new AgendamentoResponse
+            {
+                Id = a.Id,
+                PacienteId = a.PacienteId,
+                PacienteNome = a.Paciente?.Nome ?? "N/A",
+                ProfissionalId = a.ProfissionalId,
+                NomeProfissional = prof?.Nome ?? "N/A",
+                DataHoraConsulta = a.DataHoraConsulta,
+                TipoProfissional = a.TipoProfissional.ToString(),
+                TipoConsulta = a.TipoConsulta.ToString(),
+                Especialidade = esp,
+                Status = a.Status.ToString(),
+                AgendamentoOrigemId = a.AgendamentoOrigemId,
+                NivelProbabilidadeFalta = nivel,
+                ProbabilidadeFalta = prob,
+                ResultadoDisponivel = a.ResultadoDisponivel,
+                ExigeResultadoPosterior = a.ExigeResultadoPosterior,
+                ResultadoRetirado = a.ResultadoRetirado,
+                DtCriado = a.DtCriado,
+                PacienteFotoBase64 = a.Paciente?.Usuario?.FotoBase64,
+                ProfissionalFotoBase64 = prof?.Usuario?.FotoBase64
             };
         }
 
