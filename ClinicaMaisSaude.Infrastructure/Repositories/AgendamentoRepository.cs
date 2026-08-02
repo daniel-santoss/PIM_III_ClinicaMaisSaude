@@ -96,7 +96,9 @@ namespace ClinicaMaisSaude.Infrastructure.Repositories
 
             if (!string.IsNullOrWhiteSpace(buscaPaciente))
             {
-                query = query.Where(a => a.Paciente.Nome.Contains(buscaPaciente) || a.Paciente.Cpf.Contains(buscaPaciente));
+                // CPF por prefixo (SARGable, usa índice); nome por Contains (UX de busca).
+                // Para nome em escala, a evolução seria full-text search do SQL Server.
+                query = query.Where(a => a.Paciente.Nome.Contains(buscaPaciente) || a.Paciente.Cpf.StartsWith(buscaPaciente));
             }
 
             if (!string.IsNullOrWhiteSpace(dataConsulta))

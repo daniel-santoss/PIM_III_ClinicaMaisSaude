@@ -47,10 +47,17 @@ namespace ClinicaMaisSaude.API.Services
 
             var agora = DateTime.UtcNow;
 
-            // Busca os agendamentos pendentes ou em atendimento que não foram finalizados/cancelados
+            // Janela temporal: todas as regras (lembrete de hoje, 2h antes, "não finalizada"
+            // = DataHora+2h no passado recente) caem numa faixa curta em torno de agora.
+            // Sem esse filtro, a query cresceria indefinidamente conforme a base acumula.
+            var inicioJanela = agora.AddDays(-2);
+            var fimJanela = agora.AddDays(2);
+
+            // Busca os agendamentos pendentes ou em atendimento (não finalizados/cancelados) na janela.
             var agendamentos = await dbContext.Agendamentos
                 .Include(a => a.Paciente)
-                .Where(a => a.Status == StatusAgendamento.Agendado || a.Status == StatusAgendamento.EmAtendimento)
+                .Where(a => (a.Status == StatusAgendamento.Agendado || a.Status == StatusAgendamento.EmAtendimento)
+                            && a.DataHoraConsulta >= inicioJanela && a.DataHoraConsulta <= fimJanela)
                 .ToListAsync(stoppingToken);
 
             foreach (var a in agendamentos)
