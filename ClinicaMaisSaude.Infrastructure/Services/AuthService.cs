@@ -154,6 +154,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                 ExpiryDate = DateTime.UtcNow.AddDays(7)
             };
 
+            await LimparRefreshTokensAsync(usuario.Id);
             await _context.RefreshTokens.AddAsync(refreshToken);
             await _context.SaveChangesAsync();
 
@@ -170,6 +171,19 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                 PenalidadeRemovida = penalidadeRemovida,
                 FotoBase64 = usuario.FotoBase64
             };
+        }
+
+        // Housekeeping dos refresh tokens do usuário: remove os expirados e os já usados
+        // há mais de 1 dia. Evita o crescimento indefinido da tabela; mantém os usados
+        // recentes para permitir detecção de reuso (um token roubado reapresentado).
+        private async Task LimparRefreshTokensAsync(Guid usuarioId)
+        {
+            var agora = DateTime.UtcNow;
+            var limiteUsados = agora.AddDays(-1);
+            await _context.RefreshTokens
+                .Where(t => t.UsuarioId == usuarioId &&
+                            (t.ExpiryDate < agora || (t.IsUsed && t.AddedDate < limiteUsados)))
+                .ExecuteDeleteAsync();
         }
 
         public async Task<LoginResponse> RefreshTokenAsync(RefreshTokenRequest request)
@@ -242,6 +256,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                 ExpiryDate = DateTime.UtcNow.AddDays(7)
             };
 
+            await LimparRefreshTokensAsync(usuario.Id);
             await _context.RefreshTokens.AddAsync(refreshToken);
             await _context.SaveChangesAsync();
 
