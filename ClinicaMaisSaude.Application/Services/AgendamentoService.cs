@@ -24,6 +24,7 @@ namespace ClinicaMaisSaude.Application.Services
         private readonly IProbabilidadeFaltaService _probabilidadeFaltaService;
         private readonly INotificacaoRepository _notificacaoRepository;
         private readonly IConflitoHorarioService _conflitoService;
+        private readonly IDelegacaoProfissionalService _delegacaoService;
         private readonly IUnitOfWork _unitOfWork;
         private readonly IConfiguration _configuration;
 
@@ -35,6 +36,7 @@ namespace ClinicaMaisSaude.Application.Services
             IProbabilidadeFaltaService probabilidadeFaltaService,
             INotificacaoRepository notificacaoRepository,
             IConflitoHorarioService conflitoService,
+            IDelegacaoProfissionalService delegacaoService,
             IUnitOfWork unitOfWork,
             IConfiguration configuration)
         {
@@ -45,6 +47,7 @@ namespace ClinicaMaisSaude.Application.Services
             _probabilidadeFaltaService = probabilidadeFaltaService;
             _notificacaoRepository = notificacaoRepository;
             _conflitoService = conflitoService;
+            _delegacaoService = delegacaoService;
             _unitOfWork = unitOfWork;
             _configuration = configuration;
         }
@@ -154,7 +157,7 @@ namespace ClinicaMaisSaude.Application.Services
             }
             else
             {
-                profissionalDelegado = await DelegarProfissionalAsync(tipoProfissional, tipoConsulta, request.DataHoraConsulta, null, request.EspecialidadeId);
+                profissionalDelegado = await _delegacaoService.DelegarAsync(tipoProfissional, tipoConsulta, request.DataHoraConsulta, null, request.EspecialidadeId);
             }
             
             var agendamento = new Agendamento(
@@ -253,7 +256,7 @@ namespace ClinicaMaisSaude.Application.Services
             var tipoProf = (TipoProfissional)request.TipoProfissional;
             var tipoCons = (TipoConsulta)request.TipoConsulta;
             
-            var profissionalDelegado = await DelegarProfissionalAsync(tipoProf, tipoCons, request.DataHoraConsulta, agendamento.Id, null);
+            var profissionalDelegado = await _delegacaoService.DelegarAsync(tipoProf, tipoCons, request.DataHoraConsulta, agendamento.Id, null);
             
             agendamento.AlterarDataHora(request.DataHoraConsulta);
             var conflitoOriginal = await _conflitoService.ExisteConflitoProfissionalAsync(agendamento.ProfissionalId, request.DataHoraConsulta, tipoCons, agendamento.Id);
@@ -668,53 +671,6 @@ namespace ClinicaMaisSaude.Application.Services
             }
 
             return horarios;
-        }
-
-        private async Task<Guid> DelegarProfissionalAsync(TipoProfissional tipo, TipoConsulta consulta, DateTime escopoHorario, Guid? ignorarAgendamentoId, int? especialidadeId)
-        {
-            var profissionais = await _profissionalRepository.ObterTodosPorTipoAsync(tipo);
-            if (!profissionais.Any())
-                throw new BusinessRuleException("Nenhum profissional deste tipo cadastrado no sistema.");
-
-            // F2: Filtra por especialidade quando informada (apenas para médicos)
-            if (especialidadeId.HasValue && tipo == TipoProfissional.Medico)
-            {
-                var comEspecialidade = profissionais
-                    .Where(p => p.Especialidades.Any(e => (int)e.EspecialidadeId == especialidadeId.Value))
-                    .ToList();
-
-                if (comEspecialidade.Any())
-                    profissionais = comEspecialidade;
-                else
-                    throw new BusinessRuleException("Nenhum médico com a especialidade solicitada encontrado.");
-            }
-
-            var duracaoEmMinutos = TipoConsultaDuracao.ObterDuracao(consulta);
-            var terminoPrevisto = escopoHorario.AddMinutes(duracaoEmMinutos);
-
-            var candidatos = new List<(Guid ProfissionalId, int NoDia, int AtivosGeral)>();
-
-            foreach(var prof in profissionais)
-            {
-                 bool temConflito = await _conflitoService.ExisteConflitoProfissionalAsync(prof.Id, escopoHorario, consulta, ignorarAgendamentoId);
-
-                 if(!temConflito)
-                 {
-                     // 1. Conta agendamentos do profissional no dia da consulta (excluindo os cancelados) — filtro no banco
-                     var noDia = await _repository.ContarNaoCanceladosNoDiaAsync(prof.Id, escopoHorario);
-
-                     // 2. Conta o total de agendamentos ativos em geral para desempate — filtro no banco
-                     var ativosGeral = await _repository.ContarAtivosDoProfissionalAsync(prof.Id);
-
-                     candidatos.Add((prof.Id, noDia, ativosGeral));
-                 }
-            }
-
-            if (!candidatos.Any())
-                throw new BusinessRuleException("Nenhum profissional disponível neste horário. Tente outro horário.");
-
-            // 3. Seleciona o profissional com a menor contagem no dia, usando a carga ativa total como desempate
-            return candidatos.OrderBy(c => c.NoDia).ThenBy(c => c.AtivosGeral).First().ProfissionalId;
         }
 
         public async Task<IEnumerable<AgendamentoHistoricoResponse>> ObterHistoricoAsync(Guid agendamentoId)

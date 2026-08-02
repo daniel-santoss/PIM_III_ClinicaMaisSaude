@@ -98,6 +98,7 @@ builder.Services.AddScoped<IProfissionalRepository, ProfissionalRepository>();
 builder.Services.AddScoped<IUsuarioRepository, UsuarioRepository>();
 builder.Services.AddScoped<IPacienteService, PacienteService>();
 builder.Services.AddScoped<IConflitoHorarioService, ConflitoHorarioService>();
+builder.Services.AddScoped<IDelegacaoProfissionalService, DelegacaoProfissionalService>();
 builder.Services.AddScoped<IAgendamentoService, AgendamentoService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ICadastroService, CadastroService>();
