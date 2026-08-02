@@ -1,5 +1,5 @@
 import { X, CalendarDays } from 'lucide-react';
-import { CLINIC_NAME, API_URL } from "./constants/api";
+import { API_URL } from "./constants/api";
 import { perfis } from "./constants/perfis";
 import { storageKeys } from "./constants/storage";
 import { useState, useEffect } from "react";
@@ -37,7 +37,6 @@ export default function App() {
   const [tipoUsuario, setTipoUsuario] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
   const [abaAtiva, setAbaAtiva] = useState<AbaAtiva>("agendamentos");
-  const [viewPaciente] = useState<"novo" | "lista">("novo");
   const [modalPerfilAberto, setModalPerfilAberto] = useState(false);
   const [notificacoes, setNotificacoes] = useState<Notificacao[]>([]);
   const [agendamentoDestaque, setAgendamentoDestaque] = useState<string | null>(null);
@@ -302,10 +301,6 @@ export default function App() {
       }} />
     );
   }
-
-  // Suprime aviso de CLINIC_NAME não utilizado (mantém import caso seja reaproveitado)
-  void CLINIC_NAME;
-  void viewPaciente;
 
   // ── App autenticado ────────────────────────────────────────────────────────
   return (
