@@ -1,0 +1,25 @@
+# Serviços de apoio para desenvolvimento/produção.
+# O Redis é OPCIONAL: a API funciona sem ele (cai no cache em memória).
+# Suba-o quando quiser exercitar o rate-limit distribuído (multi-instância):
+#
+#   docker compose up -d redis
+#
+# Depois configure a connection string para a API usá-lo (ver README).
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: clinica-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--save", "60", "1", "--loglevel", "warning"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  redis-data:

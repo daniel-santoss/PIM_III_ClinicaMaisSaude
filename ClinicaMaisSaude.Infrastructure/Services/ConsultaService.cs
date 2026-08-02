@@ -5,7 +5,7 @@ using ClinicaMaisSaude.Domain.Enums;
 using ClinicaMaisSaude.Domain.Constants;
 using ClinicaMaisSaude.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System;
@@ -25,14 +25,14 @@ namespace ClinicaMaisSaude.Infrastructure.Services
         private readonly IConfiguration _config;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILogger<ConsultaService> _logger;
-        private readonly IMemoryCache _cache;
+        private readonly IDistributedCache _cache;
 
         public ConsultaService(
             ClinicaDbContext context,
             IConfiguration config,
             IHttpClientFactory httpClientFactory,
             ILogger<ConsultaService> logger,
-            IMemoryCache cache)
+            IDistributedCache cache)
         {
             _context = context;
             _config = config;
@@ -41,17 +41,34 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             _cache = cache;
         }
 
+        // Lê a janela deslizante de timestamps (ticks UTC) do cache distribuído.
+        // Ticks (long) evitam qualquer ambiguidade de fuso/Kind na (de)serialização.
+        private async Task<List<long>> LerJanelaAsync(string key)
+        {
+            var json = await _cache.GetStringAsync(key);
+            if (string.IsNullOrEmpty(json)) return new List<long>();
+            try { return JsonSerializer.Deserialize<List<long>>(json) ?? new List<long>(); }
+            catch { return new List<long>(); }
+        }
+
+        // Grava a janela com expiração absoluta (o próprio store descarta a chave ociosa).
+        private async Task GravarJanelaAsync(string key, List<long> janela, TimeSpan ttl)
+        {
+            var json = JsonSerializer.Serialize(janela);
+            await _cache.SetStringAsync(key, json, new DistributedCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = ttl
+            });
+        }
+
         public async Task<object> SugerirTipoAsync(string sintomas, Guid? pacienteId, string? tipoUsuario, bool isAdmin, Guid usuarioLogadoId)
         {
             var agora = DateTime.UtcNow;
 
-            // 1. Rate Limit Global (100 requisições por hora)
+            // 1. Rate Limit Global (100 requisições por hora) — janela deslizante em cache distribuído
             var globalKey = ConfigKeys.RateLimitGlobal;
-            if (!_cache.TryGetValue(globalKey, out List<DateTime> globalRequests))
-            {
-                globalRequests = new List<DateTime>();
-            }
-            globalRequests.RemoveAll(t => t < agora.AddHours(-1));
+            var globalRequests = await LerJanelaAsync(globalKey);
+            globalRequests.RemoveAll(t => t < agora.AddHours(-1).Ticks);
             if (globalRequests.Count >= 100)
             {
                 throw new RateLimitExceededException("O sistema de triagem está sob alta carga. Limite global excedido. Tente novamente em alguns minutos.");
@@ -59,21 +76,18 @@ namespace ClinicaMaisSaude.Infrastructure.Services
 
             // 2. Rate Limit por Usuário (5 requisições por dia)
             var userKey = $"{ConfigKeys.RateLimitUser}{usuarioLogadoId}";
-            if (!_cache.TryGetValue(userKey, out List<DateTime> userRequests))
-            {
-                userRequests = new List<DateTime>();
-            }
-            userRequests.RemoveAll(t => t < agora.AddDays(-1));
+            var userRequests = await LerJanelaAsync(userKey);
+            userRequests.RemoveAll(t => t < agora.AddDays(-1).Ticks);
             if (userRequests.Count >= 5)
             {
                 throw new RateLimitExceededException("Você atingiu o limite de 5 sugestões de triagem por dia. Tente novamente amanhã.");
             }
 
             // Registra as tentativas
-            globalRequests.Add(agora);
-            userRequests.Add(agora);
-            _cache.Set(globalKey, globalRequests, TimeSpan.FromHours(1));
-            _cache.Set(userKey, userRequests, TimeSpan.FromDays(1));
+            globalRequests.Add(agora.Ticks);
+            userRequests.Add(agora.Ticks);
+            await GravarJanelaAsync(globalKey, globalRequests, TimeSpan.FromHours(1));
+            await GravarJanelaAsync(userKey, userRequests, TimeSpan.FromDays(1));
 
             Paciente? paciente = null;
 

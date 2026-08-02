@@ -82,7 +82,30 @@ graph TD
 | Banco de Dados | SQL Server, EF Core Migrations |
 | Inteligência Artificial | Google Gemini 2.5 Flash |
 | Autenticação | JWT com Refresh Token, BCrypt |
+| Cache / Rate-Limit | `IDistributedCache` — Redis (produção) com fallback em memória (dev) |
 | Exportação | QuestPDF (PDF), ClosedXML (Excel) |
+
+---
+
+## 📈 Escalabilidade — Cache Distribuído (Redis)
+
+O controle de rate-limit e anti-abuso da triagem por IA usa a abstração **`IDistributedCache`**, permitindo escala horizontal (múltiplas instâncias atrás de um load balancer) sem alterar o código de negócio:
+
+- **Sem Redis (desenvolvimento / instância única):** cai automaticamente no cache em memória (`AddDistributedMemoryCache`). Funciona out-of-the-box, sem infraestrutura extra.
+- **Com Redis (produção em escala):** os contadores ficam num store compartilhado, então os limites são corretos e determinísticos mesmo com várias réplicas — evitando que um usuário multiplique a cota alternando entre instâncias.
+
+A seleção é feita por configuração (`ConnectionStrings:Redis`) — o `ConsultaService` depende apenas da interface e **não muda entre ambientes**.
+
+```bash
+# Opcional: subir o Redis localmente para exercitar o modo distribuído
+docker compose up -d redis
+```
+
+Depois, aponte a API para ele definindo a connection string (ex.: variável de ambiente):
+
+```bash
+ConnectionStrings__Redis=localhost:6379
+```
 
 ---
 

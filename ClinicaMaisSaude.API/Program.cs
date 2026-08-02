@@ -28,7 +28,26 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.Converters.Add(new UtcDateTimeJsonConverter());
     });
 builder.Services.AddHttpClient();
-builder.Services.AddMemoryCache();
+
+// Cache distribuído para rate-limit/anti-abuso da IA.
+// - Com Redis configurado (ConnectionStrings:Redis), os contadores ficam num store
+//   compartilhado → limites corretos mesmo com múltiplas instâncias (escala horizontal).
+// - Sem Redis (dev/banca/instância única), cai no cache em memória, que implementa a
+//   MESMA interface IDistributedCache → o código do serviço não muda entre ambientes.
+var redisConnection = builder.Configuration.GetConnectionString("Redis");
+if (!string.IsNullOrWhiteSpace(redisConnection))
+{
+    builder.Services.AddStackExchangeRedisCache(options =>
+    {
+        options.Configuration = redisConnection;
+        options.InstanceName = "ClinicaMaisSaude:";
+    });
+}
+else
+{
+    builder.Services.AddDistributedMemoryCache();
+}
+
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddCors(options =>
 {
