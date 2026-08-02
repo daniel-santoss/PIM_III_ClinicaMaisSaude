@@ -19,6 +19,6 @@ namespace ClinicaMaisSaude.Domain.Enums
         Pneumologia = 14,
         Reumatologia = 15,
         Geriatria = 16,
-        MedicinaEsportiva = 18
+        MedicinaEsportiva = 17
     }
 }
