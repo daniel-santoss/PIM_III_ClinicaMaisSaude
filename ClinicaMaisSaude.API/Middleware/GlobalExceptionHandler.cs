@@ -59,6 +59,7 @@ namespace ClinicaMaisSaude.API.Middleware
             BusinessRuleException => (StatusCodes.Status400BadRequest, "Regra de negócio violada"),
             ForbiddenException => (StatusCodes.Status403Forbidden, "Acesso negado"),
             UnauthorizedException => (StatusCodes.Status401Unauthorized, "Não autorizado"),
+            ConflictException => (StatusCodes.Status409Conflict, "Conflito de concorrência"),
             RateLimitExceededException => (StatusCodes.Status429TooManyRequests, "Limite de requisições excedido"),
             ServiceUnavailableException => (StatusCodes.Status503ServiceUnavailable, "Serviço indisponível"),
 

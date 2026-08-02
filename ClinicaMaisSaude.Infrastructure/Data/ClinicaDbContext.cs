@@ -1,14 +1,33 @@
+using ClinicaMaisSaude.Application.Exceptions;
 using ClinicaMaisSaude.Domain.Entities;
 using ClinicaMaisSaude.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace ClinicaMaisSaude.Infrastructure.Data
 {
     public class ClinicaDbContext : DbContext
     {
         public ClinicaDbContext(DbContextOptions<ClinicaDbContext> options) : base(options) { }
+
+        /// <summary>
+        /// Traduz o conflito de concorrência otimista do EF (RowVersion divergente) numa
+        /// exceção de domínio, que o middleware mapeia para HTTP 409 com mensagem amigável.
+        /// </summary>
+        public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                return await base.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                throw new ConflictException("O registro foi modificado por outra operação. Recarregue os dados e tente novamente.");
+            }
+        }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
@@ -60,6 +79,11 @@ namespace ClinicaMaisSaude.Infrastructure.Data
                 entidade.Property(a => a.LembreteManhaEnviado).HasDefaultValue(false);
                 entidade.Property(a => a.LembreteDuasHorasEnviado).HasDefaultValue(false);
                 entidade.Property(a => a.DtCriado).HasColumnName("Dt_Criado");
+
+                // Token de concorrência otimista: SQL Server gera/atualiza automaticamente
+                // uma coluna rowversion a cada UPDATE; o EF a inclui na cláusula WHERE do
+                // update e lança DbUpdateConcurrencyException se a linha já mudou.
+                entidade.Property(a => a.RowVersion).IsRowVersion();
 
                 // Índices para os caminhos de acesso quentes (agenda do profissional,
                 // consultas do paciente, varredura por status), sempre com a data como

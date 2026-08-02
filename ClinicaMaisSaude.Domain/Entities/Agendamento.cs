@@ -24,6 +24,11 @@ namespace ClinicaMaisSaude.Domain.Entities
         public bool LembreteDuasHorasEnviado { get; private set; }
         public DateTime DtCriado { get; private set; }
 
+        // Token de concorrência otimista (SQL Server rowversion). Gerenciado pelo EF/banco:
+        // se a linha for alterada por outra operação entre a leitura e o SaveChanges, o
+        // update falha com DbUpdateConcurrencyException (evita "lost update" no mesmo agendamento).
+        public byte[] RowVersion { get; private set; } = Array.Empty<byte>();
+
         public virtual Paciente Paciente { get; private set; }
 
         public Agendamento(Guid pacienteId, Guid profissionalId, DateTime dataHoraConsulta,
