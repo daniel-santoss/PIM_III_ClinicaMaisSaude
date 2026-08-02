@@ -1,4 +1,5 @@
 import { X, CalendarDays } from 'lucide-react';
+import * as signalR from "@microsoft/signalr";
 import { API_URL } from "./constants/api";
 import { perfis } from "./constants/perfis";
 import { storageKeys } from "./constants/storage";
@@ -158,11 +159,46 @@ export default function App() {
     }
   };
 
+  // Notificações em tempo real via SignalR (substitui o antigo polling de 60s).
+  // 1) Carrega o histórico uma vez (fetch inicial).
+  // 2) Abre um canal WebSocket autenticado; cada "NovaNotificacao" entra na lista na hora.
+  // 3) Reconexão automática; ao reconectar, re-sincroniza para não perder o que chegou no intervalo.
+  // 4) Fallback: se o WebSocket não subir (proxy/rede), volta ao polling para não ficar sem notificações.
   useEffect(() => {
     if (!autenticado) return;
+
     fetchNotificacoes();
-    const interval = setInterval(fetchNotificacoes, 60000);
-    return () => clearInterval(interval);
+
+    let connection: signalR.HubConnection | null = null;
+    let pollingFallback: ReturnType<typeof setInterval> | null = null;
+    let cancelado = false;
+
+    connection = new signalR.HubConnectionBuilder()
+      .withUrl(`${API_URL}/hubs/notificacoes`, {
+        accessTokenFactory: () => localStorage.getItem(storageKeys.authToken) || ""
+      })
+      .withAutomaticReconnect()
+      .build();
+
+    connection.on("NovaNotificacao", (notif: Notificacao) => {
+      // Dedupe por id: evita duplicar se o fetch inicial e o push se cruzarem.
+      setNotificacoes(prev => prev.some(n => n.id === notif.id) ? prev : [notif, ...prev]);
+    });
+
+    // Após uma reconexão houve uma janela sem push; recarrega para cobrir o gap.
+    connection.onreconnected(() => { fetchNotificacoes(); });
+
+    connection.start().catch(() => {
+      // Não conseguiu abrir o canal em tempo real: cai para o polling clássico.
+      if (cancelado) return;
+      pollingFallback = setInterval(fetchNotificacoes, 60000);
+    });
+
+    return () => {
+      cancelado = true;
+      if (pollingFallback) clearInterval(pollingFallback);
+      connection?.stop();
+    };
   }, [autenticado]);
 
   const handleMarcarComoLida = async (id: string) => {
