@@ -24,6 +24,10 @@ namespace ClinicaMaisSaude.Infrastructure.Services
         private readonly ClinicaDbContext _context;
         private readonly IConfiguration _configuration;
 
+        // Hash BCrypt "fantasma" (calculado uma vez) para verificação de tempo constante
+        // quando o usuário não existe — evita que o tempo de resposta revele a existência da conta.
+        private static readonly string HashFantasma = BCrypt.Net.BCrypt.HashPassword("timing-attack-mitigation");
+
         public AuthService(ClinicaDbContext context, IConfiguration configuration)
         {
             _context = context;
@@ -41,6 +45,9 @@ namespace ClinicaMaisSaude.Infrastructure.Services
 
             if (usuario == null)
             {
+                // Verificação "fantasma" com custo equivalente ao BCrypt real: iguala o tempo
+                // de resposta ao caso "senha errada", para o tempo não revelar se a conta existe.
+                BCrypt.Net.BCrypt.Verify(request.Senha, HashFantasma);
                 throw new UnauthorizedException("Credenciais inválidas.");
             }
 
@@ -67,12 +74,9 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                     throw new UnauthorizedException("Conta bloqueada por excesso de tentativas. Tente novamente em 15 minutos.");
                 }
 
-                int tentativasRestantes = 5 - usuario.TentativasLogin;
-                if (tentativasRestantes > 0)
-                {
-                    throw new UnauthorizedException($"Credenciais inválidas. Você tem mais {tentativasRestantes} tentativa(s) antes do bloqueio.");
-                }
-
+                // Mensagem genérica e idêntica ao caso "usuário inexistente": não revela se a
+                // conta existe nem quantas tentativas restam (anti-enumeração). O contador e o
+                // bloqueio por 5 falhas continuam sendo aplicados internamente (acima).
                 throw new UnauthorizedException("Credenciais inválidas.");
             }
 
