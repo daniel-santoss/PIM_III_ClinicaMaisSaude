@@ -5,6 +5,7 @@ using ClinicaMaisSaude.Domain.Constants;
 using ClinicaMaisSaude.Domain.Entities;
 using ClinicaMaisSaude.Domain.Enums;
 using ClinicaMaisSaude.Domain.Interfaces;
+using ClinicaMaisSaude.Domain.Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -113,7 +114,9 @@ namespace ClinicaMaisSaude.Application.Services
                 }
             }
 
-            ValidarCriacao(tipoProfissional, tipoConsulta);
+            var compatibilidade = MaquinaEstadosAgendamento.ValidarCompatibilidade(tipoProfissional, tipoConsulta);
+            if (!compatibilidade.EhValida)
+                throw new BusinessRuleException(compatibilidade.MensagemErro!);
 
             if (request.DataHoraConsulta <= DateTime.UtcNow.AddHours(-3))
                 throw new BusinessRuleException("Não é possível agendar em datas passadas.");
@@ -281,7 +284,9 @@ namespace ClinicaMaisSaude.Application.Services
                 throw new NotFoundException("Agendamento não encontrado.");
 
             var novoStatus = (StatusAgendamento)novoStatusInt;
-            ValidarTransicao(agendamento, novoStatus);
+            var validacao = MaquinaEstadosAgendamento.ValidarTransicao(agendamento, novoStatus, DateTime.UtcNow.AddHours(-3));
+            if (!validacao.EhValida)
+                throw new BusinessRuleException(validacao.MensagemErro!);
 
             var statusAntigo = agendamento.Status;
             agendamento.AlterarStatus(novoStatus);
@@ -742,75 +747,6 @@ namespace ClinicaMaisSaude.Application.Services
                    (novoInicio <= existente.DataHoraConsulta && novoFim >= fimExistente);
         }
 
-        private void ValidarCriacao(TipoProfissional tipo, TipoConsulta consulta)
-        {
-            var enfermeiraPode = consulta == TipoConsulta.Triagem ||
-                                consulta == TipoConsulta.Exame ||
-                                consulta == TipoConsulta.Vacina;
-
-            var medicoPode = consulta == TipoConsulta.ConsultaMedica ||
-                             consulta == TipoConsulta.Retorno;
-
-            if (tipo == TipoProfissional.Enfermeira && !enfermeiraPode)
-                throw new BusinessRuleException("Profissional não habilitado para este tipo de consulta.");
-
-            if (tipo == TipoProfissional.Medico && !medicoPode)
-                throw new BusinessRuleException("Profissional não habilitado para este tipo de consulta.");
-        }
-
-        private void ValidarTransicao(Agendamento agendamento, StatusAgendamento novoStatus)
-        {
-            var atual = agendamento.Status;
-            var valida = false;
-
-            switch (atual)
-            {
-                case StatusAgendamento.Agendado:
-                    valida = novoStatus == StatusAgendamento.EmAtendimento ||
-                             novoStatus == StatusAgendamento.Faltou ||
-                             novoStatus == StatusAgendamento.Cancelado;
-                    break;
-                case StatusAgendamento.EmAtendimento:
-                    valida = novoStatus == StatusAgendamento.Finalizado ||
-                             (novoStatus == StatusAgendamento.AguardandoRetorno &&
-                              agendamento.TipoConsulta == TipoConsulta.ConsultaMedica);
-                    break;
-                case StatusAgendamento.AguardandoRetorno:
-                    valida = novoStatus == StatusAgendamento.RetornoAgendado;
-                    break;
-                case StatusAgendamento.RetornoAgendado:
-                    valida = novoStatus == StatusAgendamento.Finalizado ||
-                             novoStatus == StatusAgendamento.Faltou ||
-                             novoStatus == StatusAgendamento.Cancelado;
-                    break;
-            }
-
-            if (!valida)
-            {
-                if (novoStatus == StatusAgendamento.AguardandoRetorno &&
-                    agendamento.TipoConsulta != TipoConsulta.ConsultaMedica)
-                {
-                    throw new BusinessRuleException("Apenas consultas médicas podem gerar retorno.");
-                }
-
-                throw new BusinessRuleException($"Transição de '{atual}' para '{novoStatus}' não é permitida.");
-            }
-
-            if (novoStatus == StatusAgendamento.EmAtendimento)
-            {
-                var limiteMinimo = agendamento.DataHoraConsulta.AddMinutes(-15);
-                if (DateTime.UtcNow.AddHours(-3) < limiteMinimo)
-                {
-                    throw new BusinessRuleException("Só é possível iniciar o atendimento a partir de 15 minutos antes do horário agendado.");
-                }
-            }
-
-            if (novoStatus == StatusAgendamento.Faltou && agendamento.DataHoraConsulta > DateTime.UtcNow.AddHours(-3))
-            {
-                throw new BusinessRuleException("Não é possível registrar falta em agendamento futuro.");
-            }
-        }
-
         public async Task<IEnumerable<AgendamentoHistoricoResponse>> ObterHistoricoAsync(Guid agendamentoId)
         {
             var historico = await _repository.ObterHistoricoPorAgendamentoAsync(agendamentoId);
@@ -920,7 +856,9 @@ namespace ClinicaMaisSaude.Application.Services
             if (agendamento.TipoConsulta != TipoConsulta.Exame)
                 throw new BusinessRuleException("Endpoint exclusivo para exames.");
 
-            ValidarTransicao(agendamento, StatusAgendamento.Finalizado);
+            var validacao = MaquinaEstadosAgendamento.ValidarTransicao(agendamento, StatusAgendamento.Finalizado, DateTime.UtcNow.AddHours(-3));
+            if (!validacao.EhValida)
+                throw new BusinessRuleException(validacao.MensagemErro!);
 
             var statusAntigo = agendamento.Status;
             agendamento.AlterarStatus(StatusAgendamento.Finalizado);
