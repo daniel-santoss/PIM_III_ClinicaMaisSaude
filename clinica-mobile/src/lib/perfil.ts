@@ -58,3 +58,16 @@ export async function enviarFoto(uri: string, mimeType?: string): Promise<string
   const data = (await res.json()) as { fotoBase64?: string };
   return data.fotoBase64 ?? null;
 }
+
+// Exclui a conta do próprio paciente (soft-delete no backend). Exige a senha
+// atual como confirmação. Após o sucesso, a sessão deve ser encerrada.
+export async function excluirConta(senha: string): Promise<void> {
+  const res = await apiFetch('/api/Perfil', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ senha }),
+  });
+  if (!res.ok) {
+    throw new Error(await mensagemErro(res, 'Não foi possível excluir a conta.'));
+  }
+}

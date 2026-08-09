@@ -18,6 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 
 import { useAuth } from '@/auth/AuthContext';
+import ExcluirContaModal from '@/components/ExcluirContaModal';
 import TrocarSenhaModal from '@/components/TrocarSenhaModal';
 import { atualizarDados, enviarFoto, obterPerfil } from '@/lib/perfil';
 import type { PacientePerfil } from '@/types/perfil';
@@ -43,6 +44,7 @@ export default function PerfilScreen() {
   const [salvando, setSalvando] = useState(false);
   const [enviandoFoto, setEnviandoFoto] = useState(false);
   const [senhaAberta, setSenhaAberta] = useState(false);
+  const [excluirAberto, setExcluirAberto] = useState(false);
 
   const carregar = useCallback(async () => {
     if (!session?.pacienteId) return;
@@ -257,14 +259,8 @@ export default function PerfilScreen() {
             <Pressable onPress={confirmarSair} style={styles.botaoSair}>
               <Text style={styles.botaoSairTexto}>Sair</Text>
             </Pressable>
-            <Pressable
-              disabled
-              style={styles.botaoExcluir}
-              onPress={() =>
-                Alert.alert('Em breve', 'A exclusão de conta pelo app estará disponível em breve.')
-              }
-            >
-              <Text style={styles.botaoExcluirTexto}>Excluir minha conta (em breve)</Text>
+            <Pressable onPress={() => setExcluirAberto(true)} style={styles.botaoExcluir}>
+              <Text style={styles.botaoExcluirTexto}>Excluir minha conta</Text>
             </Pressable>
           </View>
         </ScrollView>
@@ -276,6 +272,16 @@ export default function PerfilScreen() {
         onSuccess={() => {
           setSenhaAberta(false);
           Alert.alert('Pronto', 'Sua senha foi alterada.');
+        }}
+      />
+
+      <ExcluirContaModal
+        visivel={excluirAberto}
+        onClose={() => setExcluirAberto(false)}
+        onExcluida={() => {
+          setExcluirAberto(false);
+          Alert.alert('Conta excluída', 'Sua conta foi encerrada.');
+          logout();
         }}
       />
     </SafeAreaView>
@@ -368,6 +374,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   botaoSairTexto: { color: ROXO, fontSize: 15, fontWeight: '800', letterSpacing: 0.5 },
-  botaoExcluir: { marginTop: 4, paddingVertical: 14, alignItems: 'center', borderRadius: 16, backgroundColor: '#F9FAFB' },
-  botaoExcluirTexto: { color: '#B0B0B0', fontSize: 13, fontWeight: '700' },
+  botaoExcluir: {
+    marginTop: 4,
+    paddingVertical: 16,
+    alignItems: 'center',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    backgroundColor: '#FEF2F2',
+  },
+  botaoExcluirTexto: { color: '#B91C1C', fontSize: 14, fontWeight: '800' },
 });
