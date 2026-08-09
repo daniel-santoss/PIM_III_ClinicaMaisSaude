@@ -15,6 +15,8 @@ interface AuthState {
   loading: boolean;
   login: (identificador: string, senha: string) => Promise<void>;
   logout: () => Promise<void>;
+  /** Atualiza o nome exibido (após editar o perfil) e persiste no storage. */
+  atualizarNome: (nome: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthState | undefined>(undefined);
@@ -87,6 +89,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSession({ pacienteId: data.pacienteId, nome });
   }, []);
 
+  const atualizarNome = useCallback(async (nome: string) => {
+    await storage.set(storageKeys.nomeUsuario, nome);
+    setSession((prev) => (prev ? { ...prev, nome } : prev));
+  }, []);
+
   const logout = useCallback(async () => {
     await Promise.all([
       storage.remove(storageKeys.authToken),
@@ -98,7 +105,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ session, loading, login, logout }}>
+    <AuthContext.Provider value={{ session, loading, login, logout, atualizarNome }}>
       {children}
     </AuthContext.Provider>
   );

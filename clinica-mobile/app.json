@@ -33,7 +33,14 @@
           "imageWidth": 76
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "O app usa suas fotos para definir a foto de perfil.",
+          "cameraPermission": "O app usa a câmera para tirar sua foto de perfil."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
