@@ -3,4 +3,6 @@
   <Project Path="ClinicaMaisSaude.Application/ClinicaMaisSaude.Application.csproj" />
   <Project Path="ClinicaMaisSaude.Domain/ClinicaMaisSaude.Domain.csproj" />
   <Project Path="ClinicaMaisSaude.Infrastructure/ClinicaMaisSaude.Infrastructure.csproj" />
+  <Project Path="ClinicaMaisSaude.Domain.Tests/ClinicaMaisSaude.Domain.Tests.csproj" />
+  <Project Path="ClinicaMaisSaude.Application.Tests/ClinicaMaisSaude.Application.Tests.csproj" />
 </Solution>
