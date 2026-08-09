@@ -114,5 +114,38 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             await _context.SaveChangesAsync();
             return null;
         }
+
+        // Exclusão de conta pelo próprio paciente (self-service). Soft-delete coerente
+        // com §1.6 (marca o paciente inativo) + revoga os refresh tokens para encerrar
+        // sessões existentes. A senha atual é exigida como prova de identidade.
+        // A posse é garantida pela camada web: o usuarioId vem do token, não da rota.
+        public async Task<string?> ExcluirContaAsync(Guid usuarioId, string tipoUsuario, string senha)
+        {
+            // Apenas contas de paciente se autoexcluem pelo app; profissionais/admin
+            // são geridos internamente.
+            if (tipoUsuario != PerfisUsuario.Paciente)
+                return "Apenas contas de paciente podem ser excluídas pelo aplicativo.";
+
+            var usuario = await _context.Usuarios.FindAsync(usuarioId);
+            if (usuario == null) return "Usuário não encontrado.";
+
+            if (string.IsNullOrWhiteSpace(senha) || !BCrypt.Net.BCrypt.Verify(senha, usuario.SenhaHash.Trim()))
+                return "Senha incorreta.";
+
+            var paciente = await _context.Pacientes.FirstOrDefaultAsync(p => p.UsuarioId == usuarioId);
+            if (paciente == null) return "Perfil de paciente não encontrado.";
+
+            paciente.Desativar();
+
+            // Revoga refresh tokens ativos → nenhuma sessão consegue renovar o acesso.
+            var tokens = await _context.RefreshTokens
+                .Where(t => t.UsuarioId == usuarioId && !t.IsRevoked)
+                .ToListAsync();
+            foreach (var t in tokens)
+                t.IsRevoked = true;
+
+            await _context.SaveChangesAsync();
+            return null; // sucesso
+        }
     }
 }

@@ -88,6 +88,12 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             var perfilProfissional = await _context.Profissionais.FirstOrDefaultAsync(p => p.UsuarioId == usuario.Id);
             var perfilPaciente = await _context.Pacientes.FirstOrDefaultAsync(p => p.UsuarioId == usuario.Id);
 
+            // Conta de paciente encerrada (soft-delete): bloqueia o acesso mesmo com
+            // credenciais válidas. Verificado após a senha para não vazar a existência
+            // da conta no tempo de resposta.
+            if (perfilPaciente != null && !perfilPaciente.Ativo)
+                throw new UnauthorizedException("Esta conta foi encerrada.");
+
             // Verificar e consumir flag de penalidade removida
             bool penalidadeRemovida = false;
             if (perfilPaciente?.PenalidadeRemovidaAvisar == true)
