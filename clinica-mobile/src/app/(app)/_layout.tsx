@@ -3,8 +3,7 @@ import { Tabs } from 'expo-router';
 
 const ROXO = '#7C3AED';
 
-// Grupo protegido: abas do paciente. Por enquanto Consultas e Perfil;
-// Agendar e Notificações entram nas próximas etapas.
+// Grupo protegido: abas do paciente — Consultas, Agendar, Notificações e Perfil.
 export default function AppLayout() {
   return (
     <Tabs
@@ -28,6 +27,13 @@ export default function AppLayout() {
         options={{
           title: 'Agendar',
           tabBarIcon: ({ color, size }) => <Ionicons name="add-circle" color={color} size={size} />,
+        }}
+      />
+      <Tabs.Screen
+        name="notificacoes"
+        options={{
+          title: 'Avisos',
+          tabBarIcon: ({ color, size }) => <Ionicons name="notifications" color={color} size={size} />,
         }}
       />
       <Tabs.Screen

@@ -22,6 +22,24 @@ export function formatarDataHora(dateStr?: string | null): string {
   return `${dd}/${mm}/${d.getFullYear()} às ${hh}:${min}`;
 }
 
+// Tempo relativo curto para notificações ("agora", "há 5 min", "há 3 h",
+// "há 2 d"); para datas mais antigas cai no dd/mm.
+export function tempoRelativo(dateStr?: string | null): string {
+  const d = parseData(dateStr);
+  if (!d) return '';
+  const diffMs = Date.now() - d.getTime();
+  const min = Math.floor(diffMs / 60000);
+  if (min < 1) return 'agora';
+  if (min < 60) return `há ${min} min`;
+  const horas = Math.floor(min / 60);
+  if (horas < 24) return `há ${horas} h`;
+  const dias = Math.floor(horas / 24);
+  if (dias < 7) return `há ${dias} d`;
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  return `${dd}/${mm}`;
+}
+
 export interface DiaUtil {
   iso: string; // "YYYY-MM-DD"
   diaSemana: string; // "Seg"
