@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 
 import {
   ESPECIALIDADE_LABEL,
@@ -19,6 +20,7 @@ import {
   STATUS_INFO,
   TIPO_CONSULTA_LABEL,
 } from '@/constants/agendamento';
+import AcoesConsultaModal from '@/components/AcoesConsultaModal';
 import RemarcarModal from '@/components/RemarcarModal';
 import { cancelarConsulta, listarMinhasConsultas } from '@/lib/agendamentos';
 import { formatarDataHora } from '@/lib/datas';
@@ -33,8 +35,8 @@ export default function MinhasConsultasScreen() {
   const [atualizando, setAtualizando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [aba, setAba] = useState<Aba>('proximas');
-  const [cancelandoId, setCancelandoId] = useState<string | null>(null);
   const [remarcarAlvo, setRemarcarAlvo] = useState<Agendamento | null>(null);
+  const [menuAlvo, setMenuAlvo] = useState<Agendamento | null>(null);
 
   const carregar = useCallback(async () => {
     setErro(null);
@@ -78,14 +80,11 @@ export default function MinhasConsultasScreen() {
   }
 
   async function cancelar(id: string) {
-    setCancelandoId(id);
     try {
       await cancelarConsulta(id);
       await carregar();
     } catch (e) {
       Alert.alert('Erro', e instanceof Error ? e.message : 'Não foi possível cancelar.');
-    } finally {
-      setCancelandoId(null);
     }
   }
 
@@ -93,7 +92,7 @@ export default function MinhasConsultasScreen() {
     const status = STATUS_INFO[item.status] ?? { label: item.status, cor: '#6B7280', fundo: '#F3F4F6' };
     const tipo = TIPO_CONSULTA_LABEL[item.tipoConsulta] ?? item.tipoConsulta;
     const esp = item.especialidade ? ESPECIALIDADE_LABEL[item.especialidade] ?? item.especialidade : null;
-    const podeCancelar = STATUS_CANCELAVEIS.includes(item.status);
+    const temAcoes = STATUS_CANCELAVEIS.includes(item.status);
 
     return (
       <View style={styles.card}>
@@ -102,6 +101,11 @@ export default function MinhasConsultasScreen() {
           <View style={[styles.badge, { backgroundColor: status.fundo }]}>
             <Text style={[styles.badgeTexto, { color: status.cor }]}>{status.label}</Text>
           </View>
+          {temAcoes && (
+            <Pressable onPress={() => setMenuAlvo(item)} hitSlop={10} style={styles.kebab}>
+              <Ionicons name="ellipsis-vertical" size={18} color="#9CA3AF" />
+            </Pressable>
+          )}
         </View>
 
         <Text style={styles.tipo}>
@@ -109,28 +113,6 @@ export default function MinhasConsultasScreen() {
           {esp ? ` · ${esp}` : ''}
         </Text>
         <Text style={styles.data}>{formatarDataHora(item.dataHoraConsulta)}</Text>
-
-        {podeCancelar && (
-          <View style={styles.acoes}>
-            <Pressable
-              onPress={() => setRemarcarAlvo(item)}
-              style={({ pressed }) => [styles.botaoRemarcar, pressed && { opacity: 0.7 }]}
-            >
-              <Text style={styles.botaoRemarcarTexto}>Remarcar</Text>
-            </Pressable>
-            <Pressable
-              onPress={() => confirmarCancelamento(item)}
-              disabled={cancelandoId === item.id}
-              style={({ pressed }) => [styles.botaoCancelar, pressed && { opacity: 0.7 }]}
-            >
-              {cancelandoId === item.id ? (
-                <ActivityIndicator size="small" color="#B91C1C" />
-              ) : (
-                <Text style={styles.botaoCancelarTexto}>Cancelar</Text>
-              )}
-            </Pressable>
-          </View>
-        )}
       </View>
     );
   }
@@ -179,6 +161,19 @@ export default function MinhasConsultasScreen() {
         />
       )}
 
+      <AcoesConsultaModal
+        agendamento={menuAlvo}
+        onClose={() => setMenuAlvo(null)}
+        onRemarcar={(a) => {
+          setMenuAlvo(null);
+          setRemarcarAlvo(a);
+        }}
+        onCancelar={(a) => {
+          setMenuAlvo(null);
+          confirmarCancelamento(a);
+        }}
+      />
+
       <RemarcarModal
         agendamento={remarcarAlvo}
         onClose={() => setRemarcarAlvo(null)}
@@ -219,25 +214,7 @@ const styles = StyleSheet.create({
   badgeTexto: { fontSize: 11, fontWeight: '800' },
   tipo: { fontSize: 14, fontWeight: '600', color: '#4B5563' },
   data: { fontSize: 13, fontWeight: '500', color: '#9CA3AF' },
-  acoes: { flexDirection: 'row', gap: 8, marginTop: 8 },
-  botaoRemarcar: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E9D5FF',
-    alignItems: 'center',
-  },
-  botaoRemarcarTexto: { color: '#6D28D9', fontWeight: '800', fontSize: 13 },
-  botaoCancelar: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#FECACA',
-    alignItems: 'center',
-  },
-  botaoCancelarTexto: { color: '#B91C1C', fontWeight: '800', fontSize: 13 },
+  kebab: { padding: 4, marginLeft: 2 },
   vazio: { padding: 40, alignItems: 'center' },
   vazioTexto: { color: '#9CA3AF', fontSize: 14, fontWeight: '500', textAlign: 'center' },
 });
