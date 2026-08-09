@@ -24,6 +24,13 @@ export default function AppLayout() {
         }}
       />
       <Tabs.Screen
+        name="agendar"
+        options={{
+          title: 'Agendar',
+          tabBarIcon: ({ color, size }) => <Ionicons name="add-circle" color={color} size={size} />,
+        }}
+      />
+      <Tabs.Screen
         name="perfil"
         options={{
           title: 'Perfil',
