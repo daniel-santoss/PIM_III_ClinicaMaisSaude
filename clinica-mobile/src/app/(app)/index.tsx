@@ -19,6 +19,7 @@ import {
   STATUS_INFO,
   TIPO_CONSULTA_LABEL,
 } from '@/constants/agendamento';
+import RemarcarModal from '@/components/RemarcarModal';
 import { cancelarConsulta, listarMinhasConsultas } from '@/lib/agendamentos';
 import { formatarDataHora } from '@/lib/datas';
 import type { Agendamento } from '@/types/agendamento';
@@ -33,6 +34,7 @@ export default function MinhasConsultasScreen() {
   const [erro, setErro] = useState<string | null>(null);
   const [aba, setAba] = useState<Aba>('proximas');
   const [cancelandoId, setCancelandoId] = useState<string | null>(null);
+  const [remarcarAlvo, setRemarcarAlvo] = useState<Agendamento | null>(null);
 
   const carregar = useCallback(async () => {
     setErro(null);
@@ -109,17 +111,25 @@ export default function MinhasConsultasScreen() {
         <Text style={styles.data}>{formatarDataHora(item.dataHoraConsulta)}</Text>
 
         {podeCancelar && (
-          <Pressable
-            onPress={() => confirmarCancelamento(item)}
-            disabled={cancelandoId === item.id}
-            style={({ pressed }) => [styles.botaoCancelar, pressed && { opacity: 0.7 }]}
-          >
-            {cancelandoId === item.id ? (
-              <ActivityIndicator size="small" color="#B91C1C" />
-            ) : (
-              <Text style={styles.botaoCancelarTexto}>Cancelar consulta</Text>
-            )}
-          </Pressable>
+          <View style={styles.acoes}>
+            <Pressable
+              onPress={() => setRemarcarAlvo(item)}
+              style={({ pressed }) => [styles.botaoRemarcar, pressed && { opacity: 0.7 }]}
+            >
+              <Text style={styles.botaoRemarcarTexto}>Remarcar</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => confirmarCancelamento(item)}
+              disabled={cancelandoId === item.id}
+              style={({ pressed }) => [styles.botaoCancelar, pressed && { opacity: 0.7 }]}
+            >
+              {cancelandoId === item.id ? (
+                <ActivityIndicator size="small" color="#B91C1C" />
+              ) : (
+                <Text style={styles.botaoCancelarTexto}>Cancelar</Text>
+              )}
+            </Pressable>
+          </View>
         )}
       </View>
     );
@@ -168,6 +178,15 @@ export default function MinhasConsultasScreen() {
           }
         />
       )}
+
+      <RemarcarModal
+        agendamento={remarcarAlvo}
+        onClose={() => setRemarcarAlvo(null)}
+        onSuccess={() => {
+          setRemarcarAlvo(null);
+          carregar();
+        }}
+      />
     </SafeAreaView>
   );
 }
@@ -200,8 +219,18 @@ const styles = StyleSheet.create({
   badgeTexto: { fontSize: 11, fontWeight: '800' },
   tipo: { fontSize: 14, fontWeight: '600', color: '#4B5563' },
   data: { fontSize: 13, fontWeight: '500', color: '#9CA3AF' },
+  acoes: { flexDirection: 'row', gap: 8, marginTop: 8 },
+  botaoRemarcar: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E9D5FF',
+    alignItems: 'center',
+  },
+  botaoRemarcarTexto: { color: '#6D28D9', fontWeight: '800', fontSize: 13 },
   botaoCancelar: {
-    marginTop: 8,
+    flex: 1,
     paddingVertical: 10,
     borderRadius: 12,
     borderWidth: 1,

@@ -25,3 +25,16 @@ export async function cancelarConsulta(id: string): Promise<void> {
     throw new Error(await mensagemErro(res, 'Não foi possível cancelar a consulta.'));
   }
 }
+
+// Remarca a consulta para nova data/hora. `observacao` (motivo) é obrigatória
+// no backend para registro de auditoria.
+export async function remarcarConsulta(id: string, novaDataHora: string, observacao: string): Promise<void> {
+  const res = await apiFetch(`/api/Agendamentos/${id}/remarcar`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ novaDataHora, observacao }),
+  });
+  if (!res.ok) {
+    throw new Error(await mensagemErro(res, 'Não foi possível remarcar a consulta.'));
+  }
+}
