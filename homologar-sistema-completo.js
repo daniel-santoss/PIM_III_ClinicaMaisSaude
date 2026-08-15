@@ -60,7 +60,8 @@ async function request(endpoint, options = {}) {
     
     let data = null;
     const contentType = res.headers.get("content-type");
-    if (contentType && contentType.includes("application/json")) {
+    // Aceita application/json E application/problem+json (RFC 7807, usado nos erros da API).
+    if (contentType && contentType.includes("json")) {
       data = await res.json();
     } else {
       data = await res.text();
@@ -823,10 +824,12 @@ async function rodarHomologacao() {
     console.log(`  ⚠️ [AVISO] IA não barrou o prompt malicioso ou retornou status diferente: ${triagemHacker.status}`);
   }
 
-  // T9.2: TESTE NEGATIVO - Confirmar que a conta do paciente hacker foi permanentemente BLOQUEADA
+  // T9.2: TESTE NEGATIVO - Confirmar que a conta do paciente hacker foi permanentemente BLOQUEADA.
+  // Usa a senha vigente (redefinida em T2.9) — senão a rejeição viria por credencial errada,
+  // não pelo banimento, e o teste do escudo ficaria mascarado.
   const loginHackerBloqueado = await request("/api/Auth/login", {
     method: "POST",
-    body: JSON.stringify({ identificador: mockEmail, senha: mockPassword })
+    body: JSON.stringify({ identificador: mockEmail, senha: "NovaSenhaRedefinida123!" })
   });
   if (loginHackerBloqueado.status === 403 || (loginHackerBloqueado.data?.message && loginHackerBloqueado.data.message.includes("PERMANENT_BAN"))) {
     console.log(`  🛡️ [BLOQUEIO OK] Usuário hacker permanentemente BANIDO do sistema de forma exemplar (HTTP 403) (${loginHackerBloqueado.latency}ms)`);
