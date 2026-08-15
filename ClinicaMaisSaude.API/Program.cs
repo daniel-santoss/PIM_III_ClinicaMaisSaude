@@ -211,6 +211,17 @@ app.Use(async (context, next) =>
                 await context.Response.WriteAsync("Sua conta está bloqueada.");
                 return;
             }
+
+            // Paciente não-ativo (Desativado/Excluido/Banido) não pode usar a API mesmo
+            // com um JWT ainda válido — o gating de login sozinho deixaria uma janela aberta.
+            var pacienteConta = await dbContext.Pacientes
+                .FirstOrDefaultAsync(p => p.UsuarioId == userId);
+            if (pacienteConta != null && pacienteConta.SituacaoCliente != ClinicaMaisSaude.Domain.Enums.SituacaoCliente.Ativo)
+            {
+                context.Response.StatusCode = 403;
+                await context.Response.WriteAsync("Sua conta está bloqueada.");
+                return;
+            }
         }
     }
     await next();

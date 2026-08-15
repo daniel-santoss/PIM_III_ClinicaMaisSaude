@@ -1,10 +1,11 @@
 using System;
 using ClinicaMaisSaude.Domain.Entities;
+using ClinicaMaisSaude.Domain.Enums;
 
 namespace ClinicaMaisSaude.Domain.Tests.Entities
 {
-    // Invariantes de ativação/encerramento do paciente. O login passou a bloquear
-    // pacientes inativos (soft-delete = exclusão de conta), então estes contratos
+    // Invariantes de situação do paciente (SituacaoCliente). O login passou a bloquear
+    // pacientes não-ativos (desativado/excluído/banido), então estes contratos
     // sustentam essa regra de segurança.
     public class PacienteTests
     {
@@ -16,40 +17,65 @@ namespace ClinicaMaisSaude.Domain.Tests.Entities
         public void Paciente_NasceAtivo()
         {
             var paciente = NovoPaciente();
-            Assert.True(paciente.Ativo);
+            Assert.Equal(SituacaoCliente.Ativo, paciente.SituacaoCliente);
+            Assert.True(paciente.EstaAtivo);
         }
 
         [Fact]
-        public void Desativar_TornaPacienteInativo()
+        public void Desativar_TornaContaDesativada()
         {
             var paciente = NovoPaciente();
 
             paciente.Desativar();
 
-            Assert.False(paciente.Ativo);
+            Assert.Equal(SituacaoCliente.Desativado, paciente.SituacaoCliente);
+            Assert.False(paciente.EstaAtivo);
         }
 
         [Fact]
-        public void Desativar_EhIdempotente()
+        public void Excluir_TornaContaExcluida()
         {
             var paciente = NovoPaciente();
 
-            paciente.Desativar();
-            paciente.Desativar();
+            paciente.Excluir();
 
-            Assert.False(paciente.Ativo);
+            Assert.Equal(SituacaoCliente.Excluido, paciente.SituacaoCliente);
+            Assert.False(paciente.EstaAtivo);
+        }
+
+        [Fact]
+        public void Banir_TornaContaBanida()
+        {
+            var paciente = NovoPaciente();
+
+            paciente.Banir();
+
+            Assert.Equal(SituacaoCliente.Banido, paciente.SituacaoCliente);
+            Assert.False(paciente.EstaAtivo);
+        }
+
+        [Fact]
+        public void Reativar_VoltaParaAtivo()
+        {
+            var paciente = NovoPaciente();
+            paciente.Banir();
+
+            paciente.Reativar();
+
+            Assert.Equal(SituacaoCliente.Ativo, paciente.SituacaoCliente);
+            Assert.True(paciente.EstaAtivo);
         }
 
         [Fact]
         public void AtualizarDados_NaoReativaContaEncerrada()
         {
             var paciente = NovoPaciente();
-            paciente.Desativar();
+            paciente.Excluir();
 
             // Editar o perfil não deve "ressuscitar" uma conta encerrada.
             paciente.Atualizar(true);
 
-            Assert.False(paciente.Ativo);
+            Assert.False(paciente.EstaAtivo);
         }
     }
 }

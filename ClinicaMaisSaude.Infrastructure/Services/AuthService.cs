@@ -88,11 +88,15 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             var perfilProfissional = await _context.Profissionais.FirstOrDefaultAsync(p => p.UsuarioId == usuario.Id);
             var perfilPaciente = await _context.Pacientes.FirstOrDefaultAsync(p => p.UsuarioId == usuario.Id);
 
-            // Conta de paciente encerrada (soft-delete): bloqueia o acesso mesmo com
-            // credenciais válidas. Verificado após a senha para não vazar a existência
-            // da conta no tempo de resposta.
-            if (perfilPaciente != null && !perfilPaciente.Ativo)
+            // Conta de paciente não-ativa bloqueia o acesso mesmo com credenciais válidas.
+            // Verificado após a senha para não vazar a existência da conta no tempo de resposta.
+            // Banido = permanente (abuso de IA); Desativado/Excluido = encerrada.
+            if (perfilPaciente != null && perfilPaciente.SituacaoCliente != SituacaoCliente.Ativo)
+            {
+                if (perfilPaciente.SituacaoCliente == SituacaoCliente.Banido)
+                    throw new UnauthorizedException("PERMANENT_BAN:Sua conta foi banida permanentemente devido a violações graves das políticas de segurança.");
                 throw new UnauthorizedException("Esta conta foi encerrada.");
+            }
 
             // Verificar e consumir flag de penalidade removida
             bool penalidadeRemovida = false;

@@ -1,4 +1,5 @@
 using ClinicaMaisSaude.Domain.Entities;
+using ClinicaMaisSaude.Domain.Enums;
 using ClinicaMaisSaude.Domain.Interfaces;
 using ClinicaMaisSaude.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -41,7 +42,7 @@ namespace ClinicaMaisSaude.Infrastructure.Repositories
             var query = _context.Pacientes
                                 .AsNoTracking()
                                 .Include(p => p.Usuario).ThenInclude(u => u.Foto)
-                                .Where(p => p.Ativo);
+                                .Where(p => p.SituacaoCliente == SituacaoCliente.Ativo);
 
             if (!string.IsNullOrWhiteSpace(nome))
                 query = query.Where(p => p.Usuario.Nome.Contains(nome));
@@ -57,7 +58,7 @@ namespace ClinicaMaisSaude.Infrastructure.Repositories
             var query = _context.Pacientes
                                 .AsNoTracking()
                                 .Include(p => p.Usuario).ThenInclude(u => u.Foto)
-                                .Where(p => p.Ativo);
+                                .Where(p => p.SituacaoCliente == SituacaoCliente.Ativo);
 
             if (!string.IsNullOrWhiteSpace(nome))
                 query = query.Where(p => p.Usuario.Nome.Contains(nome));

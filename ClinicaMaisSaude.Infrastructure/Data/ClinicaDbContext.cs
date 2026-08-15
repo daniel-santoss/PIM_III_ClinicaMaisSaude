@@ -41,6 +41,7 @@ namespace ClinicaMaisSaude.Infrastructure.Data
         public DbSet<Usuario> Usuarios { get; set; }
         public DbSet<Profissional> Profissionais { get; set; }
         public DbSet<StatusAgendamentoLookup> StatusAgendamentoLookup { get; set; }
+        public DbSet<SituacaoClienteLookup> SituacaoClienteLookup { get; set; }
         public DbSet<TipoUsuarioLookup> TipoUsuarioLookup { get; set; }
         public DbSet<TipoProfissionalLookup> TipoProfissionalLookup { get; set; }
         public DbSet<EspecialidadeLookup> EspecialidadeLookup { get; set; }
@@ -63,9 +64,15 @@ namespace ClinicaMaisSaude.Infrastructure.Data
 
             modelBuilder.Entity<Paciente>(entidade =>
             {
-                entidade.Property(p => p.Ativo).HasDefaultValue(true);
                 entidade.Property(p => p.TemProblemaMemoria).HasDefaultValue(false);
                 entidade.Property(p => p.DtCriado).HasColumnName("Dt_Criado");
+
+                // Situação do cadastro (substitui o antigo bool Ativo): FK ao lookup, default Ativo.
+                entidade.Property(p => p.SituacaoCliente).HasDefaultValue(SituacaoCliente.Ativo);
+                entidade.HasOne<SituacaoClienteLookup>()
+                    .WithMany()
+                    .HasForeignKey(p => p.SituacaoCliente)
+                    .OnDelete(DeleteBehavior.Restrict);
 
                 // Identidade (Nome/Cpf/Telefone/Email) vive no LoginPortal. O Paciente é um
                 // perfil magro que referencia a conta: UsuarioId obrigatório e único (1:1).
@@ -303,6 +310,16 @@ namespace ClinicaMaisSaude.Infrastructure.Data
             });
 
             var dtSeedLookup = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+            modelBuilder.Entity<SituacaoClienteLookup>(entidade =>
+            {
+                entidade.HasKey(s => s.Id);
+                entidade.Property(s => s.Id).HasConversion<int>().ValueGeneratedNever();
+                entidade.Property(s => s.Nome).IsRequired().HasMaxLength(50);
+                entidade.Property(s => s.DtCriado).HasColumnName("Dt_Criado");
+                entidade.HasData(Enum.GetValues(typeof(SituacaoCliente)).Cast<SituacaoCliente>()
+                    .Select(v => new SituacaoClienteLookup { Id = v, Nome = v.ToString(), DtCriado = dtSeedLookup }));
+            });
 
             modelBuilder.Entity<TipoUsuarioLookup>(entidade =>
             {

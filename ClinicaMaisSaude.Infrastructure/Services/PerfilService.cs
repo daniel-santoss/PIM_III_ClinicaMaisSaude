@@ -143,7 +143,8 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             var paciente = await _context.Pacientes.FirstOrDefaultAsync(p => p.UsuarioId == usuarioId);
             if (paciente == null) return "Perfil de paciente não encontrado.";
 
-            paciente.Desativar();
+            // Exclusão self-service → SituacaoCliente = Excluido (soft-delete).
+            paciente.Excluir();
 
             // Revoga refresh tokens ativos → nenhuma sessão consegue renovar o acesso.
             var tokens = await _context.RefreshTokens

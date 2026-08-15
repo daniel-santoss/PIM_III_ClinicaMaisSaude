@@ -2,6 +2,7 @@ using ClinicaMaisSaude.Application.DTOs.Paciente;
 using ClinicaMaisSaude.Application.Exceptions;
 using ClinicaMaisSaude.Application.Interfaces;
 using ClinicaMaisSaude.Domain.Entities;
+using ClinicaMaisSaude.Domain.Enums;
 using ClinicaMaisSaude.Domain.Interfaces;
 using System;
 using System.Collections.Generic;
@@ -66,7 +67,7 @@ namespace ClinicaMaisSaude.Application.Services
                 UsuarioId = p.UsuarioId,
                 Tipo = "Paciente",
                 UltimoAcesso = p.Usuario?.UltimoAcesso,
-                IsBanidoPermanente = p.Usuario?.BloqueadoAte.HasValue == true && (p.Usuario.BloqueadoAte.Value - DateTime.UtcNow).TotalDays > 3650,
+                IsBanidoPermanente = p.SituacaoCliente == SituacaoCliente.Banido,
                 FotoBase64 = p.Usuario?.FotoBase64
             }).ToList();
 
@@ -120,7 +121,7 @@ namespace ClinicaMaisSaude.Application.Services
                 UsuarioId = p.UsuarioId,
                 Tipo = "Paciente",
                 UltimoAcesso = p.Usuario?.UltimoAcesso,
-                IsBanidoPermanente = p.Usuario?.BloqueadoAte.HasValue == true && (p.Usuario.BloqueadoAte.Value - DateTime.UtcNow).TotalDays > 3650,
+                IsBanidoPermanente = p.SituacaoCliente == SituacaoCliente.Banido,
                 FotoBase64 = p.Usuario?.FotoBase64
             }).ToList();
 
@@ -226,7 +227,7 @@ namespace ClinicaMaisSaude.Application.Services
             var todosAgendamentos = await _agendamentoRepository.ObterTodosAsync();
 
             var inativos = todosPacientes
-                .Where(p => p.Ativo)
+                .Where(p => p.EstaAtivo)
                 .Where(p => !todosAgendamentos.Any(a => a.PacienteId == p.Id && a.DtCriado >= corte))
                 .Select(p => new PacienteResponse
                 {

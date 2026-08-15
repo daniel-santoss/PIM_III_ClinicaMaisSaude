@@ -58,7 +58,7 @@ namespace ClinicaMaisSaude.Application.Services
             var tipoConsulta = (TipoConsulta)request.TipoConsulta;
 
             var paciente = await _pacienteRepository.ObterPorIdAsync(request.PacienteId);
-            if (paciente == null || !paciente.Ativo)
+            if (paciente == null || !paciente.EstaAtivo)
                 throw new BusinessRuleException("Paciente inválido ou inativo.");
 
             bool ehProprioPaciente = paciente.UsuarioId == usuarioLogadoId;

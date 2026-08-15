@@ -216,7 +216,11 @@ Formato:
                     var userObj = await _context.Usuarios.FirstOrDefaultAsync(u => u.Id == usuarioLogadoId);
                     if (userObj != null)
                     {
-                        userObj.BloquearPermanentemente();
+                        // Banimento permanente: paciente vira SituacaoCliente=Banido; staff
+                        // (sem perfil de paciente) cai no bloqueio de conta como fallback.
+                        var pacienteBan = await _context.Pacientes.FirstOrDefaultAsync(p => p.UsuarioId == usuarioLogadoId);
+                        if (pacienteBan != null) pacienteBan.Banir();
+                        else userObj.BloquearPermanentemente();
                         var novaViolacao = new UsoInadequadoIA(usuarioLogadoId, TipoViolacao.Injecao, sintomas);
                         _context.ViolacoesIA.Add(novaViolacao);
 
@@ -271,7 +275,11 @@ Formato:
                 var userObj = await _context.Usuarios.FirstOrDefaultAsync(u => u.Id == usuarioLogadoId);
                 if (userObj != null)
                 {
-                    userObj.BloquearPermanentemente();
+                    // Banimento permanente: paciente vira SituacaoCliente=Banido; staff
+                    // (sem perfil de paciente) cai no bloqueio de conta como fallback.
+                    var pacienteBan = await _context.Pacientes.FirstOrDefaultAsync(p => p.UsuarioId == usuarioLogadoId);
+                    if (pacienteBan != null) pacienteBan.Banir();
+                    else userObj.BloquearPermanentemente();
                     var novaViolacao = new UsoInadequadoIA(usuarioLogadoId, TipoViolacao.Injecao, sintomas);
                     _context.ViolacoesIA.Add(novaViolacao);
 
@@ -349,6 +357,9 @@ Formato:
             var paciente = await _context.Pacientes.FirstOrDefaultAsync(p => p.UsuarioId == usuarioId);
             if (paciente != null)
             {
+                // Ban permanente por IA vira SituacaoCliente=Banido; ao perdoar, reativa a conta.
+                if (paciente.SituacaoCliente == SituacaoCliente.Banido)
+                    paciente.Reativar();
                 paciente.RemoverPenalidade();
             }
 
