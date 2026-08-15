@@ -41,6 +41,11 @@ namespace ClinicaMaisSaude.Infrastructure.Data
         public DbSet<Usuario> Usuarios { get; set; }
         public DbSet<Profissional> Profissionais { get; set; }
         public DbSet<StatusAgendamentoLookup> StatusAgendamentoLookup { get; set; }
+        public DbSet<TipoProfissionalLookup> TipoProfissionalLookup { get; set; }
+        public DbSet<EspecialidadeLookup> EspecialidadeLookup { get; set; }
+        public DbSet<TipoConsultaLookup> TipoConsultaLookup { get; set; }
+        public DbSet<TipoEventoHistoricoLookup> TipoEventoHistoricoLookup { get; set; }
+        public DbSet<TipoViolacaoLookup> TipoViolacaoLookup { get; set; }
         public DbSet<AgendamentoHistorico> AgendamentoHistoricos { get; set; }
         public DbSet<ProfissionalEspecialidade> ProfissionalEspecialidades { get; set; }
         public DbSet<UsoInadequadoIA> ViolacoesIA { get; set; } = null!;
@@ -98,6 +103,22 @@ namespace ClinicaMaisSaude.Infrastructure.Data
                     .WithMany(p => p.Agendamentos)
                     .HasForeignKey(a => a.PacienteId)
                     .OnDelete(DeleteBehavior.Restrict);
+
+                // FKs para os lookups de referência (integridade dos enums).
+                entidade.HasOne<TipoProfissionalLookup>()
+                    .WithMany()
+                    .HasForeignKey(a => a.TipoProfissional)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entidade.HasOne<TipoConsultaLookup>()
+                    .WithMany()
+                    .HasForeignKey(a => a.TipoConsulta)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entidade.HasOne<StatusAgendamentoLookup>()
+                    .WithMany()
+                    .HasForeignKey(a => a.Status)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             modelBuilder.Entity<AgendamentoHistorico>(entidade =>
@@ -115,6 +136,22 @@ namespace ClinicaMaisSaude.Infrastructure.Data
                     .WithMany()
                     .HasForeignKey(h => h.AgendamentoId)
                     .OnDelete(DeleteBehavior.Restrict);
+
+                entidade.HasOne<TipoEventoHistoricoLookup>()
+                    .WithMany()
+                    .HasForeignKey(h => h.TipoEvento)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                // StatusAnterior/StatusNovo são nullable → relação opcional.
+                entidade.HasOne<StatusAgendamentoLookup>()
+                    .WithMany()
+                    .HasForeignKey(h => h.StatusAnterior)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entidade.HasOne<StatusAgendamentoLookup>()
+                    .WithMany()
+                    .HasForeignKey(h => h.StatusNovo)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             modelBuilder.Entity<ProfissionalEspecialidade>(entidade =>
@@ -124,6 +161,11 @@ namespace ClinicaMaisSaude.Infrastructure.Data
                     .WithMany(p => p.Especialidades)
                     .HasForeignKey(pe => pe.ProfissionalId)
                     .OnDelete(DeleteBehavior.Cascade);
+
+                entidade.HasOne<EspecialidadeLookup>()
+                    .WithMany()
+                    .HasForeignKey(pe => pe.EspecialidadeId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             modelBuilder.Entity<UsoInadequadoIA>(entidade =>
@@ -138,6 +180,11 @@ namespace ClinicaMaisSaude.Infrastructure.Data
                     .WithMany(u => u.Violacoes)
                     .HasForeignKey(a => a.UsuarioId)
                     .OnDelete(DeleteBehavior.Cascade);
+
+                entidade.HasOne<TipoViolacaoLookup>()
+                    .WithMany()
+                    .HasForeignKey(a => a.TipoViolacao)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             modelBuilder.Entity<RefreshToken>(entidade =>
@@ -221,6 +268,11 @@ namespace ClinicaMaisSaude.Infrastructure.Data
                     .WithMany()
                     .HasForeignKey(p => p.UsuarioId)
                     .OnDelete(DeleteBehavior.Cascade);
+
+                entidade.HasOne<TipoProfissionalLookup>()
+                    .WithMany()
+                    .HasForeignKey(p => p.TipoProfissional)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             modelBuilder.Entity<StatusAgendamentoLookup>(entidade =>
@@ -240,6 +292,58 @@ namespace ClinicaMaisSaude.Infrastructure.Data
                                         });
 
                 entidade.HasData(statusValores);
+            });
+
+            var dtSeedLookup = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+            modelBuilder.Entity<TipoProfissionalLookup>(entidade =>
+            {
+                entidade.HasKey(s => s.Id);
+                entidade.Property(s => s.Id).HasConversion<int>().ValueGeneratedNever();
+                entidade.Property(s => s.Nome).IsRequired().HasMaxLength(50);
+                entidade.Property(s => s.DtCriado).HasColumnName("Dt_Criado");
+                entidade.HasData(Enum.GetValues(typeof(TipoProfissional)).Cast<TipoProfissional>()
+                    .Select(v => new TipoProfissionalLookup { Id = v, Nome = v.ToString(), DtCriado = dtSeedLookup }));
+            });
+
+            modelBuilder.Entity<EspecialidadeLookup>(entidade =>
+            {
+                entidade.HasKey(s => s.Id);
+                entidade.Property(s => s.Id).HasConversion<int>().ValueGeneratedNever();
+                entidade.Property(s => s.Nome).IsRequired().HasMaxLength(50);
+                entidade.Property(s => s.DtCriado).HasColumnName("Dt_Criado");
+                entidade.HasData(Enum.GetValues(typeof(EspecialidadeMedica)).Cast<EspecialidadeMedica>()
+                    .Select(v => new EspecialidadeLookup { Id = v, Nome = v.ToString(), DtCriado = dtSeedLookup }));
+            });
+
+            modelBuilder.Entity<TipoConsultaLookup>(entidade =>
+            {
+                entidade.HasKey(s => s.Id);
+                entidade.Property(s => s.Id).HasConversion<int>().ValueGeneratedNever();
+                entidade.Property(s => s.Nome).IsRequired().HasMaxLength(50);
+                entidade.Property(s => s.DtCriado).HasColumnName("Dt_Criado");
+                entidade.HasData(Enum.GetValues(typeof(TipoConsulta)).Cast<TipoConsulta>()
+                    .Select(v => new TipoConsultaLookup { Id = v, Nome = v.ToString(), DtCriado = dtSeedLookup }));
+            });
+
+            modelBuilder.Entity<TipoEventoHistoricoLookup>(entidade =>
+            {
+                entidade.HasKey(s => s.Id);
+                entidade.Property(s => s.Id).HasConversion<int>().ValueGeneratedNever();
+                entidade.Property(s => s.Nome).IsRequired().HasMaxLength(50);
+                entidade.Property(s => s.DtCriado).HasColumnName("Dt_Criado");
+                entidade.HasData(Enum.GetValues(typeof(TipoEventoHistorico)).Cast<TipoEventoHistorico>()
+                    .Select(v => new TipoEventoHistoricoLookup { Id = v, Nome = v.ToString(), DtCriado = dtSeedLookup }));
+            });
+
+            modelBuilder.Entity<TipoViolacaoLookup>(entidade =>
+            {
+                entidade.HasKey(s => s.Id);
+                entidade.Property(s => s.Id).HasConversion<int>().ValueGeneratedNever();
+                entidade.Property(s => s.Nome).IsRequired().HasMaxLength(50);
+                entidade.Property(s => s.DtCriado).HasColumnName("Dt_Criado");
+                entidade.HasData(Enum.GetValues(typeof(TipoViolacao)).Cast<TipoViolacao>()
+                    .Select(v => new TipoViolacaoLookup { Id = v, Nome = v.ToString(), DtCriado = dtSeedLookup }));
             });
         }
     }
