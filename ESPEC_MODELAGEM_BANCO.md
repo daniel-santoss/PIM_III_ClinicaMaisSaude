@@ -6,6 +6,40 @@ Objetivo: consolidar identidade, unificar papéis, fechar furos de integridade r
 
 ---
 
+## 0. Status de implementação (2026-08-15)
+
+Migrations aplicadas no banco local: `InitialCreate` → `Fase1_LookupsEnums` → `Fase2_TipoUsuario`. Testes = **61** (44 Domain + 17 Application). Commits **locais, não pushados**.
+
+- ✅ **Fase 1 — commitada** (`Feat(db): Fase 1 - lookups dos enums`): 5 tabelas de lookup (`TipoProfissionalLookup`, `EspecialidadeLookup`, `TipoConsultaLookup`, `TipoEventoHistoricoLookup`, `TipoViolacaoLookup`) + 9 FKs. **Decisão real:** entidades e tabelas mantiveram o **sufixo `Lookup`** (padrão do `StatusAgendamentoLookup`), NÃO renomeei (o entity-name colidiria com o enum). `StatusAgendamentoLookup` NÃO foi renomeado.
+- ✅ **Fase 2 — commitada** (`Feat(auth): Fase 2 - papel unificado TipoUsuario`): enum `TipoUsuario`{Paciente=1,Profissional=2,Admin=3} + `TipoUsuarioLookup`; `LoginPortal.IsAdmin` removido; migration com backfill.
+  - **Desvio importante do plano:** o "admin libera tudo" virou **regra central** — `AdminSuperusuarioHandler` (`ClinicaMaisSaude.API/Authorization/`, registrado no `Program.cs`) faz o admin satisfazer QUALQUER `[Authorize]`. Por isso os `[Authorize(Roles = Medico + "," + Enfermeira)]` **ficaram intactos** (não troquei por `Profissional+Admin`).
+  - **Papel no JWT continua GRANULAR** (Medico/Enfermeira/Paciente/Admin) no claim `Role` e `TipoUsuario` — necessário porque regras de negócio distinguem Medico de Enfermeira (ex.: AgendamentosController). O `usuario.TipoUsuario` (coluna) é que é grosso. Admin é explícito na derivação (antes caía em "Medico" via o perfil Dr. Admin).
+  - Checagens manuais `IsAdmin` → `User.IsInRole(PerfisUsuario.Admin)`. Claim/constante `ClinicaClaims.IsAdmin` removida. `LoginResponse.IsAdmin` mantido, derivado (`TipoUsuario==Admin`).
+- ⏭️ **Fases 3–8 pendentes.** Próxima: **Fase 3 (identidade no LoginPortal)** — a maior/mais arriscada.
+
+**⚠️ Validação de IA capada:** o Gemini não está configurado nesta máquina → endpoint de IA dá 503; a FASE 9 da homologação (injeção/ban) falha por isso (ambiental, não do refactor). O resto da homologação dá veredito VERDE.
+
+### Receita operacional (validar cada fase)
+```bash
+# 1. LocalDB às vezes trava com sqlservr.exe órfão → matar + start:
+powershell -Command "Get-Process sqlservr -EA SilentlyContinue | Stop-Process -Force"; sqllocaldb start MSSQLLocalDB
+export PATH="$HOME/.dotnet/tools:$PATH"                    # dotnet-ef
+export PATH="/c/Program Files/nodejs:$PATH"               # node
+# 2. build + migration + testes:
+dotnet build ClinicaMaisSaude.slnx --nologo
+dotnet ef migrations add <Nome> --project ClinicaMaisSaude.Infrastructure --startup-project ClinicaMaisSaude.API
+dotnet ef database update --project ClinicaMaisSaude.Infrastructure --startup-project ClinicaMaisSaude.API
+dotnet test ClinicaMaisSaude.slnx --nologo                # exit 0 = passou (saída não é capturada; confie no exit code)
+# 3. homologação E2E (API em background + curl --retry, SEM 'sleep' de shell que é bloqueado):
+#    dotnet run --project ClinicaMaisSaude.API --no-build --urls http://localhost:5045   (run_in_background)
+#    curl --retry 40 --retry-connrefused --max-time 60 http://localhost:5045/swagger/index.html
+#    node homologar-sistema-completo.js   (o script faz "pristine purge" no fim, preserva o admin)
+#    encerrar: powershell Get-Process ClinicaMaisSaude.API | Stop-Process -Force
+```
+Sempre encerrar a API antes de buildar (senão "arquivo bloqueado"). Autor de commit: Daniel Vinicius; terminar msg com `Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>`.
+
+---
+
 ## 1. Decisões travadas
 
 1. **Sem tabela `Pessoa`.** Não há paciente sem login → o `LoginPortal` é o dono da identidade (Nome/Cpf/Email/Telefone) além da credencial.
@@ -170,16 +204,20 @@ Banco local está praticamente vazio (só o admin do seeder), mas documentado:
 
 ## 10. Plano de execução (fases; cada uma com build + 57 testes + homologação verdes)
 
-1. **Lookups dos enums** — cria as 7 tabelas (incl. `SituacaoCliente`) + converte colunas em FK. Isolado, baixo risco.
-2. **`TipoUsuario` + remover `IsAdmin`** — papel unificado, JWT, controllers.
-3. **Consolidação de identidade no `LoginPortal`** (a maior) — move Nome/Telefone; `Paciente`/`Profissional` enxugam; `UsuarioId` obrigatório; login por email.
-4. **`situacao_Cliente`** — troca o bool `Ativo` por `SituacaoClienteId`; ajusta gating de login e soft-delete; ban permanente → `Banido`.
-5. **FKs faltantes em `Agendamento`**.
+1. ✅ **FEITA — Lookups dos enums** (só os 5 com coluna existente; `TipoUsuario` e `SituacaoCliente` foram/vão nas suas fases). Baixo risco.
+2. ✅ **FEITA — `TipoUsuario` + remover `IsAdmin`** — papel unificado, JWT, `AdminSuperusuarioHandler`.
+3. ⏭️ **PRÓXIMA — Consolidação de identidade no `LoginPortal`** (a maior). Detalhe:
+   - `Usuario` (LoginPortal): adicionar `Nome`, `Telefone`. `Paciente`: remover `Nome`/`Cpf`/`Telefone`/`Email`, tornar `UsuarioId` obrigatório. `Profissional`: remover `Nome`.
+   - `AuthService`: login busca por email (join via `LoginPortal.Email`); `Nome` sai do `LoginPortal` (não mais de perfil). `CadastroService`: passar Nome/Telefone ao criar `Usuario`, não ao perfil.
+   - **Migration com backfill** (copiar `Paciente.Nome/Telefone` e `Profissional.Nome` → `LoginPortal` ANTES de dropar). Admin sem perfil de origem já tem Nome? Não — hoje o Nome do admin vem do `Profissional` "Dr. Admin"; copiar dele.
+   - Muitos pontos leem `Paciente.Nome`/`Profissional.Nome`/`Usuario.Email` — o build (0 erros) é o mapa. Validar com homologação.
+4. **`situacao_Cliente`** — lookup `SituacaoClienteLookup`{Ativo,Desativado,Excluido,Banido} + `Paciente.SituacaoClienteId`; troca o bool `Ativo` (que hoje ainda está no `Paciente`); gating de login lê a situação; ban permanente → `Banido`. (Obs.: na Fase 2 NÃO movi `Ativo` pro LoginPortal; ele segue no Paciente e vira `SituacaoClienteId` aqui.)
+5. **FKs faltantes em `Agendamento`** — `ProfissionalId`→Profissional, `AgendamentoOrigemId`→self, `EspecialidadeId`→Especialidade (mudar `int?`→`EspecialidadeMedica?` p/ casar tipo do FK).
 6. **Penalidade de IA** — `BloqueadoIAAte`→LoginPortal; `PenalidadeRemovidaAvisar`→Notificacao.
 7. **`ult_Atualizacao`** — interface `IAuditavel` + carimbo no `SaveChangesAsync`.
-8. **Nomenclatura** — colunas do `RefreshToken`; `DbSet ViolacoesIA`→`UsoInadequadoIA`.
+8. **Nomenclatura** — colunas do `RefreshToken` (`IsUsed`→`Usado` etc.); `DbSet ViolacoesIA`→`UsoInadequadoIA` (tabela mantém nome).
 
-Ordem sugerida: 1 → 2 → 3 → 4 → (5, 6, 7, 8 independentes). Fases 2/3/4 tocam `LoginPortal`/`AuthService`.
+Ordem: 1 ✅ → 2 ✅ → **3** → 4 → (5, 6, 7, 8 independentes). Cada fase = 1 migration + 1 commit na `teste`.
 
 ---
 
