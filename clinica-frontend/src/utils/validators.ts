@@ -1,4 +1,5 @@
-export const mascaraCpf = (valor: string): string => {
+export const mascaraCpf = (valor?: string | null): string => {
+  if (!valor) return "";
   const nums = valor.replace(/\D/g, "").slice(0, 11);
   return nums
     .replace(/(\d{3})(\d)/, "$1.$2")
@@ -26,7 +27,8 @@ export const isEmailValido = (email: string): boolean => {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 };
 
-export const mascaraTelefone = (valor: string): string => {
+export const mascaraTelefone = (valor?: string | null): string => {
+  if (!valor) return ""; // telefone pode vir null (contas sem telefone cadastrado)
   const nums = valor.replace(/\D/g, "");
   if (nums.length <= 10) {
     return nums

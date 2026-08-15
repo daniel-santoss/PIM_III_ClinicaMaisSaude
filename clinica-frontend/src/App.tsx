@@ -432,7 +432,10 @@ export default function App() {
             {/* Conteúdo com scroll */}
             <div className="flex-1 overflow-y-auto custom-scrollbar scroll-smooth">
               <div className="p-4 pt-5 sm:p-8 sm:pt-10">
-                {tipoUsuario === perfis.medico || tipoUsuario === perfis.enfermeira
+                {/* Admin é respaldado por um perfil profissional ("Dr. Admin") e tem
+                    profissionalId — vai no PerfilMedico. Sem isto, cairia no PerfilPaciente
+                    e ficaria em spinner infinito (não tem pacienteId). */}
+                {tipoUsuario === perfis.medico || tipoUsuario === perfis.enfermeira || tipoUsuario === perfis.admin
                   ? <PerfilMedico />
                   : <PerfilPaciente />
                 }
