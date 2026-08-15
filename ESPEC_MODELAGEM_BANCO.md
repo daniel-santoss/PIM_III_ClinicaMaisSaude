@@ -15,7 +15,12 @@ Migrations aplicadas no banco local: `InitialCreate` → `Fase1_LookupsEnums` �
   - **Desvio importante do plano:** o "admin libera tudo" virou **regra central** — `AdminSuperusuarioHandler` (`ClinicaMaisSaude.API/Authorization/`, registrado no `Program.cs`) faz o admin satisfazer QUALQUER `[Authorize]`. Por isso os `[Authorize(Roles = Medico + "," + Enfermeira)]` **ficaram intactos** (não troquei por `Profissional+Admin`).
   - **Papel no JWT continua GRANULAR** (Medico/Enfermeira/Paciente/Admin) no claim `Role` e `TipoUsuario` — necessário porque regras de negócio distinguem Medico de Enfermeira (ex.: AgendamentosController). O `usuario.TipoUsuario` (coluna) é que é grosso. Admin é explícito na derivação (antes caía em "Medico" via o perfil Dr. Admin).
   - Checagens manuais `IsAdmin` → `User.IsInRole(PerfisUsuario.Admin)`. Claim/constante `ClinicaClaims.IsAdmin` removida. `LoginResponse.IsAdmin` mantido, derivado (`TipoUsuario==Admin`).
-- ⏭️ **Fases 3–8 pendentes.** Próxima: **Fase 3 (identidade no LoginPortal)** — a maior/mais arriscada.
+- ✅ **Fase 3 — commitada** (`Feat(db): Fase 3 - identidade consolidada no LoginPortal`): `LoginPortal` (Usuario) vira dono de **Nome/Telefone** (além de Cpf/Email); `Paciente` perde `Nome/Cpf/Telefone/Email` e `UsuarioId` vira **obrigatório + índice único (1:1)**; `Profissional` perde `Nome`. Migration `Fase3_IdentidadeLoginPortal` com **backfill** (copia Nome/Telefone dos perfis p/ LoginPortal ANTES de dropar; Nome = COALESCE(prof, pac, 'Usuário')) e `UsuarioId` not-null. Build 0 erros, **61 testes verdes**, homologação E2E VERDE (só IA em 503 — ambiental).
+  - **Desvios/decisões reais da Fase 3:**
+    - **`PacienteService.AdicionarAsync` desativado** (lança `BusinessRuleException`): criar paciente "solto" (sem login) deixou de existir — não há onde guardar identidade. O `POST /api/Pacientes` não é usado pelo front nem pela homologação (cadastro é via `/api/LoginPortal/cadastro`). `PUT /api/Pacientes/{id}` (`AtualizarAsync`) passou a gravar Nome/Email/Telefone no LoginPortal (homologação T2.7 verde).
+    - **Login por email NÃO foi trocado ainda** (o lookup em `AuthService` segue `Email == x || Cpf == x`, e o DTO segue `LoginRequest.Identificador`). O rename `Identificador→Email` + email-only é cross-cutting (front web + mobile enviam `identificador`), então ficou **deferido** para não quebrar contrato — decisão de risco. Reavaliar com o usuário se ainda quer CPF fora do login.
+    - `CadastroRequest` não tem Telefone → `Usuario.Telefone` nasce nulo no cadastro (era placeholder `00000000000` no Paciente antes).
+- ⏭️ **Fases 4–8 pendentes.** Próxima: **Fase 4 (`situacao_Cliente`)** — troca o bool `Paciente.Ativo` por `SituacaoClienteId` (lookup Ativo/Desativado/Excluido/Banido); gating de login lê a situação; ban permanente → `Banido`.
 
 **⚠️ Validação de IA capada:** o Gemini não está configurado nesta máquina → endpoint de IA dá 503; a FASE 9 da homologação (injeção/ban) falha por isso (ambiental, não do refactor). O resto da homologação dá veredito VERDE.
 
@@ -206,11 +211,7 @@ Banco local está praticamente vazio (só o admin do seeder), mas documentado:
 
 1. ✅ **FEITA — Lookups dos enums** (só os 5 com coluna existente; `TipoUsuario` e `SituacaoCliente` foram/vão nas suas fases). Baixo risco.
 2. ✅ **FEITA — `TipoUsuario` + remover `IsAdmin`** — papel unificado, JWT, `AdminSuperusuarioHandler`.
-3. ⏭️ **PRÓXIMA — Consolidação de identidade no `LoginPortal`** (a maior). Detalhe:
-   - `Usuario` (LoginPortal): adicionar `Nome`, `Telefone`. `Paciente`: remover `Nome`/`Cpf`/`Telefone`/`Email`, tornar `UsuarioId` obrigatório. `Profissional`: remover `Nome`.
-   - `AuthService`: login busca por email (join via `LoginPortal.Email`); `Nome` sai do `LoginPortal` (não mais de perfil). `CadastroService`: passar Nome/Telefone ao criar `Usuario`, não ao perfil.
-   - **Migration com backfill** (copiar `Paciente.Nome/Telefone` e `Profissional.Nome` → `LoginPortal` ANTES de dropar). Admin sem perfil de origem já tem Nome? Não — hoje o Nome do admin vem do `Profissional` "Dr. Admin"; copiar dele.
-   - Muitos pontos leem `Paciente.Nome`/`Profissional.Nome`/`Usuario.Email` — o build (0 erros) é o mapa. Validar com homologação.
+3. ✅ **FEITA — Consolidação de identidade no `LoginPortal`** (a maior). Ver §0 para desvios reais (AdicionarAsync desativado; login-email deferido). `Nome` agora sai sempre do `LoginPortal`; migration com backfill aplicada.
 4. **`situacao_Cliente`** — lookup `SituacaoClienteLookup`{Ativo,Desativado,Excluido,Banido} + `Paciente.SituacaoClienteId`; troca o bool `Ativo` (que hoje ainda está no `Paciente`); gating de login lê a situação; ban permanente → `Banido`. (Obs.: na Fase 2 NÃO movi `Ativo` pro LoginPortal; ele segue no Paciente e vira `SituacaoClienteId` aqui.)
 5. **FKs faltantes em `Agendamento`** — `ProfissionalId`→Profissional, `AgendamentoOrigemId`→self, `EspecialidadeId`→Especialidade (mudar `int?`→`EspecialidadeMedica?` p/ casar tipo do FK).
 6. **Penalidade de IA** — `BloqueadoIAAte`→LoginPortal; `PenalidadeRemovidaAvisar`→Notificacao.
