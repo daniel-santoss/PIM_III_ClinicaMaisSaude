@@ -14,7 +14,7 @@ namespace ClinicaMaisSaude.Domain.Entities
         public TipoConsulta TipoConsulta { get; private set; }
         public StatusAgendamento Status { get; private set; }
         public Guid? AgendamentoOrigemId { get; private set; }
-        public int? EspecialidadeId { get; private set; }
+        public EspecialidadeMedica? EspecialidadeId { get; private set; }
         public double ProbabilidadeFalta { get; private set; }
         public bool ResultadoDisponivel { get; private set; }
         public bool ExigeResultadoPosterior { get; private set; }
@@ -99,7 +99,8 @@ namespace ClinicaMaisSaude.Domain.Entities
 
         public void DefinirEspecialidade(int? especialidadeId)
         {
-            EspecialidadeId = especialidadeId;
+            // O DTO trafega int? (índice do enum); aqui vira o tipo forte que casa com o FK.
+            EspecialidadeId = especialidadeId.HasValue ? (EspecialidadeMedica?)especialidadeId.Value : null;
         }
     }
 }

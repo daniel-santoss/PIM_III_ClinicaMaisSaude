@@ -94,7 +94,7 @@ namespace ClinicaMaisSaude.Application.Services
                 if (request.EspecialidadeId.HasValue)
                 {
                     var temEspecialidadeAtiva = todosAgendamentosPaciente.Any(a =>
-                        a.EspecialidadeId == request.EspecialidadeId &&
+                        (int?)a.EspecialidadeId == request.EspecialidadeId &&
                         a.Status != StatusAgendamento.Cancelado &&
                         a.Status != StatusAgendamento.Faltou &&
                         a.Status != StatusAgendamento.Finalizado);
@@ -108,7 +108,7 @@ namespace ClinicaMaisSaude.Application.Services
                     // 4. Regra de Intervalo de 60 Dias para Consultas Finalizadas
                     var sessentaDiasAtras = DateTime.UtcNow.AddHours(-3).AddDays(-60);
                     var temConsultaRecenteFinalizada = todosAgendamentosPaciente.Any(a =>
-                        a.EspecialidadeId == request.EspecialidadeId &&
+                        (int?)a.EspecialidadeId == request.EspecialidadeId &&
                         a.Status == StatusAgendamento.Finalizado &&
                         a.DataHoraConsulta >= sessentaDiasAtras);
 

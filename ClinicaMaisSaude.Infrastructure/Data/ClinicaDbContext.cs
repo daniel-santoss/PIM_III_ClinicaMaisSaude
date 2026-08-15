@@ -113,6 +113,23 @@ namespace ClinicaMaisSaude.Infrastructure.Data
                     .HasForeignKey(a => a.PacienteId)
                     .OnDelete(DeleteBehavior.Restrict);
 
+                // Integridade referencial faltante (Fase 5): profissional responsável,
+                // cadeia de origem (retorno/remarcação, auto-referência) e especialidade.
+                entidade.HasOne<Profissional>()
+                    .WithMany()
+                    .HasForeignKey(a => a.ProfissionalId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entidade.HasOne<Agendamento>()
+                    .WithMany()
+                    .HasForeignKey(a => a.AgendamentoOrigemId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entidade.HasOne<EspecialidadeLookup>()
+                    .WithMany()
+                    .HasForeignKey(a => a.EspecialidadeId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
                 // FKs para os lookups de referência (integridade dos enums).
                 entidade.HasOne<TipoProfissionalLookup>()
                     .WithMany()
