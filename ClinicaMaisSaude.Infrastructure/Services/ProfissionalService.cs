@@ -25,7 +25,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             return new
             {
                 prof.Id,
-                prof.Nome,
+                Nome = prof.Usuario?.Nome,
                 prof.Crm,
                 prof.UfCrm,
                 TipoProfissional = prof.TipoProfissional.ToString(),

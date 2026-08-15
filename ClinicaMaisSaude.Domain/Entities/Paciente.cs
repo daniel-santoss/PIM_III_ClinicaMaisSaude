@@ -4,16 +4,14 @@ using ClinicaMaisSaude.Domain.Common;
 namespace ClinicaMaisSaude.Domain.Entities
 {
 
+    // Perfil clínico. A identidade (Nome/Cpf/Telefone/Email) vive no LoginPortal (Usuario);
+    // um Paciente sempre referencia uma conta (UsuarioId obrigatório) — não há paciente sem login.
     public class Paciente
     {
         public Guid Id { get; private set; }
-        public string Nome { get; private set; }
-        public string Cpf { get; private set; }
-        public string Telefone { get; private set; }
-        public string Email { get; private set; }
         public bool Ativo { get; private set; }
         public bool TemProblemaMemoria { get; private set; }
-        public Guid? UsuarioId { get; private set; }
+        public Guid UsuarioId { get; private set; }
         public DateTime DtCriado { get; private set; }
         public DateTime? BloqueadoIAAte { get; private set; }
         /// <summary>True enquanto o paciente ainda não foi notificado de que a penalidade foi removida pelo admin</summary>
@@ -22,25 +20,20 @@ namespace ClinicaMaisSaude.Domain.Entities
         public virtual Usuario Usuario { get; private set; }
         public virtual ICollection<Agendamento> Agendamentos { get; private set; } = new List<Agendamento>();
 
-        public Paciente(string nome, string cpf, string telefone, string email, bool temProblemaMemoria = false)
+        protected Paciente() { } // EF Core
+
+        public Paciente(Guid usuarioId, bool temProblemaMemoria = false)
         {
             Id = SequentialGuid.Next();
-            Nome = nome;
-            Cpf = cpf;
-            Telefone = telefone;
-            Email = email;
+            UsuarioId = usuarioId;
             Ativo = true;
             TemProblemaMemoria = temProblemaMemoria;
             DtCriado = DateTime.UtcNow;
             BloqueadoIAAte = null;
         }
 
-        public void Atualizar(string nome, string cpf, string telefone, string email, bool temProblemaMemoria)
+        public void Atualizar(bool temProblemaMemoria)
         {
-            Nome = nome;
-            Cpf = cpf;
-            Telefone = telefone;
-            Email = email;
             TemProblemaMemoria = temProblemaMemoria;
         }
 
@@ -72,14 +65,6 @@ namespace ClinicaMaisSaude.Domain.Entities
             PenalidadeRemovidaAvisar = false;
         }
 
-        public void VincularUsuario(Guid usuarioId)
-        {
-            UsuarioId = usuarioId;
-        }
-
-        public void AtualizarNome(string nome) => Nome = nome;
-        public void AtualizarEmail(string email) => Email = email;
-        public void AtualizarTelefone(string telefone) => Telefone = telefone;
     }
 }
 

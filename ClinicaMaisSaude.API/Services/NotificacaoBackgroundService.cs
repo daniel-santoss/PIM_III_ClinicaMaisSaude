@@ -61,7 +61,7 @@ namespace ClinicaMaisSaude.API.Services
 
             // Busca os agendamentos pendentes ou em atendimento (não finalizados/cancelados) na janela.
             var agendamentos = await dbContext.Agendamentos
-                .Include(a => a.Paciente)
+                .Include(a => a.Paciente).ThenInclude(p => p.Usuario)
                 .Where(a => (a.Status == StatusAgendamento.Agendado || a.Status == StatusAgendamento.EmAtendimento)
                             && a.DataHoraConsulta >= inicioJanela && a.DataHoraConsulta <= fimJanela)
                 .ToListAsync(stoppingToken);
@@ -75,7 +75,7 @@ namespace ClinicaMaisSaude.API.Services
                     var profissional = await dbContext.Profissionais.FirstOrDefaultAsync(p => p.Id == a.ProfissionalId, stoppingToken);
                     if (profissional != null)
                     {
-                        var msg = $"Consulta de {a.Paciente.Nome} em {a.DataHoraConsulta:dd/MM/yyyy} às {a.DataHoraConsulta:HH:mm} não foi finalizada. Atualize o status.";
+                        var msg = $"Consulta de {a.Paciente.Usuario.Nome} em {a.DataHoraConsulta:dd/MM/yyyy} às {a.DataHoraConsulta:HH:mm} não foi finalizada. Atualize o status.";
                         var notificacao = new Notificacao(profissional.UsuarioId, "Consulta não finalizada", msg, a.Id, link: $"agendamentos?id={a.Id}");
                         
                         dbContext.Notificacoes.Add(notificacao);
@@ -85,10 +85,10 @@ namespace ClinicaMaisSaude.API.Services
                 }
 
                 // Lembrete: No dia da consulta a partir das 00:00 (LembreteManha)
-                if (!a.LembreteManhaEnviado && a.Paciente.UsuarioId.HasValue && a.DataHoraConsulta.Date == agora.Date)
+                if (!a.LembreteManhaEnviado && a.DataHoraConsulta.Date == agora.Date)
                 {
                     var msg = $"Sua consulta de {a.TipoConsulta} está agendada para hoje às {a.DataHoraConsulta:HH:mm}.";
-                    var notificacao = new Notificacao(a.Paciente.UsuarioId.Value, "Você tem consulta hoje", msg, a.Id, link: $"agendamentos?id={a.Id}");
+                    var notificacao = new Notificacao(a.Paciente.UsuarioId, "Você tem consulta hoje", msg, a.Id, link: $"agendamentos?id={a.Id}");
 
                     dbContext.Notificacoes.Add(notificacao);
                     novasNotificacoes.Add(notificacao);
@@ -97,10 +97,10 @@ namespace ClinicaMaisSaude.API.Services
 
                 // Lembrete: 2 horas antes da consulta
                 var duasHorasAntes = a.DataHoraConsulta.AddHours(-2);
-                if (!a.LembreteDuasHorasEnviado && a.Paciente.UsuarioId.HasValue && agora >= duasHorasAntes && agora < a.DataHoraConsulta)
+                if (!a.LembreteDuasHorasEnviado && agora >= duasHorasAntes && agora < a.DataHoraConsulta)
                 {
                     var msg = $"Sua consulta está marcada para hoje às {a.DataHoraConsulta:HH:mm}. Não esqueça!";
-                    var notificacao = new Notificacao(a.Paciente.UsuarioId.Value, "Lembrete de consulta", msg, a.Id, link: $"agendamentos?id={a.Id}");
+                    var notificacao = new Notificacao(a.Paciente.UsuarioId, "Lembrete de consulta", msg, a.Id, link: $"agendamentos?id={a.Id}");
 
                     dbContext.Notificacoes.Add(notificacao);
                     novasNotificacoes.Add(notificacao);

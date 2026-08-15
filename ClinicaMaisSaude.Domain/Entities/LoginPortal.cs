@@ -8,8 +8,10 @@ namespace ClinicaMaisSaude.Domain.Entities
     public class Usuario
     {
         public Guid Id { get; private set; }
+        public string Nome { get; private set; }
         public string Email { get; private set; }
         public string Cpf { get; private set; }
+        public string? Telefone { get; private set; }
         public string SenhaHash { get; private set; }
         public TipoUsuario TipoUsuario { get; private set; }
         public DateTime DtCriado { get; private set; }
@@ -30,11 +32,13 @@ namespace ClinicaMaisSaude.Domain.Entities
 
         public virtual ICollection<UsoInadequadoIA> Violacoes { get; private set; } = new List<UsoInadequadoIA>();
 
-        public Usuario(string email, string cpf, string senhaHash, TipoUsuario tipoUsuario = TipoUsuario.Paciente)
+        public Usuario(string email, string cpf, string senhaHash, string nome, string? telefone = null, TipoUsuario tipoUsuario = TipoUsuario.Paciente)
         {
             Id = SequentialGuid.Next();
+            Nome = nome;
             Email = email;
             Cpf = cpf;
+            Telefone = telefone;
             SenhaHash = senhaHash;
             TipoUsuario = tipoUsuario;
             DtCriado = DateTime.UtcNow;
@@ -42,11 +46,13 @@ namespace ClinicaMaisSaude.Domain.Entities
             BloqueadoAte = null;
         }
 
-        public Usuario(Guid id, string email, string cpf, string senhaHash, TipoUsuario tipoUsuario, DateTime dtCriado)
+        public Usuario(Guid id, string email, string cpf, string senhaHash, string nome, string? telefone, TipoUsuario tipoUsuario, DateTime dtCriado)
         {
             Id = id;
+            Nome = nome;
             Email = email;
             Cpf = cpf;
+            Telefone = telefone;
             SenhaHash = senhaHash;
             TipoUsuario = tipoUsuario;
             DtCriado = dtCriado;
@@ -82,6 +88,18 @@ namespace ClinicaMaisSaude.Domain.Entities
         public void AtualizarEmail(string novoEmail)
         {
             Email = novoEmail;
+        }
+
+        public void AtualizarNome(string nome)
+        {
+            if (string.IsNullOrWhiteSpace(nome))
+                throw new ArgumentException("O nome não pode ser vazio.", nameof(nome));
+            Nome = nome;
+        }
+
+        public void AtualizarTelefone(string? telefone)
+        {
+            Telefone = telefone;
         }
 
         public void RegistrarFalhaLogin()

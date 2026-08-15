@@ -63,16 +63,17 @@ namespace ClinicaMaisSaude.Infrastructure.Data
 
             modelBuilder.Entity<Paciente>(entidade =>
             {
-                entidade.Property(p => p.Nome).HasMaxLength(100).IsRequired();
-                entidade.Property(p => p.Cpf).HasColumnType("varchar(11)").IsRequired();
-                entidade.Property(p => p.Telefone).HasColumnType("varchar(11)").IsRequired();
-                entidade.Property(p => p.Email).HasMaxLength(150).IsRequired();
                 entidade.Property(p => p.Ativo).HasDefaultValue(true);
                 entidade.Property(p => p.TemProblemaMemoria).HasDefaultValue(false);
                 entidade.Property(p => p.DtCriado).HasColumnName("Dt_Criado");
-                // Busca por CPF (exact match no cadastro/login e StartsWith na listagem).
-                // Único: um CPF não pode ter dois cadastros de paciente.
-                entidade.HasIndex(p => p.Cpf).IsUnique();
+
+                // Identidade (Nome/Cpf/Telefone/Email) vive no LoginPortal. O Paciente é um
+                // perfil magro que referencia a conta: UsuarioId obrigatório e único (1:1).
+                entidade.HasOne(p => p.Usuario)
+                    .WithMany()
+                    .HasForeignKey(p => p.UsuarioId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                entidade.HasIndex(p => p.UsuarioId).IsUnique();
             });
 
             modelBuilder.Entity<Agendamento>(entidade =>
@@ -231,8 +232,10 @@ namespace ClinicaMaisSaude.Infrastructure.Data
                 entidade.HasKey(u => u.Id);
                 entidade.HasIndex(u => u.Email).IsUnique();
                 entidade.HasIndex(u => u.Cpf).IsUnique();
+                entidade.Property(u => u.Nome).IsRequired().HasMaxLength(100);
                 entidade.Property(u => u.Email).IsRequired().HasMaxLength(150);
                 entidade.Property(u => u.Cpf).HasColumnType("varchar(11)").IsRequired();
+                entidade.Property(u => u.Telefone).HasColumnType("varchar(11)");
                 entidade.Property(u => u.SenhaHash).IsRequired();
                 entidade.Property(u => u.DtCriado).HasColumnName("Dt_Criado");
 
@@ -264,7 +267,6 @@ namespace ClinicaMaisSaude.Infrastructure.Data
             {
                 entidade.HasKey(p => p.Id);
                 entidade.Property(p => p.TipoProfissional).IsRequired();
-                entidade.Property(p => p.Nome).IsRequired().HasMaxLength(100);
                 entidade.Property(p => p.Crm).HasMaxLength(20);
                 entidade.Property(p => p.UfCrm).HasMaxLength(2);
                 entidade.Property(p => p.DtCriado).HasColumnName("Dt_Criado");
@@ -273,6 +275,7 @@ namespace ClinicaMaisSaude.Infrastructure.Data
                     .WithMany()
                     .HasForeignKey(p => p.UsuarioId)
                     .OnDelete(DeleteBehavior.Cascade);
+                entidade.HasIndex(p => p.UsuarioId).IsUnique();
 
                 entidade.HasOne<TipoProfissionalLookup>()
                     .WithMany()

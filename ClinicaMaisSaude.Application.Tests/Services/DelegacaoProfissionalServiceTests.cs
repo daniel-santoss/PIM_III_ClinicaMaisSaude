@@ -24,7 +24,7 @@ namespace ClinicaMaisSaude.Application.Tests.Services
 
         private Profissional AdicionarMedico(int? especialidade = null)
         {
-            var prof = new Profissional(Guid.NewGuid(), TipoProfissional.Medico, "Dr. Teste");
+            var prof = new Profissional(Guid.NewGuid(), TipoProfissional.Medico);
             if (especialidade.HasValue)
                 prof.Especialidades.Add(new ProfissionalEspecialidade(prof.Id, (EspecialidadeMedica)especialidade.Value));
             _profRepo.Profissionais.Add(prof);

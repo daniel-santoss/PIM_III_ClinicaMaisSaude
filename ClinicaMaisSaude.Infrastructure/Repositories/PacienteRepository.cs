@@ -32,7 +32,8 @@ namespace ClinicaMaisSaude.Infrastructure.Repositories
         {
             return await _context.Pacientes
                                 .AsNoTracking()
-                                .FirstOrDefaultAsync(p => p.Cpf == cpf);
+                                .Include(p => p.Usuario)
+                                .FirstOrDefaultAsync(p => p.Usuario.Cpf == cpf);
         }
 
         public async Task<IEnumerable<Paciente>> ObterTodosAsync(string? nome = null, string? cpf = null)
@@ -43,10 +44,10 @@ namespace ClinicaMaisSaude.Infrastructure.Repositories
                                 .Where(p => p.Ativo);
 
             if (!string.IsNullOrWhiteSpace(nome))
-                query = query.Where(p => p.Nome.Contains(nome));
+                query = query.Where(p => p.Usuario.Nome.Contains(nome));
 
             if (!string.IsNullOrWhiteSpace(cpf))
-                query = query.Where(p => p.Cpf.StartsWith(cpf));
+                query = query.Where(p => p.Usuario.Cpf.StartsWith(cpf));
 
             return await query.ToListAsync();
         }
@@ -59,12 +60,12 @@ namespace ClinicaMaisSaude.Infrastructure.Repositories
                                 .Where(p => p.Ativo);
 
             if (!string.IsNullOrWhiteSpace(nome))
-                query = query.Where(p => p.Nome.Contains(nome));
+                query = query.Where(p => p.Usuario.Nome.Contains(nome));
 
             if (!string.IsNullOrWhiteSpace(cpf))
-                query = query.Where(p => p.Cpf.StartsWith(cpf));
+                query = query.Where(p => p.Usuario.Cpf.StartsWith(cpf));
 
-            query = query.OrderBy(p => p.Nome);
+            query = query.OrderBy(p => p.Usuario.Nome);
 
             var totalCount = await query.CountAsync();
             var items = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();

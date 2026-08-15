@@ -110,7 +110,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
 
             if (pacienteId.HasValue)
             {
-                paciente = await _context.Pacientes.FirstOrDefaultAsync(p => p.Id == pacienteId.Value);
+                paciente = await _context.Pacientes.Include(p => p.Usuario).FirstOrDefaultAsync(p => p.Id == pacienteId.Value);
                 if (paciente == null)
                     throw new NotFoundException("Paciente não encontrado.");
 
@@ -298,10 +298,9 @@ Formato:
 
             if (paciente != null && textoResposta != null && textoResposta.Contains("Sintomas inválidos"))
             {
-                if (paciente.UsuarioId.HasValue)
                 {
-                    var totalViolacoes = await _context.ViolacoesIA.CountAsync(v => v.UsuarioId == paciente.UsuarioId.Value) + 1;
-                    var novaViolacao = new UsoInadequadoIA(paciente.UsuarioId.Value, TipoViolacao.UsoIndevido, sintomas);
+                    var totalViolacoes = await _context.ViolacoesIA.CountAsync(v => v.UsuarioId == paciente.UsuarioId) + 1;
+                    var novaViolacao = new UsoInadequadoIA(paciente.UsuarioId, TipoViolacao.UsoIndevido, sintomas);
                     _context.ViolacoesIA.Add(novaViolacao);
 
                     if (totalViolacoes == 2)
@@ -320,8 +319,8 @@ Formato:
                         var notificacao = new Notificacao(
                             admin.Id,
                             "Uso Indevido da IA",
-                            $"O paciente {paciente.Nome} (CPF: {paciente.Cpf}) enviou sintomas irrelevantes à saúde: \"{sintomas}\".",
-                            link: $"violacoes?busca={paciente.Cpf}"
+                            $"O paciente {paciente.Usuario.Nome} (CPF: {paciente.Usuario.Cpf}) enviou sintomas irrelevantes à saúde: \"{sintomas}\".",
+                            link: $"violacoes?busca={paciente.Usuario.Cpf}"
                         );
                         _context.Notificacoes.Add(notificacao);
                         notificacoes.Add(notificacao);
@@ -365,9 +364,7 @@ Formato:
                 {
                     a.Id,
                     PacienteId = a.UsuarioId,
-                    PacienteNome = _context.Pacientes.Where(p => p.UsuarioId == a.UsuarioId).Select(p => p.Nome).FirstOrDefault()
-                                   ?? _context.Profissionais.Where(p => p.UsuarioId == a.UsuarioId).Select(p => p.Nome).FirstOrDefault()
-                                   ?? (a.Usuario.TipoUsuario == TipoUsuario.Admin ? "Administrador" : a.Usuario.Email),
+                    PacienteNome = a.Usuario.Nome,
                     PacienteCpf = a.Usuario.Cpf,
                     PacienteTipo = _context.Pacientes.Any(p => p.UsuarioId == a.UsuarioId) ? PerfisUsuario.Paciente
                                    : _context.Profissionais.Where(p => p.UsuarioId == a.UsuarioId)
@@ -425,10 +422,10 @@ Formato:
                     agendamento.AlterarStatus(StatusAgendamento.Cancelado);
                     
                     var pac = await _context.Pacientes.FirstOrDefaultAsync(p => p.Id == agendamento.PacienteId);
-                    if (pac != null && pac.UsuarioId.HasValue)
+                    if (pac != null)
                     {
                         var notificacao = new Notificacao(
-                            pac.UsuarioId.Value,
+                            pac.UsuarioId,
                             "Agendamento Cancelado",
                             "Seu agendamento foi cancelado devido a reajustes cadastrais administrativos do profissional.",
                             agendamento.Id,

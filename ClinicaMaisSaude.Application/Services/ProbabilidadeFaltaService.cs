@@ -44,7 +44,7 @@ namespace ClinicaMaisSaude.Application.Services
             int qtdCancelamentos = historicoTodosAgendamentos.Count(h => 
                 (h.TipoEvento == TipoEventoHistorico.Cancelamento || h.TipoEvento == TipoEventoHistorico.MudancaStatus) && 
                 h.StatusNovo == StatusAgendamento.Cancelado &&
-                paciente.UsuarioId.HasValue && h.RealizadoPor == paciente.UsuarioId.Value &&
+                h.RealizadoPor == paciente.UsuarioId &&
                 (h.Dt_Criado - h.Agendamento.DtCriado).TotalHours > 1 &&
                 (h.Agendamento.DataHoraConsulta - h.Dt_Criado).TotalDays < 4);
             probabilidade += qtdCancelamentos * 10;

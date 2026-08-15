@@ -48,10 +48,10 @@ namespace ClinicaMaisSaude.Infrastructure.Data
 
             var senhaHash = BCrypt.Net.BCrypt.HashPassword(senha);
 
-            var admin = new Usuario(email, cpf, senhaHash, TipoUsuario.Admin);
+            var admin = new Usuario(email, cpf, senhaHash, "Administrador", null, TipoUsuario.Admin);
             await context.Usuarios.AddAsync(admin);
 
-            var profissionalAdmin = new Profissional(admin.Id, TipoProfissional.Medico, "Dr. Admin", "123456", "SP");
+            var profissionalAdmin = new Profissional(admin.Id, TipoProfissional.Medico, "123456", "SP");
             await context.Profissionais.AddAsync(profissionalAdmin);
 
             await context.SaveChangesAsync();

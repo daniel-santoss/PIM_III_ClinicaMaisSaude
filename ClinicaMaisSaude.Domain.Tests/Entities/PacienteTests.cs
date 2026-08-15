@@ -1,3 +1,4 @@
+using System;
 using ClinicaMaisSaude.Domain.Entities;
 
 namespace ClinicaMaisSaude.Domain.Tests.Entities
@@ -7,8 +8,9 @@ namespace ClinicaMaisSaude.Domain.Tests.Entities
     // sustentam essa regra de segurança.
     public class PacienteTests
     {
+        // Identidade (Nome/Cpf/Telefone/Email) vive no LoginPortal; o Paciente só referencia a conta.
         private static Paciente NovoPaciente() =>
-            new("Ana Souza", "12345678901", "11999999999", "ana@exemplo.com");
+            new(Guid.NewGuid());
 
         [Fact]
         public void Paciente_NasceAtivo()
@@ -45,8 +47,7 @@ namespace ClinicaMaisSaude.Domain.Tests.Entities
             paciente.Desativar();
 
             // Editar o perfil não deve "ressuscitar" uma conta encerrada.
-            paciente.AtualizarNome("Ana Maria Souza");
-            paciente.Atualizar("Ana", "12345678901", "11988888888", "ana2@exemplo.com", true);
+            paciente.Atualizar(true);
 
             Assert.False(paciente.Ativo);
         }
