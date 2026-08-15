@@ -1,6 +1,7 @@
 using System;
 using System.ComponentModel.DataAnnotations.Schema;
 using ClinicaMaisSaude.Domain.Common;
+using ClinicaMaisSaude.Domain.Enums;
 
 namespace ClinicaMaisSaude.Domain.Entities
 {
@@ -10,7 +11,7 @@ namespace ClinicaMaisSaude.Domain.Entities
         public string Email { get; private set; }
         public string Cpf { get; private set; }
         public string SenhaHash { get; private set; }
-        public bool IsAdmin { get; private set; }
+        public TipoUsuario TipoUsuario { get; private set; }
         public DateTime DtCriado { get; private set; }
         public DateTime? UltimoAcesso { get; private set; }
         
@@ -29,25 +30,25 @@ namespace ClinicaMaisSaude.Domain.Entities
 
         public virtual ICollection<UsoInadequadoIA> Violacoes { get; private set; } = new List<UsoInadequadoIA>();
 
-        public Usuario(string email, string cpf, string senhaHash, bool isAdmin = false)
+        public Usuario(string email, string cpf, string senhaHash, TipoUsuario tipoUsuario = TipoUsuario.Paciente)
         {
             Id = SequentialGuid.Next();
             Email = email;
             Cpf = cpf;
             SenhaHash = senhaHash;
-            IsAdmin = isAdmin;
+            TipoUsuario = tipoUsuario;
             DtCriado = DateTime.UtcNow;
             TentativasLogin = 0;
             BloqueadoAte = null;
         }
 
-        public Usuario(Guid id, string email, string cpf, string senhaHash, bool isAdmin, DateTime dtCriado)
+        public Usuario(Guid id, string email, string cpf, string senhaHash, TipoUsuario tipoUsuario, DateTime dtCriado)
         {
             Id = id;
             Email = email;
             Cpf = cpf;
             SenhaHash = senhaHash;
-            IsAdmin = isAdmin;
+            TipoUsuario = tipoUsuario;
             DtCriado = dtCriado;
             TentativasLogin = 0;
             BloqueadoAte = null;

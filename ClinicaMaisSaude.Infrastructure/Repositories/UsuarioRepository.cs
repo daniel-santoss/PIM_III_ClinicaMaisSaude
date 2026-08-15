@@ -1,4 +1,5 @@
 using ClinicaMaisSaude.Domain.Entities;
+using ClinicaMaisSaude.Domain.Enums;
 using ClinicaMaisSaude.Domain.Interfaces;
 using ClinicaMaisSaude.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -34,7 +35,7 @@ namespace ClinicaMaisSaude.Infrastructure.Repositories
 
             // 3. Verificar se é admin puro
             var usuario = await _context.Usuarios.AsNoTracking().FirstOrDefaultAsync(u => u.Id == id);
-            if (usuario != null && usuario.IsAdmin) return "Administrador";
+            if (usuario != null && usuario.TipoUsuario == TipoUsuario.Admin) return "Administrador";
 
             return "Sistema";
         }

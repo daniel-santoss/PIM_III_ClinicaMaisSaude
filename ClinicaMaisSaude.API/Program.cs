@@ -148,6 +148,9 @@ builder.Services.AddAuthentication(x =>
 // SignalR: notificações em tempo real (push), substituindo o polling do front-end.
 builder.Services.AddSignalR();
 
+// Autorização: admin é superusuário — satisfaz qualquer [Authorize] (regra central).
+builder.Services.AddSingleton<Microsoft.AspNetCore.Authorization.IAuthorizationHandler, ClinicaMaisSaude.API.Authorization.AdminSuperusuarioHandler>();
+
 // Injeção de Dependências
 builder.Services.AddSingleton<IDataHoraService, DataHoraService>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();

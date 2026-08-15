@@ -23,15 +23,15 @@ namespace ClinicaMaisSaude.API.Controllers
         [Authorize]
         public async Task<IActionResult> CadastroAdmin([FromBody] CadastroRequest request)
         {
-            var isAdminClaim = User.Claims.FirstOrDefault(c => c.Type == ClinicaClaims.IsAdmin)?.Value;
+            var isAdmin = User.IsInRole(PerfisUsuario.Admin);
             var tipoUsuario = User.Claims.FirstOrDefault(c => c.Type == ClinicaClaims.TipoUsuario)?.Value;
 
-            if (isAdminClaim != "true" && tipoUsuario != PerfisUsuario.Enfermeira)
+            if (!isAdmin && tipoUsuario != PerfisUsuario.Enfermeira)
             {
                 return Forbid();
             }
 
-            if (isAdminClaim != "true" && request.TipoUsuario != PerfisUsuario.Paciente)
+            if (!isAdmin && request.TipoUsuario != PerfisUsuario.Paciente)
             {
                 return BadRequest("Enfermeiras só podem cadastrar novos Pacientes.");
             }
@@ -50,10 +50,10 @@ namespace ClinicaMaisSaude.API.Controllers
         [Authorize]
         public async Task<IActionResult> ListarUsuarios()
         {
-            var isAdminClaim = User.Claims.FirstOrDefault(c => c.Type == ClinicaClaims.IsAdmin)?.Value;
+            var isAdmin = User.IsInRole(PerfisUsuario.Admin);
             var tipoUsuario = User.Claims.FirstOrDefault(c => c.Type == ClinicaClaims.TipoUsuario)?.Value;
 
-            if (isAdminClaim != "true" && tipoUsuario != PerfisUsuario.Enfermeira)
+            if (!isAdmin && tipoUsuario != PerfisUsuario.Enfermeira)
             {
                 return Forbid();
             }
@@ -66,10 +66,10 @@ namespace ClinicaMaisSaude.API.Controllers
         [Authorize]
         public async Task<IActionResult> ResetarSenha(Guid id, [FromBody] ResetSenhaRequest request)
         {
-            var isAdminClaim = User.Claims.FirstOrDefault(c => c.Type == ClinicaClaims.IsAdmin)?.Value;
+            var isAdmin = User.IsInRole(PerfisUsuario.Admin);
             var tipoUsuario = User.Claims.FirstOrDefault(c => c.Type == ClinicaClaims.TipoUsuario)?.Value;
 
-            if (isAdminClaim != "true" && tipoUsuario != PerfisUsuario.Enfermeira)
+            if (!isAdmin && tipoUsuario != PerfisUsuario.Enfermeira)
             {
                 return Forbid();
             }
@@ -93,8 +93,8 @@ namespace ClinicaMaisSaude.API.Controllers
         [Authorize]
         public async Task<IActionResult> PurgeTests()
         {
-            var isAdminClaim = User.Claims.FirstOrDefault(c => c.Type == ClinicaClaims.IsAdmin)?.Value;
-            if (isAdminClaim != "true")
+            var isAdmin = User.IsInRole(PerfisUsuario.Admin);
+            if (!isAdmin)
             {
                 return Forbid("Apenas administradores de sistemas podem purgar dados de homologação.");
             }

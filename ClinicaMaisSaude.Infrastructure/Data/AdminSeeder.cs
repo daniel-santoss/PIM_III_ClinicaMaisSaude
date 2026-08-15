@@ -23,7 +23,7 @@ namespace ClinicaMaisSaude.Infrastructure.Data
             bool isDevelopment,
             ILogger logger)
         {
-            if (await context.Usuarios.AnyAsync(u => u.IsAdmin))
+            if (await context.Usuarios.AnyAsync(u => u.TipoUsuario == TipoUsuario.Admin))
                 return;
 
             var email = config[ConfigKeys.AdminSeedEmail] ?? "admin@clinicamaissaude.com.br";
@@ -48,7 +48,7 @@ namespace ClinicaMaisSaude.Infrastructure.Data
 
             var senhaHash = BCrypt.Net.BCrypt.HashPassword(senha);
 
-            var admin = new Usuario(email, cpf, senhaHash, isAdmin: true);
+            var admin = new Usuario(email, cpf, senhaHash, TipoUsuario.Admin);
             await context.Usuarios.AddAsync(admin);
 
             var profissionalAdmin = new Profissional(admin.Id, TipoProfissional.Medico, "Dr. Admin", "123456", "SP");

@@ -103,10 +103,17 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                 await _context.SaveChangesAsync();
             }
 
-            string tipoUsuarioStr = PerfisUsuario.Admin;
+            // Papel para o token: admin é explícito (não mais inferido do perfil);
+            // profissional detalha em Medico/Enfermeira (usado por regras de negócio);
+            // paciente é paciente. O claim Role dirige o [Authorize].
+            string tipoUsuarioStr;
             Guid? pacienteId = null;
 
-            if (perfilProfissional != null)
+            if (usuario.TipoUsuario == TipoUsuario.Admin)
+            {
+                tipoUsuarioStr = PerfisUsuario.Admin;
+            }
+            else if (perfilProfissional != null)
             {
                 tipoUsuarioStr = perfilProfissional.TipoProfissional.ToString();
             }
@@ -114,6 +121,10 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             {
                 tipoUsuarioStr = PerfisUsuario.Paciente;
                 pacienteId = perfilPaciente.Id;
+            }
+            else
+            {
+                tipoUsuarioStr = usuario.TipoUsuario.ToString();
             }
 
             var tokenHandler = new JwtSecurityTokenHandler();
@@ -127,7 +138,6 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                 new Claim(ClaimTypes.NameIdentifier, usuario.Id.ToString()),
                 new Claim(ClaimTypes.Role, tipoUsuarioStr),
                 new Claim(ClinicaClaims.TipoUsuario, tipoUsuarioStr),
-                new Claim(ClinicaClaims.IsAdmin, usuario.IsAdmin.ToString().ToLower()),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
 
@@ -171,13 +181,13 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             return new LoginResponse
             {
                 Token = jwtToken,
-                Nome = perfilProfissional?.Nome ?? perfilPaciente?.Nome ?? (usuario.IsAdmin ? "Administrador" : "Usuário"),
+                Nome = perfilProfissional?.Nome ?? perfilPaciente?.Nome ?? (usuario.TipoUsuario == TipoUsuario.Admin ? "Administrador" : "Usuário"),
                 RefreshToken = refreshToken.Token,
                 UsuarioId = usuario.Id,
                 TipoUsuario = tipoUsuarioStr,
                 PacienteId = pacienteId,
                 ProfissionalId = perfilProfissional?.Id,
-                IsAdmin = usuario.IsAdmin,
+                IsAdmin = usuario.TipoUsuario == TipoUsuario.Admin,
                 PenalidadeRemovida = penalidadeRemovida,
                 FotoBase64 = usuario.FotoBase64
             };
@@ -220,23 +230,26 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             var perfilProfissional = await _context.Profissionais.AsNoTracking().FirstOrDefaultAsync(p => p.UsuarioId == usuario.Id);
             var perfilPaciente = await _context.Pacientes.AsNoTracking().FirstOrDefaultAsync(p => p.UsuarioId == usuario.Id);
 
-            string tipoUsuarioStr = PerfisUsuario.Admin;
+            string tipoUsuarioStr;
             Guid? pacienteId = null;
 
-            if (perfilProfissional != null)
+            if (usuario.TipoUsuario == TipoUsuario.Admin)
+                tipoUsuarioStr = PerfisUsuario.Admin;
+            else if (perfilProfissional != null)
                 tipoUsuarioStr = perfilProfissional.TipoProfissional.ToString();
             else if (perfilPaciente != null)
             {
                 tipoUsuarioStr = PerfisUsuario.Paciente;
                 pacienteId = perfilPaciente.Id;
             }
+            else
+                tipoUsuarioStr = usuario.TipoUsuario.ToString();
 
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.NameIdentifier, usuario.Id.ToString()),
                 new Claim(ClaimTypes.Role, tipoUsuarioStr),
                 new Claim(ClinicaClaims.TipoUsuario, tipoUsuarioStr),
-                new Claim(ClinicaClaims.IsAdmin, usuario.IsAdmin.ToString().ToLower()),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
 
@@ -273,13 +286,13 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             return new LoginResponse
             {
                 Token = jwtToken,
-                Nome = perfilProfissional?.Nome ?? perfilPaciente?.Nome ?? (usuario.IsAdmin ? "Administrador" : "Usuário"),
+                Nome = perfilProfissional?.Nome ?? perfilPaciente?.Nome ?? (usuario.TipoUsuario == TipoUsuario.Admin ? "Administrador" : "Usuário"),
                 RefreshToken = refreshToken.Token,
                 UsuarioId = usuario.Id,
                 TipoUsuario = tipoUsuarioStr,
                 PacienteId = pacienteId,
                 ProfissionalId = perfilProfissional?.Id,
-                IsAdmin = usuario.IsAdmin,
+                IsAdmin = usuario.TipoUsuario == TipoUsuario.Admin,
                 FotoBase64 = usuario.FotoBase64
             };
         }

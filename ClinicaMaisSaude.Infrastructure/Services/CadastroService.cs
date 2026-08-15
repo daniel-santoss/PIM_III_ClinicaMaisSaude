@@ -55,8 +55,17 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             // Hash da senha
             var senhaHash = BCrypt.Net.BCrypt.HashPassword(request.Senha);
 
+            // Papel (grosso) da conta a partir do tipo solicitado.
+            TipoUsuario tipoConta;
+            if (request.TipoUsuario == PerfisUsuario.Paciente)
+                tipoConta = TipoUsuario.Paciente;
+            else if (request.TipoUsuario == PerfisUsuario.Medico || request.TipoUsuario == PerfisUsuario.Enfermeira)
+                tipoConta = TipoUsuario.Profissional;
+            else
+                return new CadastroResult { Sucesso = false, Mensagem = "Tipo de usuário inválido." };
+
             // Criação da identidade (LoginPortal)
-            var novoUsuario = new Usuario(request.Email, cpfLimpo, senhaHash);
+            var novoUsuario = new Usuario(request.Email, cpfLimpo, senhaHash, tipoConta);
             _context.Usuarios.Add(novoUsuario);
 
             // Criação do perfil associado

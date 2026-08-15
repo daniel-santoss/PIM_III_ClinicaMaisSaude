@@ -41,6 +41,7 @@ namespace ClinicaMaisSaude.Infrastructure.Data
         public DbSet<Usuario> Usuarios { get; set; }
         public DbSet<Profissional> Profissionais { get; set; }
         public DbSet<StatusAgendamentoLookup> StatusAgendamentoLookup { get; set; }
+        public DbSet<TipoUsuarioLookup> TipoUsuarioLookup { get; set; }
         public DbSet<TipoProfissionalLookup> TipoProfissionalLookup { get; set; }
         public DbSet<EspecialidadeLookup> EspecialidadeLookup { get; set; }
         public DbSet<TipoConsultaLookup> TipoConsultaLookup { get; set; }
@@ -233,8 +234,12 @@ namespace ClinicaMaisSaude.Infrastructure.Data
                 entidade.Property(u => u.Email).IsRequired().HasMaxLength(150);
                 entidade.Property(u => u.Cpf).HasColumnType("varchar(11)").IsRequired();
                 entidade.Property(u => u.SenhaHash).IsRequired();
-                entidade.Property(u => u.IsAdmin).HasDefaultValue(false);
                 entidade.Property(u => u.DtCriado).HasColumnName("Dt_Criado");
+
+                entidade.HasOne<TipoUsuarioLookup>()
+                    .WithMany()
+                    .HasForeignKey(u => u.TipoUsuario)
+                    .OnDelete(DeleteBehavior.Restrict);
 
                 // Foto 1:1 em tabela separada (UsuarioFotos), com PK compartilhada. Só é
                 // materializada via .Include(u => u.Foto). Cascade: remover o usuário (ou
@@ -295,6 +300,16 @@ namespace ClinicaMaisSaude.Infrastructure.Data
             });
 
             var dtSeedLookup = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+            modelBuilder.Entity<TipoUsuarioLookup>(entidade =>
+            {
+                entidade.HasKey(s => s.Id);
+                entidade.Property(s => s.Id).HasConversion<int>().ValueGeneratedNever();
+                entidade.Property(s => s.Nome).IsRequired().HasMaxLength(50);
+                entidade.Property(s => s.DtCriado).HasColumnName("Dt_Criado");
+                entidade.HasData(Enum.GetValues(typeof(TipoUsuario)).Cast<TipoUsuario>()
+                    .Select(v => new TipoUsuarioLookup { Id = v, Nome = v.ToString(), DtCriado = dtSeedLookup }));
+            });
 
             modelBuilder.Entity<TipoProfissionalLookup>(entidade =>
             {

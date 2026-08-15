@@ -222,7 +222,7 @@ Formato:
 
                         var notificacoes = await CancelarAgendamentosENotificarAsync(usuarioLogadoId);
 
-                        var admins = await _context.Usuarios.AsNoTracking().Where(u => u.IsAdmin).ToListAsync();
+                        var admins = await _context.Usuarios.AsNoTracking().Where(u => u.TipoUsuario == TipoUsuario.Admin).ToListAsync();
                         foreach (var admin in admins)
                         {
                             var notificacao = new Notificacao(
@@ -277,7 +277,7 @@ Formato:
 
                     var notificacoes = await CancelarAgendamentosENotificarAsync(usuarioLogadoId);
 
-                    var admins = await _context.Usuarios.AsNoTracking().Where(u => u.IsAdmin).ToListAsync();
+                    var admins = await _context.Usuarios.AsNoTracking().Where(u => u.TipoUsuario == TipoUsuario.Admin).ToListAsync();
                     foreach (var admin in admins)
                     {
                         var notificacao = new Notificacao(
@@ -314,7 +314,7 @@ Formato:
                     }
 
                     var notificacoes = new List<Notificacao>();
-                    var admins = await _context.Usuarios.AsNoTracking().Where(u => u.IsAdmin).ToListAsync();
+                    var admins = await _context.Usuarios.AsNoTracking().Where(u => u.TipoUsuario == TipoUsuario.Admin).ToListAsync();
                     foreach (var admin in admins)
                     {
                         var notificacao = new Notificacao(
@@ -367,13 +367,13 @@ Formato:
                     PacienteId = a.UsuarioId,
                     PacienteNome = _context.Pacientes.Where(p => p.UsuarioId == a.UsuarioId).Select(p => p.Nome).FirstOrDefault()
                                    ?? _context.Profissionais.Where(p => p.UsuarioId == a.UsuarioId).Select(p => p.Nome).FirstOrDefault()
-                                   ?? (a.Usuario.IsAdmin ? "Administrador" : a.Usuario.Email),
+                                   ?? (a.Usuario.TipoUsuario == TipoUsuario.Admin ? "Administrador" : a.Usuario.Email),
                     PacienteCpf = a.Usuario.Cpf,
                     PacienteTipo = _context.Pacientes.Any(p => p.UsuarioId == a.UsuarioId) ? PerfisUsuario.Paciente
                                    : _context.Profissionais.Where(p => p.UsuarioId == a.UsuarioId)
                                        .Select(p => p.TipoProfissional == TipoProfissional.Medico ? PerfisUsuario.Medico : PerfisUsuario.Enfermeira)
                                        .FirstOrDefault()
-                                   ?? (a.Usuario.IsAdmin ? "Administrador" : PerfisUsuario.Paciente),
+                                   ?? (a.Usuario.TipoUsuario == TipoUsuario.Admin ? "Administrador" : PerfisUsuario.Paciente),
                     PacienteFotoBase64 = a.Usuario.Foto != null ? a.Usuario.Foto.FotoBase64 : null,
                     TipoViolacao = a.TipoViolacao.ToString(),
                     a.TextoInserido,
