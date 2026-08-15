@@ -52,6 +52,15 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                 }
             }
 
+            // Telefone é opcional: se informado, sanitiza para só dígitos e exige DDD+9 (11).
+            string? telefoneLimpo = null;
+            if (!string.IsNullOrWhiteSpace(request.Telefone))
+            {
+                telefoneLimpo = new string(request.Telefone.Where(char.IsDigit).ToArray());
+                if (telefoneLimpo.Length != 11)
+                    return new CadastroResult { Sucesso = false, Mensagem = "Telefone inválido. Informe DDD + número (11 dígitos)." };
+            }
+
             // Hash da senha
             var senhaHash = BCrypt.Net.BCrypt.HashPassword(request.Senha);
 
@@ -65,7 +74,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                 return new CadastroResult { Sucesso = false, Mensagem = "Tipo de usuário inválido." };
 
             // Criação da identidade (LoginPortal) — dona de Nome/Cpf/Email/Telefone.
-            var novoUsuario = new Usuario(request.Email, cpfLimpo, senhaHash, request.Nome, null, tipoConta);
+            var novoUsuario = new Usuario(request.Email, cpfLimpo, senhaHash, request.Nome, telefoneLimpo, tipoConta);
             _context.Usuarios.Add(novoUsuario);
 
             // Criação do perfil associado (magro; identidade fica no LoginPortal)

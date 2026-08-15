@@ -2,7 +2,7 @@ import { API_URL } from "../constants/api";
 import { perfis, type TipoUsuario } from "../constants/perfis";
 import { useState } from "react";
 import type { FormEvent } from "react";
-import { mascaraCpf } from "../utils/validators";
+import { mascaraCpf, mascaraTelefone } from "../utils/validators";
 import { ChevronDown, Check } from 'lucide-react';
 import { useToast } from "../hooks/useToast";
 
@@ -11,6 +11,7 @@ export function CadastroUsuario({ onUserCreated, tipoUsuarioLogado }: { onUserCr
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [cpf, setCpf] = useState("");
+  const [telefone, setTelefone] = useState("");
   const [senha, setSenha] = useState("");
   const [tipoUsuario, setTipoUsuario] = useState<TipoUsuario>(perfis.paciente);
   const [crm, setCrm] = useState("");
@@ -38,6 +39,7 @@ export function CadastroUsuario({ onUserCreated, tipoUsuarioLogado }: { onUserCr
     setNome("");
     setEmail("");
     setCpf("");
+    setTelefone("");
     setSenha("");
     setTipoUsuario(perfis.paciente);
     setCrm("");
@@ -62,6 +64,7 @@ export function CadastroUsuario({ onUserCreated, tipoUsuarioLogado }: { onUserCr
           nome,
           email,
           cpf,
+          telefone: telefone || null,
           senha,
           tipoUsuario,
           crm: tipoUsuario === perfis.medico ? crm : null,
@@ -140,6 +143,20 @@ export function CadastroUsuario({ onUserCreated, tipoUsuarioLogado }: { onUserCr
               onChange={(e) => setSenha(e.target.value)}
               className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-[#7C3AED] focus:border-transparent outline-none transition-all"
               placeholder="******"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Telefone</label>
+            <input
+              type="text"
+              maxLength={15}
+              value={telefone}
+              onChange={(e) => setTelefone(mascaraTelefone(e.target.value))}
+              className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-[#7C3AED] focus:border-transparent outline-none transition-all"
+              placeholder="(00) 00000-0000"
             />
           </div>
         </div>
