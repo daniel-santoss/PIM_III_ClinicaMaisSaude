@@ -211,7 +211,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
 
         private async Task<AuditoriaIADto> ObterAuditoriaIAAsync(DateTime inicio, DateTime fim)
         {
-            var violacoes = await _db.ViolacoesIA.AsNoTracking()
+            var violacoes = await _db.UsoInadequadoIA.AsNoTracking()
                 .Where(v => v.DtCriado >= inicio && v.DtCriado <= fim)
                 .ToListAsync();
 

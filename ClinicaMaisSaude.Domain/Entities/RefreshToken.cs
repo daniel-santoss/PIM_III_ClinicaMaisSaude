@@ -8,10 +8,10 @@ namespace ClinicaMaisSaude.Domain.Entities
         public Guid Id { get; set; } = SequentialGuid.Next();
         public string Token { get; set; } = string.Empty;
         public string JwtId { get; set; } = string.Empty; // ID do JWT associado
-        public bool IsUsed { get; set; }
-        public bool IsRevoked { get; set; }
-        public DateTime AddedDate { get; set; } = DateTime.UtcNow;
-        public DateTime ExpiryDate { get; set; }
+        public bool Usado { get; set; }
+        public bool Revogado { get; set; }
+        public DateTime DtCriado { get; set; } = DateTime.UtcNow;
+        public DateTime DtExpiracao { get; set; }
 
         public Guid UsuarioId { get; set; }
         public Usuario Usuario { get; set; } = null!;

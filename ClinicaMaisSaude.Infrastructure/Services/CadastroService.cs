@@ -216,10 +216,10 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                 _context.Agendamentos.RemoveRange(agendamentos);
             }
 
-            var violacoes = await _context.ViolacoesIA
+            var violacoes = await _context.UsoInadequadoIA
                 .Where(v => testUserIds.Contains(v.UsuarioId))
                 .ToListAsync();
-            _context.ViolacoesIA.RemoveRange(violacoes);
+            _context.UsoInadequadoIA.RemoveRange(violacoes);
 
             var tokens = await _context.RefreshTokens
                 .Where(t => testUserIds.Contains(t.UsuarioId))

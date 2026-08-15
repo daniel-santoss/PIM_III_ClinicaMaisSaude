@@ -148,10 +148,10 @@ namespace ClinicaMaisSaude.Infrastructure.Services
 
             // Revoga refresh tokens ativos → nenhuma sessão consegue renovar o acesso.
             var tokens = await _context.RefreshTokens
-                .Where(t => t.UsuarioId == usuarioId && !t.IsRevoked)
+                .Where(t => t.UsuarioId == usuarioId && !t.Revogado)
                 .ToListAsync();
             foreach (var t in tokens)
-                t.IsRevoked = true;
+                t.Revogado = true;
 
             await _context.SaveChangesAsync();
             return null; // sucesso

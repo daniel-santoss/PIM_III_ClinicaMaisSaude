@@ -64,7 +64,7 @@ namespace ClinicaMaisSaude.Infrastructure.Data
         public DbSet<TipoViolacaoLookup> TipoViolacaoLookup { get; set; }
         public DbSet<AgendamentoHistorico> AgendamentoHistoricos { get; set; }
         public DbSet<ProfissionalEspecialidade> ProfissionalEspecialidades { get; set; }
-        public DbSet<UsoInadequadoIA> ViolacoesIA { get; set; } = null!;
+        public DbSet<UsoInadequadoIA> UsoInadequadoIA { get; set; } = null!;
         public DbSet<RefreshToken> RefreshTokens { get; set; } = null!;
         public DbSet<Notificacao> Notificacoes { get; set; } = null!;
         public DbSet<UsuarioFoto> UsuarioFotos { get; set; } = null!;
@@ -235,6 +235,8 @@ namespace ClinicaMaisSaude.Infrastructure.Data
                 entidade.HasKey(r => r.Id);
                 entidade.Property(r => r.Token).IsRequired().HasMaxLength(255);
                 entidade.Property(r => r.JwtId).IsRequired().HasMaxLength(255);
+                entidade.Property(r => r.DtCriado).HasColumnName("Dt_Criado");
+                entidade.Property(r => r.DtExpiracao).HasColumnName("Dt_Expiracao");
                 // Todo refresh faz WHERE Token = @token; único evita table scan e duplicidade.
                 entidade.HasIndex(r => r.Token).IsUnique();
                 entidade.HasOne(r => r.Usuario)

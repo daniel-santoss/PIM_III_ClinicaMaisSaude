@@ -162,11 +162,11 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             {
                 Token = Guid.NewGuid().ToString() + Guid.NewGuid().ToString(),
                 JwtId = token.Id,
-                IsUsed = false,
-                IsRevoked = false,
+                Usado = false,
+                Revogado = false,
                 UsuarioId = usuario.Id,
-                AddedDate = DateTime.UtcNow,
-                ExpiryDate = DateTime.UtcNow.AddDays(7)
+                DtCriado = DateTime.UtcNow,
+                DtExpiracao = DateTime.UtcNow.AddDays(7)
             };
 
             await LimparRefreshTokensAsync(usuario.Id);
@@ -196,7 +196,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             var limiteUsados = agora.AddDays(-1);
             await _context.RefreshTokens
                 .Where(t => t.UsuarioId == usuarioId &&
-                            (t.ExpiryDate < agora || (t.IsUsed && t.AddedDate < limiteUsados)))
+                            (t.DtExpiracao < agora || (t.Usado && t.DtCriado < limiteUsados)))
                 .ExecuteDeleteAsync();
         }
 
@@ -210,11 +210,11 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             var storedToken = await _context.RefreshTokens.FirstOrDefaultAsync(x => x.Token == request.RefreshToken);
 
             if (storedToken == null) throw new UnauthorizedException("Refresh token não existe.");
-            if (storedToken.IsUsed) throw new UnauthorizedException("Refresh token já foi utilizado.");
-            if (storedToken.IsRevoked) throw new UnauthorizedException("Refresh token foi revogado.");
-            if (storedToken.ExpiryDate < DateTime.UtcNow) throw new UnauthorizedException("Refresh token expirado.");
+            if (storedToken.Usado) throw new UnauthorizedException("Refresh token já foi utilizado.");
+            if (storedToken.Revogado) throw new UnauthorizedException("Refresh token foi revogado.");
+            if (storedToken.DtExpiracao < DateTime.UtcNow) throw new UnauthorizedException("Refresh token expirado.");
 
-            storedToken.IsUsed = true;
+            storedToken.Usado = true;
             _context.RefreshTokens.Update(storedToken);
             await _context.SaveChangesAsync();
 
@@ -266,11 +266,11 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             {
                 Token = Guid.NewGuid().ToString() + Guid.NewGuid().ToString(),
                 JwtId = token.Id,
-                IsUsed = false,
-                IsRevoked = false,
+                Usado = false,
+                Revogado = false,
                 UsuarioId = usuario.Id,
-                AddedDate = DateTime.UtcNow,
-                ExpiryDate = DateTime.UtcNow.AddDays(7)
+                DtCriado = DateTime.UtcNow,
+                DtExpiracao = DateTime.UtcNow.AddDays(7)
             };
 
             await LimparRefreshTokensAsync(usuario.Id);

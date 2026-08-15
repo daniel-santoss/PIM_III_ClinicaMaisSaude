@@ -222,7 +222,7 @@ Formato:
                         if (pacienteBan != null) pacienteBan.Banir();
                         else userObj.BloquearPermanentemente();
                         var novaViolacao = new UsoInadequadoIA(usuarioLogadoId, TipoViolacao.Injecao, sintomas);
-                        _context.ViolacoesIA.Add(novaViolacao);
+                        _context.UsoInadequadoIA.Add(novaViolacao);
 
                         var notificacoes = await CancelarAgendamentosENotificarAsync(usuarioLogadoId);
 
@@ -281,7 +281,7 @@ Formato:
                     if (pacienteBan != null) pacienteBan.Banir();
                     else userObj.BloquearPermanentemente();
                     var novaViolacao = new UsoInadequadoIA(usuarioLogadoId, TipoViolacao.Injecao, sintomas);
-                    _context.ViolacoesIA.Add(novaViolacao);
+                    _context.UsoInadequadoIA.Add(novaViolacao);
 
                     var notificacoes = await CancelarAgendamentosENotificarAsync(usuarioLogadoId);
 
@@ -307,9 +307,9 @@ Formato:
             if (paciente != null && textoResposta != null && textoResposta.Contains("Sintomas inválidos"))
             {
                 {
-                    var totalViolacoes = await _context.ViolacoesIA.CountAsync(v => v.UsuarioId == paciente.UsuarioId) + 1;
+                    var totalViolacoes = await _context.UsoInadequadoIA.CountAsync(v => v.UsuarioId == paciente.UsuarioId) + 1;
                     var novaViolacao = new UsoInadequadoIA(paciente.UsuarioId, TipoViolacao.UsoIndevido, sintomas);
-                    _context.ViolacoesIA.Add(novaViolacao);
+                    _context.UsoInadequadoIA.Add(novaViolacao);
 
                     if (totalViolacoes == 2)
                     {
@@ -379,7 +379,7 @@ Formato:
 
         public async Task<IEnumerable<object>> ObterViolacoesAsync()
         {
-            var violacoes = await _context.ViolacoesIA
+            var violacoes = await _context.UsoInadequadoIA
                 .AsNoTracking()
                 .Include(a => a.Usuario)
                 .Select(a => new
@@ -411,7 +411,7 @@ Formato:
 
         public async Task<IEnumerable<object>> ObterViolacoesDebugAsync()
         {
-            var violacoes = await _context.ViolacoesIA
+            var violacoes = await _context.UsoInadequadoIA
                 .AsNoTracking()
                 .Select(a => new
                 {
