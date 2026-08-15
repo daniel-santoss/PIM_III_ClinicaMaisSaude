@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ClinicaMaisSaude.Infrastructure.Migrations
 {
     [DbContext(typeof(ClinicaDbContext))]
-    [Migration("20260802023558_CorrigirValorMedicinaEsportiva")]
-    partial class CorrigirValorMedicinaEsportiva
+    [Migration("20260815010919_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -236,7 +236,8 @@ namespace ClinicaMaisSaude.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Cpf");
+                    b.HasIndex("Cpf")
+                        .IsUnique();
 
                     b.HasIndex("UsuarioId");
 
@@ -435,8 +436,7 @@ namespace ClinicaMaisSaude.Infrastructure.Migrations
 
                     b.Property<string>("Cpf")
                         .IsRequired()
-                        .HasMaxLength(14)
-                        .HasColumnType("nvarchar(14)");
+                        .HasColumnType("varchar(11)");
 
                     b.Property<DateTime>("DtCriado")
                         .HasColumnType("datetime2")
@@ -503,7 +503,7 @@ namespace ClinicaMaisSaude.Infrastructure.Migrations
                     b.HasOne("ClinicaMaisSaude.Domain.Entities.Agendamento", "Agendamento")
                         .WithMany()
                         .HasForeignKey("AgendamentoId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Agendamento");
