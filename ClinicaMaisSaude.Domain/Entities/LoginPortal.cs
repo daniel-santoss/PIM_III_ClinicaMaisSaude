@@ -5,9 +5,11 @@ using ClinicaMaisSaude.Domain.Enums;
 
 namespace ClinicaMaisSaude.Domain.Entities
 {
-    public class Usuario
+    public class Usuario : IAuditavel
     {
         public Guid Id { get; private set; }
+        public DateTime? UltAtualizacao { get; private set; }
+        public void MarcarAtualizacao(DateTime quando) => UltAtualizacao = quando;
         public string Nome { get; private set; }
         public string Email { get; private set; }
         public string Cpf { get; private set; }

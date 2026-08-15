@@ -4,9 +4,11 @@ using ClinicaMaisSaude.Domain.Common;
 
 namespace ClinicaMaisSaude.Domain.Entities
 {
-    public class Profissional
+    public class Profissional : IAuditavel
     {
         public Guid Id { get; private set; }
+        public DateTime? UltAtualizacao { get; private set; }
+        public void MarcarAtualizacao(DateTime quando) => UltAtualizacao = quando;
         public Guid UsuarioId { get; private set; }
         public TipoProfissional TipoProfissional { get; private set; }
         public string? Crm { get; private set; }

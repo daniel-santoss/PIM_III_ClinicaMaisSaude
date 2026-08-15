@@ -7,9 +7,11 @@ namespace ClinicaMaisSaude.Domain.Entities
 
     // Perfil clínico. A identidade (Nome/Cpf/Telefone/Email) vive no LoginPortal (Usuario);
     // um Paciente sempre referencia uma conta (UsuarioId obrigatório) — não há paciente sem login.
-    public class Paciente
+    public class Paciente : IAuditavel
     {
         public Guid Id { get; private set; }
+        public DateTime? UltAtualizacao { get; private set; }
+        public void MarcarAtualizacao(DateTime quando) => UltAtualizacao = quando;
         public SituacaoCliente SituacaoCliente { get; private set; }
         public bool TemProblemaMemoria { get; private set; }
         public Guid UsuarioId { get; private set; }

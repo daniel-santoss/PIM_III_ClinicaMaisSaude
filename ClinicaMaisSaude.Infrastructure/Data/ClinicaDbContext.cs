@@ -1,4 +1,5 @@
 using ClinicaMaisSaude.Application.Exceptions;
+using ClinicaMaisSaude.Domain.Common;
 using ClinicaMaisSaude.Domain.Entities;
 using ClinicaMaisSaude.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
@@ -19,6 +20,7 @@ namespace ClinicaMaisSaude.Infrastructure.Data
         /// </summary>
         public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         {
+            CarimbarAtualizacao();
             try
             {
                 return await base.SaveChangesAsync(cancellationToken);
@@ -26,6 +28,18 @@ namespace ClinicaMaisSaude.Infrastructure.Data
             catch (DbUpdateConcurrencyException)
             {
                 throw new ConflictException("O registro foi modificado por outra operação. Recarregue os dados e tente novamente.");
+            }
+        }
+
+        // Carimbo central de updated-at: toda entidade IAuditavel modificada recebe a hora
+        // atual em ult_Atualizacao. Fica só aqui (nunca nos serviços) para não haver drift.
+        private void CarimbarAtualizacao()
+        {
+            var agora = DateTime.UtcNow;
+            foreach (var entry in ChangeTracker.Entries<IAuditavel>())
+            {
+                if (entry.State == EntityState.Modified)
+                    entry.Entity.MarcarAtualizacao(agora);
             }
         }
 
@@ -66,6 +80,7 @@ namespace ClinicaMaisSaude.Infrastructure.Data
             {
                 entidade.Property(p => p.TemProblemaMemoria).HasDefaultValue(false);
                 entidade.Property(p => p.DtCriado).HasColumnName("Dt_Criado");
+                entidade.Property(p => p.UltAtualizacao).HasColumnName("ult_Atualizacao");
 
                 // Situação do cadastro (substitui o antigo bool Ativo): FK ao lookup, default Ativo.
                 entidade.Property(p => p.SituacaoCliente).HasDefaultValue(SituacaoCliente.Ativo);
@@ -95,6 +110,7 @@ namespace ClinicaMaisSaude.Infrastructure.Data
                 entidade.Property(a => a.LembreteManhaEnviado).HasDefaultValue(false);
                 entidade.Property(a => a.LembreteDuasHorasEnviado).HasDefaultValue(false);
                 entidade.Property(a => a.DtCriado).HasColumnName("Dt_Criado");
+                entidade.Property(a => a.UltAtualizacao).HasColumnName("ult_Atualizacao");
 
                 // Token de concorrência otimista: SQL Server gera/atualiza automaticamente
                 // uma coluna rowversion a cada UPDATE; o EF a inclui na cláusula WHERE do
@@ -262,6 +278,7 @@ namespace ClinicaMaisSaude.Infrastructure.Data
                 entidade.Property(u => u.Telefone).HasColumnType("varchar(11)");
                 entidade.Property(u => u.SenhaHash).IsRequired();
                 entidade.Property(u => u.DtCriado).HasColumnName("Dt_Criado");
+                entidade.Property(u => u.UltAtualizacao).HasColumnName("ult_Atualizacao");
 
                 entidade.HasOne<TipoUsuarioLookup>()
                     .WithMany()
@@ -294,6 +311,7 @@ namespace ClinicaMaisSaude.Infrastructure.Data
                 entidade.Property(p => p.Crm).HasMaxLength(20);
                 entidade.Property(p => p.UfCrm).HasMaxLength(2);
                 entidade.Property(p => p.DtCriado).HasColumnName("Dt_Criado");
+                entidade.Property(p => p.UltAtualizacao).HasColumnName("ult_Atualizacao");
 
                 entidade.HasOne(p => p.Usuario)
                     .WithMany()
