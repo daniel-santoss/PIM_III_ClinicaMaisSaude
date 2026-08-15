@@ -98,15 +98,6 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                 throw new UnauthorizedException("Esta conta foi encerrada.");
             }
 
-            // Verificar e consumir flag de penalidade removida
-            bool penalidadeRemovida = false;
-            if (perfilPaciente?.PenalidadeRemovidaAvisar == true)
-            {
-                penalidadeRemovida = true;
-                perfilPaciente.ConsumarAvisoPenalidade();
-                await _context.SaveChangesAsync();
-            }
-
             // Papel para o token: admin é explícito (não mais inferido do perfil);
             // profissional detalha em Medico/Enfermeira (usado por regras de negócio);
             // paciente é paciente. O claim Role dirige o [Authorize].
@@ -192,7 +183,6 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                 PacienteId = pacienteId,
                 ProfissionalId = perfilProfissional?.Id,
                 IsAdmin = usuario.TipoUsuario == TipoUsuario.Admin,
-                PenalidadeRemovida = penalidadeRemovida,
                 FotoBase64 = usuario.FotoBase64
             };
         }

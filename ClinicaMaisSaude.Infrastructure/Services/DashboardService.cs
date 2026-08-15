@@ -215,8 +215,9 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                 .Where(v => v.DtCriado >= inicio && v.DtCriado <= fim)
                 .ToListAsync();
 
-            var bloqueados = await _db.Pacientes.AsNoTracking()
-                .Where(p => p.BloqueadoIAAte.HasValue && p.BloqueadoIAAte.Value > DateTime.UtcNow)
+            // Penalidade de IA agora vive no LoginPortal (Fase 6).
+            var bloqueados = await _db.Usuarios.AsNoTracking()
+                .Where(u => u.BloqueadoIAAte.HasValue && u.BloqueadoIAAte.Value > DateTime.UtcNow)
                 .CountAsync();
 
             return new AuditoriaIADto

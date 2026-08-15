@@ -20,6 +20,10 @@ namespace ClinicaMaisSaude.Domain.Entities
         public int TentativasLogin { get; private set; }
         public DateTime? BloqueadoAte { get; private set; }
 
+        // Penalidade temporária de uso da IA (triagem). Fica na conta (LoginPortal) porque
+        // as violações em UsoInadequadoIA já são por UsuarioId. Auto-expira pela data.
+        public DateTime? BloqueadoIAAte { get; private set; }
+
         // Foto de perfil movida para uma tabela separada (1:1). Só é carregada quando a
         // query faz .Include(u => u.Foto); do contrário, esta navegação fica nula.
         public UsuarioFoto? Foto { get; private set; }
@@ -120,6 +124,22 @@ namespace ClinicaMaisSaude.Domain.Entities
         public bool IsBloqueado()
         {
             return BloqueadoAte.HasValue && BloqueadoAte.Value > DateTime.UtcNow;
+        }
+
+        public void BloquearIA(DateTime ate)
+        {
+            BloqueadoIAAte = ate;
+        }
+
+        public bool IsIABloqueada()
+        {
+            return BloqueadoIAAte.HasValue && BloqueadoIAAte.Value > DateTime.UtcNow;
+        }
+
+        /// <summary>Admin remove a penalidade de IA — libera a triagem.</summary>
+        public void DesbloquearIA()
+        {
+            BloqueadoIAAte = null;
         }
 
         public void BloquearPermanentemente()

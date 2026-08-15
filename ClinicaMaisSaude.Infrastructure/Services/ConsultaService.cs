@@ -114,9 +114,9 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                 if (paciente == null)
                     throw new NotFoundException("Paciente não encontrado.");
 
-                if (paciente.IsIABloqueada())
+                if (paciente.Usuario.IsIABloqueada())
                 {
-                    var dataBloqueio = _dataHora.ParaBrasilia(paciente.BloqueadoIAAte!.Value).ToString("dd/MM/yyyy HH:mm");
+                    var dataBloqueio = _dataHora.ParaBrasilia(paciente.Usuario.BloqueadoIAAte!.Value).ToString("dd/MM/yyyy HH:mm");
                     throw new ForbiddenException($"Acesso à IA bloqueado até {dataBloqueio}. Se acha que é um erro, entre em contato: suporte@clinicamaissaude.com");
                 }
             }
@@ -313,11 +313,11 @@ Formato:
 
                     if (totalViolacoes == 2)
                     {
-                        paciente.BloquearIA(DateTime.UtcNow.AddDays(1));
+                        paciente.Usuario.BloquearIA(DateTime.UtcNow.AddDays(1));
                     }
                     else if (totalViolacoes >= 3)
                     {
-                        paciente.BloquearIA(DateTime.UtcNow.AddDays(7));
+                        paciente.Usuario.BloquearIA(DateTime.UtcNow.AddDays(7));
                     }
 
                     var notificacoes = new List<Notificacao>();
@@ -354,16 +354,27 @@ Formato:
                 usuario.DesbloquearConta();
             }
 
+            // Penalidade temporária de IA vive no LoginPortal (Fase 6).
+            usuario.DesbloquearIA();
+
             var paciente = await _context.Pacientes.FirstOrDefaultAsync(p => p.UsuarioId == usuarioId);
-            if (paciente != null)
+            if (paciente != null && paciente.SituacaoCliente == SituacaoCliente.Banido)
             {
                 // Ban permanente por IA vira SituacaoCliente=Banido; ao perdoar, reativa a conta.
-                if (paciente.SituacaoCliente == SituacaoCliente.Banido)
-                    paciente.Reativar();
-                paciente.RemoverPenalidade();
+                paciente.Reativar();
             }
 
+            // Antes o aviso ficava esperando o próximo login (flag no Paciente). Agora vira
+            // uma notificação: o feed cobre o "já avisei" (Lida) e o SignalR empurra na hora.
+            var notificacao = new Notificacao(
+                usuarioId,
+                "Penalidade removida",
+                "A restrição de uso da triagem por IA foi removida pela administração. Você já pode utilizar o serviço normalmente.",
+                link: "triagem");
+            _context.Notificacoes.Add(notificacao);
+
             await _context.SaveChangesAsync();
+            await _notificadorTempoReal.NotificarAsync(notificacao);
         }
 
         public async Task<IEnumerable<object>> ObterViolacoesAsync()
@@ -386,8 +397,10 @@ Formato:
                     TipoViolacao = a.TipoViolacao.ToString(),
                     a.TextoInserido,
                     a.DtCriado,
-                    PenalidadeRemovidaAguardandoLogin = _context.Pacientes.Where(p => p.UsuarioId == a.UsuarioId).Select(p => p.PenalidadeRemovidaAvisar).FirstOrDefault(),
-                    IABloqueadaAte = _context.Pacientes.Where(p => p.UsuarioId == a.UsuarioId).Select(p => p.BloqueadoIAAte).FirstOrDefault(),
+                    // Flag "avisar no login" deixou de existir (Fase 6): o aviso virou notificação.
+                    // Mantido no contrato como false para não quebrar a ViolacoesList do front.
+                    PenalidadeRemovidaAguardandoLogin = false,
+                    IABloqueadaAte = a.Usuario.BloqueadoIAAte,
                     ContaBloqueadaAte = a.Usuario.BloqueadoAte
                 })
                 .OrderByDescending(a => a.DtCriado)
