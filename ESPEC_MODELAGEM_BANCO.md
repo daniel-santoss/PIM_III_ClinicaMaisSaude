@@ -26,7 +26,10 @@ Migrations aplicadas no banco local: `InitialCreate` → `Fase1_LookupsEnums` �
 - ✅ **Fase 6 — commitada** (`Feat(db): Fase 6 - penalidade de IA na conta + notificacao`): `BloqueadoIAAte` migra `Paciente`→`LoginPortal` (+ `BloquearIA`/`IsIABloqueada`/`DesbloquearIA`). `PenalidadeRemovidaAvisar` **deixa de existir** — ao perdoar, o admin gera `Notificacao("Penalidade removida")` + push SignalR. Removidos: `ConsumarAvisoPenalidade`, o consumo no `AuthService`, `LoginResponse.PenalidadeRemovida`. Migration `Fase6_PenalidadeIA` com backfill. Build 0 erros, **63 testes**, homologação VERDE.
   - **Nota de contrato:** a projeção de violações (`ObterViolacoesAsync`) mantém o campo `PenalidadeRemovidaAguardandoLogin` retornando **constante `false`** (o front `ViolacoesList.tsx` ainda o lê); `IABloqueadaAte` agora vem do LoginPortal. O front pode ser simplificado depois. `Login.tsx` degrada de boa (sem `penalidadeRemovida` → sem modal; o aviso vira notificação no feed).
 - ✅ **Fase 7 — commitada** (`Feat(db): Fase 7 - ult_Atualizacao`): interface `IAuditavel` (`UltAtualizacao` + `MarcarAtualizacao`) em `Usuario`/`Paciente`/`Profissional`/`Agendamento`; carimbo central `CarimbarAtualizacao()` no `SaveChangesAsync` (entries `Modified`). Coluna `ult_Atualizacao` (datetime2 null). Lookups e append-only fora. Build 0 erros, **63 testes**, homologação VERDE.
-- ⏭️ **Fase 8 pendente (última).** **Nomenclatura** — RefreshToken pt-BR (`IsUsed`→`Usado`, `IsRevoked`→`Revogado`, `AddedDate`→`Dt_Criado`, `ExpiryDate`→`Dt_Expiracao`); DbSet `ViolacoesIA`→`UsoInadequadoIA`.
+- ✅ **Fase 8 — commitada** (`Feat(db): Fase 8 - nomenclatura`): RefreshToken pt-BR (`IsUsed`→`Usado`, `IsRevoked`→`Revogado`, `AddedDate`→`Dt_Criado`, `ExpiryDate`→`Dt_Expiracao`, via `RenameColumn` sem perda); DbSet `ViolacoesIA`→`UsoInadequadoIA` (só código, tabela já era `UsoInadequadoIA`). Build 0 erros, **63 testes**, homologação VERDE (refresh token ok).
+
+### 🏁 REFACTOR COMPLETO — todas as 8 fases feitas
+Migrations aplicadas: `InitialCreate` → `Fase1_LookupsEnums` → `Fase2_TipoUsuario` → `Fase3_IdentidadeLoginPortal` → `Fase4_SituacaoCliente` → `Fase5_FksAgendamento` → `Fase6_PenalidadeIA` → `Fase7_UltAtualizacao` → `Fase8_Nomenclatura`. Tudo pushado na `teste`. Pendências conhecidas (não do refactor): validação de IA capada por falta de chave Gemini nesta máquina; itens de contrato adiados (login por email/DTO `Identificador`, front `ViolacoesList`/`Login` que podem ser simplificados) — ver notas nas fases.
 
 **⚠️ Validação de IA capada:** o Gemini não está configurado nesta máquina → endpoint de IA dá 503; a FASE 9 da homologação (injeção/ban) falha por isso (ambiental, não do refactor). O resto da homologação dá veredito VERDE.
 
@@ -222,7 +225,7 @@ Banco local está praticamente vazio (só o admin do seeder), mas documentado:
 5. ✅ **FEITA — FKs faltantes em `Agendamento`** — ProfissionalId→Profissional, AgendamentoOrigemId→self, EspecialidadeId→Especialidade (Restrict); `int?`→`EspecialidadeMedica?`.
 6. ✅ **FEITA — Penalidade de IA** — `BloqueadoIAAte`→LoginPortal; `PenalidadeRemovidaAvisar`→Notificacao (ver §0).
 7. ✅ **FEITA — `ult_Atualizacao`** — interface `IAuditavel` + carimbo central no `SaveChangesAsync`.
-8. **Nomenclatura** — colunas do `RefreshToken` (`IsUsed`→`Usado` etc.); `DbSet ViolacoesIA`→`UsoInadequadoIA` (tabela mantém nome).
+8. ✅ **FEITA — Nomenclatura** — colunas do `RefreshToken` (`IsUsed`→`Usado` etc.); `DbSet ViolacoesIA`→`UsoInadequadoIA` (tabela mantém nome).
 
 Ordem: 1 ✅ → 2 ✅ → **3** → 4 → (5, 6, 7, 8 independentes). Cada fase = 1 migration + 1 commit na `teste`.
 
