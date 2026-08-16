@@ -211,25 +211,25 @@ export default function AgendamentoPaciente({
   };
 
   if (sucesso) return (
-    <div className="flex flex-col items-center justify-center py-20 animate-in zoom-in duration-500">
-      <div className="w-24 h-24 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-6 shadow-xl shadow-green-100 ring-8 ring-green-50">
-        <Check className="w-12 h-12" strokeWidth={3} />
+    <div className="flex flex-col items-center justify-center py-20 animate-in fade-in duration-300">
+      <div className="w-16 h-16 bg-success-tint text-success rounded-full grid place-items-center mb-5">
+        <Check className="w-8 h-8" strokeWidth={2.5} />
       </div>
-      <h2 className="text-3xl font-black text-gray-800 mb-2">Tudo Certo!</h2>
-      <p className="text-gray-500 font-bold text-center uppercase tracking-widest text-xs mb-10">Consulta agendada com sucesso</p>
+      <h2 className="text-xl font-semibold text-ink mb-1">Tudo certo!</h2>
+      <p className="text-muted text-center text-sm mb-8">Consulta agendada com sucesso.</p>
 
-      <div className="flex flex-col sm:flex-row gap-4 w-full max-w-md">
+      <div className="flex flex-col sm:flex-row gap-3 w-full max-w-md">
         <button
           onClick={() => { setSucesso(false); setPasso(1); setSintomas(""); setHorarioSelecionado(""); setModoIA(false); onLimparPrePreenchidos?.(); }}
-          className="flex-1 py-4 bg-gray-100 text-gray-600 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-gray-200 transition-all"
+          className="flex-1 h-11 inline-flex items-center justify-center rounded-md text-sm font-semibold text-body bg-white border border-line hover:bg-canvas transition-colors"
         >
-          Novo Agendamento
+          Novo agendamento
         </button>
         <button
           onClick={() => { onLimparPrePreenchidos?.(); onSucesso?.(); }}
-          className="flex-1 py-4 bg-[#7C3AED] text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-lg shadow-purple-100 hover:scale-105 transition-all"
+          className="flex-1 h-11 inline-flex items-center justify-center rounded-md text-sm font-semibold text-white bg-brand-600 border border-brand-600 hover:bg-brand-800 transition-colors"
         >
-          Meus Agendamentos
+          Meus agendamentos
         </button>
       </div>
     </div>
@@ -238,56 +238,57 @@ export default function AgendamentoPaciente({
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-700 pb-20 px-4 xl:px-0">
       {/* Progresso Superior */}
-      <div className="flex items-center justify-between px-4 max-w-2xl mx-auto">
-        {[1, 2, 3, 4].map(num => (
-          <div key={num} className="flex flex-col items-center gap-2 relative">
-            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black transition-all duration-500 z-10 ${
-              passo >= num 
-                ? 'bg-[#7C3AED] text-white shadow-xl shadow-purple-200 scale-110' 
-                : 'bg-gray-200 text-gray-600'
-            }`}>
-              {num}
+      <div className="flex items-center justify-center max-w-2xl mx-auto">
+        {[1, 2, 3, 4].map((num, i) => (
+          <div key={num} className="flex items-center">
+            <div className="flex flex-col items-center gap-1.5">
+              <div className={`w-9 h-9 rounded-lg grid place-items-center font-semibold text-sm transition-colors ${
+                passo === num ? 'bg-brand-600 text-white' : passo > num ? 'bg-brand-50 text-brand-600' : 'bg-[#EEF2F7] text-muted'
+              }`}>
+                {num}
+              </div>
+              <span className={`text-[11px] font-semibold uppercase tracking-wide ${
+                passo >= num ? 'text-brand-600' : 'text-muted'
+              }`}>
+                {num === 1 ? 'Início' : num === 2 ? 'Tipo' : num === 3 ? 'Horário' : 'OK'}
+              </span>
             </div>
-            <span className={`text-[11px] font-black uppercase tracking-wider ${
-              passo >= num ? 'text-[#7C3AED]' : 'text-gray-500'
-            }`}>
-              {num === 1 ? 'Início' : num === 2 ? 'Tipo' : num === 3 ? 'Horário' : 'OK'}
-            </span>
+            {i < 3 && <div className={`w-14 h-0.5 mx-2 mb-5 ${passo > num ? 'bg-brand-600' : 'bg-line'}`} />}
           </div>
         ))}
         {/* Modal Mensagem de Erro (Estilo Reaproveitado) */}
       {modalMensagem && (() => {
         const is60DiasBlock = modalMensagem.includes("60 dias") || modalMensagem.includes("recente") || modalMensagem.includes("Recente");
         return (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-gray-900/60 backdrop-blur-sm p-4">
-            <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-sm p-8 text-center border border-purple-50">
-              <div className="w-16 h-16 bg-purple-100 text-[#7C3AED] rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <AlertTriangle className="w-8 h-8" />
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-ink/45 backdrop-blur-[2px] p-4">
+            <div className="bg-white rounded-xl shadow-modal w-full max-w-sm p-6 text-center border border-line">
+              <div className="w-12 h-12 bg-warning-tint text-warning rounded-lg grid place-items-center mx-auto mb-4">
+                <AlertTriangle className="w-6 h-6" />
               </div>
-              <h3 className="text-xl font-black text-gray-800 mb-2 uppercase tracking-tight">
-                {is60DiasBlock ? "Consulta Recente" : "Aviso"}
+              <h3 className="text-lg font-semibold text-ink mb-1.5">
+                {is60DiasBlock ? "Consulta recente" : "Aviso"}
               </h3>
-              <p className="text-gray-500 text-sm mb-6 font-medium leading-relaxed">
+              <p className="text-body text-[13px] mb-5 leading-relaxed">
                 {modalMensagem}
               </p>
               {is60DiasBlock && (
-                <div className="bg-purple-50 border border-purple-100 rounded-2xl p-4 mb-6 text-left">
-                  <span className="text-[9px] font-black text-purple-600 uppercase tracking-widest block mb-1">Como proceder:</span>
-                  <p className="text-[11px] font-bold text-gray-700 leading-normal">
-                    Entre em contato com nossa recepção pelo telefone <strong className="text-[#7C3AED]">{CLINIC_PHONE}</strong> e solicite o agendamento informando o <strong className="text-gray-800">motivo da consulta</strong> para a atendente ou enfermeira de plantão.
+                <div className="bg-canvas border border-line rounded-md p-4 mb-5 text-left">
+                  <span className="text-[11px] font-semibold text-muted uppercase tracking-wide block mb-1">Como proceder:</span>
+                  <p className="text-[13px] text-body leading-normal">
+                    Entre em contato com nossa recepção pelo telefone <strong className="text-brand-600">{CLINIC_PHONE}</strong> e solicite o agendamento informando o <strong className="text-ink">motivo da consulta</strong> para a atendente ou enfermeira de plantão.
                   </p>
                 </div>
               )}
-              <button 
-                className="w-full bg-[#7C3AED] text-white font-black py-4 rounded-2xl uppercase tracking-widest text-[10px] shadow-lg shadow-purple-100 hover:scale-105 transition-all" 
+              <button
+                className="w-full h-11 bg-brand-600 text-white font-semibold text-sm rounded-md border border-brand-600 hover:bg-brand-800 transition-colors"
                 onClick={() => setModalMensagem(null)}
               >
                 Entendido
               </button>
               {!is60DiasBlock && (
-                <a 
+                <a
                   href={`mailto:${ADMIN_EMAIL}?subject=Solicita%C3%A7%C3%A3o%20de%20revis%C3%A3o%20de%20bloqueio%20-%20${localStorage.getItem("userName") || "[Seu Nome]"}`}
-                  className="w-full block mt-3 bg-gray-100 hover:bg-gray-200 text-gray-600 font-black py-4 rounded-2xl uppercase tracking-widest text-[10px] shadow-sm transition-colors"
+                  className="w-full h-11 mt-2.5 inline-flex items-center justify-center bg-white text-body border border-line font-semibold text-sm rounded-md hover:bg-canvas transition-colors"
                 >
                   Acredito que isso é um erro
                 </a>
@@ -298,96 +299,100 @@ export default function AgendamentoPaciente({
       })()}
       </div>
 
-      <div className="bg-white rounded-2xl sm:rounded-[3rem] p-5 sm:p-8 lg:p-10 shadow-2xl shadow-purple-100/50 border border-purple-50">
+      <div className="bg-white rounded-xl p-8 border border-line">
 
         {/* ETAPA 1: ESCOLHA INICIAL */}
         {passo === 1 && (
-          <div className="space-y-10 animate-in slide-in-from-right-8 duration-500">
-            <div className="text-center space-y-2">
-              <h2 className="text-3xl font-black text-gray-800">Como deseja prosseguir?</h2>
-              <p className="text-gray-400 font-bold text-xs uppercase tracking-widest">Selecione uma opção para iniciar seu agendamento</p>
+          <div className="animate-in fade-in duration-300">
+            <div className="text-center mb-7">
+              <h2 className="text-xl font-semibold text-ink">Como deseja prosseguir?</h2>
+              <p className="text-sm text-muted mt-1">Selecione uma opção para iniciar seu agendamento.</p>
             </div>
 
             <div className="flex flex-col items-center gap-6">
               {!modoIA ? (
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 sm:gap-6 w-full sm:max-w-xl">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full sm:max-w-lg">
                   <button
                     onClick={() => setPasso(2)}
-                    className="flex-1 py-8 bg-slate-50 text-[#7C3AED] border-2 border-[#7C3AED]/10 rounded-[2.5rem] font-black text-xs uppercase tracking-widest hover:bg-[#F5F3FF] hover:border-[#7C3AED] transition-all shadow-sm flex flex-col items-center gap-4"
+                    className="p-6 bg-white text-ink border border-line rounded-lg hover:bg-canvas hover:border-brand-600 transition-colors flex flex-col items-center text-center"
                   >
-                    <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm">
-                      <Sliders className="w-6 h-6" />
+                    <div className="w-11 h-11 mb-3 rounded-lg grid place-items-center bg-[#EEF2F7] text-body">
+                      <Sliders className="w-[22px] h-[22px]" />
                     </div>
-                    Escolher Manualmente
+                    <div className="font-semibold text-sm text-ink">Escolher manualmente</div>
+                    <div className="text-xs text-muted mt-1">Selecione especialidade e horário</div>
                   </button>
                   <button
                     onClick={() => setModoIA(true)}
-                    className="flex-1 py-8 bg-gradient-to-br from-[#7C3AED] to-[#5B21B6] text-white rounded-[2.5rem] font-black text-xs uppercase tracking-widest shadow-[0_15px_30px_-5px_rgba(124,58,237,0.4)] hover:scale-105 active:scale-95 transition-all flex flex-col items-center gap-4"
+                    className="p-6 bg-brand-600 text-white border border-brand-600 rounded-lg hover:bg-brand-800 hover:border-brand-800 transition-colors flex flex-col items-center text-center"
                   >
-                    <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
-                      <Zap className="w-6 h-6" strokeWidth={2.5} />
+                    <div className="w-11 h-11 mb-3 rounded-lg grid place-items-center bg-white/15 text-white">
+                      <Zap className="w-[22px] h-[22px]" />
                     </div>
-                    Ajuda com IA
+                    <div className="font-semibold text-sm text-white">Ajuda com IA</div>
+                    <div className="text-xs text-white/75 mt-1">Triagem inteligente por sintomas</div>
                   </button>
                 </div>
               ) : (
-                <div className="w-full max-w-2xl space-y-6 animate-in zoom-in duration-300">
-                  <p className="text-[10px] font-black text-purple-400 uppercase tracking-widest ml-1">Descreva seus sintomas</p>
+                <div className="w-full max-w-2xl space-y-4 animate-in fade-in duration-300">
+                  <div className="p-4 bg-brand-50 border border-brand-200 rounded-lg">
+                    <div className="flex items-center gap-2 text-[11px] font-semibold text-brand-600 uppercase tracking-wide mb-2.5">
+                      <Zap className="w-[15px] h-[15px]" /> Triagem inteligente (IA)
+                    </div>
+                    <div className="relative">
+                      <textarea
+                        placeholder="Descreva os sintomas para sugestão automática..."
+                        className="w-full h-28 p-3 text-sm text-ink bg-white border border-brand-200 rounded-md focus:border-brand-600 focus:shadow-focus transition-shadow outline-none resize-none placeholder:text-muted"
+                        value={sintomas}
+                        onChange={(e) => setSintomas(e.target.value)}
+                        maxLength={MAX_PROMPT_LENGTH}
+                      />
+                      <span className="absolute bottom-2.5 right-3 text-[11px] font-medium text-muted bg-white/80 px-1.5 rounded">
+                        {sintomas.length}/{MAX_PROMPT_LENGTH}
+                      </span>
+                    </div>
 
-                  <div className="relative">
-                    <textarea
-                      placeholder="Ex: Estou com uma dor persistente no peito que piora ao respirar fundo..."
-                      className="w-full h-40 p-6 bg-gray-50 border-2 border-gray-100 rounded-[2rem] focus:ring-4 focus:ring-purple-100 focus:border-[#7C3AED] focus:bg-white transition-all outline-none font-bold text-gray-700 resize-none pr-16 pb-10"
-                      value={sintomas}
-                      onChange={(e) => setSintomas(e.target.value)}
-                      maxLength={MAX_PROMPT_LENGTH}
-                    />
-                    <span className="absolute bottom-6 right-6 text-[10px] font-black text-purple-300 bg-white/80 px-2 py-0.5 rounded-lg shadow-sm">
-                      {sintomas.length}/{MAX_PROMPT_LENGTH}
-                    </span>
-                  </div>
-
-                  {/* Botões IA — empilhados no mobile */}
-                  <div className="flex flex-col-reverse sm:flex-row items-stretch gap-3">
-                    <button
-                      onClick={() => setModoIA(false)}
-                      className="w-full sm:w-auto px-8 py-4 bg-slate-50 text-gray-500 border-2 border-gray-100 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-gray-100 transition-all shadow-sm text-center"
-                    >
-                      Voltar
-                    </button>
-                    <button
-                      onClick={analisarSintomas}
-                      disabled={!sintomas.trim() || analisandoIA}
-                      className="flex-1 py-4 bg-[#7C3AED] text-white rounded-2xl font-black shadow-lg shadow-purple-100 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-3"
-                    >
-                      {analisandoIA ? (
-                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                      ) : (
-                        <>
-                          <Zap className="w-5 h-5" strokeWidth={2.5} />
-                          Analisar com IA
-                        </>
-                      )}
-                    </button>
+                    <div className="flex flex-col-reverse sm:flex-row items-stretch justify-end gap-2.5 mt-3">
+                      <button
+                        onClick={() => setModoIA(false)}
+                        className="h-10 px-4 inline-flex items-center justify-center rounded-md text-sm font-semibold text-body bg-white border border-line hover:bg-canvas transition-colors"
+                      >
+                        Voltar
+                      </button>
+                      <button
+                        onClick={analisarSintomas}
+                        disabled={!sintomas.trim() || analisandoIA}
+                        className="h-10 px-[18px] inline-flex items-center justify-center gap-2 rounded-md text-sm font-semibold text-white bg-brand-600 border border-brand-600 hover:bg-brand-800 transition-colors disabled:opacity-50"
+                      >
+                        {analisandoIA ? (
+                          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                        ) : (
+                          <>
+                            <Zap className="w-4 h-4" />
+                            Analisar com IA
+                          </>
+                        )}
+                      </button>
+                    </div>
                   </div>
 
                   {sugestaoIA && (
-                    <div className="p-5 sm:p-8 bg-purple-50 rounded-2xl sm:rounded-[2.5rem] border-2 border-purple-100 animate-in zoom-in duration-300 space-y-4">
+                    <div className="p-5 bg-white rounded-lg border border-line animate-in fade-in duration-300">
                       <div className="flex items-start gap-3">
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white rounded-xl sm:rounded-2xl flex items-center justify-center text-purple-600 shadow-sm shrink-0">
-                          <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6" />
+                        <div className="w-10 h-10 bg-brand-50 rounded-lg grid place-items-center text-brand-600 shrink-0">
+                          <CheckCircle className="w-5 h-5" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-[10px] font-black text-purple-400 uppercase tracking-widest mb-1">Recomendamos:</p>
-                          <h4 className="text-base sm:text-xl font-black text-gray-800 leading-snug">{sugestaoIA.tipo} — {sugestaoIA.especialidade}</h4>
-                          <p className="text-[10px] font-bold text-gray-500 mt-2 leading-relaxed">
+                          <p className="text-[11px] font-semibold text-muted uppercase tracking-wide mb-1">Recomendamos:</p>
+                          <h4 className="text-[15px] font-semibold text-ink leading-snug">{sugestaoIA.tipo} — {sugestaoIA.especialidade}</h4>
+                          <p className="text-xs text-muted mt-2 leading-relaxed">
                             Esta é apenas uma sugestão baseada no seu relato. O profissional fará a avaliação completa durante o atendimento.
                           </p>
                         </div>
                       </div>
-                      <div className="flex gap-3 pt-1">
-                        <button onClick={usarSugestao} className="flex-1 py-3.5 bg-[#7C3AED] text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-purple-100 hover:scale-105 transition-all">Usar Sugestão</button>
-                        <button onClick={() => setPasso(2)} className="flex-1 py-3.5 bg-white text-gray-500 border-2 border-gray-100 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-gray-50 transition-colors">Escolher Outro</button>
+                      <div className="flex gap-2.5 pt-4">
+                        <button onClick={usarSugestao} className="flex-1 h-10 bg-brand-600 text-white rounded-md font-semibold text-sm border border-brand-600 hover:bg-brand-800 transition-colors">Usar sugestão</button>
+                        <button onClick={() => setPasso(2)} className="flex-1 h-10 bg-white text-body border border-line rounded-md font-semibold text-sm hover:bg-canvas transition-colors">Escolher outro</button>
                       </div>
                     </div>
                   )}
@@ -401,13 +406,13 @@ export default function AgendamentoPaciente({
         {passo === 2 && (
           <div className="space-y-8 animate-in slide-in-from-right-8 duration-500">
             <div className="text-center space-y-2">
-              <h2 className="text-3xl font-black text-gray-800">Tipo de Atendimento</h2>
-              <p className="text-gray-400 font-bold text-xs uppercase tracking-widest">Selecione a categoria e especialidade</p>
+              <h2 className="text-xl font-semibold text-ink">Tipo de Atendimento</h2>
+              <p className="text-sm text-muted mt-1">Selecione a categoria e especialidade</p>
             </div>
 
             <div className="space-y-6">
               <div>
-                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 ml-1">Tipo de Consulta</label>
+                <label className="block text-[13px] font-medium text-body mb-1">Tipo de Consulta</label>
                 <select
                   value={tipoConsulta}
                   onChange={(e) => {
@@ -418,7 +423,7 @@ export default function AgendamentoPaciente({
                       setEspecialidade("");
                     }
                   }}
-                  className="w-full p-5 bg-gray-50 border-2 border-gray-100 rounded-[1.5rem] focus:ring-4 focus:ring-purple-100 focus:border-[#7C3AED] outline-none font-bold text-gray-700 transition-all"
+                  className="w-full h-11 px-3 text-sm text-ink bg-white border border-line rounded-md outline-none focus:border-brand-600 focus:shadow-focus transition-shadow cursor-pointer"
                 >
                   <option value={1}>Exame</option>
                   <option value={2}>Vacina</option>
@@ -436,20 +441,20 @@ export default function AgendamentoPaciente({
 
                 return (
                   <div className="space-y-4 animate-in fade-in duration-500">
-                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 ml-1">Especialidade Médica</label>
+                    <label className="block text-[13px] font-medium text-body mb-1">Especialidade Médica</label>
                     <div className="relative">
                       <input
                         type="text"
                         placeholder="Buscar especialidade..."
-                        className="w-full p-5 bg-gray-50 border-2 border-gray-100 rounded-[1.5rem] focus:ring-4 focus:ring-purple-100 focus:border-[#7C3AED] outline-none font-bold text-gray-700 transition-all pl-12"
+                        className="w-full h-11 pl-9 pr-3 text-sm text-ink bg-white border border-line rounded-md outline-none focus:border-brand-600 focus:shadow-focus transition-shadow placeholder:text-muted"
                         value={buscaEspecialidade}
                         onChange={(e) => setBuscaEspecialidade(e.target.value)}
                       />
-                      <Search className="w-5 h-5 absolute left-5 top-1/2 -translate-y-1/2 text-gray-400" strokeWidth={2.5} />
+                      <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
                     </div>
                     
                     {temIndisponivel && (
-                      <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-100 text-red-500 rounded-xl text-[10px] font-black uppercase tracking-widest">
+                      <div className="flex items-center gap-2 px-3.5 py-2.5 bg-warning-tint border border-warning-border text-warning-text rounded-md text-[13px] font-medium">
                         <AlertTriangle className="w-4 h-4 shrink-0" />
                         <span>As especialidades marcadas não possuem médicos disponíveis no momento.</span>
                       </div>
@@ -465,12 +470,12 @@ export default function AgendamentoPaciente({
                               key={e}
                               disabled={!isDisponivel}
                               onClick={() => setEspecialidade(e)}
-                              className={`p-4 rounded-2xl border-2 text-[10px] font-black uppercase tracking-widest transition-all text-center flex flex-row items-center justify-center gap-2 ${
-                                !isDisponivel 
-                                  ? 'border-red-100 bg-red-50 text-red-400 opacity-70 cursor-not-allowed'
+                              className={`h-12 px-3.5 rounded-md border text-[13px] transition-colors text-center flex items-center justify-center gap-2 ${
+                                !isDisponivel
+                                  ? 'border-line bg-canvas text-muted cursor-not-allowed'
                                   : especialidade === e
-                                  ? 'border-[#7C3AED] bg-purple-50 text-[#7C3AED]'
-                                  : 'border-gray-100 hover:border-purple-200 text-gray-500 hover:text-[#7C3AED] bg-white'
+                                  ? 'border-brand-600 bg-brand-50 text-brand-600 font-semibold'
+                                  : 'border-line hover:border-brand-200 text-body bg-white font-medium'
                               }`}
                             >
                               <span>{e}</span>
@@ -485,11 +490,11 @@ export default function AgendamentoPaciente({
 
               {tipoConsulta === 4 && (
                 <div className="space-y-4 animate-in fade-in duration-500">
-                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 ml-1">Consulta de Origem</label>
+                  <label className="block text-[13px] font-medium text-body mb-1">Consulta de Origem</label>
                   <select
                     value={origemId}
                     onChange={(e) => setOrigemId(e.target.value)}
-                    className="w-full p-5 bg-purple-50 border-2 border-purple-100 rounded-[1.5rem] focus:ring-4 focus:ring-purple-200 focus:border-[#7C3AED] outline-none font-bold text-[#7C3AED] transition-all"
+                    className="w-full h-11 px-3 text-sm text-ink bg-white border border-line rounded-md outline-none focus:border-brand-600 focus:shadow-focus transition-shadow cursor-pointer"
                   >
                     <option value="">Selecione a consulta anterior...</option>
                     {agendamentosAnteriores
@@ -509,11 +514,11 @@ export default function AgendamentoPaciente({
             </div>
 
             <div className="flex flex-col-reverse sm:flex-row justify-between gap-3 pt-4">
-              <button onClick={() => setPasso(1)} className="w-full sm:w-auto px-10 py-4 text-gray-400 font-bold hover:text-gray-600 transition-colors text-center">Voltar</button>
+              <button onClick={() => setPasso(1)} className="h-10 px-4 inline-flex items-center justify-center rounded-md text-sm font-semibold text-body bg-white border border-line hover:bg-canvas transition-colors">Voltar</button>
               <button
                 disabled={(tipoConsulta === 3 && !especialidade) || (tipoConsulta === 4 && !origemId)}
                 onClick={() => setPasso(3)}
-                className="w-full sm:w-auto px-10 py-4 bg-[#7C3AED] text-white rounded-2xl font-black shadow-lg shadow-purple-200 hover:scale-105 transition-all disabled:opacity-50"
+                className="h-10 px-[18px] inline-flex items-center justify-center rounded-md text-sm font-semibold text-white bg-brand-600 border border-brand-600 hover:bg-brand-800 transition-colors disabled:opacity-50"
               >
                 Próximo Passo
               </button>
@@ -525,13 +530,13 @@ export default function AgendamentoPaciente({
         {passo === 3 && (
           <div className="space-y-8 animate-in slide-in-from-right-8 duration-500">
             <div className="text-center space-y-2">
-              <h2 className="text-3xl font-black text-gray-800">Quando?</h2>
-              <p className="text-gray-400 font-bold text-xs uppercase tracking-widest">Selecione uma data e horário disponível</p>
+              <h2 className="text-xl font-semibold text-ink">Quando?</h2>
+              <p className="text-sm text-muted mt-1">Selecione uma data e horário disponível</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
               <div className="space-y-4">
-                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 ml-1">Data da Consulta</label>
+                <label className="block text-[13px] font-medium text-body mb-1">Data da Consulta</label>
                 <input
                   type="date"
                   min={obterMinDate()}
@@ -544,15 +549,15 @@ export default function AgendamentoPaciente({
                     setErro(null);
                     setDataSelecionada(e.target.value);
                   }}
-                  className="w-full p-6 bg-purple-50/50 border-2 border-purple-100 rounded-[2rem] focus:ring-4 focus:ring-purple-200 outline-none transition-all font-bold text-gray-700"
+                  className="w-full h-11 px-3 text-sm text-ink bg-white border border-line rounded-md outline-none focus:border-brand-600 focus:shadow-focus transition-shadow cursor-pointer"
                 />
               </div>
 
               <div className="space-y-4">
-                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 ml-1">Horários</label>
+                <label className="block text-[13px] font-medium text-body mb-1">Horários</label>
                 {carregandoHorarios ? (
                   <div className="flex items-center justify-center py-10">
-                    <div className="w-8 h-8 border-4 border-purple-100 border-t-[#7C3AED] rounded-full animate-spin"></div>
+                    <div className="w-8 h-8 border-[3px] border-line border-t-brand-600 rounded-full animate-spin"></div>
                   </div>
                 ) : dataSelecionada ? (
                   horariosDisponiveis.length > 0 ? (
@@ -564,9 +569,9 @@ export default function AgendamentoPaciente({
                           <button
                             key={h}
                             onClick={() => setHorarioSelecionado(h)}
-                            className={`py-4 rounded-xl font-black text-[11px] transition-all border-2 shadow-sm ${isSelecionado
-                                ? 'bg-green-500 text-white border-green-500 shadow-lg shadow-green-100 scale-105'
-                                : 'bg-[#7C3AED] text-white border-[#7C3AED] hover:bg-[#6D28D9] hover:shadow-md'
+                            className={`h-10 rounded-md text-[13px] transition-colors border ${isSelecionado
+                                ? 'bg-brand-600 text-white border-brand-600 font-semibold'
+                                : 'bg-white text-body border-line hover:bg-canvas font-medium'
                               }`}
                           >
                             {h}
@@ -575,30 +580,30 @@ export default function AgendamentoPaciente({
                       })}
                     </div>
                   ) : (
-                    <div className="col-span-3 p-6 flex flex-col items-center justify-center text-center bg-orange-50 border border-orange-100 rounded-[2rem]">
-                      <AlertTriangle className="w-8 h-8 text-orange-400 mb-2" />
-                      <p className="text-xs font-black text-orange-600 uppercase tracking-widest">Nenhum horário disponível</p>
-                      <p className="text-[10px] text-orange-500 font-medium mt-1">
+                    <div className="col-span-3 p-5 flex flex-col items-center justify-center text-center bg-warning-tint border border-warning-border rounded-md">
+                      <AlertTriangle className="w-6 h-6 text-warning mb-2" />
+                      <p className="text-[13px] font-semibold text-warning-text">Nenhum horário disponível</p>
+                      <p className="text-xs text-warning-text/80 mt-1">
                         Não há médicos desta especialidade disponíveis na data informada.
                       </p>
                     </div>
                   )
                 ) : (
-                  <div className="p-10 bg-gray-50 rounded-[2rem] text-center border-2 border-dashed border-gray-200">
-                    <p className="text-gray-400 text-[10px] font-black uppercase tracking-widest">Escolha uma data primeiro</p>
+                  <div className="p-8 bg-canvas rounded-md text-center border border-line">
+                    <p className="text-muted text-[13px] font-medium">Escolha uma data primeiro</p>
                   </div>
                 )}
               </div>
             </div>
 
-            {erro && <p className="text-center text-red-500 text-[10px] font-black uppercase">{erro}</p>}
+            {erro && <p className="text-center text-danger text-[13px] font-medium">{erro}</p>}
 
             <div className="flex flex-col-reverse sm:flex-row justify-between gap-3 pt-4">
-              <button onClick={() => { setPasso(2); onLimparPrePreenchidos?.(); }} className="w-full sm:w-auto px-10 py-4 text-gray-400 font-bold hover:text-gray-600 transition-colors text-center">Voltar</button>
+              <button onClick={() => { setPasso(2); onLimparPrePreenchidos?.(); }} className="h-10 px-4 inline-flex items-center justify-center rounded-md text-sm font-semibold text-body bg-white border border-line hover:bg-canvas transition-colors">Voltar</button>
               <button
                 disabled={!dataSelecionada || !horarioSelecionado}
                 onClick={() => setPasso(4)}
-                className="w-full sm:w-auto px-10 py-4 bg-[#7C3AED] text-white rounded-2xl font-black shadow-lg shadow-purple-200 hover:scale-105 transition-all disabled:opacity-50"
+                className="h-10 px-[18px] inline-flex items-center justify-center rounded-md text-sm font-semibold text-white bg-brand-600 border border-brand-600 hover:bg-brand-800 transition-colors disabled:opacity-50"
               >
                 Próximo Passo
               </button>
@@ -610,25 +615,25 @@ export default function AgendamentoPaciente({
         {passo === 4 && (
           <div className="space-y-8 animate-in slide-in-from-right-8 duration-500">
             <div className="text-center space-y-2">
-              <h2 className="text-3xl font-black text-gray-800">Quase lá!</h2>
-              <p className="text-gray-400 font-bold text-xs uppercase tracking-widest">Confira as informações antes de confirmar</p>
+              <h2 className="text-xl font-semibold text-ink">Quase lá!</h2>
+              <p className="text-sm text-muted mt-1">Confira as informações antes de confirmar</p>
             </div>
 
-            <div className="bg-white rounded-[2.5rem] shadow-2xl shadow-purple-100/30 border-4 border-purple-400 overflow-hidden">
-              <div className="p-8 space-y-8">
+            <div className="bg-white rounded-lg border border-line overflow-hidden">
+              <div className="p-6 space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
 
                   {/* Bloco 1: O que e Quem */}
                   <div className="flex items-start gap-5">
-                    <div className="w-14 h-14 bg-purple-50 rounded-2xl flex items-center justify-center text-[#7C3AED] shrink-0 border border-purple-100">
-                      <User className="w-7 h-7" />
+                    <div className="w-10 h-10 bg-brand-50 rounded-lg grid place-items-center text-brand-600 shrink-0">
+                      <User className="w-5 h-5" />
                     </div>
                     <div>
-                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Especialidade e Profissional</p>
-                      <h4 className="text-xl font-black text-gray-800 leading-tight">
+                      <p className="text-[11px] font-semibold text-muted uppercase tracking-wide mb-1">Especialidade e Profissional</p>
+                      <h4 className="text-[15px] font-semibold text-ink leading-tight">
                         {especialidade || (tipoConsulta === 1 ? 'Exame' : tipoConsulta === 2 ? 'Vacina' : 'Consulta')}
                       </h4>
-                      <p className="text-sm font-bold text-purple-600 uppercase tracking-tight mt-1">
+                      <p className="text-xs font-medium text-brand-600 mt-1">
                         {tipoProfissional === 1 ? 'Médico Especialista' : 'Atendimento de Enfermaria'}
                       </p>
                     </div>
@@ -636,30 +641,30 @@ export default function AgendamentoPaciente({
 
                   {/* Bloco 2: Quando */}
                   <div className="flex items-start gap-5">
-                    <div className="w-14 h-14 bg-purple-50 rounded-2xl flex items-center justify-center text-[#7C3AED] shrink-0 border border-purple-100">
-                      <Calendar className="w-7 h-7" />
+                    <div className="w-10 h-10 bg-brand-50 rounded-lg grid place-items-center text-brand-600 shrink-0">
+                      <Calendar className="w-5 h-5" />
                     </div>
                     <div>
-                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Data e Horário</p>
-                      <h4 className="text-xl font-black text-gray-800 leading-tight">
+                      <p className="text-[11px] font-semibold text-muted uppercase tracking-wide mb-1">Data e Horário</p>
+                      <h4 className="text-[15px] font-semibold text-ink leading-tight">
                         {new Date(dataSelecionada + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}
                       </h4>
-                      <p className="text-sm font-bold text-purple-600 uppercase tracking-tight mt-1">às {horarioSelecionado} horas</p>
+                      <p className="text-xs font-medium text-brand-600 mt-1">às {horarioSelecionado} horas</p>
                     </div>
                   </div>
                 </div>
 
-                <div className="h-px bg-gray-100 w-full"></div>
+                <div className="h-px bg-line w-full"></div>
 
                 {/* Bloco 3: Notas */}
-                <div className="flex items-start gap-5">
-                  <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 shrink-0 border border-gray-100">
-                    <MessageSquare className="w-7 h-7" />
+                <div className="flex items-start gap-4">
+                  <div className="w-10 h-10 bg-canvas rounded-lg grid place-items-center text-muted shrink-0 border border-line">
+                    <MessageSquare className="w-5 h-5" />
                   </div>
                   <div className="flex-1">
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Relato de Sintomas / Observações</p>
-                    <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 min-h-[60px]">
-                      <p className="text-sm font-medium text-gray-500 italic">
+                    <p className="text-[11px] font-semibold text-muted uppercase tracking-wide mb-2">Relato de Sintomas / Observações</p>
+                    <div className="p-3.5 bg-canvas rounded-md border border-line min-h-[52px]">
+                      <p className="text-[13px] text-muted italic">
                         {sintomas ? `"${sintomas}"` : "Nenhuma observação adicional relatada."}
                       </p>
                     </div>
@@ -667,36 +672,36 @@ export default function AgendamentoPaciente({
                 </div>
               </div>
 
-              <div className="bg-purple-50 p-6 flex items-center justify-center gap-3">
-                <AlertCircle className="w-5 h-5 text-purple-600" />
-                <p className="text-[10px] font-black text-purple-600 uppercase tracking-widest">Confira tudo com atenção, pois esta ação é definitiva.</p>
+              <div className="bg-canvas px-6 py-3 border-t border-line flex items-center justify-center gap-2">
+                <AlertCircle className="w-4 h-4 text-warning" />
+                <p className="text-[13px] font-medium text-body">Confira tudo com atenção — esta ação é definitiva.</p>
               </div>
             </div>
 
             {erro && (
-              <div className="p-4 bg-red-50 border border-red-100 text-red-600 rounded-2xl text-[11px] font-black uppercase tracking-wider text-center animate-in fade-in duration-300">
+              <div className="px-4 py-3 bg-danger-tint border border-danger-border text-danger rounded-md text-[13px] font-medium text-center animate-in fade-in duration-300">
                 {erro}
               </div>
             )}
 
-            <div className="flex flex-col sm:flex-row justify-between gap-4 pt-4">
+            <div className="flex flex-col sm:flex-row justify-between gap-3 pt-2">
               <button
                 onClick={() => { setErro(null); setPasso(3); }}
-                className="px-10 py-5 bg-gray-100 text-gray-400 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-gray-200 hover:text-gray-600 transition-all"
+                className="h-11 px-[18px] inline-flex items-center justify-center rounded-md text-sm font-semibold text-body bg-white border border-line hover:bg-canvas transition-colors"
               >
-                Voltar e Alterar
+                Voltar e alterar
               </button>
               <button
                 disabled={carregando}
                 onClick={finalizarAgendamento}
-                className="flex-1 py-5 bg-gradient-to-br from-[#7C3AED] to-[#5B21B6] text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-[0_15px_30px_-5px_rgba(124,58,237,0.4)] hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+                className="h-11 px-5 inline-flex items-center justify-center gap-2 rounded-md text-sm font-semibold text-white bg-brand-600 border border-brand-600 hover:bg-brand-800 transition-colors disabled:opacity-50"
               >
                 {carregando ? (
-                  <div className="w-6 h-6 border-4 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                 ) : (
                   <>
-                    <CheckCircle className="w-5 h-5" strokeWidth={2.5} />
-                    Confirmar Agendamento Agora
+                    <CheckCircle className="w-[18px] h-[18px]" />
+                    Confirmar agendamento
                   </>
                 )}
               </button>
