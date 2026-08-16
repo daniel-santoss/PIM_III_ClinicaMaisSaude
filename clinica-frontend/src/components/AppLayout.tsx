@@ -35,6 +35,8 @@ type AppLayoutProps = {
   children: React.ReactNode;
 };
 
+const SIDEBAR_W = 248;
+
 // ─── Itens de navegação por perfil ────────────────────────────────────────────
 function getNavItems(tipoUsuario: string, isAdmin: boolean): NavItem[] {
   if (isAdmin) {
@@ -65,6 +67,29 @@ function getNavItems(tipoUsuario: string, isAdmin: boolean): NavItem[] {
   ];
 }
 
+// ─── Cabeçalho (topbar) por aba/perfil ────────────────────────────────────────
+function getHeader(abaAtiva: string, tipoUsuario: string, isAdmin: boolean): { titulo: string; subtitulo: string } {
+  const isPaciente = tipoUsuario === 'Paciente';
+  switch (abaAtiva) {
+    case 'pacientes':
+      return isAdmin
+        ? { titulo: 'Usuários', subtitulo: 'Gestão de perfis e acessos' }
+        : { titulo: 'Pacientes', subtitulo: 'Gestão de pacientes' };
+    case 'agendamentos':
+      return isPaciente
+        ? { titulo: 'Agendar consulta', subtitulo: 'Novo atendimento' }
+        : { titulo: 'Agendamentos', subtitulo: 'Agenda clínica e triagem' };
+    case 'relatorios':
+      return { titulo: 'Relatórios', subtitulo: 'Indicadores e exportações' };
+    case 'violacoes':
+      return { titulo: 'Violações IA', subtitulo: 'Auditoria de segurança' };
+    case 'minhas-consultas':
+      return { titulo: 'Meus agendamentos', subtitulo: 'Histórico e consultas marcadas' };
+    default:
+      return { titulo: CLINIC_NAME, subtitulo: 'Portal Clínico' };
+  }
+}
+
 // ─── Iniciais do nome ────────────────────────────────────────────────────────
 function getIniciais(nome: string): string {
   if (!nome) return '?';
@@ -74,6 +99,16 @@ function getIniciais(nome: string): string {
     .slice(0, 2)
     .map(p => p[0].toUpperCase())
     .join('');
+}
+
+function papelLabel(tipoUsuario: string, isAdmin: boolean): string {
+  if (isAdmin) return 'Administrador';
+  switch (tipoUsuario) {
+    case 'Medico': return 'Médico';
+    case 'Enfermeira': return 'Enfermeira';
+    case 'Paciente': return 'Paciente';
+    default: return tipoUsuario || 'Usuário';
+  }
 }
 
 // ─── Componente principal ─────────────────────────────────────────────────────
@@ -91,7 +126,6 @@ export default function AppLayout({
   children,
 }: AppLayoutProps) {
   const [notifAberto, setNotifAberto] = useState(false);
-  const [isHovered, setIsHovered] = useState(false);
   const [fotoBase64, setFotoBase64] = useState<string | null>(localStorage.getItem("fotoBase64"));
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1280);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -109,11 +143,9 @@ export default function AppLayout({
   const navItems = getNavItems(tipoUsuario, isAdmin);
   const naoLidas = notificacoes.filter(n => !n.lida).length;
   const nomeUsuario = localStorage.getItem('nomeUsuario') ?? localStorage.getItem('tipoUsuario') ?? 'Usuário';
+  const header = getHeader(abaAtiva, tipoUsuario, isAdmin);
+  const sectionLabel = tipoUsuario === 'Paciente' ? 'Paciente' : 'Administração';
 
-  // Largura da sidebar (só relevante no desktop)
-  const sidebarWidth = isDesktop ? (isHovered ? 240 : 72) : 0;
-
-  // Bloqueia scroll quando o drawer mobile/tablet está aberto
   useScrollBlock(!isDesktop && isDrawerOpen);
 
   useEffect(() => {
@@ -125,240 +157,173 @@ export default function AppLayout({
     return () => window.removeEventListener("fotoPerfilAtualizada", handler);
   }, []);
 
-  // ─── Sidebar interna ───────────────────────────────────────────────────────
-  const SidebarContent = () => (
+  const avatar = (
+    <div className="w-8 h-8 shrink-0 rounded-lg bg-brand-600 text-white grid place-items-center font-semibold text-xs overflow-hidden">
+      {fotoBase64 ? <img src={fotoBase64} alt="avatar" className="w-full h-full object-cover" /> : getIniciais(nomeUsuario)}
+    </div>
+  );
+
+  // ─── Sidebar (desktop fixa / drawer mobile) ─────────────────────────────────
+  const SidebarContent = ({ isDrawer = false }: { isDrawer?: boolean }) => (
     <>
       {/* Header da sidebar */}
-      <div className="h-[60px] flex items-center px-3 mb-5 shrink-0 border-b border-[#E9E5FF] gap-3">
-        <img
-          src={logoPng}
-          alt="Logo"
-          className="w-8 h-8 object-contain mix-blend-multiply"
-        />
-        <span className={`text-[15px] font-extrabold text-[#7C3AED] transition-opacity duration-200 ease-out whitespace-nowrap ${
-          (!isDesktop || isHovered) ? 'opacity-100' : 'opacity-0'
-        }`}>
-          {CLINIC_NAME}
-        </span>
-        {/* Botão fechar drawer (mobile/tablet) */}
-        {!isDesktop && (
-          <button
-            onClick={() => setIsDrawerOpen(false)}
-            className="ml-auto border-none bg-transparent text-[#7C3AED] cursor-pointer"
-          >
+      <div className="flex items-center gap-2.5 px-5 py-[18px] border-b border-line">
+        <div className="w-[34px] h-[34px] shrink-0 rounded-lg bg-white border border-line grid place-items-center overflow-hidden">
+          <img src={logoPng} alt="Logo" className="w-full h-full object-contain p-0.5 mix-blend-multiply" />
+        </div>
+        <div className="min-w-0">
+          <div className="font-bold text-[15px] leading-tight text-ink truncate">{CLINIC_NAME}</div>
+          <div className="font-medium text-[11px] text-muted tracking-wide">Portal Clínico</div>
+        </div>
+        {isDrawer && (
+          <button onClick={() => setIsDrawerOpen(false)} className="ml-auto text-body">
             <X size={20} />
           </button>
         )}
       </div>
 
       {/* Navegação */}
-      <nav className="flex-1 flex flex-col gap-1.5">
+      <nav className="flex-1 flex flex-col gap-0.5 px-3 py-3.5">
+        <div className="font-semibold text-[11px] tracking-wider text-muted uppercase px-3 pt-2 pb-1.5">{sectionLabel}</div>
         {navItems.map(item => {
           const ativo = abaAtiva === item.id;
           return (
             <button
               key={item.id}
               onClick={() => { onNavegar(item.id); if (!isDesktop) setIsDrawerOpen(false); }}
-              className={`flex items-center px-3.5 py-2.5 rounded-xl cursor-pointer w-full text-left transition-all duration-200 ${
-                ativo 
-                  ? 'bg-[#7C3AED] text-white font-bold' 
-                  : 'bg-transparent text-gray-500 hover:bg-[#EDE9FE] hover:text-[#7C3AED]'
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-md w-full text-left text-sm font-medium transition-colors ${
+                ativo ? 'bg-brand-600 text-white' : 'text-body hover:bg-canvas'
               }`}
             >
-              <div className="w-6 h-6 flex items-center justify-center shrink-0">
-                {item.icon}
-              </div>
-              <span className={`ml-3.5 text-sm transition-opacity duration-200 whitespace-nowrap ${
-                ativo ? 'font-bold' : 'font-medium'
-              } ${(!isDesktop || isHovered) ? 'opacity-100' : 'opacity-0'}`}>
-                {item.label}
-              </span>
+              <span className="shrink-0 grid place-items-center">{item.icon}</span>
+              <span className="truncate">{item.label}</span>
             </button>
           );
         })}
       </nav>
 
-      {/* Footer: Notificações (desktop), Perfil e Sair */}
-      <div className="mt-auto border-t border-[#E9E5FF] pt-2.5 flex flex-col gap-1">
-        {/* Sino — apenas sidebar desktop */}
-        {isDesktop && (
-          <button
-            onClick={() => setNotifAberto(v => !v)}
-            className={`flex items-center px-3.5 py-2.5 rounded-xl cursor-pointer w-full text-left transition-all duration-200 ${
-              notifAberto 
-                ? 'bg-[#EDE9FE] text-[#7C3AED]' 
-                : 'bg-transparent text-gray-500 hover:bg-[#EDE9FE] hover:text-[#7C3AED]'
-            }`}
-          >
-            <div className="w-6 h-6 flex items-center justify-center shrink-0 relative">
-              <Bell size={18} />
-              {naoLidas > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-red-500 border border-white" />
-              )}
-            </div>
-            <span className={`ml-3.5 text-sm font-semibold transition-opacity duration-200 whitespace-nowrap ${
-              isHovered ? 'opacity-100' : 'opacity-0'
-            }`}>
-              Notificações {naoLidas > 0 ? `(${naoLidas})` : ''}
-            </span>
-          </button>
-        )}
+      {/* Footer: Perfil e Sair */}
+      <div className="mt-auto border-t border-line p-3 flex flex-col gap-0.5">
         <button
           onClick={() => { onAbrirPerfil(); if (!isDesktop) setIsDrawerOpen(false); }}
-          className="flex items-center px-3.5 py-2.5 rounded-xl cursor-pointer bg-transparent text-gray-500 hover:bg-[#EDE9FE] hover:text-[#7C3AED] transition-all duration-200 w-full text-left"
+          className="flex items-center gap-2.5 px-2.5 py-2 rounded-md hover:bg-canvas transition-colors w-full text-left"
         >
-          <div className="w-9 h-9 rounded-xl bg-[#7C3AED] text-white flex items-center justify-center shrink-0 font-extrabold text-sm overflow-hidden">
-            {fotoBase64
-              ? <img src={fotoBase64} alt="avatar" className="w-full h-full object-cover" />
-              : getIniciais(nomeUsuario)
-            }
+          {avatar}
+          <div className="min-w-0 text-left">
+            <div className="font-semibold text-[13px] leading-tight text-ink truncate">{nomeUsuario}</div>
+            <div className="font-medium text-[11px] text-muted">{papelLabel(tipoUsuario, isAdmin)}</div>
           </div>
-          <span className={`ml-3.5 text-sm font-bold text-gray-800 transition-opacity duration-200 whitespace-nowrap ${
-            (!isDesktop || isHovered) ? 'opacity-100' : 'opacity-0'
-          }`}>
-            Perfil
-          </span>
         </button>
-
         <button
           onClick={onLogout}
-          className="flex items-center px-3.5 py-2.5 rounded-xl cursor-pointer bg-transparent text-red-500 hover:bg-red-50 transition-all duration-200 w-full text-left"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-md w-full text-left text-sm font-medium text-danger hover:bg-danger-tint transition-colors"
         >
-          <div className="w-6 h-6 flex items-center justify-center shrink-0">
-            <LogOut size={20} />
-          </div>
-          <span className={`ml-3.5 text-sm font-semibold transition-opacity duration-200 whitespace-nowrap ${
-            (!isDesktop || isHovered) ? 'opacity-100' : 'opacity-0'
-          }`}>
-            Sair
-          </span>
+          <LogOut size={17} className="shrink-0" />
+          <span>Sair</span>
         </button>
       </div>
     </>
   );
 
-  return (
-    <div className="flex min-h-screen bg-[#F9FAFB]">
+  const bellButton = (
+    <button
+      onClick={() => setNotifAberto(v => !v)}
+      className={`w-10 h-10 grid place-items-center rounded-md border border-line text-body relative transition-colors ${
+        notifAberto ? 'bg-canvas' : 'bg-white hover:bg-canvas'
+      }`}
+    >
+      <Bell size={18} />
+      {naoLidas > 0 && (
+        <span className="absolute top-2 right-2 w-[7px] h-[7px] rounded-full bg-danger border-[1.5px] border-white" />
+      )}
+    </button>
+  );
 
-      {/* ── OVERLAY (Mobile/Tablet) ──────────────────────────────────────────── */}
+  return (
+    <div className="flex min-h-screen bg-canvas">
+
+      {/* ── OVERLAY (Mobile/Tablet) ── */}
       {!isDesktop && isDrawerOpen && (
-        <div
-          onClick={() => setIsDrawerOpen(false)}
-          className="fixed inset-0 bg-black/45 z-[1100] backdrop-blur-[2px]"
-        />
+        <div onClick={() => setIsDrawerOpen(false)} className="fixed inset-0 bg-ink/45 z-[1100] backdrop-blur-[2px]" />
       )}
 
-      {/* ── SIDEBAR DESKTOP (fixa, hover para expandir) ──────────────────────── */}
+      {/* ── SIDEBAR DESKTOP (fixa 248px) ── */}
       {isDesktop && (
         <aside
-          onMouseEnter={() => setIsHovered(true)}
-          onMouseLeave={() => setIsHovered(false)}
-          className="fixed top-0 left-0 h-screen bg-[#F8F7FF] border-r border-[#E9E5FF] flex flex-col z-[1200] transition-[width] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] p-3 pb-2.5 box-border overflow-hidden"
-          style={{ width: sidebarWidth }}
+          className="fixed top-0 left-0 h-screen bg-white border-r border-line flex flex-col z-[1200]"
+          style={{ width: SIDEBAR_W }}
         >
           <SidebarContent />
         </aside>
       )}
 
-      {/* ── SIDEBAR DRAWER (Mobile/Tablet) ──────────────────────────────────── */}
+      {/* ── SIDEBAR DRAWER (Mobile/Tablet) ── */}
       {!isDesktop && (
         <aside
-          className={`fixed top-0 left-0 w-[260px] h-screen bg-[#F8F7FF] border-r border-[#E9E5FF] flex flex-col z-[1200] transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] p-3 pb-2.5 box-border overflow-hidden ${
-            isDrawerOpen ? 'translate-x-0 shadow-[10px_0_30px_rgba(0,0,0,0.12)]' : '-translate-x-full'
+          className={`fixed top-0 left-0 w-[260px] h-screen bg-white border-r border-line flex flex-col z-[1200] transition-transform duration-300 ${
+            isDrawerOpen ? 'translate-x-0 shadow-modal' : '-translate-x-full'
           }`}
         >
-          <SidebarContent />
+          <SidebarContent isDrawer />
         </aside>
       )}
 
-      {/* ── TOPBAR (Mobile/Tablet) ───────────────────────────────────────────── */}
+      {/* ── TOPBAR MOBILE ── */}
       {!isDesktop && (
-        <header className="fixed top-0 left-0 right-0 h-[60px] bg-white border-b border-[#E9E5FF] flex items-center justify-between px-4 z-[1050] shadow-[0_1px_8px_rgba(0,0,0,0.05)]">
-          {/* Hamburguer */}
-          <button
-            onClick={() => setIsDrawerOpen(true)}
-            className="w-10 h-10 rounded-xl bg-[#F5F3FF] border border-[#E9E5FF] text-[#7C3AED] flex items-center justify-center cursor-pointer"
-          >
+        <header className="fixed top-0 left-0 right-0 h-[60px] bg-white border-b border-line flex items-center justify-between px-4 z-[1050]">
+          <button onClick={() => setIsDrawerOpen(true)} className="w-10 h-10 rounded-md bg-white border border-line text-body grid place-items-center">
             <Menu size={22} />
           </button>
-
-          {/* Logo centralizada — sem nome */}
-          <img
-            src={logoPng}
-            alt={CLINIC_NAME}
-            className="w-9 h-9 object-contain mix-blend-multiply"
-          />
-
-          {/* Ações direita: Sino + Avatar */}
+          <img src={logoPng} alt={CLINIC_NAME} className="w-9 h-9 object-contain mix-blend-multiply" />
           <div className="flex items-center gap-2">
-            {/* Sino de notificações — mobile/tablet */}
-            <button
-              onClick={() => setNotifAberto(v => !v)}
-              className={`w-10 h-10 rounded-xl border border-[#E9E5FF] text-[#7C3AED] flex items-center justify-center cursor-pointer relative ${
-                notifAberto ? 'bg-[#EDE9FE]' : 'bg-[#F5F3FF]'
-              }`}
-            >
-              <Bell size={18} />
-              {naoLidas > 0 && (
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500 border border-white" />
-              )}
-            </button>
-
-            {/* Avatar (sem nome no mobile) */}
-            <button
-              onClick={onAbrirPerfil}
-              className="w-9 h-9 rounded-xl bg-[#7C3AED] text-white flex items-center justify-center border-none cursor-pointer font-extrabold text-sm overflow-hidden"
-            >
-              {fotoBase64
-                ? <img src={fotoBase64} alt="avatar" className="w-full h-full object-cover" />
-                : getIniciais(nomeUsuario)
-              }
-            </button>
+            {bellButton}
+            <button onClick={onAbrirPerfil} className="shrink-0">{avatar}</button>
           </div>
         </header>
       )}
 
-      {/* ── PAINEL DE NOTIFICAÇÕES UNIFICADO (desktop + mobile) ──────────────── */}
+      {/* ── PAINEL DE NOTIFICAÇÕES ── */}
       {notifAberto && (
         <>
           <div onClick={() => setNotifAberto(false)} className="fixed inset-0 z-[1999]" />
-          <div 
-            className="fixed max-w-[360px] bg-white rounded-2xl border border-[#E9E5FF] shadow-[0_8px_30px_rgba(0,0,0,0.18)] z-[2000] overflow-hidden"
+          <div
+            className="fixed max-w-[360px] bg-white rounded-xl border border-line shadow-modal z-[2000] overflow-hidden"
             style={{
-              top: isDesktop ? 16 : 68,
-              left: isDesktop ? sidebarWidth + 12 : 8,
-              right: isDesktop ? 'auto' : 8,
-              width: isDesktop ? 340 : 'auto',
-              marginLeft: isDesktop ? undefined : 'auto',
+              top: isDesktop ? 60 : 68,
+              left: isDesktop ? 'auto' : 8,
+              right: isDesktop ? 20 : 8,
+              width: isDesktop ? 360 : 'auto',
             }}
           >
-            <div className="px-4 py-3 border-b border-gray-100 flex justify-between items-center">
-              <span className="text-[12px] font-extrabold text-gray-700 uppercase tracking-wider">Notificações</span>
-              {naoLidas > 0 && <span className="text-[11px] font-bold text-[#7C3AED] bg-[#EDE9FE] px-2 py-0.5 rounded-full">{naoLidas} nova{naoLidas > 1 ? 's' : ''}</span>}
+            <div className="px-4 py-3 border-b border-line flex justify-between items-center">
+              <span className="text-[11px] font-semibold text-muted uppercase tracking-wider">Notificações</span>
+              {naoLidas > 0 && (
+                <span className="text-[11px] font-semibold text-brand-600 bg-brand-50 px-2 py-0.5 rounded-md">
+                  {naoLidas} nova{naoLidas > 1 ? 's' : ''}
+                </span>
+              )}
             </div>
-            <div className="max-h-[320px] overflow-y-auto">
+            <div className="max-h-[320px] overflow-y-auto custom-scrollbar">
               {notificacoes.length === 0 ? (
-                <div className="px-4 py-6 text-center text-gray-400 text-sm">Nenhuma notificação</div>
+                <div className="px-4 py-6 text-center text-muted text-sm">Nenhuma notificação</div>
               ) : notificacoes.map(n => (
                 <div key={n.id}
-                  className={`px-4 py-3 border-b border-gray-50 cursor-pointer ${
-                    n.lida ? 'bg-white' : 'bg-[#FAFAFE]'
-                  }`}
+                  className={`px-4 py-3 border-b border-line-soft cursor-pointer transition-colors hover:bg-canvas ${n.lida ? 'bg-white' : 'bg-brand-50/40'}`}
                   onClick={() => { onNavegacaoNotificacao(n); setNotifAberto(false); }}
                 >
                   <div className="flex justify-between items-start gap-2">
-                    <div className="flex-1">
-                      <p className={`text-sm text-gray-800 m-0 ${n.lida ? 'font-medium' : 'font-bold'}`}>{n.titulo}</p>
-                      <p className="text-[11px] text-gray-500 m-0 mt-0.5 leading-relaxed">{n.mensagem}</p>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm text-ink m-0 ${n.lida ? 'font-medium' : 'font-semibold'}`}>{n.titulo}</p>
+                      <p className="text-[12px] text-body m-0 mt-0.5 leading-relaxed">{n.mensagem}</p>
                     </div>
                     <button onClick={e => { e.stopPropagation(); onRemoverNotificacao(n.id); }}
-                      className="text-gray-300 bg-transparent border-none cursor-pointer p-0.5 shrink-0 hover:text-gray-500 transition-colors">
+                      className="text-muted p-0.5 shrink-0 hover:text-body transition-colors">
                       <X size={14} />
                     </button>
                   </div>
                   {!n.lida && (
                     <button onClick={e => { e.stopPropagation(); onMarcarLida(n.id); }}
-                      className="text-[10px] text-[#7C3AED] bg-transparent border-none cursor-pointer mt-1 p-0 font-bold hover:underline">
+                      className="text-[11px] text-brand-600 mt-1 font-semibold hover:underline">
                       Marcar como lida
                     </button>
                   )}
@@ -369,18 +334,26 @@ export default function AppLayout({
         </>
       )}
 
-      {/* ── MAIN CONTENT ─────────────────────────────────────────────────────── */}
-      <main 
-        className="flex-1 min-w-0 min-h-screen bg-white transition-[margin-left] duration-300 ease-out"
-        style={{
-          marginLeft: isDesktop ? sidebarWidth : 0,
-          marginTop: isDesktop ? 0 : 60,
-          padding: isDesktop ? '32px 40px' : '24px 16px 48px',
-          boxSizing: 'border-box',
-        }}
+      {/* ── COLUNA PRINCIPAL ── */}
+      <div
+        className="flex-1 min-w-0 flex flex-col"
+        style={{ marginLeft: isDesktop ? SIDEBAR_W : 0, marginTop: isDesktop ? 0 : 60 }}
       >
-        {children}
-      </main>
+        {/* Topbar desktop */}
+        {isDesktop && (
+          <header className="h-16 shrink-0 bg-white border-b border-line flex items-center justify-between px-7 sticky top-0 z-[5]">
+            <div>
+              <div className="font-semibold text-xl text-ink leading-tight">{header.titulo}</div>
+              <div className="text-[13px] text-muted">{header.subtitulo}</div>
+            </div>
+            <div className="flex items-center gap-2.5">{bellButton}</div>
+          </header>
+        )}
+
+        <main className="flex-1 min-w-0 px-7 py-7">
+          <div className="max-w-[1180px] mx-auto">{children}</div>
+        </main>
+      </div>
 
     </div>
   );

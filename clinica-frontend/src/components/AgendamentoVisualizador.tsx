@@ -4,6 +4,7 @@ import { getRealDate } from "../utils/dates";
 import { MapNomesStatus, MapNomesTipoConsulta, MapNomesEspecialidade } from "../constants/statusMap";
 import { perfis } from "../constants/perfis";
 import { statusAgendamento } from "../constants/status";
+import Badge, { variantePorStatus } from "./ui/Badge";
 
 export interface AgendamentoVisualizadorItem {
   id: string;
@@ -151,8 +152,8 @@ export default function AgendamentoVisualizador({
 
   if (agendamentos.length === 0) {
     return (
-      <div className="py-20 bg-white rounded-[2.5rem] border border-dashed border-purple-200 text-center">
-        <p className="text-gray-400 font-bold uppercase tracking-widest text-sm">Nenhum agendamento para exibir</p>
+      <div className="py-16 bg-white rounded-lg border border-line text-center">
+        <p className="text-muted text-sm font-medium">Nenhum agendamento para exibir</p>
       </div>
     );
   }
@@ -164,36 +165,38 @@ export default function AgendamentoVisualizador({
           <div key={grupo.dataChave} className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-300">
             
             {/* Header de Data */}
-            <div className="flex items-center justify-between pt-2 pb-1 border-b border-purple-100/50">
+            <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2.5">
-                <Calendar className="w-5 h-5 text-[#7C3AED]" />
-                <h3 className="text-sm font-black text-gray-800 uppercase tracking-wider bg-purple-50 text-[#7C3AED] px-3.5 py-1.5 rounded-xl border border-purple-100/60 shadow-sm">
+                <div className="w-8 h-8 shrink-0 rounded-lg grid place-items-center bg-brand-50 text-brand-600">
+                  <Calendar className="w-4 h-4" />
+                </div>
+                <h3 className="text-[13px] font-semibold text-ink uppercase tracking-wide bg-line-soft px-3 py-1.5 rounded-md">
                   {formatarHeaderData(grupo.dataChave)}
                 </h3>
               </div>
-              <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest bg-gray-50 border border-gray-100 px-3 py-1.5 rounded-xl shadow-sm">
+              <span className="text-[11px] font-medium text-muted bg-line-soft px-2.5 py-1 rounded-md">
                 {grupo.itens.length} {grupo.itens.length === 1 ? "atendimento" : "atendimentos"}
               </span>
             </div>
 
             {/* Tabela compacta */}
-            <div className="overflow-x-auto bg-white rounded-3xl border border-gray-100/80 shadow-xl shadow-purple-100/5">
+            <div className="overflow-x-auto bg-white rounded-lg border border-line">
               <table className="w-full text-left border-collapse min-w-[700px]">
                 <thead>
-                  <tr className="bg-purple-50/40 border-b border-purple-100/40">
-                    <th className="px-6 py-5 text-sm font-black uppercase tracking-wider text-purple-600">Horário</th>
-                    <th className="px-6 py-5 text-sm font-black uppercase tracking-wider text-purple-600">
+                  <tr className="bg-canvas">
+                    <th className="px-5 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted">Horário</th>
+                    <th className="px-5 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted">
                       {tipoUsuario === perfis.paciente ? "Profissional" : "Paciente"}
                     </th>
                     {(tipoUsuario !== perfis.paciente && tipoUsuario !== perfis.medico || isAdmin) && (
-                      <th className="px-6 py-5 text-sm font-black uppercase tracking-wider text-purple-600">Profissional</th>
+                      <th className="px-5 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted">Profissional</th>
                     )}
-                    <th className="px-6 py-5 text-sm font-black uppercase tracking-wider text-purple-600">Tipo / Especialidade</th>
-                    <th className="px-6 py-5 text-sm font-black uppercase tracking-wider text-purple-600">Status</th>
-                    <th className="px-6 py-5 text-sm font-black uppercase tracking-wider text-purple-600 text-right">Ações</th>
+                    <th className="px-5 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted">Tipo / especialidade</th>
+                    <th className="px-5 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted">Status</th>
+                    <th className="px-5 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted text-right">Ações</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-50">
+                <tbody className="divide-y divide-line">
                   {grupo.itens.map((agenda) => {
                     const dataObj = getRealDate(agenda.dataHoraConsulta)!;
                     const hora = dataObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
@@ -206,16 +209,16 @@ export default function AgendamentoVisualizador({
                     const isPendenteAtualizacao = dataObj < duasHorasAtras && (agenda.status === statusAgendamento.agendado || agenda.status === statusAgendamento.emAtendimento);
                     
                     return (
-                      <tr id={`agendamento-${agenda.id}`} key={agenda.id} className={`hover:bg-purple-50/10 transition-colors group ${agenda.id === agendamentoDestaque ? "bg-purple-50/40 font-semibold" : ""}`}>
-                        <td className="px-6 py-6 whitespace-nowrap">
+                      <tr id={`agendamento-${agenda.id}`} key={agenda.id} className={`transition-colors group ${agenda.id === agendamentoDestaque ? "bg-brand-50" : "hover:bg-canvas"}`}>
+                        <td className="px-5 py-3.5 whitespace-nowrap">
                           <div className="flex items-center gap-2">
-                            <Clock className="w-5 h-5 text-purple-500" />
-                            <span className="text-base font-black text-gray-800">{hora}</span>
+                            <Clock className="w-[15px] h-[15px] text-brand-600" />
+                            <span className="text-[15px] font-semibold text-ink">{hora}</span>
                           </div>
                         </td>
-                        <td className="px-6 py-6 whitespace-nowrap">
-                          <div className="flex items-center gap-3.5">
-                            <div className="w-11 h-11 rounded-full bg-[#7C3AED] flex items-center justify-center text-white font-bold text-base overflow-hidden shadow-sm shrink-0 animate-in fade-in zoom-in duration-200">
+                        <td className="px-5 py-3.5 whitespace-nowrap">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-lg bg-brand-50 text-brand-600 flex items-center justify-center font-semibold text-[13px] overflow-hidden shrink-0">
                               {tipoUsuario === perfis.paciente ? (
                                 agenda.profissionalFotoBase64 ? (
                                   <img src={agenda.profissionalFotoBase64} alt="avatar" className="w-full h-full object-cover" />
@@ -231,7 +234,7 @@ export default function AgendamentoVisualizador({
                               )}
                             </div>
                             <div className="flex flex-col">
-                              <span className="text-base font-bold text-gray-900 group-hover:text-[#7C3AED] transition-colors leading-snug">
+                              <span className="text-sm font-semibold text-ink leading-snug">
                                 {tipoUsuario === perfis.paciente ? agenda.nomeProfissional : agenda.pacienteNome}
                               </span>
                               {tipoUsuario !== perfis.paciente && agenda.nivelProbabilidadeFalta && (agenda.status === statusAgendamento.agendado || agenda.status === statusAgendamento.retornoAgendado) && (
@@ -247,9 +250,9 @@ export default function AgendamentoVisualizador({
                           </div>
                         </td>
                         {(tipoUsuario !== perfis.paciente && tipoUsuario !== perfis.medico || isAdmin) && (
-                          <td className="px-6 py-6 whitespace-nowrap">
+                          <td className="px-5 py-3.5 whitespace-nowrap">
                             <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center overflow-hidden shrink-0 shadow-inner">
+                              <div className="w-9 h-9 rounded-lg bg-brand-50 text-brand-600 flex items-center justify-center overflow-hidden shrink-0">
                                 {agenda.profissionalFotoBase64 ? (
                                   <img src={agenda.profissionalFotoBase64} alt="avatar" className="w-full h-full object-cover" />
                                 ) : (
@@ -257,38 +260,29 @@ export default function AgendamentoVisualizador({
                                 )}
                               </div>
                               <div className="flex flex-col">
-                                <span className="text-sm font-bold text-gray-800">{agenda.nomeProfissional}</span>
+                                <span className="text-sm font-semibold text-ink">{agenda.nomeProfissional}</span>
                                 <span className="text-xs font-semibold text-gray-500 mt-0.5">{agenda.tipoProfissional === perfis.medico ? 'Médico' : 'Enfermeira'}</span>
                               </div>
                             </div>
                           </td>
                         )}
-                        <td className="px-6 py-6 whitespace-nowrap">
+                        <td className="px-5 py-3.5 whitespace-nowrap">
                           <div className="flex flex-col">
                             <span className="text-sm font-bold text-gray-700">
                               {MapNomesTipoConsulta[agenda.tipoConsulta] || agenda.tipoConsulta}
                             </span>
                             {agenda.tipoConsulta === "ConsultaMedica" && agenda.especialidade && (
-                              <span className="text-[10px] text-[#7C3AED] font-bold uppercase tracking-wider mt-1">
+                              <span className="text-[10px] text-[#2C5282] font-bold uppercase tracking-wider mt-1">
                                 {MapNomesEspecialidade[agenda.especialidade] || agenda.especialidade}
                               </span>
                             )}
                           </div>
                         </td>
-                        <td className="px-6 py-6 whitespace-nowrap">
+                        <td className="px-5 py-3.5 whitespace-nowrap">
                           <div className="flex flex-col items-start gap-1.5">
-                            <span className={`inline-flex items-center px-3.5 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider text-white shadow-sm ${
-                              agenda.status === statusAgendamento.agendado ? 'bg-[#3B82F6]' :
-                              agenda.status === statusAgendamento.emAtendimento ? 'bg-[#F59E0B]' :
-                              agenda.status === statusAgendamento.aguardandoRetorno ? 'bg-[#F97316]' :
-                              agenda.status === statusAgendamento.retornoAgendado ? 'bg-[#7C3AED]' :
-                              agenda.status === statusAgendamento.finalizado ? 'bg-[#10B981]' :
-                              agenda.status === statusAgendamento.cancelado ? 'bg-[#6B7280]' :
-                              agenda.status === statusAgendamento.faltou ? 'bg-[#EF4444]' :
-                              'bg-[#7C3AED]'
-                            }`}>
+                            <Badge variant={variantePorStatus(agenda.status)}>
                               {MapNomesStatus[agenda.status] || agenda.status}
-                            </span>
+                            </Badge>
                             {isPendenteAtualizacao && (
                               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-wider bg-amber-50 text-amber-700 border border-amber-100">
                                 Pendente de atualização
@@ -311,12 +305,12 @@ export default function AgendamentoVisualizador({
                             )}
                           </div>
                         </td>
-                        <td className="px-6 py-6 whitespace-nowrap text-right">
+                        <td className="px-5 py-3.5 whitespace-nowrap text-right">
                           <div className="flex items-center justify-end gap-2">
                             {onAlterarStatus && opcoesValidas.length > 0 && (
                               <div className="relative">
                                 <select
-                                  className="appearance-none bg-white text-[#7C3AED] border border-[#7C3AED] text-[10px] font-bold py-1.5 pl-2.5 pr-6 rounded-lg cursor-pointer outline-none hover:bg-purple-50 transition-colors"
+                                  className="appearance-none bg-white text-[#2C5282] border border-[#2C5282] text-[10px] font-bold py-1.5 pl-2.5 pr-6 rounded-lg cursor-pointer outline-none hover:bg-purple-50 transition-colors"
                                   value={agenda.status}
                                   onChange={(e) => onAlterarStatus(agenda.id, e.target.value)}
                                 >
@@ -325,7 +319,7 @@ export default function AgendamentoVisualizador({
                                     <option key={op} value={op}>{MapNomesStatus[op]}</option>
                                   ))}
                                 </select>
-                                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-1.5 text-[#7C3AED]">
+                                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-1.5 text-[#2C5282]">
                                   <svg className="fill-current h-3 w-3" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
                                 </div>
                               </div>
@@ -334,7 +328,7 @@ export default function AgendamentoVisualizador({
                               <button
                                 title="Histórico"
                                 onClick={() => onHistorico(agenda.id)}
-                                className="p-1.5 border border-gray-200 text-gray-500 hover:bg-purple-50 hover:text-[#7C3AED] hover:border-purple-200 rounded-lg transition-colors"
+                                className="w-8 h-8 grid place-items-center border border-line text-body hover:bg-canvas rounded-md transition-colors"
                               >
                                 <Clock className="w-3.5 h-3.5" />
                               </button>
@@ -344,7 +338,7 @@ export default function AgendamentoVisualizador({
                                 <button
                                   title="Agendar Retorno"
                                   onClick={() => onAgendarRetorno(agenda)}
-                                  className="p-1.5 border border-purple-200 text-[#7C3AED] hover:bg-purple-50 rounded-lg transition-colors bg-white"
+                                  className="p-1.5 border border-purple-200 text-[#2C5282] hover:bg-purple-50 rounded-lg transition-colors bg-white"
                                 >
                                   <CalendarPlus className="w-3.5 h-3.5" />
                                 </button>
@@ -354,7 +348,7 @@ export default function AgendamentoVisualizador({
                                 <button
                                   title="Remarcar"
                                   onClick={() => onRemarcar(agenda)}
-                                  className="p-1.5 border border-gray-200 text-gray-500 hover:bg-purple-50 hover:text-[#7C3AED] hover:border-purple-200 rounded-lg transition-colors"
+                                  className="w-8 h-8 grid place-items-center border border-line text-body hover:bg-canvas rounded-md transition-colors"
                                 >
                                   <Calendar className="w-3.5 h-3.5" />
                                 </button>
@@ -363,7 +357,7 @@ export default function AgendamentoVisualizador({
                             {onConcluirExame && agenda.tipoConsulta === 'Exame' && agenda.status === statusAgendamento.emAtendimento && (
                               <button
                                 onClick={() => onConcluirExame(agenda)}
-                                className="px-2.5 py-1.5 text-[10px] font-black bg-[#7C3AED] text-white rounded-lg hover:bg-purple-700 transition-colors shadow-sm"
+                                className="px-2.5 py-1.5 text-[10px] font-black bg-[#2C5282] text-white rounded-lg hover:bg-purple-700 transition-colors shadow-sm"
                               >
                                 Concluir
                               </button>
@@ -415,8 +409,8 @@ export default function AgendamentoVisualizador({
           {/* Header de Data */}
           <div className="flex items-center justify-between pt-2 pb-1 border-b border-purple-100/50">
             <div className="flex items-center gap-2.5">
-              <Calendar className="w-5 h-5 text-[#7C3AED]" />
-              <h3 className="text-sm font-black text-gray-800 uppercase tracking-wider bg-purple-50 text-[#7C3AED] px-3.5 py-1.5 rounded-xl border border-purple-100/60 shadow-sm">
+              <Calendar className="w-5 h-5 text-[#2C5282]" />
+              <h3 className="text-sm font-black text-gray-800 uppercase tracking-wider bg-purple-50 text-[#2C5282] px-3.5 py-1.5 rounded-xl border border-purple-100/60 shadow-sm">
                 {formatarHeaderData(grupo.dataChave)}
               </h3>
             </div>
@@ -442,33 +436,24 @@ export default function AgendamentoVisualizador({
                 <div
                   id={`agendamento-${agenda.id}`}
                   key={agenda.id}
-                  className={`bg-white rounded-3xl shadow-md border flex flex-col h-full transition-all duration-300 hover:shadow-xl hover:border-purple-200 ${
+                  className={`bg-white rounded-lg border flex flex-col h-full transition-colors ${
                     agenda.id === agendamentoDestaque
-                      ? 'border-purple-400 shadow-lg shadow-purple-200/60 ring-2 ring-purple-300'
-                      : 'border-gray-100 shadow-sm hover:shadow-md'
+                      ? 'border-brand-600 ring-1 ring-brand-600'
+                      : 'border-line hover:border-brand-200'
                   }`}
                 >
                   {/* Cabeçalho do Card: Horário e Status */}
                   <div className="p-5 sm:p-6 pb-3 sm:pb-4 flex justify-between items-start">
                     <div className="flex flex-col">
-                      <span className="text-2xl sm:text-3xl font-black text-[#7C3AED] leading-none">{hora}</span>
-                      <span className="text-[10px] font-black text-gray-400 uppercase mt-2 tracking-widest pl-0.5">Horário</span>
+                      <span className="text-2xl font-bold text-brand-600 leading-none">{hora}</span>
+                      <span className="text-[11px] font-semibold text-muted uppercase mt-2 tracking-wide">Horário</span>
                     </div>
                     
                     {/* Status Badges */}
                     <div className="flex flex-col items-end gap-1.5">
-                      <span className={`inline-flex items-center px-3.5 py-1.5 rounded-full text-[9px] font-black uppercase tracking-wider text-white shadow-sm ${
-                        agenda.status === statusAgendamento.agendado ? 'bg-[#3B82F6]' :
-                        agenda.status === statusAgendamento.emAtendimento ? 'bg-[#F59E0B]' :
-                        agenda.status === statusAgendamento.aguardandoRetorno ? 'bg-[#F97316]' :
-                        agenda.status === statusAgendamento.retornoAgendado ? 'bg-[#7C3AED]' :
-                        agenda.status === statusAgendamento.finalizado ? 'bg-[#10B981]' :
-                        agenda.status === statusAgendamento.cancelado ? 'bg-[#6B7280]' :
-                        agenda.status === statusAgendamento.faltou ? 'bg-[#EF4444]' :
-                        'bg-[#7C3AED]'
-                      }`}>
+                      <Badge variant={variantePorStatus(agenda.status)}>
                         {MapNomesStatus[agenda.status] || agenda.status}
-                      </span>
+                      </Badge>
                       {isPendenteAtualizacao && (
                         <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[8px] font-bold uppercase tracking-wider bg-amber-50 text-amber-700 border border-amber-100">
                           Pendente de atualização
@@ -495,7 +480,7 @@ export default function AgendamentoVisualizador({
                   {/* Corpo do Card: Paciente ou Profissional */}
                   <div className="px-5 sm:px-6 py-4 flex-1 flex flex-col justify-center border-t border-gray-50/50">
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-full bg-[#7C3AED] flex items-center justify-center text-white font-bold text-xl shrink-0 overflow-hidden shadow-sm">
+                      <div className="w-12 h-12 rounded-full bg-[#2C5282] flex items-center justify-center text-white font-bold text-xl shrink-0 overflow-hidden shadow-sm">
                         {tipoUsuario === perfis.paciente ? (
                           agenda.profissionalFotoBase64 ? (
                             <img src={agenda.profissionalFotoBase64} alt="avatar" className="w-full h-full object-cover" />
@@ -512,7 +497,7 @@ export default function AgendamentoVisualizador({
                       </div>
                       <div className="flex flex-col">
                         <div className="flex flex-wrap items-center gap-2">
-                          <h4 className="text-base font-black text-gray-900 leading-tight">
+                          <h4 className="text-sm font-semibold text-ink leading-tight">
                             {tipoUsuario === perfis.paciente 
                               ? (agenda.nomeProfissional || "Profissional não informado") 
                               : (agenda.pacienteNome || "Paciente não informado")}
@@ -538,7 +523,7 @@ export default function AgendamentoVisualizador({
                   {/* Separador e Profissional Secundário (Apenas para Enfermeira / Admin) */}
                   {(tipoUsuario !== perfis.paciente && tipoUsuario !== perfis.medico || isAdmin) && (
                     <div className="px-5 sm:px-6 py-3.5 border-t border-gray-50 flex items-center gap-4 bg-purple-50/10">
-                      <div className="w-10 h-10 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center overflow-hidden shrink-0 shadow-inner">
+                      <div className="w-9 h-9 rounded-lg bg-brand-50 text-brand-600 flex items-center justify-center overflow-hidden shrink-0">
                         {agenda.profissionalFotoBase64 ? (
                           <img src={agenda.profissionalFotoBase64} alt="avatar" className="w-full h-full object-cover" />
                         ) : (
@@ -546,7 +531,7 @@ export default function AgendamentoVisualizador({
                         )}
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-sm font-bold text-gray-800">{agenda.nomeProfissional}</span>
+                        <span className="text-sm font-semibold text-ink">{agenda.nomeProfissional}</span>
                         <span className="text-xs font-semibold text-gray-400 mt-0.5">{agenda.tipoProfissional === perfis.medico ? 'Médico' : 'Enfermeira'}</span>
                       </div>
                     </div>
@@ -565,7 +550,7 @@ export default function AgendamentoVisualizador({
                         {onAlterarStatus && opcoesValidas.length > 0 && (
                           <div className="relative w-full">
                             <select
-                              className="w-full appearance-none bg-white text-[#7C3AED] border border-[#7C3AED] text-[10px] font-bold py-2 pl-3 pr-8 rounded-xl cursor-pointer outline-none hover:bg-purple-50 transition-colors"
+                              className="w-full appearance-none bg-white text-[#2C5282] border border-[#2C5282] text-[10px] font-bold py-2 pl-3 pr-8 rounded-xl cursor-pointer outline-none hover:bg-purple-50 transition-colors"
                               value={agenda.status}
                               onChange={(e) => onAlterarStatus(agenda.id, e.target.value)}
                             >
@@ -574,7 +559,7 @@ export default function AgendamentoVisualizador({
                                 <option key={op} value={op}>{MapNomesStatus[op]}</option>
                               ))}
                             </select>
-                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2.5 text-[#7C3AED]">
+                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2.5 text-[#2C5282]">
                               <svg className="fill-current h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
                             </div>
                           </div>
@@ -586,7 +571,7 @@ export default function AgendamentoVisualizador({
                               <button
                                 title="Histórico"
                                 onClick={() => onHistorico(agenda.id)}
-                                className="flex items-center justify-center w-9 h-9 border border-gray-200 text-gray-500 hover:bg-purple-50 hover:text-[#7C3AED] hover:border-purple-200 rounded-xl transition-all active:scale-95 shadow-sm"
+                                className="flex items-center justify-center w-9 h-9 border border-gray-200 text-gray-500 hover:bg-purple-50 hover:text-[#2C5282] hover:border-purple-200 rounded-xl transition-all active:scale-95 shadow-sm"
                               >
                                 <Clock className="w-4 h-4" />
                               </button>
@@ -596,7 +581,7 @@ export default function AgendamentoVisualizador({
                                 <button
                                   title="Agendar Retorno"
                                   onClick={() => onAgendarRetorno(agenda)}
-                                  className="flex items-center justify-center w-9 h-9 border border-purple-200 text-[#7C3AED] hover:bg-purple-50 rounded-xl transition-all bg-white active:scale-95 shadow-sm"
+                                  className="flex items-center justify-center w-9 h-9 border border-purple-200 text-[#2C5282] hover:bg-purple-50 rounded-xl transition-all bg-white active:scale-95 shadow-sm"
                                 >
                                   <CalendarPlus className="w-4 h-4" />
                                 </button>
@@ -606,7 +591,7 @@ export default function AgendamentoVisualizador({
                                 <button
                                   title="Remarcar"
                                   onClick={() => onRemarcar(agenda)}
-                                  className="flex items-center justify-center w-9 h-9 border border-gray-200 text-gray-500 hover:bg-purple-50 hover:text-[#7C3AED] hover:border-purple-200 rounded-xl transition-all active:scale-95 shadow-sm"
+                                  className="flex items-center justify-center w-9 h-9 border border-gray-200 text-gray-500 hover:bg-purple-50 hover:text-[#2C5282] hover:border-purple-200 rounded-xl transition-all active:scale-95 shadow-sm"
                                 >
                                   <Calendar className="w-4 h-4" />
                                 </button>
@@ -626,7 +611,7 @@ export default function AgendamentoVisualizador({
                             {onConcluirExame && agenda.tipoConsulta === 'Exame' && agenda.status === statusAgendamento.emAtendimento && (
                               <button
                                 onClick={() => onConcluirExame(agenda)}
-                                className="px-3.5 py-2 text-[10px] font-black bg-[#7C3AED] text-white rounded-xl hover:bg-purple-700 transition-all shadow-sm active:scale-95 uppercase tracking-wider"
+                                className="px-3.5 py-2 text-[10px] font-black bg-[#2C5282] text-white rounded-xl hover:bg-purple-700 transition-all shadow-sm active:scale-95 uppercase tracking-wider"
                               >
                                 Concluir
                               </button>

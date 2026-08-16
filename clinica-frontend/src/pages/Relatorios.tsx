@@ -41,7 +41,7 @@ const STATUS_COLORS: Record<string, string> = {
   Agendado: '#3B82F6',
   EmAtendimento: '#F59E0B',
   AguardandoRetorno: '#F97316',
-  RetornoAgendado: '#7C3AED',
+  RetornoAgendado: '#2C5282',
   Finalizado: '#10B981',
   Cancelado: '#6B7280',
   Faltou: '#EF4444',
@@ -222,18 +222,18 @@ export default function Relatorios() {
     ]
     : [];
 
-  const card = 'bg-white rounded-2xl border border-purple-100 p-6 shadow-[0_1px_4px_rgba(124,58,237,0.06)]';
+  const card = 'bg-white rounded-lg border border-line p-6';
 
   const btnPeriodoClass = (val: string) =>
-    `px-4 py-2 rounded-xl text-[13px] cursor-pointer transition-all border ${periodoLabel === val
-      ? 'border-[#7C3AED] border-2 bg-purple-50 text-[#7C3AED] font-bold'
-      : 'border-gray-200 bg-white text-gray-500 font-medium hover:bg-gray-50'
+    `h-9 px-3.5 rounded-md text-[13px] cursor-pointer transition-colors border ${periodoLabel === val
+      ? 'border-brand-600 bg-brand-600 text-white font-semibold'
+      : 'border-line bg-white text-body font-medium hover:bg-canvas'
     }`;
 
   const kpiCard = (label: string, value: string | number, accent: string): React.ReactNode => (
-    <div className={`${card} flex flex-col gap-1 min-w-0`}>
-      <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{label}</span>
-      <span className="text-[28px] font-extrabold" style={{ color: accent }}>{value}</span>
+    <div className="bg-white border border-line rounded-lg px-4 py-[11px] min-w-0">
+      <div className="font-semibold text-[11px] tracking-wide text-muted uppercase">{label}</div>
+      <div className="font-bold text-[24px] leading-tight mt-0.5" style={{ color: accent }}>{value}</div>
     </div>
   );
 
@@ -261,30 +261,27 @@ export default function Relatorios() {
 
   return (
     <div className="max-w-screen-xl mx-auto">
-      {/* ── Cabeçalho + Export ── */}
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
-        <h1 className="text-[22px] font-extrabold text-gray-800 m-0">Relatórios</h1>
-        <div className="flex gap-2 flex-wrap items-center">
-          <button className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#7C3AED] text-white font-bold text-[13px] cursor-pointer transition-colors hover:bg-[#6D28D9] border-none" onClick={() => exportar('pdf')}>
-            <Download size={15} /> Exportar PDF
-          </button>
-          <button className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#7C3AED] text-white font-bold text-[13px] cursor-pointer transition-colors hover:bg-[#6D28D9] border-none" onClick={() => exportar('excel')}>
-            <FileSpreadsheet size={15} /> Exportar Excel
-          </button>
-        </div>
+      {/* ── Export ── */}
+      <div className="flex flex-wrap items-center justify-end gap-2.5 mb-6">
+        <button className="inline-flex items-center gap-2 h-9 px-3.5 rounded-md bg-white text-body border border-line font-semibold text-[13px] cursor-pointer transition-colors hover:bg-canvas" onClick={() => exportar('pdf')}>
+          <Download size={15} /> Exportar PDF
+        </button>
+        <button className="inline-flex items-center gap-2 h-9 px-3.5 rounded-md bg-brand-600 text-white border border-brand-600 font-semibold text-[13px] cursor-pointer transition-colors hover:bg-brand-800" onClick={() => exportar('excel')}>
+          <FileSpreadsheet size={15} /> Exportar Excel
+        </button>
       </div>
 
       {temFiltrosAtivos && (
         <div className="flex flex-wrap items-center gap-2 mb-6">
           {filtroStatus.map(s => (
             <div key={s} className="inline-flex items-center gap-1.5 bg-gray-100 px-2.5 py-1 rounded-full">
-              <span className="text-xs font-semibold text-gray-600">Status: <span className="text-[#7C3AED]">{STATUS_LABELS[s] || s}</span></span>
+              <span className="text-xs font-semibold text-gray-600">Status: <span className="text-[#2C5282]">{STATUS_LABELS[s] || s}</span></span>
               <button onClick={() => toggleFiltroStatus(s)} className="bg-transparent border-none cursor-pointer flex p-0.5"><X size={12} className="text-gray-500" /></button>
             </div>
           ))}
           {filtroEspecialidades.map(e => (
             <div key={e} className="inline-flex items-center gap-1.5 bg-gray-100 px-2.5 py-1 rounded-full">
-              <span className="text-xs font-semibold text-gray-600">Espec: <span className="text-[#7C3AED]">{e}</span></span>
+              <span className="text-xs font-semibold text-gray-600">Espec: <span className="text-[#2C5282]">{e}</span></span>
               <button onClick={() => toggleFiltroEspecialidade(e)} className="bg-transparent border-none cursor-pointer flex p-0.5"><X size={12} className="text-gray-500" /></button>
             </div>
           ))}
@@ -337,7 +334,7 @@ export default function Relatorios() {
 
       {loading && !dados ? (
         <div className="flex items-center justify-center min-h-[400px]">
-          <div className="w-9 h-9 border-4 border-[#7C3AED] border-t-transparent rounded-full animate-spin" />
+          <div className="w-9 h-9 border-4 border-[#2C5282] border-t-transparent rounded-full animate-spin" />
         </div>
       ) : !dados ? (
         <div className="text-center text-gray-400 py-10">Nenhum dado para o período selecionado.</div>
@@ -345,22 +342,22 @@ export default function Relatorios() {
         <>
           {/* ── KPI Cards ────────────────────────────────────────────────────── */}
           <div className="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-4 mb-6">
-            {kpiCard('Total Agendamentos', dados.totalAgendamentos, '#7C3AED')}
-            {kpiCard('Taxa Absenteísmo', `${dados.taxaAbsenteismo}%`, '#EF4444')}
-            {kpiCard('Exames Total', dados.fluxoExames.total, '#3B82F6')}
-            {kpiCard('Exames Liberados', dados.fluxoExames.liberados, '#10B981')}
+            {kpiCard('Total Agendamentos', dados.totalAgendamentos, '#0F172A')}
+            {kpiCard('Taxa Absenteísmo', `${dados.taxaAbsenteismo}%`, '#DC2626')}
+            {kpiCard('Exames Total', dados.fluxoExames.total, '#0F172A')}
+            {kpiCard('Exames Liberados', dados.fluxoExames.liberados, '#059669')}
           </div>
 
           {/* ── 1. Volume de Atendimentos (full width) ────────────────────────── */}
           <div className={`${card} mb-6`}>
-            <h3 className="text-[15px] font-bold text-gray-800 mb-4">Volume de Atendimentos</h3>
+            <h3 className="text-[15px] font-semibold text-ink mb-4">Volume de Atendimentos</h3>
             <ResponsiveContainer width="100%" height={280}>
               <LineChart data={dados.agendamentosPorDia.map(d => ({ ...d, data: d.data }))}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
                 <XAxis dataKey="data" tick={{ fontSize: 11, fill: '#9CA3AF' }} tickFormatter={formatDisplayDate} />
                 <YAxis tick={{ fontSize: 11, fill: '#9CA3AF' }} allowDecimals={false} />
                 <Tooltip content={<CustomTooltip />} />
-                <Line type="monotone" dataKey="total" name="Agendamentos" stroke="#7C3AED" strokeWidth={2.5} dot={{ fill: '#7C3AED', r: 3 }} activeDot={{ r: 5 }} />
+                <Line type="monotone" dataKey="total" name="Agendamentos" stroke="#2C5282" strokeWidth={2.5} dot={{ fill: '#2C5282', r: 3 }} activeDot={{ r: 5 }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -370,7 +367,7 @@ export default function Relatorios() {
 
             {/* 2. Distribuição por Status */}
             <div className={card}>
-              <h3 className="text-[15px] font-bold text-gray-800 mb-4">Distribuição por Status</h3>
+              <h3 className="text-[15px] font-semibold text-ink mb-4">Distribuição por Status</h3>
               <ResponsiveContainer width="100%" height={260}>
                 <PieChart>
                   <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90} innerRadius={45} paddingAngle={2} label={({ name, percent }) => `${name} ${((percent || 0) * 100).toFixed(0)}%`} style={{ fontSize: 11, cursor: 'pointer' }}
@@ -389,7 +386,7 @@ export default function Relatorios() {
 
             {/* 3. Especialidades mais procuradas */}
             <div className={card}>
-              <h3 className="text-[15px] font-bold text-gray-800 mb-4">Especialidades Mais Procuradas</h3>
+              <h3 className="text-[15px] font-semibold text-ink mb-4">Especialidades Mais Procuradas</h3>
               <ResponsiveContainer width="100%" height={260}>
                 <BarChart data={dados.especialidadesMaisProcuradas} layout="vertical" margin={{ left: 80 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
@@ -400,7 +397,7 @@ export default function Relatorios() {
                     onClick={(data: any) => toggleFiltroEspecialidade(data.nome as string)}
                   >
                     {dados.especialidadesMaisProcuradas.map((entry, i) => (
-                      <Cell key={i} fill={filtroEspecialidades.includes(entry.nome) ? '#7C3AED' : '#9CA3AF'}
+                      <Cell key={i} fill={filtroEspecialidades.includes(entry.nome) ? '#2C5282' : '#9CA3AF'}
                         style={{ opacity: filtroEspecialidades.length > 0 && !filtroEspecialidades.includes(entry.nome) ? 0.4 : 1, transition: 'all 0.2s' }}
                       />
                     ))}
@@ -411,7 +408,7 @@ export default function Relatorios() {
 
             {/* 4. Taxa de Absenteísmo por mês */}
             <div className={card}>
-              <h3 className="text-[15px] font-bold text-gray-800 mb-4">Absenteísmo por Mês</h3>
+              <h3 className="text-[15px] font-semibold text-ink mb-4">Absenteísmo por Mês</h3>
               <ResponsiveContainer width="100%" height={260}>
                 <BarChart data={dados.pacientesNovosVsRecorrentes.map(m => {
                   const totalMes = m.novos + m.recorrentes;
@@ -428,7 +425,7 @@ export default function Relatorios() {
 
             {/* 5. Pacientes Novos vs Recorrentes */}
             <div className={card}>
-              <h3 className="text-[15px] font-bold text-gray-800 mb-4">Pacientes Novos vs Recorrentes</h3>
+              <h3 className="text-[15px] font-semibold text-ink mb-4">Pacientes Novos vs Recorrentes</h3>
               <ResponsiveContainer width="100%" height={260}>
                 <BarChart data={dados.pacientesNovosVsRecorrentes}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
@@ -444,7 +441,7 @@ export default function Relatorios() {
 
             {/* 7. Fluxo de Exames */}
             <div className={card}>
-              <h3 className="text-[15px] font-bold text-gray-800 mb-4">Fluxo de Exames</h3>
+              <h3 className="text-[15px] font-semibold text-ink mb-4">Fluxo de Exames</h3>
               <ResponsiveContainer width="100%" height={260}>
                 <BarChart data={examesBarData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
@@ -463,14 +460,14 @@ export default function Relatorios() {
             {/* 9. Carga por Profissional (Admin only) */}
             {isAdmin && dados.agendamentosPorProfissional && (
               <div className={card}>
-                <h3 className="text-[15px] font-bold text-gray-800 mb-4">Carga por Profissional</h3>
+                <h3 className="text-[15px] font-semibold text-ink mb-4">Carga por Profissional</h3>
                 <ResponsiveContainer width="100%" height={260}>
                   <BarChart data={dados.agendamentosPorProfissional} layout="vertical" margin={{ left: 80 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
                     <XAxis type="number" tick={{ fontSize: 11, fill: '#9CA3AF' }} allowDecimals={false} />
                     <YAxis type="category" dataKey="nome" tick={{ fontSize: 11, fill: '#6B7280' }} width={75} />
                     <Tooltip content={<CustomTooltip />} />
-                    <Bar dataKey="total" name="Agendamentos" fill="#6D28D9" radius={[0, 6, 6, 0]} barSize={18} style={{ cursor: 'pointer' }}
+                    <Bar dataKey="total" name="Agendamentos" fill="#152D5C" radius={[0, 6, 6, 0]} barSize={18} style={{ cursor: 'pointer' }}
                       onClick={(data) => setProfissionalDrawer(data.payload)}
                     />
                   </BarChart>
@@ -483,7 +480,7 @@ export default function Relatorios() {
           {/* ── 8. Auditoria IA (Admin only) — cards numéricos ────────────── */}
           {isAdmin && dados.auditoriaIA && (
             <div className="mb-6">
-              <h3 className="text-[15px] font-bold text-gray-800 mb-4">Auditoria IA</h3>
+              <h3 className="text-[15px] font-semibold text-ink mb-4">Auditoria IA</h3>
               <div className="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-4">
                 {kpiCard('Injeções Detectadas', dados.auditoriaIA.totalInjecoes, '#EF4444')}
                 {kpiCard('Uso Indevido', dados.auditoriaIA.totalUsoIndevido, '#F59E0B')}
@@ -503,13 +500,13 @@ export default function Relatorios() {
               <X size={20} className="text-gray-500" />
             </button>
             <h2 className="text-xl font-extrabold text-gray-800 mb-2 mt-3">{profissionalDrawer.nome}</h2>
-            <p className="text-gray-500 text-sm mb-6">Total de agendamentos no período: <strong className="text-[#7C3AED]">{profissionalDrawer.total}</strong></p>
+            <p className="text-gray-500 text-sm mb-6">Total de agendamentos no período: <strong className="text-[#2C5282]">{profissionalDrawer.total}</strong></p>
 
             {loadingDetalhes ? (
-              <div className="text-center py-10"><div className="w-6 h-6 border-[3px] border-[#7C3AED] border-t-transparent rounded-full animate-spin mx-auto" /></div>
+              <div className="text-center py-10"><div className="w-6 h-6 border-[3px] border-[#2C5282] border-t-transparent rounded-full animate-spin mx-auto" /></div>
             ) : detalhesProf ? (
               <>
-                <h3 className="text-[15px] font-bold text-gray-800 mb-4">Distribuição por Status</h3>
+                <h3 className="text-[15px] font-semibold text-ink mb-4">Distribuição por Status</h3>
                 <ResponsiveContainer width="100%" height={200}>
                   <PieChart>
                     <Pie data={Object.entries(detalhesProf.distribuicaoPorStatus).map(([k, v]) => ({ name: STATUS_LABELS[k] || k, value: v, color: STATUS_COLORS[k] || '#9CA3AF' }))}

@@ -4,7 +4,7 @@ import { perfis } from "../constants/perfis";
 import { statusAgendamento } from "../constants/status";
 import { useEffect, useState } from "react";
 import { mascaraCpf, mascaraTelefone } from "../utils/validators";
-import { AlertTriangle, Calendar, BarChart3, Plus, User, X, FileText, Mail, Phone, Pencil } from 'lucide-react';
+import { AlertTriangle, Calendar, Plus, User, X, FileText, Mail, Phone, Pencil } from 'lucide-react';
 import type { PacienteResponse } from "../types/PacienteResponse";
 import AgendamentoFiltros from "../components/AgendamentoFiltros";
 import AgendamentoFormCriar from "../components/AgendamentoFormCriar";
@@ -14,6 +14,7 @@ import ConfirmModal from "../components/ConfirmModal";
 import { useScrollBlock } from "../hooks/useScrollBlock";
 import { useToast } from "../hooks/useToast";
 import AgendamentoVisualizador from "../components/AgendamentoVisualizador";
+import StatCard from "../components/ui/StatCard";
 
 
 export interface AgendamentoResponse {
@@ -326,40 +327,33 @@ export default function AgendamentoList({ agendamentoDestaque }: { agendamentoDe
     <>
       <div className="space-y-8 animate-in fade-in duration-700">
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
-          <div className="bg-white p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2.5rem] shadow-xl shadow-purple-100/20 border border-purple-50 group hover:scale-[1.02] transition-all duration-300">
-            <div className="flex items-start sm:items-center justify-between mb-3 sm:mb-4 flex-col sm:flex-row gap-1 sm:gap-0">
-              <div className="p-2 sm:p-3 bg-purple-100 rounded-xl sm:rounded-2xl text-purple-600 group-hover:bg-[#7C3AED] group-hover:text-white transition-colors">
-                <Calendar className="w-5 h-5 sm:w-6 sm:h-6" />
-              </div>
-              <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-gray-400 leading-tight">Atend. Hoje</span>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <StatCard
+            icon={<Calendar className="w-[18px] h-[18px]" />}
+            tone="brand"
+            label="Atend. hoje"
+            value={atendimentosHoje}
+            sub="consultas agendadas"
+          />
+
+          {/* Distribuição mensal */}
+          <div className="bg-white border border-line rounded-lg px-4 py-[11px]">
+            <span className="font-semibold text-[11px] tracking-wide text-muted uppercase">Distribuição mensal</span>
+            <div className="flex h-1.5 rounded-full overflow-hidden my-3 bg-[#EEF2F7]">
+              <div className="bg-brand-600" style={{ width: `${(statusResumo.agendados / (statusResumo.agendados + statusResumo.finalizados + statusResumo.faltas || 1)) * 100}%` }}></div>
+              <div className="bg-success" style={{ width: `${(statusResumo.finalizados / (statusResumo.agendados + statusResumo.finalizados + statusResumo.faltas || 1)) * 100}%` }}></div>
+              <div className="bg-danger" style={{ width: `${(statusResumo.faltas / (statusResumo.agendados + statusResumo.finalizados + statusResumo.faltas || 1)) * 100}%` }}></div>
             </div>
-            <div className="flex items-end gap-2">
-              <span className="text-2xl sm:text-4xl font-black text-gray-800 leading-none">{atendimentosHoje}</span>
+            <div className="flex justify-between text-xs text-muted">
+              <span>Agend. <b className="text-ink">{statusResumo.agendados}</b></span>
+              <span>Final. <b className="text-success">{statusResumo.finalizados}</b></span>
+              <span>Faltas <b className="text-danger">{statusResumo.faltas}</b></span>
             </div>
           </div>
 
-          <div className="bg-white p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2.5rem] shadow-xl shadow-blue-100/20 border border-blue-50 group hover:scale-[1.02] transition-all duration-300">
-            <div className="flex items-start sm:items-center justify-between mb-3 sm:mb-4 flex-col sm:flex-row gap-1 sm:gap-0">
-              <div className="p-2 sm:p-3 bg-blue-100 rounded-xl sm:rounded-2xl text-blue-600 group-hover:bg-blue-500 group-hover:text-white transition-colors">
-                <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6" />            </div>
-              <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-gray-400 leading-tight">Dist. Mensal</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden flex">
-                <div className="bg-purple-500" style={{ width: `${(statusResumo.agendados / (statusResumo.agendados + statusResumo.finalizados + statusResumo.faltas || 1)) * 100}%` }}></div>
-                <div className="bg-green-500" style={{ width: `${(statusResumo.finalizados / (statusResumo.agendados + statusResumo.finalizados + statusResumo.faltas || 1)) * 100}%` }}></div>
-                <div className="bg-orange-500" style={{ width: `${(statusResumo.faltas / (statusResumo.agendados + statusResumo.finalizados + statusResumo.faltas || 1)) * 100}%` }}></div>
-              </div>
-            </div>
-            <div className="flex justify-between mt-3">
-              <div className="flex flex-col items-center"><span className="text-[9px] font-black text-purple-600 uppercase">Agend.</span><span className="text-xs font-black text-gray-700">{statusResumo.agendados}</span></div>
-              <div className="flex flex-col items-center"><span className="text-[9px] font-black text-green-600 uppercase">Fin.</span><span className="text-xs font-black text-gray-700">{statusResumo.finalizados}</span></div>
-              <div className="flex flex-col items-center"><span className="text-[9px] font-black text-orange-600 uppercase">Faltas</span><span className="text-xs font-black text-gray-700">{statusResumo.faltas}</span></div>
-            </div>
-          </div>
+          {/* Risco de falta (toggle de filtro) */}
           {(isAdmin || tipoUsuario === perfis.medico || tipoUsuario === perfis.enfermeira) && (
-            <button 
+            <button
               onClick={() => {
                 const novoEstado = !filtroRiscoApenas;
                 setFiltroRiscoApenas(novoEstado);
@@ -370,22 +364,21 @@ export default function AgendamentoList({ agendamentoDestaque }: { agendamentoDe
                   limparFiltros();
                 }
               }}
-              className={`text-left p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2.5rem] shadow-xl transition-all duration-300 group hover:scale-[1.02] ${
-                filtroRiscoApenas 
-                  ? 'bg-red-50 border-2 border-red-400 shadow-red-200' 
-                  : 'bg-white border border-red-50 shadow-red-100/20'
+              className={`text-left bg-white border rounded-lg px-4 py-[11px] transition-colors ${
+                filtroRiscoApenas ? "border-danger ring-1 ring-danger bg-danger-tint" : "border-line hover:bg-canvas"
               }`}
             >
-              <div className="flex items-start sm:items-center justify-between mb-3 sm:mb-4 flex-col sm:flex-row gap-1 sm:gap-0">
-                <div className="p-2 sm:p-3 bg-red-100 rounded-xl sm:rounded-2xl text-red-600 group-hover:bg-red-500 group-hover:text-white transition-colors">
-                  <AlertTriangle className="w-5 h-5 sm:w-6 sm:h-6" />
+              <div className="flex items-start justify-between gap-2">
+                <div className="w-8 h-8 shrink-0 rounded-lg grid place-items-center bg-danger-tint text-danger">
+                  <AlertTriangle className="w-[18px] h-[18px]" />
                 </div>
-                <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-gray-400 leading-tight">Risco Falta</span>
+                <span className="font-semibold text-[11px] tracking-wide text-muted uppercase">Risco de falta</span>
               </div>
-              <div className="flex items-end gap-2">
-                <span className="text-2xl sm:text-4xl font-black text-gray-800 leading-none">{riscoAltoHoje + riscoMedioHoje}</span>
-                <span className="text-[9px] sm:text-[10px] font-bold text-red-400 mb-1 hidden sm:inline">{riscoAltoHoje} Alto</span>
+              <div className="flex items-baseline gap-2 mt-1">
+                <span className="font-bold text-[22px] leading-tight text-ink">{riscoAltoHoje + riscoMedioHoje}</span>
+                <span className="font-medium text-xs text-danger bg-danger-tint px-2 py-0.5 rounded-md">{riscoAltoHoje} alto risco</span>
               </div>
+              <div className="text-xs text-muted mt-0.5">pacientes sinalizados</div>
             </button>
           )}
         </div>
@@ -498,7 +491,7 @@ export default function AgendamentoList({ agendamentoDestaque }: { agendamentoDe
         {(tipoUsuario !== perfis.medico || isAdmin) && (
           <button
             onClick={() => setModalNovoAgendamento(true)}
-            className="fixed bottom-8 right-8 w-16 h-16 bg-[#7C3AED] text-white rounded-full shadow-2xl shadow-purple-400/50 flex items-center justify-center hover:scale-110 active:scale-95 transition-all z-40 group"
+            className="fixed bottom-8 right-8 w-16 h-16 bg-[#2C5282] text-white rounded-full shadow-2xl shadow-purple-400/50 flex items-center justify-center hover:scale-110 active:scale-95 transition-all z-40 group"
           >
             <Plus className="w-8 h-8 group-hover:rotate-90 transition-transform duration-300" strokeWidth={3} />
             <span className="absolute right-20 bg-gray-900 text-white text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">Novo Agendamento</span>
@@ -576,7 +569,7 @@ export default function AgendamentoList({ agendamentoDestaque }: { agendamentoDe
               <button
                 onClick={concluirExame}
                 disabled={concluindoExame}
-                className="flex-1 py-2.5 rounded-xl bg-[#7C3AED] text-white text-sm font-bold hover:bg-purple-700 transition-colors disabled:opacity-60"
+                className="flex-1 py-2.5 rounded-xl bg-[#2C5282] text-white text-sm font-bold hover:bg-purple-700 transition-colors disabled:opacity-60"
               >
                 {concluindoExame ? 'Salvando...' : 'Confirmar'}
               </button>

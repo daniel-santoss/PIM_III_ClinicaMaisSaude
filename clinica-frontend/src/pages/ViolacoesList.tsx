@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { API_URL } from "../constants/api";
-import { AlertOctagon, AlertTriangle, ShieldAlert, Search, ShieldCheck, RefreshCw } from "lucide-react";
+import { AlertOctagon, AlertTriangle, ShieldAlert, Search, ShieldCheck, RefreshCw, Lock } from "lucide-react";
 import { getRealDate } from '../utils/dates';
 
 import { useToast } from "../hooks/useToast";
 import ConfirmModal from "../components/ConfirmModal";
+import Badge from "../components/ui/Badge";
 
 type Violacao = {
   id: string;
@@ -141,146 +142,125 @@ export default function ViolacoesList({ buscaInicial = "", onLimparBusca }: { bu
 
   return (
     <>
-      <div className="bg-white rounded-[2rem] shadow-xl p-8 animate-in fade-in zoom-in-95 duration-500">
+      <div className="flex flex-col gap-6 animate-in fade-in duration-300">
 
-        {/* ── Cabeçalho ── */}
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-6 border-b border-gray-100 pb-6">
-          <div>
-            <h2 className="text-2xl font-black text-gray-900 flex items-center gap-2">
-              <ShieldAlert className="w-8 h-8 text-red-500" />
-              Auditoria de Segurança IA
-            </h2>
-            <p className="text-sm text-gray-500 mt-1">Gerencie violações de diretrizes e libere restrições de pacientes.</p>
+        {/* ── Toolbar / Cabeçalho ── */}
+        <div className="bg-white border border-line rounded-lg px-5 py-4 flex items-center gap-4 flex-wrap">
+          <div className="w-9 h-9 shrink-0 rounded-lg grid place-items-center bg-danger-tint text-danger">
+            <ShieldAlert className="w-5 h-5" />
           </div>
-
-          <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto items-stretch sm:items-center">
-            {/* Campo de Busca */}
-            <div className="relative group flex-1 sm:flex-none">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-[#7C3AED] transition-colors" />
-              <input
-                type="text"
-                placeholder="Buscar por nome ou CPF..."
-                value={busca}
-                onChange={(e) => {
-                  setBusca(e.target.value);
-                  if (e.target.value === "") {
-                    onLimparBusca?.();
-                  }
-                }}
-                className="w-full sm:w-80 pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl text-sm focus:border-[#7C3AED] focus:ring-4 focus:ring-purple-500/10 outline-none transition-all placeholder-gray-400 text-gray-700 font-semibold"
-              />
-            </div>
-
-            {/* Filtro por Data */}
-            <div className="relative flex-1 sm:flex-none">
-              <input
-                type="date"
-                value={dataFiltro}
-                onChange={(e) => setDataFiltro(e.target.value)}
-                className="w-full sm:w-auto px-4 py-3 border-2 border-gray-200 rounded-xl text-sm focus:border-[#7C3AED] focus:ring-4 focus:ring-purple-500/10 outline-none transition-all text-gray-700 font-semibold cursor-pointer"
-              />
-            </div>
-
-            {/* Limpar Filtros */}
-            <button
-              onClick={limparFiltros}
-              className="w-full sm:w-auto px-5 py-3 bg-gray-50 text-gray-400 border-2 border-gray-200 rounded-xl hover:bg-purple-50 hover:text-[#7C3AED] hover:border-[#7C3AED] transition-all flex items-center justify-center gap-2 group shadow-sm text-sm font-bold cursor-pointer"
-              title="Limpar Filtros"
-            >
-              <RefreshCw className="w-4 h-4 group-hover:rotate-[-45deg] transition-transform duration-300 shrink-0" />
-              <span className="text-xs font-black uppercase tracking-wider">Limpar Filtros</span>
-            </button>
+          <div className="mr-auto min-w-0">
+            <h2 className="font-semibold text-base text-ink">Auditoria de segurança IA</h2>
+            <p className="text-[13px] text-muted mt-0.5">Gerencie violações de diretrizes e libere restrições de pacientes.</p>
           </div>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
+            <input
+              type="text"
+              placeholder="Buscar por nome ou CPF..."
+              value={busca}
+              onChange={(e) => {
+                setBusca(e.target.value);
+                if (e.target.value === "") onLimparBusca?.();
+              }}
+              className="w-full sm:w-64 h-10 pl-9 pr-3 text-sm text-ink bg-white border border-line rounded-md outline-none focus:border-brand-600 focus:shadow-focus transition-shadow placeholder:text-muted"
+            />
+          </div>
+          <input
+            type="date"
+            value={dataFiltro}
+            onChange={(e) => setDataFiltro(e.target.value)}
+            className="h-10 px-3 text-[13px] text-body bg-white border border-line rounded-md outline-none focus:border-brand-600 focus:shadow-focus transition-shadow cursor-pointer"
+          />
+          <button
+            onClick={limparFiltros}
+            className="h-10 px-3.5 inline-flex items-center gap-2 text-[13px] font-medium text-body bg-white border border-line rounded-md hover:bg-canvas transition-colors"
+            title="Limpar filtros"
+          >
+            <RefreshCw className="w-[15px] h-[15px]" /> Limpar
+          </button>
         </div>
 
-        {/* ── KPIs / Métricas Rápidas ── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        {/* ── KPIs / Métricas Rápidas (também filtram a lista) ── */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Card 1: Total */}
-          <div
+          <button
             onClick={() => setFiltro("todas")}
-            className={`p-5 rounded-2xl flex items-center gap-4 transition-all duration-300 cursor-pointer select-none border-2 ${
-              filtro === "todas"
-                ? "bg-purple-50/40 border-[#7C3AED] shadow-md shadow-purple-100 ring-4 ring-[#7C3AED]/30 scale-[1.02]"
-                : "bg-white border-gray-200 hover:border-[#7C3AED] shadow-sm hover:shadow-md hover:scale-[1.01]"
+            className={`text-left bg-white border rounded-lg px-4 py-[11px] transition-colors ${
+              filtro === "todas" ? "border-brand-600 ring-1 ring-brand-600" : "border-line hover:bg-canvas"
             }`}
           >
-            <div className="p-3 bg-[#7C3AED] text-white rounded-xl">
-              <ShieldAlert className="w-6 h-6" />
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 shrink-0 rounded-lg grid place-items-center bg-brand-50 text-brand-600">
+                <ShieldAlert className="w-[17px] h-[17px]" />
+              </div>
+              <span className="font-semibold text-[11px] tracking-wide text-muted uppercase">Total violações</span>
             </div>
-            <div>
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Total de Violações</p>
-              <h3 className="text-2xl font-black text-[#7C3AED] mt-1">{totalViolacoes}</h3>
-            </div>
-          </div>
+            <div className="font-bold text-[22px] leading-tight mt-0.5 text-ink">{totalViolacoes}</div>
+          </button>
 
           {/* Card 2: Graves */}
-          <div
+          <button
             onClick={() => setFiltro(filtro === "graves" ? "todas" : "graves")}
-            className={`p-5 rounded-2xl flex items-center gap-4 transition-all duration-300 cursor-pointer select-none border-2 ${
-              filtro === "graves"
-                ? "bg-red-50/40 border-[#dc2626] shadow-md shadow-red-100 ring-4 ring-[#dc2626]/30 scale-[1.02]"
-                : "bg-white border-gray-200 hover:border-[#dc2626] shadow-sm hover:shadow-md hover:scale-[1.01]"
+            className={`text-left bg-white border rounded-lg px-4 py-[11px] transition-colors ${
+              filtro === "graves" ? "border-danger ring-1 ring-danger" : "border-line hover:bg-canvas"
             }`}
           >
-            <div className="p-3 bg-[#dc2626] text-white rounded-xl">
-              <AlertOctagon className="w-6 h-6" />
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 shrink-0 rounded-lg grid place-items-center bg-danger-tint text-danger">
+                <AlertOctagon className="w-[17px] h-[17px]" />
+              </div>
+              <span className="font-semibold text-[11px] tracking-wide text-muted uppercase">Casos graves</span>
             </div>
-            <div>
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Casos Graves</p>
-              <h3 className="text-2xl font-black text-[#dc2626] mt-1">{gravesCount}</h3>
-            </div>
-          </div>
+            <div className="font-bold text-[22px] leading-tight mt-0.5 text-danger">{gravesCount}</div>
+          </button>
 
           {/* Card 3: Leves */}
-          <div
+          <button
             onClick={() => setFiltro(filtro === "leves" ? "todas" : "leves")}
-            className={`p-5 rounded-2xl flex items-center gap-4 transition-all duration-300 cursor-pointer select-none border-2 ${
-              filtro === "leves"
-                ? "bg-amber-50/40 border-[#f59e0b] shadow-md shadow-amber-100 ring-4 ring-[#f59e0b]/30 scale-[1.02]"
-                : "bg-white border-gray-200 hover:border-[#f59e0b] shadow-sm hover:shadow-md hover:scale-[1.01]"
+            className={`text-left bg-white border rounded-lg px-4 py-[11px] transition-colors ${
+              filtro === "leves" ? "border-warning ring-1 ring-warning" : "border-line hover:bg-canvas"
             }`}
           >
-            <div className="p-3 bg-[#f59e0b] text-white rounded-xl">
-              <AlertTriangle className="w-6 h-6" />
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 shrink-0 rounded-lg grid place-items-center bg-warning-tint text-warning">
+                <AlertTriangle className="w-[17px] h-[17px]" />
+              </div>
+              <span className="font-semibold text-[11px] tracking-wide text-muted uppercase">Casos leves</span>
             </div>
-            <div>
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Casos Leves</p>
-              <h3 className="text-2xl font-black text-[#d97706] mt-1">{levesCount}</h3>
-            </div>
-          </div>
+            <div className="font-bold text-[22px] leading-tight mt-0.5 text-warning-text">{levesCount}</div>
+          </button>
 
           {/* Card 4: Bloqueios */}
-          <div
+          <button
             onClick={() => setFiltro(filtro === "bloqueios" ? "todas" : "bloqueios")}
-            className={`p-5 rounded-2xl flex items-center gap-4 transition-all duration-300 cursor-pointer select-none border-2 ${
-              filtro === "bloqueios"
-                ? "bg-rose-50/40 border-[#f43f5e] shadow-md shadow-rose-100 ring-4 ring-[#f43f5e]/30 scale-[1.02]"
-                : "bg-white border-gray-200 hover:border-[#f43f5e] shadow-sm hover:shadow-md hover:scale-[1.01]"
+            className={`text-left bg-white border rounded-lg px-4 py-[11px] transition-colors ${
+              filtro === "bloqueios" ? "border-brand-600 ring-1 ring-brand-600" : "border-line hover:bg-canvas"
             }`}
           >
-            <div className="p-3 bg-rose-500 text-white rounded-xl">
-              <ShieldAlert className="w-6 h-6" />
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 shrink-0 rounded-lg grid place-items-center bg-[#EEF2F7] text-body">
+                <Lock className="w-[17px] h-[17px]" />
+              </div>
+              <span className="font-semibold text-[11px] tracking-wide text-muted uppercase">Bloqueios ativos</span>
             </div>
-            <div>
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Bloqueios Ativos</p>
-              <h3 className="text-2xl font-black text-rose-700 mt-1">{bloqueiosAtivos}</h3>
-            </div>
-          </div>
+            <div className="font-bold text-[22px] leading-tight mt-0.5 text-ink">{bloqueiosAtivos}</div>
+          </button>
         </div>
 
         {/* ── Conteúdo ── */}
         {carregando ? (
           <div className="flex justify-center items-center py-20">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#7C3AED]"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#2C5282]"></div>
           </div>
         ) : violacoesFiltradas.length === 0 ? (
-          <div className="text-center py-20 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
-            <ShieldAlert className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-            <h3 className="text-lg font-bold text-gray-600">Nenhuma violação encontrada</h3>
-            <p className="text-gray-400 text-sm mb-4">O sistema está limpo com os filtros atuais.</p>
+          <div className="text-center py-16 bg-white border border-line rounded-lg">
+            <ShieldAlert className="w-10 h-10 text-muted mx-auto mb-3" />
+            <h3 className="text-base font-semibold text-body">Nenhuma violação encontrada</h3>
+            <p className="text-muted text-sm mt-1">O sistema está limpo com os filtros atuais.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-6">
+          <div className="grid grid-cols-1 gap-4">
             {violacoesFiltradas.map((v) => {
               const isGrave = v.tipoViolacao === "Injecao";
               const agoraCard = new Date();
@@ -292,19 +272,13 @@ export default function ViolacoesList({ buscaInicial = "", onLimparBusca }: { bu
                 : false;
               const isMaisRecente = violacoes.find(x => x.pacienteId === v.pacienteId)?.id === v.id;
               return (
-                <div
-                  key={v.id}
-                  className={`flex flex-col gap-4 p-6 rounded-2xl bg-white border-2 shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 ${
-                    isGrave ? "border-[#dc2626]" : "border-[#f59e0b]"
-                  }`}
-                >
+                <div key={v.id} className="flex flex-col gap-4 p-5 rounded-lg bg-white border border-line">
                   {/* Linha superior */}
                   <div className="flex items-center justify-between gap-4 flex-wrap sm:flex-nowrap">
-                    <div className="flex items-center gap-4">
-                      {/* Avatar com borda temática vibrante */}
-                      <div className={`w-12 h-12 rounded-full flex items-center justify-center text-sm font-black shrink-0 overflow-hidden ring-2 ${
-                        isGrave ? "ring-[#dc2626] bg-[#dc2626] text-white" : "ring-[#f59e0b] bg-[#f59e0b] text-white"
-                      } ring-offset-2`}>
+                    <div className="flex items-center gap-3">
+                      <div className={`w-9 h-9 rounded-lg flex items-center justify-center text-[13px] font-semibold shrink-0 overflow-hidden ${
+                        isGrave ? "bg-danger-tint text-danger" : "bg-warning-tint text-warning"
+                      }`}>
                         {v.pacienteFotoBase64 ? (
                           <img src={v.pacienteFotoBase64} alt="avatar" className="w-full h-full object-cover" />
                         ) : (
@@ -314,47 +288,32 @@ export default function ViolacoesList({ buscaInicial = "", onLimparBusca }: { bu
 
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2.5">
-                          <span className="font-bold text-gray-900 text-base">
-                            {v.pacienteNome}
-                          </span>
-                          <span className="px-2.5 py-0.5 text-xs font-black bg-slate-800 text-white rounded-md">
-                            {v.pacienteTipo === "Medico" ? "Médico" : v.pacienteTipo}
-                          </span>
-                          <span className="text-sm font-semibold text-gray-600">CPF: {v.pacienteCpf}</span>
-                          
-                          {/* Badge de Gravidade Sólido com Trigger de Filtro */}
-                          <span
+                          <span className="font-semibold text-ink text-sm">{v.pacienteNome}</span>
+                          <Badge variant="neutral">{v.pacienteTipo === "Medico" ? "Médico" : v.pacienteTipo}</Badge>
+                          <span className="text-[13px] text-muted">CPF: {v.pacienteCpf}</span>
+                          <button
                             onClick={() => setFiltro(filtro === (isGrave ? "graves" : "leves") ? "todas" : (isGrave ? "graves" : "leves"))}
-                            className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full cursor-pointer transition-all hover:scale-105 active:scale-95 select-none ${
-                              isGrave 
-                                ? "bg-[#dc2626] text-white" 
-                                : "bg-[#f59e0b] text-white"
-                            }`}
                             title="Clique para filtrar por esta gravidade"
                           >
-                            {isGrave ? "Grave" : "Leve"}
-                          </span>
+                            <Badge variant={isGrave ? "danger" : "warning"} className="cursor-pointer">
+                              {isGrave ? "Grave" : "Leve"}
+                            </Badge>
+                          </button>
                         </div>
 
-                        {/* Indicadores de Bloqueio Ativos em badges sólidos */}
+                        {/* Indicadores de bloqueio ativos */}
                         {isGrave && temPenalidadeAtiva && !v.penalidadeRemovidaAguardandoLogin && (
                           <div className="flex flex-wrap gap-2 mt-1.5">
                             {isPermanente ? (
-                              <span className="text-[10px] font-black text-white bg-[#dc2626] px-2.5 py-1 rounded-xl flex items-center gap-1.5 shadow-sm">
-                                <span className="relative flex h-1.5 w-1.5">
-                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
-                                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-white"></span>
-                                </span>
+                              <span className="text-[11px] font-semibold text-danger bg-danger-tint border border-danger-border px-2.5 py-0.5 rounded-md flex items-center gap-1.5">
+                                <span className="w-1.5 h-1.5 rounded-full bg-danger" />
                                 Banido permanentemente
                               </span>
                             ) : (
                               contaBloqueada && (
-                                <span className="text-[10px] font-black text-white bg-[#dc2626] px-2.5 py-1 rounded-xl flex items-center gap-1.5 shadow-sm">
-                                  <span className="relative flex h-1.5 w-1.5">
-                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
-                                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-white"></span>
-                                  </span>
-                                  Conta Suspensa até {new Date(v.contaBloqueadaAte!).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short", timeZone: "America/Sao_Paulo" })}
+                                <span className="text-[11px] font-semibold text-danger bg-danger-tint border border-danger-border px-2.5 py-0.5 rounded-md flex items-center gap-1.5">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-danger" />
+                                  Conta suspensa até {new Date(v.contaBloqueadaAte!).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short", timeZone: "America/Sao_Paulo" })}
                                 </span>
                               )
                             )}
@@ -365,45 +324,42 @@ export default function ViolacoesList({ buscaInicial = "", onLimparBusca }: { bu
 
                     {/* Data */}
                     <div className="text-right shrink-0">
-                      <span className="text-xs text-gray-500 font-semibold bg-gray-50 border border-gray-200 px-2.5 py-1 rounded-lg">
-                        {getRealDate(v.dtCriado, true)!.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", dateStyle: "short", timeStyle: "medium" })}
+                      <span className="text-xs text-muted">
+                        {getRealDate(v.dtCriado, true)!.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", dateStyle: "short", timeStyle: "short" })}
                       </span>
                     </div>
                   </div>
 
                   {/* Conteúdo detectado */}
-                  <div className="bg-slate-100/90 rounded-xl border-2 border-slate-200 p-4 pt-8 relative shadow-inner">
-                    {/* Label do console alinhado à esquerda */}
-                    <span className="absolute top-2.5 left-4 text-[9px] font-black uppercase tracking-widest text-slate-500 font-mono select-none">
-                      CONTEÚDO DETECTADO
-                    </span>
-                    <p className="text-sm font-bold font-mono text-slate-800 whitespace-pre-wrap break-words mt-2 pl-1 leading-relaxed">
+                  <div className="bg-canvas rounded-md border border-line p-4">
+                    <div className="text-[10px] font-semibold uppercase tracking-wider text-muted mb-2">Conteúdo detectado</div>
+                    <p className="text-sm font-medium font-mono text-ink whitespace-pre-wrap break-words leading-relaxed">
                       {v.textoInserido}
                     </p>
                   </div>
 
-                  {/* Botão */}
-                  <div className="flex justify-end gap-2 pt-1">
+                  {/* Ação */}
+                  <div className="flex justify-end gap-2">
                     {v.penalidadeRemovidaAguardandoLogin || !temPenalidadeAtiva || !isMaisRecente ? (
-                      <span className="flex items-center gap-2 text-xs font-black text-white bg-[#10b981] px-5 py-2.5 rounded-xl shadow-md shadow-emerald-500/25">
-                        <ShieldCheck className="w-4 h-4 text-white" />
-                        PENALIDADE REMOVIDA
+                      <span className="inline-flex items-center gap-2 text-xs font-semibold text-success bg-success-tint border border-success-border px-3.5 py-2 rounded-md">
+                        <ShieldCheck className="w-4 h-4" />
+                        Penalidade removida
                       </span>
                     ) : (
                       <button
                         onClick={() => setConfirmarPaciente({ id: v.pacienteId, nome: v.pacienteNome })}
                         disabled={removendoPenalidade[v.pacienteId]}
-                        className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider bg-[#dc2626] hover:bg-red-700 text-white transition-all active:scale-[0.98] hover:shadow-lg hover:shadow-red-600/10 disabled:opacity-50 disabled:cursor-wait cursor-pointer border-none"
+                        className="inline-flex items-center justify-center gap-2 h-9 px-3.5 rounded-md text-[13px] font-semibold bg-white text-brand-600 border border-brand-600 hover:bg-brand-50 transition-colors disabled:opacity-50 disabled:cursor-wait"
                       >
                         {removendoPenalidade[v.pacienteId] ? (
                           <>
-                            <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            <div className="w-3.5 h-3.5 border-2 border-brand-600 border-t-transparent rounded-full animate-spin" />
                             Removendo...
                           </>
                         ) : (
                           <>
                             <ShieldCheck className="w-4 h-4" />
-                            REMOVER PENALIDADE
+                            Liberar restrição
                           </>
                         )}
                       </button>

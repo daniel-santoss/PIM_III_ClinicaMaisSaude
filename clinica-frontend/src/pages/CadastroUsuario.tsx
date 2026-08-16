@@ -3,8 +3,13 @@ import { perfis, type TipoUsuario } from "../constants/perfis";
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { mascaraCpf, mascaraTelefone } from "../utils/validators";
-import { ChevronDown, Check } from 'lucide-react';
+import { ChevronDown, Check, UserPlus } from 'lucide-react';
 import { useToast } from "../hooks/useToast";
+import Button from "../components/ui/Button";
+
+const inputCls =
+  "w-full h-10 px-3 text-sm text-ink bg-white border border-line rounded-md outline-none focus:border-brand-600 focus:shadow-focus transition-shadow placeholder:text-muted";
+const labelCls = "block text-[13px] font-medium text-body mb-1";
 
 
 export function CadastroUsuario({ onUserCreated, tipoUsuarioLogado }: { onUserCreated?: () => void; tipoUsuarioLogado?: string }) {
@@ -89,151 +94,140 @@ export function CadastroUsuario({ onUserCreated, tipoUsuarioLogado }: { onUserCr
   };
 
   return (
-    <div className="w-full bg-white p-6 sm:p-8 rounded-3xl shadow-xl border border-gray-100">
-      <div className="mb-6 border-b pb-4">
-        <h2 className="text-2xl font-bold text-gray-800">Cadastro de Usuários</h2>
-        <p className="text-sm text-gray-500 mt-1">Acesso restrito</p>
+    <div className="w-full max-w-[760px] bg-white border border-line rounded-lg overflow-hidden">
+      <div className="px-6 py-5 border-b border-line">
+        <div className="flex items-center gap-2">
+          <h2 className="font-semibold text-base text-ink">Cadastro de usuários</h2>
+          <span className="font-medium text-[11px] text-warning-text bg-warning-tint border border-warning-border px-2 py-0.5 rounded-md whitespace-nowrap">Acesso restrito</span>
+        </div>
+        <p className="text-[13px] text-muted mt-1">Preencha os dados para registrar um novo perfil no sistema.</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-5">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <form onSubmit={handleSubmit} className="px-6 py-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-5 gap-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Nome Completo *</label>
+            <label className={labelCls}>Nome completo *</label>
             <input
               type="text"
               required
               value={nome}
               onChange={(e) => setNome(e.target.value)}
-              className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-[#7C3AED] focus:border-transparent outline-none transition-all"
+              className={inputCls}
               placeholder="Digite o nome completo"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">E-mail *</label>
+            <label className={labelCls}>E-mail *</label>
             <input
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-[#7C3AED] focus:border-transparent outline-none transition-all"
+              className={inputCls}
               placeholder="exemplo@email.com"
             />
           </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">CPF *</label>
+            <label className={labelCls}>CPF *</label>
             <input
               type="text"
               required
               maxLength={14}
               value={cpf}
               onChange={(e) => setCpf(mascaraCpf(e.target.value))}
-              className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-[#7C3AED] focus:border-transparent outline-none transition-all"
+              className={inputCls}
               placeholder="000.000.000-00"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Senha *</label>
+            <label className={labelCls}>Senha *</label>
             <input
               type="password"
               required
               value={senha}
               onChange={(e) => setSenha(e.target.value)}
-              className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-[#7C3AED] focus:border-transparent outline-none transition-all"
-              placeholder="******"
+              className={inputCls}
+              placeholder="••••••"
             />
           </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Telefone</label>
+            <label className={labelCls}>Telefone</label>
             <input
               type="text"
               maxLength={15}
               value={telefone}
               onChange={(e) => setTelefone(mascaraTelefone(e.target.value))}
-              className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-[#7C3AED] focus:border-transparent outline-none transition-all"
+              className={inputCls}
               placeholder="(00) 00000-0000"
             />
           </div>
-        </div>
+          <div className="relative">
+            <label className={labelCls}>Tipo de perfil *</label>
+            {opcoesPerfil.length === 1 ? (
+              <div className="w-full h-10 px-3 flex items-center bg-canvas border border-line rounded-md text-sm font-medium text-body">
+                {opcoesPerfil[0].nome}
+              </div>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setDropdownAberto(!dropdownAberto)}
+                  className="w-full h-10 px-3 flex items-center justify-between border border-line rounded-md bg-white text-left outline-none focus:border-brand-600 focus:shadow-focus transition-shadow"
+                >
+                  <span className="text-sm text-ink">
+                    {opcoesPerfil.find(o => o.id === tipoUsuario)?.nome}
+                  </span>
+                  <ChevronDown className={`w-4 h-4 text-muted transition-transform ${dropdownAberto ? 'rotate-180' : ''}`} />
+                </button>
 
-        <div className="relative">
-          <label className="block text-sm font-black text-gray-700 mb-2 uppercase tracking-wide">Tipo de Perfil *</label>
-          {opcoesPerfil.length === 1 ? (
-            <div className="w-full border border-gray-200 rounded-xl p-3 bg-gray-50 text-sm font-bold text-gray-500">
-              {opcoesPerfil[0].nome}
-            </div>
-          ) : (
-            <>
-              <button
-                type="button"
-                onClick={() => setDropdownAberto(!dropdownAberto)}
-                className="w-full flex items-center justify-between border border-gray-300 rounded-xl p-3 bg-white focus:ring-2 focus:ring-[#7C3AED] focus:border-transparent outline-none transition-all text-left shadow-sm"
-              >
-                <span className="font-bold text-sm text-gray-700">
-                  {opcoesPerfil.find(o => o.id === tipoUsuario)?.nome}
-                </span>
-                <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform ${dropdownAberto ? 'rotate-180' : ''}`} />
-              </button>
-
-              {dropdownAberto && (
-                <>
-                  <div
-                    className="fixed inset-0 z-10"
-                    onClick={() => setDropdownAberto(false)}
-                  ></div>
-                  <div className="absolute left-0 right-0 mt-2 bg-white border border-gray-100 rounded-2xl shadow-2xl z-20 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
-                    {opcoesPerfil.map((opcao) => (
-                      <div
-                        key={opcao.id}
-                        onClick={() => {
-                          setTipoUsuario(opcao.id);
-                          setDropdownAberto(false);
-                        }}
-                        className={`px-4 py-3 cursor-pointer transition-colors flex items-center justify-between ${
-                          tipoUsuario === opcao.id
-                            ? 'bg-[#7C3AED] text-white'
-                            : 'text-gray-700 hover:bg-purple-50'
-                        }`}
-                      >
-                        <span className="font-bold text-sm">{opcao.nome}</span>
-                        {tipoUsuario === opcao.id && (
-                          <Check className="w-5 h-5 text-white" />
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </>
-              )}
-            </>
-          )}
+                {dropdownAberto && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setDropdownAberto(false)}></div>
+                    <div className="absolute left-0 right-0 mt-1.5 bg-white border border-line rounded-lg shadow-modal z-20 overflow-hidden">
+                      {opcoesPerfil.map((opcao) => (
+                        <div
+                          key={opcao.id}
+                          onClick={() => {
+                            setTipoUsuario(opcao.id);
+                            setDropdownAberto(false);
+                          }}
+                          className={`px-3.5 py-2.5 cursor-pointer transition-colors flex items-center justify-between text-sm ${
+                            tipoUsuario === opcao.id ? 'bg-brand-600 text-white' : 'text-body hover:bg-canvas'
+                          }`}
+                        >
+                          <span className="font-medium">{opcao.nome}</span>
+                          {tipoUsuario === opcao.id && <Check className="w-4 h-4 text-white" />}
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </>
+            )}
+          </div>
         </div>
 
         {tipoUsuario === perfis.medico && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 bg-purple-50/50 p-5 rounded-2xl border border-purple-100">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-5 gap-y-4 mt-4 bg-canvas p-4 rounded-md border border-line">
             <div>
-              <label className="block text-sm font-medium text-blue-800 mb-1">CRM (6 dígitos numéricos) *</label>
+              <label className={labelCls}>CRM (6 dígitos numéricos) *</label>
               <input
                 type="text"
                 required
                 maxLength={6}
                 value={crm}
                 onChange={(e) => setCrm(e.target.value)}
-                className="w-full border border-purple-200 rounded-xl p-3 focus:ring-2 focus:ring-[#7C3AED] focus:border-transparent outline-none transition-all"
+                className={inputCls}
                 placeholder="Ex: 123456"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-blue-800 mb-1">UF do CRM *</label>
+              <label className={labelCls}>UF do CRM *</label>
               <select
                 required
                 value={ufCrm}
                 onChange={(e) => setUfCrm(e.target.value)}
-                className="w-full border border-purple-200 rounded-xl p-3 bg-white focus:ring-2 focus:ring-[#7C3AED] focus:border-transparent outline-none transition-all cursor-pointer"
+                className={`${inputCls} cursor-pointer`}
               >
                 <option value="">Selecione...</option>
                 <option value="AC">AC</option>
@@ -269,42 +263,28 @@ export function CadastroUsuario({ onUserCreated, tipoUsuarioLogado }: { onUserCr
         )}
 
         {tipoUsuario === perfis.paciente && (
-          <div className="flex items-center gap-3 bg-purple-50/50 p-4 rounded-xl border border-purple-100">
+          <label className="flex items-center gap-2.5 mt-4 px-3.5 py-3 bg-canvas border border-line rounded-md cursor-pointer text-sm text-body">
             <input
               type="checkbox"
-              id="problemaMemoria"
               checked={temProblemaMemoria}
               onChange={(e) => setTemProblemaMemoria(e.target.checked)}
-              className="w-5 h-5 text-[#7C3AED] rounded border-purple-300 focus:ring-[#7C3AED] focus:ring-2 outline-none transition-all cursor-pointer"
+              className="w-4 h-4 cursor-pointer accent-brand-600"
             />
-            <label htmlFor="problemaMemoria" className="text-sm font-bold text-gray-700 cursor-pointer">
-              Paciente possui problema de memória?
-            </label>
-          </div>
+            <span>Paciente possui problema de memória?</span>
+          </label>
         )}
 
-        <div className="pt-4 border-t flex flex-col sm:flex-row gap-4">
-          <button
-            type="button"
-            onClick={limparFormulario}
-            disabled={loading}
-            className="w-full sm:w-1/3 text-gray-700 font-black uppercase tracking-wider py-3 rounded-xl transition-all flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Limpar Formulário
-          </button>
-          <button
-            type="submit"
-            disabled={loading}
-            className={`w-full sm:w-2/3 text-white font-black uppercase tracking-wider py-3 rounded-xl transition-all flex items-center justify-center gap-2 ${loading ? "bg-purple-300 cursor-not-allowed" : "bg-[#7C3AED] hover:bg-[#6D28D9] hover:scale-[1.01] active:scale-[0.99] shadow-lg shadow-purple-200"}`}
-          >
+        <div className="flex justify-end gap-2.5 mt-5">
+          <Button type="button" variant="secondary" onClick={limparFormulario} disabled={loading}>
+            Limpar formulário
+          </Button>
+          <Button type="submit" variant="primary" disabled={loading} icon={loading ? undefined : <UserPlus size={16} />}>
             {loading ? (
-              <><div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> Aguarde...</>
-            ) : "Registrar Usuário"}
-          </button>
+              <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin inline-block"></span> Aguarde...</>
+            ) : "Registrar usuário"}
+          </Button>
         </div>
       </form>
-
-
     </div>
   );
 }

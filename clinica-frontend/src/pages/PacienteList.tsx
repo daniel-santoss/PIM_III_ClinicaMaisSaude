@@ -3,11 +3,13 @@ import { storageKeys } from "../constants/storage";
 import { perfis, type TipoUsuario } from "../constants/perfis";
 import { useEffect, useState } from "react";
 import { mascaraCpf, mascaraTelefone } from "../utils/validators";
-import { AlertCircle, Users, Clock, Search, Filter, RefreshCw, Inbox, Pencil, Key, Trash, Check, Copy, X } from 'lucide-react';
+import { AlertCircle, Users, UserCheck, Activity, Clock, Search, Filter, RefreshCw, Inbox, Pencil, Key, Trash, Check, Copy, X } from 'lucide-react';
 import type { PacienteResponse } from "../types/PacienteResponse";
 import { useScrollBlock } from "../hooks/useScrollBlock";
 import { useToast } from "../hooks/useToast";
 import ConfirmModal from "../components/ConfirmModal";
+import StatCard from "../components/ui/StatCard";
+import Badge from "../components/ui/Badge";
 
 interface PacienteListProps {
   recarregarContador?: number;
@@ -277,128 +279,122 @@ export default function PacienteList({
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       {/* --- CARDS DE RESUMO --- */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-6">
-        {/* Card: Usuários por Tipo */}
-        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all group">
-          <div className="flex justify-between items-start mb-4">
-            <div className="p-3 bg-purple-50 rounded-xl text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition-colors">
-              <Users className="w-6 h-6" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        <StatCard
+          icon={<Users className="w-[18px] h-[18px]" />}
+          tone="brand"
+          label="Total"
+          value={pacientes.length}
+          sub="usuários cadastrados"
+        />
+        <StatCard
+          icon={<UserCheck className="w-[18px] h-[18px]" />}
+          tone="brand"
+          label="Pacientes"
+          value={totalPacientes}
+          sub="ativos no portal"
+        />
+        <StatCard icon={<Activity className="w-[18px] h-[18px]" />} tone="neutral" label="Equipe" layout="inline">
+          <div className="flex gap-2 mt-2">
+            <div className="flex-1 flex flex-col bg-canvas border border-line rounded-md px-2.5 py-1.5">
+              <span className="font-bold text-[20px] leading-none text-ink">{totalMedicos}</span>
+              <span className="font-medium text-[11px] text-body mt-0.5">Médicos</span>
             </div>
-            <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Total de Usuários</span>
-          </div>
-          <h4 className="text-2xl font-black text-gray-800 mb-2">{pacientes.length}</h4>
-          <div className="flex gap-2">
-            <span className="px-2 py-1 bg-green-50 text-green-700 rounded-md text-[10px] font-bold">{totalPacientes} Pacientes</span>
-            <span className="px-2 py-1 bg-purple-50 text-purple-700 rounded-md text-[10px] font-bold">{totalMedicos} Médicos</span>
-            <span className="px-2 py-1 bg-blue-50 text-blue-700 rounded-md text-[10px] font-bold">{totalEnfermeiras} Enfermeiras</span>
-          </div>
-        </div>
-
-
-
-        {/* Card: Pacientes Inativos */}
-        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all group relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-2">
-          </div>
-          <div className="flex justify-between items-start mb-4">
-            <div className="p-3 bg-orange-50 rounded-xl text-orange-600 group-hover:bg-orange-600 group-hover:text-white transition-colors">
-              <Clock className="w-6 h-6" />
+            <div className="flex-1 flex flex-col bg-canvas border border-line rounded-md px-2.5 py-1.5">
+              <span className="font-bold text-[20px] leading-none text-ink">{totalEnfermeiras}</span>
+              <span className="font-medium text-[11px] text-body mt-0.5">Enfermeiras</span>
             </div>
           </div>
-          <h4 className="text-2xl font-black text-gray-800 mb-2">{pacientesInativos.length} Inativos</h4>
-          <p className="text-xs text-gray-400 mb-4 font-medium">+60 dias sem acessar o portal</p>
-        </div>
-
+        </StatCard>
+        <StatCard
+          icon={<Clock className="w-[18px] h-[18px]" />}
+          tone="warning"
+          label="Inativos"
+          value={pacientesInativos.length}
+          sub="+60 dias sem acesso"
+        />
       </div>
 
       {/* --- TABELA E FILTROS --- */}
-      <div className="bg-white rounded-3xl border border-gray-100 shadow-xl overflow-hidden">
+      <div className="bg-white border border-line rounded-lg overflow-hidden">
         {/* Header da Tabela / Filtros */}
-        <div className="p-6 border-b border-gray-50 bg-gray-50/30 flex flex-col lg:flex-row gap-4 items-center justify-between">
-          <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
-            {/* Busca Unificada (Nome ou CPF) */}
-            <div className="relative group flex-1 w-full sm:min-w-[320px]">
-              <Search className="absolute left-4 top-3.5 w-5 h-5 text-purple-400" />
-              <input
-                type="text"
-                placeholder="Pesquisar por nome ou CPF..."
-                className="w-full pl-12 pr-4 py-3 bg-purple-50/30 border border-purple-100 rounded-2xl focus:ring-2 focus:ring-[#7C3AED] focus:bg-white transition-all outline-none font-medium text-sm text-gray-700"
-                value={buscaNome}
-                onChange={(e) => setBuscaNome(e.target.value)}
-              />
-            </div>
+        <div className="px-5 py-4 border-b border-line flex items-center gap-3 flex-wrap">
+          <div className="relative flex-1 min-w-[220px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
+            <input
+              type="text"
+              placeholder="Pesquisar por nome ou CPF..."
+              className="w-full h-10 pl-9 pr-3 text-sm text-ink bg-white border border-line rounded-md outline-none focus:border-brand-600 focus:shadow-focus transition-shadow placeholder:text-muted"
+              value={buscaNome}
+              onChange={(e) => setBuscaNome(e.target.value)}
+            />
+          </div>
 
-            {/* Filtro Tipo */}
-            {isAdmin && (
-              <div className="relative">
-                <button
-                  onClick={() => setMenuFiltroAberto(!menuFiltroAberto)}
-                  className={`flex items-center gap-2 px-4 py-2.5 border rounded-xl min-w-[160px] transition-all text-sm font-bold shadow-sm ${
-                    menuFiltroAberto ? 'border-purple-600 bg-purple-50 text-purple-700 ring-4 ring-purple-100' : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
-                  }`}
-                >
-                  <Filter className="w-4 h-4" />
-                  Tipo: ({perfisSelecionados.length})
-                </button>
+          {/* Filtro Tipo */}
+          {isAdmin && (
+            <div className="relative">
+              <button
+                onClick={() => setMenuFiltroAberto(!menuFiltroAberto)}
+                className="h-10 px-3.5 inline-flex items-center gap-2 text-[13px] font-medium text-body bg-white border border-line rounded-md hover:bg-canvas transition-colors"
+              >
+                <Filter className="w-[15px] h-[15px]" />
+                Tipo <span className="text-muted">({perfisSelecionados.length})</span>
+              </button>
 
-                {menuFiltroAberto && (
-                  <>
-                    <div className="fixed inset-0 z-10" onClick={() => setMenuFiltroAberto(false)}></div>
-                    <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-2xl border border-gray-100 py-3 z-20 animate-in fade-in zoom-in duration-200 origin-top-right">
-                      <div className="px-4 py-1 mb-2 border-b border-gray-50">
-                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Filtrar Categoria</span>
-                      </div>
-                      {[perfis.paciente, perfis.medico, perfis.enfermeira].map((perfil) => (
-                        <label key={perfil} className="flex items-center gap-3 px-4 py-2.5 hover:bg-purple-50 cursor-pointer transition-colors group">
-                          <input
-                            type="checkbox"
-                            className="h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500 transition-all cursor-pointer"
-                            checked={perfisSelecionados.includes(perfil)}
-                            onChange={(e) => {
-                              if (e.target.checked) setPerfisSelecionados([...perfisSelecionados, perfil]);
-                              else setPerfisSelecionados(perfisSelecionados.filter(p => p !== perfil));
-                            }}
-                          />
-                          <span className="text-sm font-bold text-gray-600 group-hover:text-purple-700">
-                            {perfil === perfis.medico ? "Médico" : perfil}
-                          </span>
-                        </label>
-                      ))}
+              {menuFiltroAberto && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setMenuFiltroAberto(false)}></div>
+                  <div className="absolute right-0 mt-1.5 w-56 bg-white rounded-lg shadow-modal border border-line py-2 z-20">
+                    <div className="px-4 py-1 mb-1 border-b border-line-soft">
+                      <span className="text-[11px] font-semibold text-muted uppercase tracking-wide">Filtrar categoria</span>
                     </div>
-                  </>
-                )}
-              </div>
-            )}
+                    {[perfis.paciente, perfis.medico, perfis.enfermeira].map((perfil) => (
+                      <label key={perfil} className="flex items-center gap-3 px-4 py-2 hover:bg-canvas cursor-pointer transition-colors">
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4 cursor-pointer accent-brand-600"
+                          checked={perfisSelecionados.includes(perfil)}
+                          onChange={(e) => {
+                            if (e.target.checked) setPerfisSelecionados([...perfisSelecionados, perfil]);
+                            else setPerfisSelecionados(perfisSelecionados.filter(p => p !== perfil));
+                          }}
+                        />
+                        <span className="text-sm font-medium text-body">
+                          {perfil === perfis.medico ? "Médico" : perfil}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
 
-            <button
-              onClick={limparFiltros}
-              className="p-3 bg-gray-50 text-gray-400 border border-gray-200 rounded-xl hover:bg-purple-50 hover:text-purple-600 transition-all flex items-center gap-2 group shadow-sm"
-              title="Limpar Filtros"
-            >
-              <RefreshCw className="w-5 h-5 group-hover:rotate-[-45deg] transition-transform duration-300" />
-              <span className="text-[10px] font-black uppercase tracking-widest hidden xl:inline">Limpar Filtros</span>
-            </button>
-          </div>
+          <button
+            onClick={limparFiltros}
+            className="h-10 px-3.5 inline-flex items-center gap-2 text-[13px] font-medium text-body bg-white border border-line rounded-md hover:bg-canvas transition-colors"
+            title="Limpar filtros"
+          >
+            <RefreshCw className="w-[15px] h-[15px]" />
+            Limpar filtros
+          </button>
 
-          <div className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse"></span>
-            Total: {pacientes.length} registros
-          </div>
+          <span className="ml-auto text-xs font-medium text-muted">Total: {pacientes.length} registros</span>
         </div>
 
         {/* Listagem */}
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-100">
+          <table className="w-full border-collapse min-w-[640px]">
             <thead>
-              <tr className="bg-gray-50/50">
-                <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-[2px]">Usuário</th>
-                <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-[2px]">CPF</th>
-                <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-[2px] hidden md:table-cell">Categoria</th>
-                <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-[2px] hidden md:table-cell">Último Acesso</th>
-                <th className="px-6 py-4 text-right text-[10px] font-black text-gray-400 uppercase tracking-[2px]">Ações</th>
+              <tr className="bg-canvas">
+                <th className="px-5 py-3 text-left text-[11px] font-semibold text-muted uppercase tracking-wide">Usuário</th>
+                <th className="px-5 py-3 text-left text-[11px] font-semibold text-muted uppercase tracking-wide">CPF</th>
+                <th className="px-5 py-3 text-left text-[11px] font-semibold text-muted uppercase tracking-wide hidden md:table-cell">Categoria</th>
+                <th className="px-5 py-3 text-left text-[11px] font-semibold text-muted uppercase tracking-wide hidden md:table-cell">Último acesso</th>
+                <th className="px-5 py-3 text-right text-[11px] font-semibold text-muted uppercase tracking-wide">Ações</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50">
+            <tbody className="divide-y divide-line">
               {carregando ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i} className="animate-pulse bg-gray-50/30">
@@ -430,9 +426,9 @@ export default function PacienteList({
               ) : pacientes.filter(p => perfisSelecionados.includes(p.tipo as TipoUsuario)).length === 0 ? (
                   <tr>
                     <td colSpan={5} className="px-6 py-20 text-center">
-                      <div className="flex flex-col items-center gap-2 opacity-30">
-                        <Inbox className="w-12 h-12" />
-                        <p className="text-sm font-bold">Nenhum resultado para os filtros atuais.</p>
+                      <div className="flex flex-col items-center gap-2 text-muted">
+                        <Inbox className="w-10 h-10" />
+                        <p className="text-sm font-medium">Nenhum resultado para os filtros atuais.</p>
                       </div>
                     </td>
                   </tr>
@@ -440,81 +436,70 @@ export default function PacienteList({
                   pacientes
                     .filter(p => perfisSelecionados.includes(p.tipo as TipoUsuario))
                     .map((p) => (
-                    <tr key={p.id} className="group hover:bg-purple-50/30 transition-colors">
+                    <tr key={p.id} className="hover:bg-canvas transition-colors">
                       {/* Avatar + Nome */}
-                      <td className="px-6 py-4">
+                      <td className="px-5 py-3.5">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-purple-100 border-2 border-white shadow-sm flex items-center justify-center text-purple-700 font-black text-sm uppercase ring-2 ring-purple-50 group-hover:ring-purple-100 transition-all overflow-hidden">
+                          <div className="w-9 h-9 shrink-0 rounded-lg bg-brand-50 text-brand-600 flex items-center justify-center font-semibold text-[13px] uppercase overflow-hidden">
                             {p.fotoBase64 ? (
                               <img src={p.fotoBase64} alt="avatar" className="w-full h-full object-cover" />
                             ) : (
                               p.nome.charAt(0)
                             )}
                           </div>
-                          <div className="flex flex-col">
-                            <span className="text-sm font-bold text-gray-800 group-hover:text-purple-900 transition-colors">{p.nome}</span>
-                            <span className="text-[11px] text-gray-400 font-medium truncate max-w-[150px]">{p.email}</span>
+                          <div className="flex flex-col min-w-0">
+                            <span className="text-sm font-semibold text-ink">{p.nome}</span>
+                            <span className="text-xs text-muted truncate max-w-[180px]">{p.email}</span>
                           </div>
                         </div>
                       </td>
                       {/* CPF */}
-                      <td className="px-6 py-4">
-                        <span className="text-sm font-mono text-gray-500 font-medium">{mascaraCpf(p.cpf)}</span>
+                      <td className="px-5 py-3.5">
+                        <span className="text-[13px] text-body">{mascaraCpf(p.cpf)}</span>
                       </td>
                       {/* Perfil Badge */}
-                      <td className="px-6 py-4 hidden md:table-cell">
-                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider border ${
-                          p.tipo === perfis.paciente ? 'bg-green-50 text-green-600 border-green-100' : 
-                          p.tipo === perfis.medico ? 'bg-purple-50 text-purple-600 border-purple-100' : 
-                          'bg-blue-50 text-blue-600 border-blue-100'
-                        }`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${
-                             p.tipo === perfis.paciente ? 'bg-green-500' : 
-                             p.tipo === perfis.medico ? 'bg-purple-500' : 
-                             'bg-blue-500'
-                          }`}></span>
-                          {p.tipo === perfis.medico ? 'Médico' : p.tipo}
-                        </span>
+                      <td className="px-5 py-3.5 hidden md:table-cell">
+                        <Badge variant={p.tipo === perfis.paciente ? "brand" : "neutral"}>
+                          {p.tipo === perfis.medico ? "Médico" : p.tipo}
+                        </Badge>
                       </td>
 
                       {/* Último Acesso (Real) */}
-                      <td className="px-6 py-4 hidden md:table-cell">
-                         <div className="flex flex-col">
-                            <span className="text-[11px] font-bold text-gray-700">
-                               {p.ultimoAcesso ? getRealDate(p.ultimoAcesso)!.toLocaleString('pt-BR', { 
-                                  day: '2-digit', month: '2-digit', year: '2-digit', 
-                                  hour: '2-digit', minute: '2-digit',
-                                  timeZone: 'America/Sao_Paulo'
-                               }) : 'Sem registro'}
-                            </span>
-                         </div>
+                      <td className="px-5 py-3.5 hidden md:table-cell">
+                        <span className="text-[13px] text-body">
+                          {p.ultimoAcesso ? getRealDate(p.ultimoAcesso)!.toLocaleString('pt-BR', {
+                            day: '2-digit', month: '2-digit', year: '2-digit',
+                            hour: '2-digit', minute: '2-digit',
+                            timeZone: 'America/Sao_Paulo'
+                          }) : 'Sem registro'}
+                        </span>
                       </td>
 
                       {/* Ações */}
-                      <td className="px-6 py-4">
-                        <div className="flex items-center justify-end gap-2 transition-opacity">
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center justify-end gap-1.5">
                           <button
-                            title="Editar Dados"
-                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-xl transition-colors"
+                            title="Editar dados"
+                            className="w-8 h-8 grid place-items-center bg-white border border-line rounded-md text-body hover:bg-canvas transition-colors"
                             onClick={() => abrirEdicao(p)}
                           >
-                            <Pencil className="w-4 h-4" />
+                            <Pencil className="w-[15px] h-[15px]" />
                           </button>
                           {(isAdmin || isEnfermeira) && p.usuarioId && (
                             <button
-                              title="Redefinir Senha"
-                              className="p-2 text-orange-600 hover:bg-orange-50 rounded-xl transition-colors"
+                              title="Redefinir senha"
+                              className="w-8 h-8 grid place-items-center bg-white border border-line rounded-md text-body hover:bg-canvas transition-colors"
                               onClick={() => setPacienteReset({ id: p.id, usuarioId: p.usuarioId!, nome: p.nome })}
                             >
-                              <Key className="w-4 h-4" />
+                              <Key className="w-[15px] h-[15px]" />
                             </button>
                           )}
                           <button
-                            title="Excluir Usuário"
-                            className="p-2 text-red-600 hover:bg-red-50 rounded-xl transition-colors"
+                            title="Excluir usuário"
+                            className="w-8 h-8 grid place-items-center bg-white border border-line rounded-md text-danger hover:bg-danger-tint hover:border-danger-border transition-colors"
                             onClick={() => abrirModalExclusao(p.id, p.nome)}
                           >
-                            <Trash className="w-4 h-4" />
+                            <Trash className="w-[15px] h-[15px]" />
                           </button>
                         </div>
                       </td>
@@ -526,17 +511,17 @@ export default function PacienteList({
         </div>
 
         {/* Footer / Contagem e Paginação */}
-        <div className="px-6 py-4 bg-gray-50/50 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+        <div className="px-5 py-3 bg-canvas border-t border-line flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="text-xs font-medium text-muted">
             Exibindo {pacientes.length} de {totalCount} {totalCount === 1 ? "resultado" : "resultados"}
           </p>
-          
+
           {totalPages > 1 && (
             <div className="flex items-center gap-2">
-              <button 
+              <button
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={page === 1}
-                className="px-3 py-1 text-sm font-bold border border-gray-200 rounded-lg text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white hover:text-purple-600 transition-colors bg-gray-50"
+                className="h-8 px-3 text-[13px] font-medium border border-line rounded-md text-body bg-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-canvas transition-colors"
               >
                 Anterior
               </button>
@@ -550,10 +535,10 @@ export default function PacienteList({
                       <button
                         key={pNum}
                         onClick={() => setPage(pNum)}
-                        className={`w-8 h-8 flex items-center justify-center text-xs font-bold rounded-lg transition-colors border ${
-                          page === pNum 
-                            ? 'bg-purple-600 text-white border-purple-600 shadow-md shadow-purple-200' 
-                            : 'bg-white text-gray-600 border-gray-200 hover:bg-purple-50 hover:text-purple-600 hover:border-purple-200'
+                        className={`w-8 h-8 flex items-center justify-center text-xs font-semibold rounded-md transition-colors border ${
+                          page === pNum
+                            ? 'bg-brand-600 text-white border-brand-600'
+                            : 'bg-white text-body border-line hover:bg-canvas'
                         }`}
                       >
                         {pNum}
@@ -571,7 +556,7 @@ export default function PacienteList({
               <button 
                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
-                className="px-3 py-1 text-sm font-bold border border-gray-200 rounded-lg text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white hover:text-purple-600 transition-colors bg-gray-50"
+                className="h-8 px-3 text-[13px] font-medium border border-line rounded-md text-body bg-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-canvas transition-colors"
               >
                 Próximo
               </button>
@@ -605,7 +590,7 @@ export default function PacienteList({
                   <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Nome Completo</label>
                   <input
                     type="text"
-                    className="w-full p-4 border border-gray-200 rounded-2xl bg-gray-50 focus:ring-2 focus:ring-[#7C3AED] focus:bg-white transition-all outline-none font-bold text-sm"
+                    className="w-full p-4 border border-gray-200 rounded-2xl bg-gray-50 focus:ring-2 focus:ring-[#2C5282] focus:bg-white transition-all outline-none font-bold text-sm"
                     placeholder="Nome"
                     value={form.nome}
                     onChange={(e) => setForm({ ...form, nome: e.target.value })}
@@ -624,7 +609,7 @@ export default function PacienteList({
                   <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Telefone de Contato</label>
                   <input
                     type="text"
-                    className="w-full p-4 border border-gray-200 rounded-2xl bg-gray-50 focus:ring-2 focus:ring-[#7C3AED] focus:bg-white transition-all outline-none font-bold text-sm"
+                    className="w-full p-4 border border-gray-200 rounded-2xl bg-gray-50 focus:ring-2 focus:ring-[#2C5282] focus:bg-white transition-all outline-none font-bold text-sm"
                     maxLength={15}
                     placeholder="Telefone"
                     value={form.telefone}
@@ -635,7 +620,7 @@ export default function PacienteList({
                   <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">E-mail</label>
                   <input
                     type="email"
-                    className="w-full p-4 border border-gray-200 rounded-2xl bg-gray-50 focus:ring-2 focus:ring-[#7C3AED] focus:bg-white transition-all outline-none font-bold text-sm"
+                    className="w-full p-4 border border-gray-200 rounded-2xl bg-gray-50 focus:ring-2 focus:ring-[#2C5282] focus:bg-white transition-all outline-none font-bold text-sm"
                     placeholder="Email"
                     value={form.email}
                     onChange={(e) => setForm({ ...form, email: e.target.value })}
@@ -655,7 +640,7 @@ export default function PacienteList({
               <button
                 onClick={salvarEdicao}
                 disabled={salvando}
-                className="w-full sm:flex-1 px-6 py-4 bg-[#7C3AED] text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-[#6D28D9] shadow-lg shadow-purple-100 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full sm:flex-1 px-6 py-4 bg-[#2C5282] text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-[#152D5C] shadow-lg shadow-purple-100 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {salvando ? (
                    <><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> Salvando...</>
