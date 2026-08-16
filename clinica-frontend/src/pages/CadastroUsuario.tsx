@@ -3,16 +3,19 @@ import { perfis, type TipoUsuario } from "../constants/perfis";
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { mascaraCpf, mascaraTelefone } from "../utils/validators";
-import { ChevronDown, Check, UserPlus } from 'lucide-react';
+import { ChevronDown, Check, UserPlus, X } from 'lucide-react';
 import { useToast } from "../hooks/useToast";
 import Button from "../components/ui/Button";
+import { useScrollBlock } from "../hooks/useScrollBlock";
+import ModalPortal from "../components/ui/ModalPortal";
 
 const inputCls =
   "w-full h-10 px-3 text-sm text-ink bg-white border border-line rounded-md outline-none focus:border-brand-600 focus:shadow-focus transition-shadow placeholder:text-muted";
 const labelCls = "block text-[13px] font-medium text-body mb-1";
 
 
-export function CadastroUsuario({ onUserCreated, tipoUsuarioLogado }: { onUserCreated?: () => void; tipoUsuarioLogado?: string }) {
+export function CadastroUsuario({ open, onClose, onUserCreated, tipoUsuarioLogado }: { open: boolean; onClose: () => void; onUserCreated?: () => void; tipoUsuarioLogado?: string }) {
+  useScrollBlock(open);
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [cpf, setCpf] = useState("");
@@ -85,6 +88,7 @@ export function CadastroUsuario({ onUserCreated, tipoUsuarioLogado }: { onUserCr
         toast.success("Usuário cadastrado com sucesso!");
         limparFormulario();
         if (onUserCreated) onUserCreated();
+        onClose();
       }
     } catch (err) {
       toast.error("Falha de conexão com o servidor.");
@@ -93,18 +97,31 @@ export function CadastroUsuario({ onUserCreated, tipoUsuarioLogado }: { onUserCr
     }
   };
 
-  return (
-    <div className="w-full max-w-[760px] bg-white border border-line rounded-lg overflow-hidden">
-      <div className="px-6 py-5 border-b border-line">
-        <div className="flex items-center gap-2">
-          <h2 className="font-semibold text-base text-ink">Cadastro de usuários</h2>
-          <span className="font-medium text-[11px] text-warning-text bg-warning-tint border border-warning-border px-2 py-0.5 rounded-md whitespace-nowrap">Acesso restrito</span>
-        </div>
-        <p className="text-[13px] text-muted mt-1">Preencha os dados para registrar um novo perfil no sistema.</p>
-      </div>
+  if (!open) return null;
 
-      <form onSubmit={handleSubmit} className="px-6 py-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-5 gap-y-4">
+  return (
+    <ModalPortal>
+    <div className="fixed inset-0 z-[3000] flex items-center justify-center bg-ink/45 p-4 backdrop-blur-[2px] animate-in fade-in duration-200" onClick={onClose}>
+      <div
+        className="bg-white w-full max-w-[760px] rounded-xl shadow-modal flex flex-col max-h-[92vh] overflow-hidden animate-in zoom-in-95 duration-200"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="px-6 py-5 border-b border-line shrink-0 flex items-start justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="font-semibold text-base text-ink">Cadastro de usuários</h2>
+              <span className="font-medium text-[11px] text-warning-text bg-warning-tint border border-warning-border px-2 py-0.5 rounded-md whitespace-nowrap">Acesso restrito</span>
+            </div>
+            <p className="text-[13px] text-muted mt-1">Preencha os dados para registrar um novo perfil no sistema.</p>
+          </div>
+          <button type="button" onClick={onClose} className="text-muted hover:text-body p-1 -mr-1 shrink-0" aria-label="Fechar">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="flex flex-col overflow-hidden">
+          <div className="px-6 py-6 overflow-y-auto custom-scrollbar">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-5 gap-y-4">
           <div>
             <label className={labelCls}>Nome completo *</label>
             <input
@@ -274,17 +291,21 @@ export function CadastroUsuario({ onUserCreated, tipoUsuarioLogado }: { onUserCr
           </label>
         )}
 
-        <div className="flex justify-end gap-2.5 mt-5">
-          <Button type="button" variant="secondary" onClick={limparFormulario} disabled={loading}>
-            Limpar formulário
-          </Button>
-          <Button type="submit" variant="primary" disabled={loading} icon={loading ? undefined : <UserPlus size={16} />}>
-            {loading ? (
-              <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin inline-block"></span> Aguarde...</>
-            ) : "Registrar usuário"}
-          </Button>
-        </div>
-      </form>
+          </div>
+
+          <div className="flex justify-end gap-2.5 px-6 py-4 border-t border-line shrink-0">
+            <Button type="button" variant="secondary" onClick={limparFormulario} disabled={loading}>
+              Limpar formulário
+            </Button>
+            <Button type="submit" variant="primary" disabled={loading} icon={loading ? undefined : <UserPlus size={16} />}>
+              {loading ? (
+                <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin inline-block"></span> Aguarde...</>
+              ) : "Registrar usuário"}
+            </Button>
+          </div>
+        </form>
+      </div>
     </div>
+    </ModalPortal>
   );
 }

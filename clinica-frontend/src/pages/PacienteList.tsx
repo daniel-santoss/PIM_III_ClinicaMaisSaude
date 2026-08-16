@@ -10,6 +10,12 @@ import { useToast } from "../hooks/useToast";
 import ConfirmModal from "../components/ConfirmModal";
 import StatCard from "../components/ui/StatCard";
 import Badge from "../components/ui/Badge";
+import Button from "../components/ui/Button";
+import ModalPortal from "../components/ui/ModalPortal";
+
+const modalInputCls =
+  "w-full h-10 px-3 text-sm text-ink bg-white border border-line rounded-md outline-none focus:border-brand-600 focus:shadow-focus transition-shadow placeholder:text-muted";
+const modalLabelCls = "block text-[13px] font-medium text-body mb-1";
 
 interface PacienteListProps {
   recarregarContador?: number;
@@ -194,8 +200,8 @@ export default function PacienteList({
     }
   };
 
-  const handleResetSenha = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleResetSenha = async (e?: React.FormEvent) => {
+    e?.preventDefault();
     if (!pacienteReset || !novaSenhaReset) return;
     setResetLoading(true);
     setResetMensagem(null);
@@ -567,61 +573,60 @@ export default function PacienteList({
 
       {/* Modal de Edição */}
       {editandoId && (
-        <div className="fixed inset-0 z-[3000] flex items-end sm:items-center justify-center bg-gray-900/60 backdrop-blur-sm p-0 sm:p-4 animate-in fade-in duration-300">
-          <div className="bg-white rounded-none sm:rounded-[2.5rem] shadow-2xl w-full h-[100dvh] sm:h-auto sm:max-w-2xl overflow-hidden border-0 sm:border border-purple-50 animate-in slide-in-from-bottom-4 sm:zoom-in duration-300 flex flex-col relative">
-            <div className="p-6 sm:p-8 border-b border-purple-50 bg-purple-50/30 shrink-0 flex justify-between items-center relative">
-              {/* Botão Fechar X */}
-              <button
-                onClick={fecharModal}
-                className="absolute right-4 top-4 sm:right-6 sm:top-6 p-2 text-gray-400 hover:text-gray-600 hover:bg-purple-100/50 rounded-full transition-colors cursor-pointer border-none bg-transparent flex items-center justify-center shadow-sm"
-                aria-label="Fechar"
-              >
+        <ModalPortal>
+        <div className="fixed inset-0 z-[3000] flex items-center justify-center bg-ink/45 p-4 backdrop-blur-[2px] animate-in fade-in duration-200" onClick={fecharModal}>
+          <div
+            className="bg-white w-full max-w-2xl rounded-xl shadow-modal flex flex-col max-h-[92vh] overflow-hidden animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-6 py-5 border-b border-line shrink-0 flex items-start justify-between gap-4">
+              <div>
+                <h3 className="font-semibold text-base text-ink">Editar Paciente</h3>
+                <p className="text-[13px] text-muted mt-1">Atualize as informações cadastrais.</p>
+              </div>
+              <button type="button" onClick={fecharModal} className="text-muted hover:text-body p-1 -mr-1 shrink-0" aria-label="Fechar">
                 <X className="w-5 h-5" />
               </button>
-              <div>
-                <h3 className="text-xl sm:text-2xl font-black text-gray-800">Editar Paciente</h3>
-                <p className="text-[10px] font-black text-purple-400 uppercase tracking-widest mt-1">Atualize as informações cadastrais</p>
-              </div>
             </div>
 
-            <div className="p-6 sm:p-8 space-y-6 flex-1 overflow-y-auto">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="px-6 py-6 overflow-y-auto custom-scrollbar">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-5 gap-y-4">
                 <div>
-                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Nome Completo</label>
+                  <label className={modalLabelCls}>Nome completo</label>
                   <input
                     type="text"
-                    className="w-full p-4 border border-gray-200 rounded-2xl bg-gray-50 focus:ring-2 focus:ring-[#2C5282] focus:bg-white transition-all outline-none font-bold text-sm"
+                    className={modalInputCls}
                     placeholder="Nome"
                     value={form.nome}
                     onChange={(e) => setForm({ ...form, nome: e.target.value })}
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">CPF (Inalterável)</label>
+                  <label className={modalLabelCls}>CPF (inalterável)</label>
                   <input
                     type="text"
-                    className="w-full p-4 border border-gray-200 rounded-2xl bg-gray-100 text-gray-400 cursor-not-allowed outline-none font-bold text-sm"
+                    className="w-full h-10 px-3 text-sm text-muted bg-canvas border border-line rounded-md outline-none cursor-not-allowed"
                     value={form.cpf}
                     disabled
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Telefone de Contato</label>
+                  <label className={modalLabelCls}>Telefone de contato</label>
                   <input
                     type="text"
-                    className="w-full p-4 border border-gray-200 rounded-2xl bg-gray-50 focus:ring-2 focus:ring-[#2C5282] focus:bg-white transition-all outline-none font-bold text-sm"
+                    className={modalInputCls}
                     maxLength={15}
-                    placeholder="Telefone"
+                    placeholder="(00) 00000-0000"
                     value={form.telefone}
                     onChange={(e) => setForm({ ...form, telefone: mascaraTelefone(e.target.value) })}
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">E-mail</label>
+                  <label className={modalLabelCls}>E-mail</label>
                   <input
                     type="email"
-                    className="w-full p-4 border border-gray-200 rounded-2xl bg-gray-50 focus:ring-2 focus:ring-[#2C5282] focus:bg-white transition-all outline-none font-bold text-sm"
-                    placeholder="Email"
+                    className={modalInputCls}
+                    placeholder="exemplo@email.com"
                     value={form.email}
                     onChange={(e) => setForm({ ...form, email: e.target.value })}
                   />
@@ -629,26 +634,19 @@ export default function PacienteList({
               </div>
             </div>
 
-            <div className="p-6 sm:p-8 bg-gray-50/50 border-t border-gray-100 flex flex-col sm:flex-row gap-4 shrink-0">
-              <button
-                className="w-full sm:flex-1 px-6 py-4 bg-gray-100 text-gray-600 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-gray-200 transition-all active:scale-95 disabled:opacity-50"
-                onClick={fecharModal}
-                disabled={salvando}
-              >
+            <div className="flex justify-end gap-2.5 px-6 py-4 border-t border-line shrink-0">
+              <Button type="button" variant="secondary" onClick={fecharModal} disabled={salvando}>
                 Cancelar
-              </button>
-              <button
-                onClick={salvarEdicao}
-                disabled={salvando}
-                className="w-full sm:flex-1 px-6 py-4 bg-[#2C5282] text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-[#152D5C] shadow-lg shadow-purple-100 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
-              >
+              </Button>
+              <Button type="button" variant="primary" onClick={salvarEdicao} disabled={salvando}>
                 {salvando ? (
-                   <><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> Salvando...</>
-                ) : "Salvar Alterações"}
-              </button>
+                  <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin inline-block"></span> Salvando...</>
+                ) : "Salvar alterações"}
+              </Button>
             </div>
           </div>
         </div>
+        </ModalPortal>
       )}
 
       {/* Modal de Exclusão */}
@@ -665,88 +663,86 @@ export default function PacienteList({
       />
       {/* Modal de Reset de Senha */}
       {pacienteReset && (
-        <div className="fixed inset-0 z-[3000] flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="bg-white rounded-t-[2.5rem] sm:rounded-2xl shadow-xl w-full sm:max-w-md p-6 sm:p-8 flex flex-col max-h-[90vh] animate-in slide-in-from-bottom-4 sm:zoom-in duration-300 overflow-y-auto relative">
-            {/* Botão Fechar X */}
-            <button
-              onClick={fecharModalReset}
-              className="absolute right-4 top-4 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors cursor-pointer border-none bg-transparent flex items-center justify-center shadow-sm"
-              aria-label="Fechar"
-            >
-              <X className="w-5 h-5" />
-            </button>
-            
-            <h3 className="text-xl font-black text-gray-800 mb-2">Redefinir Senha</h3>
-            <p className="text-sm text-gray-600 mb-4">Paciente: <span className="font-semibold">{pacienteReset.nome}</span></p>
-            
-            {resetMensagem && (
-              <div className={`p-3 rounded mb-4 text-sm ${resetMensagem.erro ? "bg-red-50 text-red-700" : "bg-green-50 text-green-700"}`}>
-                {resetMensagem.texto}
+        <ModalPortal>
+        <div className="fixed inset-0 z-[3000] flex items-center justify-center bg-ink/45 p-4 backdrop-blur-[2px] animate-in fade-in duration-200" onClick={fecharModalReset}>
+          <div
+            className="bg-white w-full max-w-md rounded-xl shadow-modal flex flex-col max-h-[92vh] overflow-hidden animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-6 py-5 border-b border-line shrink-0 flex items-start justify-between gap-4">
+              <div>
+                <h3 className="font-semibold text-base text-ink">Redefinir senha</h3>
+                <p className="text-[13px] text-muted mt-1">Paciente: <span className="font-medium text-body">{pacienteReset.nome}</span></p>
               </div>
-            )}
+              <button type="button" onClick={fecharModalReset} className="text-muted hover:text-body p-1 -mr-1 shrink-0" aria-label="Fechar">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
 
-            {senhaExibida ? (
-              <div className="bg-amber-50 border border-amber-200 p-4 rounded-lg mb-4 text-center">
-                <p className="text-sm font-semibold text-amber-800 mb-2">Anote esta senha — ela não será exibida novamente:</p>
-                <div className="relative group">
-                  <p className="text-2xl font-mono font-bold text-gray-900 bg-white border border-dashed border-amber-300 py-2 px-8 rounded">
-                    {senhaExibida}
-                  </p>
-                  <button
-                    onClick={copiarSenha}
-                    title="Copiar senha"
-                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-amber-600 hover:bg-amber-100 rounded-md transition-all active:scale-95"
-                  >
-                    {copiado ? (
-                      <Check className="w-5 h-5 text-green-600" />
-                    ) : (
-                      <Copy className="w-5 h-5" />
-                    )}
-                  </button>
-                  {copiado && (
-                    <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] py-1 px-2 rounded shadow-lg animate-bounce">
-                      Copiado!
-                    </span>
-                  )}
+            <div className="px-6 py-6 overflow-y-auto custom-scrollbar">
+              {resetMensagem && (
+                <div className={`p-3 rounded-md mb-4 text-sm border ${resetMensagem.erro ? "bg-danger-tint text-danger border-danger-border" : "bg-success-tint text-success border-success-border"}`}>
+                  {resetMensagem.texto}
                 </div>
-                <p className="text-xs text-amber-600 mt-2">Passe esta senha de forma segura para o paciente.</p>
-              </div>
-            ) : (
-              <form onSubmit={handleResetSenha}>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Nova Senha</label>
+              )}
+
+              {senhaExibida ? (
+                <div className="bg-warning-tint border border-warning-border p-4 rounded-md text-center">
+                  <p className="text-sm font-medium text-warning-text mb-2">Anote esta senha — ela não será exibida novamente:</p>
+                  <div className="relative group">
+                    <p className="text-2xl font-mono font-bold text-ink bg-white border border-dashed border-warning-border py-2 px-8 rounded-md">
+                      {senhaExibida}
+                    </p>
+                    <button
+                      onClick={copiarSenha}
+                      title="Copiar senha"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-warning-text hover:bg-warning-tint rounded-md transition-all active:scale-95"
+                    >
+                      {copiado ? (
+                        <Check className="w-5 h-5 text-success" />
+                      ) : (
+                        <Copy className="w-5 h-5" />
+                      )}
+                    </button>
+                    {copiado && (
+                      <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-ink text-white text-[10px] py-1 px-2 rounded shadow-lg animate-bounce">
+                        Copiado!
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-warning-text mt-2">Passe esta senha de forma segura para o paciente.</p>
+                </div>
+              ) : (
+                <form onSubmit={handleResetSenha}>
+                  <label className={modalLabelCls}>Nova senha</label>
                   <input
                     type="text"
                     required
                     value={novaSenhaReset}
                     onChange={(e) => setNovaSenhaReset(e.target.value)}
-                    className="w-full border border-gray-300 rounded p-2 focus:ring-2 focus:ring-amber-500 outline-none"
-                    
+                    className={modalInputCls}
+                    placeholder="Digite a nova senha"
                   />
-                </div>
-                <button
-                  type="submit"
-                  disabled={resetLoading}
-                  className={`w-full text-white font-bold py-2.5 rounded transition-colors mb-2 ${resetLoading ? "bg-amber-400 cursor-not-allowed" : "bg-amber-600 hover:bg-amber-700"}`}
-                >
-                  {resetLoading ? "Redefinindo..." : "Confirmar Redefinição"}
-                </button>
-              </form>
-            )}
+                </form>
+              )}
+            </div>
 
-            <button
-              onClick={fecharModalReset}
-              className="w-full mt-2 text-gray-600 hover:bg-gray-100 font-medium py-2 rounded transition-colors"
-            >
-              {senhaExibida ? "Fechar" : "Cancelar"}
-            </button>
+            <div className="flex justify-end gap-2.5 px-6 py-4 border-t border-line shrink-0">
+              <Button type="button" variant="secondary" onClick={fecharModalReset}>
+                {senhaExibida ? "Fechar" : "Cancelar"}
+              </Button>
+              {!senhaExibida && (
+                <Button type="button" variant="primary" onClick={() => handleResetSenha()} disabled={resetLoading}>
+                  {resetLoading ? (
+                    <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin inline-block"></span> Redefinindo...</>
+                  ) : "Confirmar redefinição"}
+                </Button>
+              )}
+            </div>
           </div>
         </div>
+        </ModalPortal>
       )}
-
-
-
-
   </div>
   );
 }
