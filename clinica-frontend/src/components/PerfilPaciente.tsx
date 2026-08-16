@@ -142,7 +142,7 @@ export default function PerfilPaciente() {
   if (carregando) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
-        <div className="w-8 h-8 border-2 border-purple-100 border-t-[#7C3AED] rounded-full animate-spin"></div>
+        <div className="w-8 h-8 border-2 border-line border-t-[#2C5282] rounded-full animate-spin"></div>
       </div>
     );
   }
@@ -160,154 +160,142 @@ export default function PerfilPaciente() {
             window.dispatchEvent(new CustomEvent("fotoPerfilAtualizada", { detail: base64 }));
           }}
         />
-        <div className="flex flex-col gap-1">
-          <h1 className="text-3xl font-black text-gray-900 tracking-tight leading-none">Meu Perfil</h1>
-          <p className="text-gray-400 text-sm font-medium">Informações da conta</p>
+        <div className="flex flex-col gap-1 flex-1 min-w-0">
+          <h1 className="text-2xl font-semibold text-ink leading-none">Meu Perfil</h1>
+          <p className="text-muted text-sm">Informações da conta</p>
         </div>
+        {!editMode && (
+          <button
+            onClick={() => setEditMode(true)}
+            className="h-10 px-4 inline-flex items-center gap-2 rounded-md border border-brand-600 text-brand-600 font-semibold text-sm hover:bg-brand-50 transition-colors shrink-0"
+          >
+            <Pencil size={15} /> Editar
+          </button>
+        )}
       </div>
 
       {/* Seção de Dados */}
       <div className="space-y-4">
-        <div className="bg-white rounded-3xl border border-gray-100 overflow-hidden shadow-sm grid grid-cols-1 md:grid-cols-2">
+        <div className="bg-white rounded-lg border border-line overflow-hidden grid grid-cols-1 md:grid-cols-2">
           {/* NOME */}
-          <div className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors group border-b md:border-b-0 md:border-r border-gray-50">
+          <div className="px-6 py-4 flex items-center justify-between hover:bg-canvas transition-colors group border-b md:border-b-0 md:border-r border-line">
             <div className="flex flex-col gap-1 flex-1">
-              <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Nome Completo</span>
+              <span className="text-[11px] font-semibold text-muted uppercase tracking-wide">Nome Completo</span>
               {editMode ? (
                 <input 
                   type="text" 
                   value={editData.nome} 
                   onChange={e => setEditData({...editData, nome: e.target.value})}
-                  className="text-sm font-bold text-gray-800 bg-transparent border-b border-purple-200 outline-none focus:border-[#7C3AED] py-1"
+                  className="text-sm font-medium text-ink bg-transparent border-b border-line outline-none focus:border-brand-600 py-1"
                 />
               ) : (
-                <span className="text-sm font-bold text-gray-800">{paciente?.nome}</span>
+                <span className="text-sm font-semibold text-ink">{paciente?.nome}</span>
               )}
             </div>
-            {!editMode && (
-              <button onClick={() => setEditMode(true)} className="p-2 text-gray-300 hover:text-[#7C3AED] transition-colors opacity-0 group-hover:opacity-100">
-                <Pencil size={16} />
-              </button>
-            )}
           </div>
 
           {/* EMAIL */}
-          <div className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors group border-b md:border-b-0 border-gray-50">
+          <div className="px-6 py-4 flex items-center justify-between hover:bg-canvas transition-colors group border-b md:border-b-0 border-line">
             <div className="flex flex-col gap-1 flex-1">
-              <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">E-mail</span>
+              <span className="text-[11px] font-semibold text-muted uppercase tracking-wide">E-mail</span>
               {editMode ? (
                 <input 
                   type="email" 
                   value={editData.email} 
                   onChange={e => setEditData({...editData, email: e.target.value})}
-                  className="text-sm font-bold text-gray-800 bg-transparent border-b border-purple-200 outline-none focus:border-[#7C3AED] py-1"
+                  className="text-sm font-medium text-ink bg-transparent border-b border-line outline-none focus:border-brand-600 py-1"
                 />
               ) : (
-                <span className="text-sm font-bold text-gray-800">{paciente?.email}</span>
+                <span className="text-sm font-semibold text-ink">{paciente?.email}</span>
               )}
             </div>
-            {!editMode && (
-              <button onClick={() => setEditMode(true)} className="p-2 text-gray-300 hover:text-[#7C3AED] transition-colors opacity-0 group-hover:opacity-100">
-                <Pencil size={16} />
-              </button>
-            )}
           </div>
 
           {/* TELEFONE */}
-          <div className="px-6 py-4 flex items-center justify-between border-t border-gray-50 hover:bg-gray-50 transition-colors group md:border-r">
+          <div className="px-6 py-4 flex items-center justify-between border-t border-line hover:bg-canvas transition-colors group md:border-r">
             <div className="flex flex-col gap-1 flex-1">
-              <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Telefone</span>
+              <span className="text-[11px] font-semibold text-muted uppercase tracking-wide">Telefone</span>
               {editMode ? (
                 <input 
                   type="text" 
                   value={editData.telefone} 
                   onChange={e => setEditData({...editData, telefone: mascaraTelefone(e.target.value)})}
-                  className="text-sm font-bold text-gray-800 bg-transparent border-b border-purple-200 outline-none focus:border-[#7C3AED] py-1"
+                  className="text-sm font-medium text-ink bg-transparent border-b border-line outline-none focus:border-brand-600 py-1"
                 />
               ) : (
-                <span className="text-sm font-bold text-gray-800">{mascaraTelefone(paciente?.telefone)}</span>
+                <span className="text-sm font-semibold text-ink">{mascaraTelefone(paciente?.telefone)}</span>
               )}
             </div>
-            {!editMode && (
-              <button onClick={() => setEditMode(true)} className="p-2 text-gray-300 hover:text-[#7C3AED] transition-colors opacity-0 group-hover:opacity-100">
-                <Pencil size={16} />
-              </button>
-            )}
           </div>
 
           {/* CPF  */}
-          <div className="px-6 py-4 flex flex-col gap-1 border-t border-gray-50 bg-gray-50/30">
-            <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">CPF</span>
-            <span className="text-sm font-bold text-gray-500">{mascaraCpf(paciente?.cpf)}</span>
+          <div className="px-6 py-4 flex flex-col gap-1 border-t border-line bg-canvas">
+            <span className="text-[11px] font-semibold text-muted uppercase tracking-wide">CPF</span>
+            <span className="text-sm font-bold text-muted">{mascaraCpf(paciente?.cpf)}</span>
           </div>
 
           {/* PROBLEMA MEMÓRIA */}
-          <div className="px-6 py-4 flex items-center justify-between border-t border-gray-50 bg-white md:border-r group transition-colors hover:bg-gray-50">
+          <div className="px-6 py-4 flex items-center justify-between border-t border-line bg-white md:border-r group transition-colors hover:bg-canvas">
             <div className="flex flex-col gap-1 flex-1">
-              <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Problema de memória?</span>
+              <span className="text-[11px] font-semibold text-muted uppercase tracking-wide">Problema de memória?</span>
               {editMode ? (
-                <input type="checkbox" checked={editData.temProblemaMemoria} onChange={e => setEditData({...editData, temProblemaMemoria: e.target.checked})} className="w-5 h-5 text-[#7C3AED] rounded border-gray-300 focus:ring-[#7C3AED] focus:ring-2 outline-none cursor-pointer mt-1" />
+                <input type="checkbox" checked={editData.temProblemaMemoria} onChange={e => setEditData({...editData, temProblemaMemoria: e.target.checked})} className="w-5 h-5 text-[#2C5282] rounded border-gray-300 focus:ring-[#2C5282] focus:ring-2 outline-none cursor-pointer mt-1" />
               ) : (
-                <span className="text-sm font-bold text-gray-800">{paciente?.temProblemaMemoria ? "Sim" : "Não"}</span>
+                <span className="text-sm font-semibold text-ink">{paciente?.temProblemaMemoria ? "Sim" : "Não"}</span>
               )}
             </div>
-            {!editMode && (
-              <button onClick={() => setEditMode(true)} className="p-2 text-gray-300 hover:text-[#7C3AED] transition-colors opacity-0 group-hover:opacity-100">
-                <Pencil size={16} />
-              </button>
-            )}
           </div>
 
           {/* SENHA */}
-          <div className="px-6 py-4 flex items-center justify-between border-t border-gray-50 hover:bg-gray-50 transition-colors group">
+          <div className="px-6 py-4 flex items-center justify-between border-t border-line hover:bg-canvas transition-colors group">
             <div className="flex flex-col gap-1 flex-1">
-              <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Senha</span>
-              <span className="text-sm font-bold text-gray-800 tracking-[0.3em]">••••••••</span>
+              <span className="text-[11px] font-semibold text-muted uppercase tracking-wide">Senha</span>
+              <span className="text-sm font-semibold text-ink tracking-[0.3em]">••••••••</span>
             </div>
-            {!editSenha && (
-              <button 
-                onClick={() => { setEditMode(true); setEditSenha(true); }} 
-                className="p-2 text-gray-300 hover:text-[#7C3AED] transition-colors opacity-0 group-hover:opacity-100"
+            {editMode && !editSenha && (
+              <button
+                onClick={() => setEditSenha(true)}
+                className="px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider text-[#2C5282] bg-brand-50 hover:bg-brand-50 transition-colors"
               >
-                <Pencil size={16} />
+                Alterar
               </button>
             )}
           </div>
 
           {/* Campos de nova senha */}
           {editSenha && (
-            <div className="col-span-1 md:col-span-2 px-6 py-6 bg-purple-50/30 border-t border-purple-100 space-y-4 animate-in slide-in-from-top-2 duration-300">
+            <div className="col-span-1 md:col-span-2 px-6 py-6 bg-canvas border-t border-line space-y-4 animate-in slide-in-from-top-2 duration-300">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-4">
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-black text-purple-400 uppercase tracking-widest ml-1">Senha Atual</label>
+                  <label className="text-[10px] font-black text-muted uppercase tracking-widest ml-1">Senha Atual</label>
                   <input 
                     type="password" 
                     placeholder="Sua senha atual"
                     value={editData.senhaAtual}
                     onChange={e => setEditData({...editData, senhaAtual: e.target.value})}
-                    className="w-full p-3 bg-white border border-purple-100 rounded-xl outline-none text-sm focus:ring-2 focus:ring-purple-400 font-bold"
+                    className="w-full p-3 bg-white border border-line rounded-xl outline-none text-sm focus:ring-2 focus:ring-[#2C5282] font-bold"
                   />
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-black text-purple-400 uppercase tracking-widest ml-1">Nova Senha</label>
+                  <label className="text-[10px] font-black text-muted uppercase tracking-widest ml-1">Nova Senha</label>
                   <input 
                     type="password" 
                     placeholder="Nova senha"
                     value={editData.novaSenha}
                     onChange={e => setEditData({...editData, novaSenha: e.target.value})}
-                    className="w-full p-3 bg-white border border-purple-100 rounded-xl outline-none text-sm focus:ring-2 focus:ring-purple-400 font-bold"
+                    className="w-full p-3 bg-white border border-line rounded-xl outline-none text-sm focus:ring-2 focus:ring-[#2C5282] font-bold"
                   />
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-black text-purple-400 uppercase tracking-widest ml-1">Confirmar Nova Senha</label>
+                  <label className="text-[10px] font-black text-muted uppercase tracking-widest ml-1">Confirmar Nova Senha</label>
                   <input 
                     type="password" 
                     placeholder="Confirme a nova senha"
                     value={editData.confirmarSenha}
                     onChange={e => setEditData({...editData, confirmarSenha: e.target.value})}
-                    className="w-full p-3 bg-white border border-purple-100 rounded-xl outline-none text-sm focus:ring-2 focus:ring-purple-400 font-bold"
+                    className="w-full p-3 bg-white border border-line rounded-xl outline-none text-sm focus:ring-2 focus:ring-[#2C5282] font-bold"
                   />
                 </div>
 
@@ -315,14 +303,14 @@ export default function PerfilPaciente() {
                 <div className="flex items-end justify-end gap-3 pb-1">
                   <button 
                     onClick={cancelarEdicao}
-                    className="px-8 py-3 border border-gray-300 text-gray-500 rounded-xl font-bold text-xs uppercase tracking-wider hover:bg-gray-50 transition-colors bg-white shadow-sm"
+                    className="px-8 py-3 border border-gray-300 text-muted rounded-xl font-bold text-xs uppercase tracking-wider hover:bg-canvas transition-colors bg-white shadow-sm"
                   >
                     Cancelar
                   </button>
                   <button 
                     onClick={salvarTudo}
                     disabled={salvando}
-                    className="px-10 py-3 bg-[#7C3AED] text-white rounded-xl font-bold text-xs uppercase tracking-wider shadow-lg shadow-purple-100 hover:bg-[#6D28D9] transition-all disabled:opacity-50 active:scale-95 flex items-center justify-center gap-2"
+                    className="px-10 py-3 bg-[#2C5282] text-white rounded-xl font-bold text-xs uppercase tracking-wider shadow-lg shadow-purple-100 hover:bg-[#152D5C] transition-all disabled:opacity-50 active:scale-95 flex items-center justify-center gap-2"
                   >
                     {salvando ? (
                       <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> Aguarde...</>
@@ -339,14 +327,14 @@ export default function PerfilPaciente() {
           <div className="flex justify-end gap-3 animate-in fade-in slide-in-from-right-2 duration-300">
             <button 
               onClick={cancelarEdicao}
-              className="px-8 py-3 border border-gray-300 text-gray-500 rounded-xl font-bold text-xs uppercase tracking-wider hover:bg-gray-50 transition-colors"
+              className="px-8 py-3 border border-gray-300 text-muted rounded-xl font-bold text-xs uppercase tracking-wider hover:bg-canvas transition-colors"
             >
               Cancelar
             </button>
             <button 
               onClick={salvarTudo}
               disabled={salvando}
-              className="px-10 py-3 bg-[#7C3AED] text-white rounded-xl font-bold text-xs uppercase tracking-wider shadow-lg shadow-purple-100 hover:bg-[#6D28D9] transition-all disabled:opacity-50 active:scale-95 flex items-center justify-center gap-2"
+              className="px-10 py-3 bg-[#2C5282] text-white rounded-xl font-bold text-xs uppercase tracking-wider shadow-lg shadow-purple-100 hover:bg-[#152D5C] transition-all disabled:opacity-50 active:scale-95 flex items-center justify-center gap-2"
             >
               {salvando ? (
                 <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> Aguarde...</>
@@ -356,11 +344,11 @@ export default function PerfilPaciente() {
         )}
       </div>
 
-      <p className="text-[10px] font-bold text-gray-400 text-center px-6 py-8 leading-relaxed italic uppercase tracking-wider">
+      <p className="text-[10px] font-bold text-muted text-center px-6 py-8 leading-relaxed italic uppercase tracking-wider">
         O seu CPF só pode ser alterado presencialmente na recepção mediante a apresentação de um documento com foto.
       </p>
 
-      <div className="mt-4 pt-6 border-t border-gray-50 flex justify-center">
+      <div className="mt-4 pt-6 border-t border-line flex justify-center">
         <button
           onClick={() => setModalExcluir(true)}
           className="text-[10px] font-black text-red-300 hover:text-red-500 transition-colors uppercase tracking-[0.2em]"
@@ -372,12 +360,12 @@ export default function PerfilPaciente() {
       {/* MODAL: EXCLUIR CONTA (SIMPLIFICADO) */}
       {modalExcluir && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-red-900/20 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-xs p-8 text-center animate-in zoom-in duration-200">
-            <h3 className="text-lg font-bold text-gray-800 mb-2">Apagar conta?</h3>
-            <p className="text-gray-400 text-xs mb-8">Esta ação removerá todos os seus dados e não pode ser desfeita.</p>
+          <div className="bg-white rounded-lg shadow-2xl w-full max-w-xs p-8 text-center animate-in zoom-in duration-200">
+            <h3 className="text-lg font-bold text-ink mb-2">Apagar conta?</h3>
+            <p className="text-muted text-xs mb-8">Esta ação removerá todos os seus dados e não pode ser desfeita.</p>
             <div className="flex flex-col gap-2">
               <button disabled title="Funcionalidade em desenvolvimento" className="w-full py-3.5 bg-red-300 text-white font-bold rounded-xl text-xs uppercase cursor-not-allowed opacity-60">Confirmar (em breve)</button>
-              <button onClick={() => setModalExcluir(false)} className="w-full py-3 text-gray-400 font-bold text-xs uppercase">Voltar</button>
+              <button onClick={() => setModalExcluir(false)} className="w-full py-3 text-muted font-bold text-xs uppercase">Voltar</button>
             </div>
           </div>
         </div>

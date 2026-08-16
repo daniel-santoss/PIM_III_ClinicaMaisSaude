@@ -51,20 +51,18 @@ export default function ToastContainer() {
       {toasts.map((toast) => {
         const isSuccess = toast.type === "success";
         const isError = toast.type === "error";
-        const isWarning = toast.type === "warning";
 
-        const bgClass = isSuccess ? "bg-green-600" : isError ? "bg-red-600" : "bg-yellow-400";
-        const textClass = isWarning ? "text-gray-900" : "text-white";
+        const iconClass = isSuccess ? "text-success" : isError ? "text-danger" : "text-warning";
         const Icon = isSuccess ? CheckCircle : isError ? XCircle : AlertTriangle;
 
         return (
           <div
             key={toast.id}
-            className={`flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl pointer-events-auto transition-all animate-in slide-in-from-right-8 fade-in duration-300 ${bgClass} ${textClass}`}
+            className="flex items-center gap-3 px-4 py-3 rounded-lg border border-line bg-white shadow-modal pointer-events-auto transition-all animate-in slide-in-from-right-8 fade-in duration-300 max-w-sm"
           >
-            <Icon className="w-5 h-5 shrink-0" />
-            <p className="text-sm font-bold flex-1">{toast.message}</p>
-            <button onClick={() => removeToast(toast.id)} className="shrink-0 hover:opacity-70 transition-opacity">
+            <Icon className={`w-5 h-5 shrink-0 ${iconClass}`} />
+            <p className="text-sm font-medium text-ink flex-1">{toast.message}</p>
+            <button onClick={() => removeToast(toast.id)} className="shrink-0 text-muted hover:text-body transition-colors">
               <X className="w-4 h-4" />
             </button>
           </div>
