@@ -401,7 +401,11 @@ Formato:
                     // Mantido no contrato como false para não quebrar a ViolacoesList do front.
                     PenalidadeRemovidaAguardandoLogin = false,
                     IABloqueadaAte = a.Usuario.BloqueadoIAAte,
-                    ContaBloqueadaAte = a.Usuario.BloqueadoAte
+                    ContaBloqueadaAte = a.Usuario.BloqueadoAte,
+                    // Ban permanente de paciente vive em Paciente.SituacaoCliente=Banido
+                    // (substituiu o hack BloqueadoAte=+100 anos), então precisa vir explícito
+                    // no contrato — senão a ViolacoesList não enxerga a penalidade ativa.
+                    BanidoPermanente = _context.Pacientes.Any(p => p.UsuarioId == a.UsuarioId && p.SituacaoCliente == SituacaoCliente.Banido)
                 })
                 .OrderByDescending(a => a.DtCriado)
                 .ToListAsync();

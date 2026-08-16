@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { API_URL } from "../constants/api";
-import { AlertOctagon, AlertTriangle, ShieldAlert, Search, ShieldCheck, RefreshCw, Lock } from "lucide-react";
+import { AlertOctagon, AlertTriangle, ShieldAlert, Search, ShieldCheck, ShieldOff, RefreshCw, Lock } from "lucide-react";
 import { getRealDate } from '../utils/dates';
 
 import { useToast } from "../hooks/useToast";
@@ -20,6 +20,7 @@ type Violacao = {
   penalidadeRemovidaAguardandoLogin: boolean;
   iaBloqueadaAte: string | null;
   contaBloqueadaAte: string | null;
+  banidoPermanente: boolean;
 };
 
 export default function ViolacoesList({ buscaInicial = "", onLimparBusca }: { buscaInicial?: string; onLimparBusca?: () => void }) {
@@ -266,10 +267,10 @@ export default function ViolacoesList({ buscaInicial = "", onLimparBusca }: { bu
               const agoraCard = new Date();
               const iaBloqueada = v.iaBloqueadaAte ? new Date(v.iaBloqueadaAte) > agoraCard : false;
               const contaBloqueada = v.contaBloqueadaAte ? new Date(v.contaBloqueadaAte) > agoraCard : false;
-              const temPenalidadeAtiva = iaBloqueada || contaBloqueada;
-              const isPermanente = contaBloqueada && v.contaBloqueadaAte
+              const temPenalidadeAtiva = iaBloqueada || contaBloqueada || v.banidoPermanente;
+              const isPermanente = v.banidoPermanente || (contaBloqueada && v.contaBloqueadaAte
                 ? (new Date(v.contaBloqueadaAte).getFullYear() - agoraCard.getFullYear()) > 50
-                : false;
+                : false);
               const isMaisRecente = violacoes.find(x => x.pacienteId === v.pacienteId)?.id === v.id;
               return (
                 <div key={v.id} className="flex flex-col gap-4 p-5 rounded-lg bg-white border border-line">
@@ -340,10 +341,15 @@ export default function ViolacoesList({ buscaInicial = "", onLimparBusca }: { bu
 
                   {/* Ação */}
                   <div className="flex justify-end gap-2">
-                    {v.penalidadeRemovidaAguardandoLogin || !temPenalidadeAtiva || !isMaisRecente ? (
+                    {v.penalidadeRemovidaAguardandoLogin ? (
                       <span className="inline-flex items-center gap-2 text-xs font-semibold text-success bg-success-tint border border-success-border px-3.5 py-2 rounded-md">
                         <ShieldCheck className="w-4 h-4" />
                         Penalidade removida
+                      </span>
+                    ) : !temPenalidadeAtiva || !isMaisRecente ? (
+                      <span className="inline-flex items-center gap-2 text-xs font-semibold text-muted bg-canvas border border-line px-3.5 py-2 rounded-md">
+                        <ShieldOff className="w-4 h-4" />
+                        Sem restrição ativa
                       </span>
                     ) : (
                       <button
