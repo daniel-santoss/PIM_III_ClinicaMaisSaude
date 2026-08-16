@@ -1,5 +1,6 @@
 import { AlertTriangle, Info, X } from 'lucide-react';
 import { useScrollBlock } from '../hooks/useScrollBlock';
+import ModalPortal from './ui/ModalPortal';
 
 interface ConfirmModalProps {
   isOpen: boolean;
@@ -39,6 +40,7 @@ export default function ConfirmModal({
     : 'bg-brand-600 hover:bg-brand-800 text-white border-brand-600';
 
   return (
+    <ModalPortal>
     <div className="fixed inset-0 z-[3000] flex items-center justify-center bg-ink/45 backdrop-blur-[2px] p-4 animate-in fade-in duration-200">
       <div className="bg-white rounded-xl shadow-modal w-full max-w-sm p-6 text-center animate-in zoom-in-95 duration-200 relative max-h-[92dvh] overflow-y-auto custom-scrollbar">
         {/* Botão Fechar X */}
@@ -83,5 +85,6 @@ export default function ConfirmModal({
         </div>
       </div>
     </div>
+    </ModalPortal>
   );
 }

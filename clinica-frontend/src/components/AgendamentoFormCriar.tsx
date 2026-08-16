@@ -9,6 +9,7 @@ import { useToast } from "../hooks/useToast";
 import { perfis } from "../constants/perfis";
 import { statusAgendamento } from "../constants/status";
 import { storageKeys } from "../constants/storage";
+import ModalPortal from "./ui/ModalPortal";
 
 interface AgendamentoFormCriarProps {
   onFechar: () => void;
@@ -196,8 +197,9 @@ export default function AgendamentoFormCriar({
   };
 
   return (
+    <ModalPortal>
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-0 sm:p-4 bg-ink/45 backdrop-blur-sm animate-in fade-in duration-300">
-      
+
       <div className="bg-white w-full h-[100dvh] sm:h-auto sm:max-w-xl rounded-none sm:rounded-md shadow-modal overflow-hidden border-0 sm:border border-line flex flex-col sm:max-h-[90vh]">
         <div className="px-6 py-5 border-b border-line flex items-center justify-between shrink-0">
           <div>
@@ -239,21 +241,21 @@ export default function AgendamentoFormCriar({
             ) : (
               <>
                 {/* Triagem por IA */}
-            <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-5 rounded-md border border-indigo-100 space-y-3">
+            <div className="bg-brand-50 p-5 rounded-md border border-brand-200 space-y-3">
               <div className="flex items-center gap-2">
-                <Lightbulb className="w-5 h-5 text-indigo-500" />
-                <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Triagem Inteligente (IA)</span>
+                <Lightbulb className="w-5 h-5 text-brand-600" />
+                <span className="text-[10px] font-black text-brand-600 uppercase tracking-widest">Triagem Inteligente (IA)</span>
               </div>
               <div className="relative">
                 <textarea
-                  className="w-full p-3 bg-white border border-indigo-100 rounded-md text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-400 transition-all resize-none pr-16"
+                  className="w-full p-3 bg-white border border-brand-200 rounded-md text-sm font-medium outline-none focus:border-brand-600 focus:shadow-focus transition-shadow resize-none pr-16"
                   rows={2}
                   placeholder="Descreva os sintomas do paciente para sugestão automática..."
                   value={sintomas}
                   onChange={(e) => setSintomas(e.target.value)}
                   maxLength={MAX_PROMPT_LENGTH}
                 />
-                <span className="absolute bottom-2.5 right-3 text-[10px] font-black text-indigo-300 bg-white/80 px-1 rounded">
+                <span className="absolute bottom-2.5 right-3 text-[10px] font-black text-muted bg-white/80 px-1 rounded">
                   {sintomas.length}/{MAX_PROMPT_LENGTH}
                 </span>
               </div>
@@ -294,7 +296,7 @@ export default function AgendamentoFormCriar({
                     } catch { toast.error("Falha ao consultar IA."); }
                     finally { setCarregandoIA(false); }
                   }}
-                  className="px-5 py-2.5 bg-indigo-600 text-white rounded-md text-[10px] font-black uppercase tracking-widest hover:bg-indigo-700 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+                  className="px-5 py-2.5 bg-brand-600 text-white rounded-md text-[10px] font-black uppercase tracking-widest hover:bg-brand-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
                 >
                   {carregandoIA ? (
                     <><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> Analisando...</>
@@ -307,7 +309,7 @@ export default function AgendamentoFormCriar({
                 )}
               </div>
               {sugestaoIA?.justificativa && (
-                <p className="text-xs text-indigo-700 bg-white p-3 rounded-md border border-indigo-50 italic">{sugestaoIA.justificativa}</p>
+                <p className="text-xs text-brand-800 bg-white p-3 rounded-md border border-brand-100 italic">{sugestaoIA.justificativa}</p>
               )}
             </div>
             <div className="relative">
@@ -530,5 +532,6 @@ export default function AgendamentoFormCriar({
         </div>
       </div>
     </div>
+    </ModalPortal>
   );
 }

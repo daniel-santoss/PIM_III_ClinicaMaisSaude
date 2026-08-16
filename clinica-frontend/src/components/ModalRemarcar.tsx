@@ -4,6 +4,7 @@ import { obterMinDate, getRealDate } from "../utils/dates";
 import { Calendar, Clock, AlertCircle, X } from 'lucide-react';
 import { useScrollBlock } from "../hooks/useScrollBlock";
 import { useToast } from "../hooks/useToast";
+import ModalPortal from "./ui/ModalPortal";
 
 interface ModalRemarcarProps {
   agenda: {
@@ -109,7 +110,8 @@ export default function ModalRemarcar({ agenda, onFechar, onSucesso }: ModalRema
   };
 
   return (
-    /* Bottom-sheet no mobile, centralizado no desktop */
+    <ModalPortal>
+    {/* Bottom-sheet no mobile, centralizado no desktop */}
     <div
       className="fixed inset-0 z-[3000] flex items-end sm:items-center justify-center bg-ink/45 backdrop-blur-[2px] p-0 sm:p-4 animate-in fade-in duration-300"
       onClick={e => { if (e.target === e.currentTarget) onFechar(); }}
@@ -258,5 +260,6 @@ export default function ModalRemarcar({ agenda, onFechar, onSucesso }: ModalRema
         </div>
       </div>
     </div>
+    </ModalPortal>
   );
 }

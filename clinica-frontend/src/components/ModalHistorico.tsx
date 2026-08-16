@@ -3,6 +3,7 @@ import { MapNomesStatus } from "../constants/statusMap";
 import { X, User } from 'lucide-react';
 import { getRealDate } from '../utils/dates';
 import { useScrollBlock } from "../hooks/useScrollBlock";
+import ModalPortal from "./ui/ModalPortal";
 
 interface ModalHistoricoProps {
   historico: AgendamentoHistoricoResponse[];
@@ -14,6 +15,7 @@ export default function ModalHistorico({ historico, loading, onFechar }: ModalHi
   useScrollBlock(true);
 
   return (
+    <ModalPortal>
     <div className="fixed inset-0 z-[3000] flex items-end sm:items-center justify-center bg-ink/45 p-0 sm:p-4 backdrop-blur-[2px] animate-in fade-in duration-300">
       {/* Largura total no mobile (sem margens), centralizado no tablet/desktop */}
       <div className="bg-white w-full h-[100dvh] sm:h-auto sm:rounded-lg sm:max-w-lg shadow-xl flex flex-col sm:max-h-[80vh] rounded-none sm:rounded-lg overflow-hidden animate-in slide-in-from-bottom-4 sm:zoom-in duration-300">
@@ -108,5 +110,6 @@ export default function ModalHistorico({ historico, loading, onFechar }: ModalHi
         </div>
       </div>
     </div>
+    </ModalPortal>
   );
 }

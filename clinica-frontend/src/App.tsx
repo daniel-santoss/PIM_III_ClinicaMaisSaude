@@ -1,4 +1,6 @@
-import { X, CalendarDays } from 'lucide-react';
+import { X, CalendarDays, UserPlus } from 'lucide-react';
+import Button from "./components/ui/Button";
+import ModalPortal from "./components/ui/ModalPortal";
 import * as signalR from "@microsoft/signalr";
 import { API_URL } from "./constants/api";
 import { perfis } from "./constants/perfis";
@@ -288,6 +290,7 @@ export default function App() {
   }, [notificacoes, autenticado]);
 
   const [recarregarUsuarios, setRecarregarUsuarios] = useState(0);
+  const [cadastroAberto, setCadastroAberto] = useState(false);
   const [pacienteParaEditar, setPacienteParaEditar] = useState<PacienteResponse | null>(null);
 
   useEffect(() => {
@@ -363,12 +366,20 @@ export default function App() {
       {/* ── Usuários / Pacientes ─────────────────────────────────────────── */}
       {abaAtiva === "pacientes" && (tipoUsuario === perfis.enfermeira || isAdmin) && (
         <section aria-label="Gerenciamento de pacientes">
-          <div style={{ marginBottom: 32 }}>
-            <CadastroUsuario tipoUsuarioLogado={tipoUsuario} onUserCreated={() => setRecarregarUsuarios((prev) => prev + 1)} />
+          <div className="flex items-center justify-between gap-4 mb-4">
+            <h2 className="text-lg font-semibold text-ink">
+              {isAdmin ? "Usuários Cadastrados" : "Pacientes Cadastrados"}
+            </h2>
+            <Button variant="primary" onClick={() => setCadastroAberto(true)} icon={<UserPlus size={16} />}>
+              Cadastrar usuário
+            </Button>
           </div>
-          <h2 style={{ fontSize: 18, fontWeight: 600, color: '#1F2937', marginBottom: 16 }}>
-            {isAdmin ? "Usuários Cadastrados" : "Pacientes Cadastrados"}
-          </h2>
+          <CadastroUsuario
+            open={cadastroAberto}
+            onClose={() => setCadastroAberto(false)}
+            tipoUsuarioLogado={tipoUsuario}
+            onUserCreated={() => setRecarregarUsuarios((prev) => prev + 1)}
+          />
           <PacienteList
             recarregarContador={recarregarUsuarios}
             pacienteInicialEdicao={pacienteParaEditar}
@@ -408,8 +419,9 @@ export default function App() {
 
       {/* ── Modal de Perfil — bottom-sheet no mobile, centralizado no desktop ── */}
       {modalPerfilAberto && (
+        <ModalPortal>
         <div
-          className="fixed inset-0 z-[3000] flex items-end sm:items-center justify-center bg-gray-900/60 backdrop-blur-md p-0 sm:p-4"
+          className="fixed inset-0 z-[3000] flex items-end sm:items-center justify-center bg-ink/45 backdrop-blur-[2px] p-0 sm:p-4"
           role="dialog" aria-modal="true" aria-label="Perfil do usuário"
           onClick={e => { if (e.target === e.currentTarget) setModalPerfilAberto(false); }}
         >
@@ -443,10 +455,12 @@ export default function App() {
             </div>
           </div>
         </div>
+        </ModalPortal>
       )}
 
       {/* ── Modal de Aviso Premium: Agendamento Cancelado ── */}
       {modalAvisoCancelamento && (
+        <ModalPortal>
         <div className="fixed inset-0 z-[3000] flex items-center justify-center bg-indigo-950/40 backdrop-blur-md p-4 animate-in fade-in duration-300">
           <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-5xl p-8 sm:p-10 text-center border border-indigo-100 animate-in zoom-in-95 duration-300 flex flex-col items-center relative max-h-[92dvh] sm:max-h-[90vh] overflow-y-auto custom-scrollbar">
             {/* Botão Fechar X */}
@@ -555,6 +569,7 @@ export default function App() {
             </button>
           </div>
         </div>
+        </ModalPortal>
       )}
     </AppLayout>
     </>

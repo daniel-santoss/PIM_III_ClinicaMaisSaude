@@ -5,6 +5,7 @@ import { ESPECIALIDADES } from "../constants/especialidades";
 import { AlertCircle, Calendar, Zap, Check, AlertTriangle, Sliders, CheckCircle, Search, User, MessageSquare } from 'lucide-react';
 import { getRealDate, obterMinDate } from '../utils/dates';
 import { useScrollBlock } from "../hooks/useScrollBlock";
+import ModalPortal from "../components/ui/ModalPortal";
 
 interface AgendamentoPacienteProps {
   onSucesso?: () => void;
@@ -260,6 +261,7 @@ export default function AgendamentoPaciente({
       {modalMensagem && (() => {
         const is60DiasBlock = modalMensagem.includes("60 dias") || modalMensagem.includes("recente") || modalMensagem.includes("Recente");
         return (
+          <ModalPortal>
           <div className="fixed inset-0 z-[100] flex items-center justify-center bg-ink/45 backdrop-blur-[2px] p-4">
             <div className="bg-white rounded-xl shadow-modal w-full max-w-sm p-6 text-center border border-line">
               <div className="w-12 h-12 bg-warning-tint text-warning rounded-lg grid place-items-center mx-auto mb-4">
@@ -295,6 +297,7 @@ export default function AgendamentoPaciente({
               )}
             </div>
           </div>
+          </ModalPortal>
         );
       })()}
       </div>

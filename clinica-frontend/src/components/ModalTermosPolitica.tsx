@@ -1,6 +1,7 @@
 import { X, ShieldCheck, FileText } from 'lucide-react';
 import { useScrollBlock } from "../hooks/useScrollBlock";
 import { CLINIC_NAME } from '../constants/clinic';
+import ModalPortal from "./ui/ModalPortal";
 
 interface ModalTermosPoliticaProps {
   tipo: 'termos' | 'privacidade' | null;
@@ -15,6 +16,7 @@ export default function ModalTermosPolitica({ tipo, onFechar }: ModalTermosPolit
   const isTermos = tipo === 'termos';
 
   return (
+    <ModalPortal>
     <div className="fixed inset-0 z-[3000] flex items-end sm:items-center justify-center bg-ink/45 p-0 sm:p-4 backdrop-blur-[2px] animate-in fade-in duration-300">
       <div className="bg-white w-full h-[100dvh] sm:h-auto sm:rounded-md sm:max-w-2xl shadow-xl flex flex-col sm:max-h-[85vh] rounded-none overflow-hidden animate-in slide-in-from-bottom-4 sm:zoom-in duration-300">
         {/* Cabeçalho */}
@@ -137,5 +139,6 @@ export default function ModalTermosPolitica({ tipo, onFechar }: ModalTermosPolit
         </div>
       </div>
     </div>
+    </ModalPortal>
   );
 }

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { X, ChevronDown } from "lucide-react";
 import { ESPECIALIDADES } from "../constants/especialidades";
+import ModalPortal from "./ui/ModalPortal";
 
 interface ModalEspecialidadesProps {
   isOpen: boolean;
@@ -74,6 +75,7 @@ export default function ModalEspecialidades({ isOpen, onClose }: ModalEspecialid
   };
 
   return (
+    <ModalPortal>
     <div className="fixed inset-0 z-[3000] flex items-center justify-center p-4">
       {/* Overlay */}
       <div 
@@ -127,6 +129,7 @@ export default function ModalEspecialidades({ isOpen, onClose }: ModalEspecialid
         </div>
       </div>
     </div>
+    </ModalPortal>
   );
 }
 

@@ -5,6 +5,7 @@ import { Pencil } from "lucide-react";
 import { useScrollBlock } from "../hooks/useScrollBlock";
 import { useToast } from "../hooks/useToast";
 import AvatarUpload from "./AvatarUpload";
+import ModalPortal from "./ui/ModalPortal";
 import { storageKeys } from "../constants/storage";
 
 export default function PerfilPaciente() {
@@ -359,8 +360,9 @@ export default function PerfilPaciente() {
 
       {/* MODAL: EXCLUIR CONTA (SIMPLIFICADO) */}
       {modalExcluir && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-red-900/20 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-lg shadow-2xl w-full max-w-xs p-8 text-center animate-in zoom-in duration-200">
+        <ModalPortal>
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-ink/45 backdrop-blur-[2px] p-4">
+          <div className="bg-white rounded-xl shadow-modal w-full max-w-xs p-8 text-center animate-in zoom-in duration-200">
             <h3 className="text-lg font-bold text-ink mb-2">Apagar conta?</h3>
             <p className="text-muted text-xs mb-8">Esta ação removerá todos os seus dados e não pode ser desfeita.</p>
             <div className="flex flex-col gap-2">
@@ -369,6 +371,7 @@ export default function PerfilPaciente() {
             </div>
           </div>
         </div>
+        </ModalPortal>
       )}
     </div>
   );
