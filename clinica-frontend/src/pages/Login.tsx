@@ -108,7 +108,7 @@ export default function Login({ onLogado }: { onLogado: () => void }) {
       <div className="bg-white/95 backdrop-blur-sm rounded-[2rem] shadow-2xl w-full max-w-md p-8 md:p-10 border border-gray-100/50 relative">
         <a 
           href="/" 
-          className="absolute top-6 left-6 md:top-8 md:left-8 p-2 rounded-xl text-gray-400 hover:text-[#7C3AED] hover:bg-purple-50 transition-all duration-200 group"
+          className="absolute top-6 left-6 md:top-8 md:left-8 p-2 rounded-xl text-gray-400 hover:text-[#2C5282] hover:bg-purple-50 transition-all duration-200 group"
           title="Voltar para a Home"
         >
           <ArrowLeft className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform" strokeWidth={2.5} />
@@ -119,7 +119,7 @@ export default function Login({ onLogado }: { onLogado: () => void }) {
             alt={`Logo ${CLINIC_NAME}`}
             className="h-20 mx-auto mb-4 object-contain"
           />
-          <h2 className="text-2xl md:text-3xl font-black text-[#7C3AED] tracking-tight">
+          <h2 className="text-2xl md:text-3xl font-black text-[#2C5282] tracking-tight">
             {CLINIC_NAME}
           </h2>
           <p className="mt-2 text-sm font-medium text-gray-500">
@@ -136,7 +136,7 @@ export default function Login({ onLogado }: { onLogado: () => void }) {
               type="text"
               required
               placeholder="Digite seu e-mail ou CPF"
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#7C3AED] focus:border-transparent transition-all text-sm font-medium bg-gray-50 focus:bg-white"
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2C5282] focus:border-transparent transition-all text-sm font-medium bg-gray-50 focus:bg-white"
               value={identificador}
               onChange={(e) => handleIdentificador(e.target.value)}
               maxLength={isCpfMask ? 14 : 255}
@@ -151,13 +151,13 @@ export default function Login({ onLogado }: { onLogado: () => void }) {
                 type={mostrarSenha ? "text" : "password"}
                 required
                 placeholder="Digite sua senha"
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#7C3AED] focus:border-transparent transition-all text-sm font-medium bg-gray-50 focus:bg-white pr-12"
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2C5282] focus:border-transparent transition-all text-sm font-medium bg-gray-50 focus:bg-white pr-12"
                 value={senha}
                 onChange={(e) => setSenha(e.target.value)}
               />
               <button
                 type="button"
-                className="absolute inset-y-0 right-0 px-4 flex items-center text-gray-400 hover:text-[#7C3AED] transition-colors"
+                className="absolute inset-y-0 right-0 px-4 flex items-center text-gray-400 hover:text-[#2C5282] transition-colors"
                 onClick={() => setMostrarSenha(!mostrarSenha)}
               >
                 {mostrarSenha ? (
@@ -186,7 +186,7 @@ export default function Login({ onLogado }: { onLogado: () => void }) {
             <button
               type="submit"
               disabled={carregando}
-              className="w-full flex justify-center items-center gap-2 py-3.5 px-4 rounded-xl shadow-lg shadow-purple-200 text-sm font-black text-white bg-[#7C3AED] hover:bg-[#6D28D9] focus:outline-none transition-all active:scale-[0.98] disabled:opacity-50"
+              className="w-full flex justify-center items-center gap-2 py-3.5 px-4 rounded-xl shadow-lg shadow-purple-200 text-sm font-black text-white bg-[#2C5282] hover:bg-[#152D5C] focus:outline-none transition-all active:scale-[0.98] disabled:opacity-50"
             >
               {carregando ? (
                 <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> Aguarde...</>
@@ -198,16 +198,16 @@ export default function Login({ onLogado }: { onLogado: () => void }) {
             <button
               type="button"
               onClick={() => setModalEsqueciSenha(true)}
-              className="text-xs font-bold text-[#7C3AED] hover:text-[#6D28D9] underline underline-offset-4 transition-colors"
+              className="text-xs font-bold text-[#2C5282] hover:text-[#152D5C] underline underline-offset-4 transition-colors"
             >
               Esqueci minha senha
             </button>
             <button
               type="button"
               onClick={() => setModalCadastro(true)}
-              className="text-xs font-medium text-gray-500 hover:text-[#7C3AED] transition-colors"
+              className="text-xs font-medium text-gray-500 hover:text-[#2C5282] transition-colors"
             >
-              É novo por aqui? <span className="font-bold text-[#7C3AED] underline underline-offset-4">Cadastre-se</span>
+              É novo por aqui? <span className="font-bold text-[#2C5282] underline underline-offset-4">Cadastre-se</span>
             </button>
           </div>
         </form>
@@ -243,7 +243,7 @@ export default function Login({ onLogado }: { onLogado: () => void }) {
               </div>
             </div>
 
-            <button className="w-full bg-[#7C3AED] text-white font-black py-4 rounded-2xl uppercase tracking-widest text-[10px] shadow-lg shadow-purple-100 hover:bg-[#6D28D9] transition-all active:scale-95" onClick={() => setModalEsqueciSenha(false)}>
+            <button className="w-full bg-[#2C5282] text-white font-black py-4 rounded-2xl uppercase tracking-widest text-[10px] shadow-lg shadow-purple-100 hover:bg-[#152D5C] transition-all active:scale-95" onClick={() => setModalEsqueciSenha(false)}>
               Entendido
             </button>
           </div>
@@ -263,7 +263,7 @@ export default function Login({ onLogado }: { onLogado: () => void }) {
               <X className="w-5 h-5" />
             </button>
             
-            <div className="w-16 h-16 bg-purple-50 text-[#7C3AED] rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 bg-purple-50 text-[#2C5282] rounded-2xl flex items-center justify-center mx-auto mb-4">
               <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
               </svg>
@@ -279,7 +279,7 @@ export default function Login({ onLogado }: { onLogado: () => void }) {
               
               <div className="space-y-3">
                 <div>
-                  <span className="text-[11px] font-black text-[#7C3AED] uppercase tracking-widest block mb-1.5">Como proceder:</span>
+                  <span className="text-[11px] font-black text-[#2C5282] uppercase tracking-widest block mb-1.5">Como proceder:</span>
                   <p className="text-sm font-semibold text-gray-600 leading-relaxed space-y-1">
                     1. Entre em contato conosco para agendar o seu comparecimento.<br />
                     2. Compareça à clínica com seus documentos (RG, CPF, comprovante de residência) e <strong>declare todas as suas doenças preexistentes e laudos médicos</strong>.<br />
@@ -290,20 +290,20 @@ export default function Login({ onLogado }: { onLogado: () => void }) {
                 <div className="h-px bg-gray-200 w-full"></div>
 
                 <div>
-                  <span className="text-[10px] font-black text-[#7C3AED] uppercase tracking-widest block mb-1">Endereço da Clínica:</span>
+                  <span className="text-[10px] font-black text-[#2C5282] uppercase tracking-widest block mb-1">Endereço da Clínica:</span>
                   <p className="text-sm font-bold text-gray-800 leading-normal">{CLINIC_ADDRESS}</p>
                 </div>
 
                 <div className="h-px bg-gray-200 w-full"></div>
 
                 <div>
-                  <span className="text-[10px] font-black text-[#7C3AED] uppercase tracking-widest block mb-1">Telefone para Agendamento:</span>
+                  <span className="text-[10px] font-black text-[#2C5282] uppercase tracking-widest block mb-1">Telefone para Agendamento:</span>
                   <p className="text-sm font-bold text-gray-800">{CLINIC_PHONE}</p>
                 </div>
               </div>
             </div>
 
-            <button className="w-full bg-[#7C3AED] text-white font-black py-4 rounded-2xl uppercase tracking-widest text-[10px] shadow-lg shadow-purple-100 hover:bg-[#6D28D9] transition-all active:scale-95" onClick={() => setModalCadastro(false)}>
+            <button className="w-full bg-[#2C5282] text-white font-black py-4 rounded-2xl uppercase tracking-widest text-[10px] shadow-lg shadow-purple-100 hover:bg-[#152D5C] transition-all active:scale-95" onClick={() => setModalCadastro(false)}>
               Entendido
             </button>
           </div>

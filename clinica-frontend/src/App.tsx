@@ -310,7 +310,7 @@ export default function App() {
   if (isVerificandoAuth) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
-        <div className="w-10 h-10 border-4 border-[#7C3AED] border-t-transparent rounded-full animate-spin"></div>
+        <div className="w-10 h-10 border-4 border-[#2C5282] border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
@@ -530,7 +530,7 @@ export default function App() {
                                       setModalAvisoCancelamento(false);
                                       setAbaAtiva("agendamentos");
                                     }}
-                                    className="px-4 py-2.5 bg-[#7C3AED] hover:bg-purple-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer shadow-sm border-none shrink-0"
+                                    className="px-4 py-2.5 bg-[#2C5282] hover:bg-purple-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer shadow-sm border-none shrink-0"
                                   >
                                     Reagendar
                                   </button>
