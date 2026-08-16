@@ -40,6 +40,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                 tipo = profissional.TipoProfissional.ToString(),
                 Nome = profissional.Usuario?.Nome,
                 Email = profissional.Usuario?.Email,
+                Telefone = profissional.Usuario?.Telefone,
                 Cpf = profissional.Usuario?.Cpf,
                 profissional.Crm,
                 profissional.UfCrm,
@@ -90,6 +91,9 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             {
                 usuario.AtualizarNome(nome.Trim());
             }
+
+            if (!string.IsNullOrWhiteSpace(telefone))
+                usuario.AtualizarTelefone(telefone.Replace("(", "").Replace(")", "").Replace("-", "").Replace(" ", "").Trim());
 
             await _context.SaveChangesAsync();
             return null; // sucesso
