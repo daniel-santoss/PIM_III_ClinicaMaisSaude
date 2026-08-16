@@ -117,7 +117,7 @@ export default function AgendarScreen() {
 
   function irParaConsultas() {
     reiniciar();
-    router.navigate('/(app)');
+    router.navigate('/(app)/consultas');
   }
 
   function reiniciar() {

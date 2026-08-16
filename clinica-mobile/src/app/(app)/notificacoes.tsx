@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -13,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
+import { useNaoLidas } from '@/context/NaoLidasContext';
 import { tempoRelativo } from '@/lib/datas';
 import {
   listarNotificacoes,
@@ -25,6 +26,7 @@ const ROXO = '#7C3AED';
 
 export default function NotificacoesScreen() {
   const router = useRouter();
+  const { definir } = useNaoLidas();
   const [notificacoes, setNotificacoes] = useState<Notificacao[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [atualizando, setAtualizando] = useState(false);
@@ -53,6 +55,11 @@ export default function NotificacoesScreen() {
     carregar();
   }, [carregar]);
 
+  // Mantém o badge da aba Avisos em sincronia com a lista (leituras, exclusões, recargas).
+  useEffect(() => {
+    definir(notificacoes.filter((n) => !n.lida).length);
+  }, [notificacoes, definir]);
+
   // Toque: marca como lida (otimista) e, se a notificação aponta para uma
   // consulta, leva o paciente para a aba Consultas.
   async function aoTocar(item: Notificacao) {
@@ -65,7 +72,7 @@ export default function NotificacoesScreen() {
       }
     }
     if (item.agendamentoId) {
-      router.navigate('/(app)');
+      router.navigate('/(app)/consultas');
     }
   }
 

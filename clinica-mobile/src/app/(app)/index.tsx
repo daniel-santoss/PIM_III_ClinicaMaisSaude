@@ -1,56 +1,66 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
-  FlatList,
   Pressable,
   RefreshControl,
+  ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect } from 'expo-router';
+import { type Href, useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
-import {
-  ESPECIALIDADE_LABEL,
-  STATUS_ATIVOS,
-  STATUS_CANCELAVEIS,
-  STATUS_INFO,
-  TIPO_CONSULTA_LABEL,
-} from '@/constants/agendamento';
-import AcoesConsultaModal from '@/components/AcoesConsultaModal';
-import RemarcarModal from '@/components/RemarcarModal';
-import { cancelarConsulta, listarMinhasConsultas } from '@/lib/agendamentos';
-import { formatarDataHora } from '@/lib/datas';
+import { useAuth } from '@/auth/AuthContext';
+import { useNaoLidas } from '@/context/NaoLidasContext';
+import { ESPECIALIDADE_LABEL, STATUS_ATIVOS, TIPO_CONSULTA_LABEL } from '@/constants/agendamento';
+import { listarMinhasConsultas } from '@/lib/agendamentos';
+import { formatarDataHora, parseData } from '@/lib/datas';
 import type { Agendamento } from '@/types/agendamento';
 
 const ROXO = '#7C3AED';
-type Aba = 'proximas' | 'historico';
 
-export default function MinhasConsultasScreen() {
-  const [consultas, setConsultas] = useState<Agendamento[]>([]);
+function saudacaoPorHora(): string {
+  const h = new Date().getHours();
+  if (h < 12) return 'Bom dia';
+  if (h < 18) return 'Boa tarde';
+  return 'Boa noite';
+}
+
+// Próxima consulta = a consulta ativa mais próxima no futuro (menor data ainda por vir).
+function proximaConsulta(consultas: Agendamento[]): Agendamento | null {
+  const agora = Date.now();
+  const futuras = consultas
+    .filter((c) => STATUS_ATIVOS.includes(c.status))
+    .map((c) => ({ c, t: parseData(c.dataHoraConsulta)?.getTime() ?? 0 }))
+    .filter((x) => x.t >= agora)
+    .sort((a, b) => a.t - b.t);
+  return futuras[0]?.c ?? null;
+}
+
+export default function InicioScreen() {
+  const router = useRouter();
+  const { session } = useAuth();
+  const { naoLidas, atualizar: atualizarNaoLidas } = useNaoLidas();
+  const [proxima, setProxima] = useState<Agendamento | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [atualizando, setAtualizando] = useState(false);
-  const [erro, setErro] = useState<string | null>(null);
-  const [aba, setAba] = useState<Aba>('proximas');
-  const [remarcarAlvo, setRemarcarAlvo] = useState<Agendamento | null>(null);
-  const [menuAlvo, setMenuAlvo] = useState<Agendamento | null>(null);
+
+  const primeiroNome = (session?.nome ?? '').trim().split(/\s+/)[0] || 'paciente';
 
   const carregar = useCallback(async () => {
-    setErro(null);
+    // A Home é um resumo: falha de rede não deve travar a tela, só zera os cartões.
     try {
-      setConsultas(await listarMinhasConsultas());
-    } catch (e) {
-      setErro(e instanceof Error ? e.message : 'Erro ao carregar consultas.');
+      const consultas = await listarMinhasConsultas().catch(() => [] as Agendamento[]);
+      setProxima(proximaConsulta(consultas));
+      await atualizarNaoLidas(); // mantém o badge (Home e aba Avisos) em dia
     } finally {
       setCarregando(false);
       setAtualizando(false);
     }
-  }, []);
+  }, [atualizarNaoLidas]);
 
-  // Recarrega sempre que a aba ganha foco (ex.: ao voltar de outra tela).
   useFocusEffect(
     useCallback(() => {
       carregar();
@@ -62,159 +72,201 @@ export default function MinhasConsultasScreen() {
     carregar();
   }, [carregar]);
 
-  const filtradas = useMemo(() => {
-    return consultas.filter((c) =>
-      aba === 'proximas' ? STATUS_ATIVOS.includes(c.status) : !STATUS_ATIVOS.includes(c.status),
-    );
-  }, [consultas, aba]);
+  const esp = proxima?.especialidade
+    ? ESPECIALIDADE_LABEL[proxima.especialidade] ?? proxima.especialidade
+    : null;
+  const tipo = proxima ? TIPO_CONSULTA_LABEL[proxima.tipoConsulta] ?? proxima.tipoConsulta : null;
 
-  function confirmarCancelamento(item: Agendamento) {
-    Alert.alert(
-      'Cancelar consulta',
-      `Deseja cancelar a consulta com ${item.nomeProfissional} em ${formatarDataHora(item.dataHoraConsulta)}?`,
-      [
-        { text: 'Voltar', style: 'cancel' },
-        { text: 'Sim, cancelar', style: 'destructive', onPress: () => cancelar(item.id) },
-      ],
-    );
-  }
-
-  async function cancelar(id: string) {
-    try {
-      await cancelarConsulta(id);
-      await carregar();
-    } catch (e) {
-      Alert.alert('Erro', e instanceof Error ? e.message : 'Não foi possível cancelar.');
-    }
-  }
-
-  function renderItem({ item }: { item: Agendamento }) {
-    const status = STATUS_INFO[item.status] ?? { label: item.status, cor: '#6B7280', fundo: '#F3F4F6' };
-    const tipo = TIPO_CONSULTA_LABEL[item.tipoConsulta] ?? item.tipoConsulta;
-    const esp = item.especialidade ? ESPECIALIDADE_LABEL[item.especialidade] ?? item.especialidade : null;
-    const temAcoes = STATUS_CANCELAVEIS.includes(item.status);
-
-    return (
-      <View style={styles.card}>
-        <View style={styles.cardTopo}>
-          <Text style={styles.profissional}>{item.nomeProfissional}</Text>
-          <View style={[styles.badge, { backgroundColor: status.fundo }]}>
-            <Text style={[styles.badgeTexto, { color: status.cor }]}>{status.label}</Text>
-          </View>
-          {temAcoes && (
-            <Pressable onPress={() => setMenuAlvo(item)} hitSlop={10} style={styles.kebab}>
-              <Ionicons name="ellipsis-vertical" size={18} color="#9CA3AF" />
-            </Pressable>
-          )}
-        </View>
-
-        <Text style={styles.tipo}>
-          {tipo}
-          {esp ? ` · ${esp}` : ''}
-        </Text>
-        <Text style={styles.data}>{formatarDataHora(item.dataHoraConsulta)}</Text>
-      </View>
-    );
-  }
+  const atalhos: { icone: keyof typeof Ionicons.glyphMap; rotulo: string; rota: Href; badge?: number }[] = [
+    { icone: 'add-circle', rotulo: 'Agendar', rota: '/(app)/agendar' },
+    { icone: 'calendar', rotulo: 'Minhas consultas', rota: '/(app)/consultas' },
+    { icone: 'notifications', rotulo: 'Avisos', rota: '/(app)/notificacoes', badge: naoLidas },
+    { icone: 'person', rotulo: 'Perfil', rota: '/(app)/perfil' },
+  ];
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <View style={styles.header}>
-        <Text style={styles.titulo}>Minhas Consultas</Text>
-      </View>
-
-      <View style={styles.chips}>
-        {(['proximas', 'historico'] as Aba[]).map((a) => (
-          <Pressable key={a} onPress={() => setAba(a)} style={[styles.chip, aba === a && styles.chipAtivo]}>
-            <Text style={[styles.chipTexto, aba === a && styles.chipTextoAtivo]}>
-              {a === 'proximas' ? 'Próximas' : 'Histórico'}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
-
-      {carregando ? (
-        <View style={styles.centro}>
-          <ActivityIndicator color={ROXO} />
+      <ScrollView
+        contentContainerStyle={styles.conteudo}
+        refreshControl={<RefreshControl refreshing={atualizando} onRefresh={onRefresh} tintColor={ROXO} />}
+      >
+        {/* Saudação */}
+        <View style={styles.header}>
+          <Text style={styles.saudacao}>{saudacaoPorHora()},</Text>
+          <Text style={styles.nome} numberOfLines={1}>
+            {primeiroNome} 👋
+          </Text>
         </View>
-      ) : erro ? (
-        <View style={styles.centro}>
-          <Text style={styles.erro}>{erro}</Text>
-          <Pressable onPress={carregar} style={styles.tentar}>
-            <Text style={styles.tentarTexto}>Tentar novamente</Text>
-          </Pressable>
-        </View>
-      ) : (
-        <FlatList
-          data={filtradas}
-          keyExtractor={(item) => item.id}
-          renderItem={renderItem}
-          contentContainerStyle={styles.lista}
-          refreshControl={<RefreshControl refreshing={atualizando} onRefresh={onRefresh} tintColor={ROXO} />}
-          ListEmptyComponent={
-            <View style={styles.vazio}>
-              <Text style={styles.vazioTexto}>
-                {aba === 'proximas' ? 'Você não tem consultas próximas.' : 'Nenhuma consulta no histórico.'}
-              </Text>
+
+        {/* Próxima consulta */}
+        <Text style={styles.secaoTitulo}>Próxima consulta</Text>
+        {carregando ? (
+          <View style={[styles.cardDestaque, styles.cardCarregando]}>
+            <ActivityIndicator color="#fff" />
+          </View>
+        ) : proxima ? (
+          <Pressable
+            onPress={() => router.navigate('/(app)/consultas')}
+            style={({ pressed }) => [styles.cardDestaque, pressed && styles.pressionado]}
+          >
+            <View style={styles.destaqueTopo}>
+              <View style={styles.destaqueIcone}>
+                <Ionicons name="calendar" size={18} color="#fff" />
+              </View>
+              <Text style={styles.destaqueEtiqueta}>AGENDADA</Text>
             </View>
-          }
-        />
-      )}
+            <Text style={styles.destaqueProfissional} numberOfLines={1}>
+              {proxima.nomeProfissional}
+            </Text>
+            <Text style={styles.destaqueTipo} numberOfLines={1}>
+              {tipo}
+              {esp ? ` · ${esp}` : ''}
+            </Text>
+            <View style={styles.destaqueRodape}>
+              <Ionicons name="time-outline" size={16} color="rgba(255,255,255,0.9)" />
+              <Text style={styles.destaqueData}>{formatarDataHora(proxima.dataHoraConsulta)}</Text>
+            </View>
+          </Pressable>
+        ) : (
+          <View style={styles.cardVazio}>
+            <Ionicons name="calendar-outline" size={32} color="#C4B5FD" />
+            <Text style={styles.vazioTexto}>Você não tem consultas agendadas.</Text>
+            <Pressable
+              onPress={() => router.navigate('/(app)/agendar')}
+              style={({ pressed }) => [styles.vazioBotao, pressed && styles.pressionado]}
+            >
+              <Ionicons name="add" size={18} color="#fff" />
+              <Text style={styles.vazioBotaoTexto}>Agendar consulta</Text>
+            </Pressable>
+          </View>
+        )}
 
-      <AcoesConsultaModal
-        agendamento={menuAlvo}
-        onClose={() => setMenuAlvo(null)}
-        onRemarcar={(a) => {
-          setMenuAlvo(null);
-          setRemarcarAlvo(a);
-        }}
-        onCancelar={(a) => {
-          setMenuAlvo(null);
-          confirmarCancelamento(a);
-        }}
-      />
-
-      <RemarcarModal
-        agendamento={remarcarAlvo}
-        onClose={() => setRemarcarAlvo(null)}
-        onSuccess={() => {
-          setRemarcarAlvo(null);
-          carregar();
-        }}
-      />
+        {/* Atalhos */}
+        <Text style={styles.secaoTitulo}>Atalhos</Text>
+        <View style={styles.grade}>
+          {atalhos.map((a) => (
+            <Pressable
+              key={String(a.rota)}
+              onPress={() => router.navigate(a.rota)}
+              style={({ pressed }) => [styles.atalho, pressed && styles.pressionado]}
+            >
+              <View style={styles.atalhoIcone}>
+                <Ionicons name={a.icone} size={22} color={ROXO} />
+                {!!a.badge && a.badge > 0 && (
+                  <View style={styles.atalhoBadge}>
+                    <Text style={styles.atalhoBadgeTexto}>{a.badge > 9 ? '9+' : a.badge}</Text>
+                  </View>
+                )}
+              </View>
+              <Text style={styles.atalhoRotulo}>{a.rotulo}</Text>
+            </Pressable>
+          ))}
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#fff' },
-  header: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 4 },
-  titulo: { fontSize: 26, fontWeight: '800', color: '#111827', letterSpacing: -0.5 },
-  chips: { flexDirection: 'row', gap: 8, paddingHorizontal: 24, paddingVertical: 12 },
-  chip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 999, backgroundColor: '#F3F4F6' },
-  chipAtivo: { backgroundColor: ROXO },
-  chipTexto: { fontSize: 13, fontWeight: '700', color: '#6B7280' },
-  chipTextoAtivo: { color: '#fff' },
-  centro: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16, padding: 24 },
-  erro: { color: '#B91C1C', fontSize: 14, fontWeight: '600', textAlign: 'center' },
-  tentar: { paddingHorizontal: 20, paddingVertical: 10, borderRadius: 12, backgroundColor: '#F3F4F6' },
-  tentarTexto: { color: ROXO, fontWeight: '800', fontSize: 13 },
-  lista: { paddingHorizontal: 24, paddingBottom: 24, gap: 12 },
-  card: {
+  conteudo: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 32 },
+  header: { paddingBottom: 8 },
+  saudacao: { fontSize: 15, fontWeight: '600', color: '#9CA3AF' },
+  nome: { fontSize: 28, fontWeight: '800', color: '#111827', letterSpacing: -0.5 },
+
+  secaoTitulo: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#9CA3AF',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginTop: 24,
+    marginBottom: 12,
+  },
+
+  cardDestaque: {
+    backgroundColor: ROXO,
+    borderRadius: 24,
+    padding: 20,
+    gap: 6,
+    shadowColor: ROXO,
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 6,
+  },
+  cardCarregando: { alignItems: 'center', justifyContent: 'center', minHeight: 132 },
+  destaqueTopo: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 4 },
+  destaqueIcone: {
+    width: 34,
+    height: 34,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  destaqueEtiqueta: { fontSize: 11, fontWeight: '800', color: 'rgba(255,255,255,0.85)', letterSpacing: 1 },
+  destaqueProfissional: { fontSize: 20, fontWeight: '800', color: '#fff' },
+  destaqueTipo: { fontSize: 14, fontWeight: '600', color: 'rgba(255,255,255,0.9)' },
+  destaqueRodape: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 },
+  destaqueData: { fontSize: 14, fontWeight: '700', color: '#fff' },
+
+  cardVazio: {
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+    borderRadius: 24,
+    padding: 24,
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#FaF5FF',
+  },
+  vazioTexto: { fontSize: 14, fontWeight: '600', color: '#6B7280', textAlign: 'center' },
+  vazioBotao: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: ROXO,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 14,
+    marginTop: 4,
+  },
+  vazioBotaoTexto: { color: '#fff', fontWeight: '800', fontSize: 14 },
+
+  grade: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  atalho: {
+    width: '47.5%',
+    flexGrow: 1,
     borderWidth: 1,
     borderColor: '#F3F4F6',
     borderRadius: 20,
-    padding: 16,
-    gap: 6,
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+    gap: 12,
     backgroundColor: '#fff',
   },
-  cardTopo: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
-  profissional: { fontSize: 16, fontWeight: '800', color: '#111827', flex: 1 },
-  badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 },
-  badgeTexto: { fontSize: 11, fontWeight: '800' },
-  tipo: { fontSize: 14, fontWeight: '600', color: '#4B5563' },
-  data: { fontSize: 13, fontWeight: '500', color: '#9CA3AF' },
-  kebab: { padding: 4, marginLeft: 2 },
-  vazio: { padding: 40, alignItems: 'center' },
-  vazioTexto: { color: '#9CA3AF', fontSize: 14, fontWeight: '500', textAlign: 'center' },
+  atalhoIcone: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: '#F5F3FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  atalhoBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 999,
+    backgroundColor: '#EF4444',
+    paddingHorizontal: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  atalhoBadgeTexto: { color: '#fff', fontSize: 10, fontWeight: '800' },
+  atalhoRotulo: { fontSize: 14, fontWeight: '700', color: '#374151' },
+
+  pressionado: { opacity: 0.85 },
 });
