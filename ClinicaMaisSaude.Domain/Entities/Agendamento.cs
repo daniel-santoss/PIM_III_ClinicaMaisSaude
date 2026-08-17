@@ -4,9 +4,11 @@ using ClinicaMaisSaude.Domain.Common;
 
 namespace ClinicaMaisSaude.Domain.Entities
 {
-    public class Agendamento
+    public class Agendamento : IAuditavel
     {
         public Guid Id { get; private set; }
+        public DateTime? UltAtualizacao { get; private set; }
+        public void MarcarAtualizacao(DateTime quando) => UltAtualizacao = quando;
         public DateTime DataHoraConsulta { get; private set; }
         public Guid PacienteId { get; private set; }
         public Guid ProfissionalId { get; private set; }
@@ -14,7 +16,7 @@ namespace ClinicaMaisSaude.Domain.Entities
         public TipoConsulta TipoConsulta { get; private set; }
         public StatusAgendamento Status { get; private set; }
         public Guid? AgendamentoOrigemId { get; private set; }
-        public int? EspecialidadeId { get; private set; }
+        public EspecialidadeMedica? EspecialidadeId { get; private set; }
         public double ProbabilidadeFalta { get; private set; }
         public bool ResultadoDisponivel { get; private set; }
         public bool ExigeResultadoPosterior { get; private set; }
@@ -99,7 +101,8 @@ namespace ClinicaMaisSaude.Domain.Entities
 
         public void DefinirEspecialidade(int? especialidadeId)
         {
-            EspecialidadeId = especialidadeId;
+            // O DTO trafega int? (índice do enum); aqui vira o tipo forte que casa com o FK.
+            EspecialidadeId = especialidadeId.HasValue ? (EspecialidadeMedica?)especialidadeId.Value : null;
         }
     }
 }

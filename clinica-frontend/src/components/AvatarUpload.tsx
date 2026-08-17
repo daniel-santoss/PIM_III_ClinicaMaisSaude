@@ -105,7 +105,7 @@ export default function AvatarUpload({
             width: size,
             height: size,
             borderRadius,
-            background: "linear-gradient(135deg, #8B5CF6, #7C3AED)",
+            background: "linear-gradient(135deg, #3C6FA0, #2C5282)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",

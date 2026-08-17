@@ -4,6 +4,7 @@ import { obterMinDate, getRealDate } from "../utils/dates";
 import { Calendar, Clock, AlertCircle, X } from 'lucide-react';
 import { useScrollBlock } from "../hooks/useScrollBlock";
 import { useToast } from "../hooks/useToast";
+import ModalPortal from "./ui/ModalPortal";
 
 interface ModalRemarcarProps {
   agenda: {
@@ -109,32 +110,33 @@ export default function ModalRemarcar({ agenda, onFechar, onSucesso }: ModalRema
   };
 
   return (
-    /* Bottom-sheet no mobile, centralizado no desktop */
+    <ModalPortal>
+    {/* Bottom-sheet no mobile, centralizado no desktop */}
     <div
-      className="fixed inset-0 z-[3000] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4 animate-in fade-in duration-300"
+      className="fixed inset-0 z-[3000] flex items-end sm:items-center justify-center bg-ink/45 backdrop-blur-[2px] p-0 sm:p-4 animate-in fade-in duration-300"
       onClick={e => { if (e.target === e.currentTarget) onFechar(); }}
     >
-      <div className="bg-white w-full h-[100dvh] sm:h-auto sm:max-w-md rounded-none sm:rounded-[2rem] shadow-2xl overflow-hidden border-0 sm:border border-purple-50 flex flex-col sm:max-h-[90vh] animate-in slide-in-from-bottom-4 sm:zoom-in duration-300 relative">
+      <div className="bg-white w-full h-[100dvh] sm:h-auto sm:max-w-md rounded-none sm:rounded-xl shadow-modal overflow-hidden border-0 sm:border border-line flex flex-col sm:max-h-[90vh] animate-in slide-in-from-bottom-4 sm:zoom-in duration-300 relative">
 
         {/* Botão Fechar X */}
         <button
           onClick={onFechar}
-          className="absolute right-4 top-4 sm:right-6 sm:top-6 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors cursor-pointer border-none bg-transparent flex items-center justify-center shadow-sm z-10"
+          className="absolute right-5 top-5 w-8 h-8 grid place-items-center text-body bg-canvas border border-line rounded-md hover:bg-line-soft transition-colors z-10"
           aria-label="Fechar"
         >
-          <X className="w-5 h-5" />
+          <X className="w-4 h-4" />
         </button>
 
         {/* Drag handle (mobile) */}
         <div className="flex justify-center pt-3 pb-1 sm:hidden shrink-0">
-          <div className="w-10 h-1.5 bg-gray-200 rounded-full" />
+          <div className="w-10 h-1.5 bg-line rounded-full" />
         </div>
 
         {/* Header */}
-        <div className="px-6 pb-5 pt-3 sm:pt-6 sm:px-8 border-b border-gray-50 shrink-0">
-          <p className="text-[10px] font-black text-purple-400 uppercase tracking-widest mb-1">Reagendar Consulta</p>
-          <h3 className="text-xl sm:text-2xl font-black text-gray-800 leading-tight">{agenda.pacienteNome}</h3>
-          <span className="inline-block mt-1 text-[10px] font-bold text-purple-600 bg-purple-50 px-3 py-1 rounded-full">
+        <div className="px-6 pb-5 pt-3 sm:pt-6 border-b border-line shrink-0">
+          <p className="text-[11px] font-semibold text-brand-600 uppercase tracking-wide mb-1.5">Reagendar consulta</p>
+          <h3 className="text-xl font-semibold text-ink leading-tight">{agenda.pacienteNome}</h3>
+          <span className="inline-block mt-2 text-xs font-medium text-body bg-line-soft px-2.5 py-1 rounded-md">
             {agenda.tipoConsulta}
           </span>
         </div>
@@ -144,12 +146,12 @@ export default function ModalRemarcar({ agenda, onFechar, onSucesso }: ModalRema
 
           {/* Nova Data */}
           <div>
-            <label className="flex items-center gap-2 text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">
+            <label className="flex items-center gap-2 text-[13px] font-medium text-body mb-1.5">
               <Calendar className="w-3.5 h-3.5" /> Nova Data
             </label>
             <input
               type="date"
-              className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl focus:ring-4 focus:ring-purple-100 focus:border-[#7C3AED] focus:bg-white transition-all outline-none font-bold text-sm"
+              className="w-full h-10 px-3 text-sm text-ink bg-white border border-line rounded-md outline-none focus:border-brand-600 focus:shadow-focus transition-shadow cursor-pointer"
               value={alterarDataSomente}
               min={obterMinDate()}
               onChange={(e) => {
@@ -173,18 +175,19 @@ export default function ModalRemarcar({ agenda, onFechar, onSucesso }: ModalRema
           {/* Horários */}
           {alterarDataSomente && (
             <div>
-              <label className="flex items-center gap-2 text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">
+              <label className="flex items-center gap-2 text-[13px] font-medium text-body mb-1.5">
                 <Clock className="w-3.5 h-3.5" /> Horário{alterarHorarioSelecionado && <span className="text-purple-600 normal-case ml-1">— {alterarHorarioSelecionado}</span>}
               </label>
               {carregandoHorarios ? (
-                <div className="flex items-center gap-3 p-4 bg-purple-50 rounded-2xl">
-                  <div className="w-4 h-4 border-2 border-purple-200 border-t-[#7C3AED] rounded-full animate-spin" />
-                  <span className="text-sm font-bold text-purple-500">Buscando horários...</span>
+                <div className="flex items-center gap-3 px-4 py-3 bg-canvas border border-line rounded-md">
+                  <div className="w-4 h-4 border-2 border-line border-t-brand-600 rounded-full animate-spin" />
+                  <span className="text-[13px] font-medium text-body">Buscando horários...</span>
                 </div>
               ) : horariosDisponiveis.length === 0 ? (
-                <p className="text-sm font-bold text-red-500 bg-red-50 p-4 rounded-2xl border border-red-100">
+                <div className="flex items-center gap-2 px-3.5 py-3 text-[13px] font-medium text-danger bg-danger-tint border border-danger-border rounded-md">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
                   Nenhum horário disponível para esta data e tipo de consulta.
-                </p>
+                </div>
               ) : (
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-36 overflow-y-auto pr-1 custom-scrollbar">
                   {horariosDisponiveis.map(h => (
@@ -192,10 +195,10 @@ export default function ModalRemarcar({ agenda, onFechar, onSucesso }: ModalRema
                       key={h}
                       type="button"
                       onClick={() => setAlterarHorarioSelecionado(h)}
-                      className={`py-3 text-xs font-black rounded-xl border transition-all ${
+                      className={`h-10 text-[13px] rounded-md border transition-colors ${
                         alterarHorarioSelecionado === h
-                          ? 'bg-[#7C3AED] text-white border-[#7C3AED] shadow-md shadow-purple-100'
-                          : 'bg-white text-gray-700 border-gray-200 hover:bg-purple-50 hover:text-purple-600 hover:border-purple-300'
+                          ? 'bg-brand-600 text-white border-brand-600 font-semibold'
+                          : 'bg-white text-body border-line hover:bg-canvas font-medium'
                       }`}
                     >
                       {h}
@@ -209,12 +212,12 @@ export default function ModalRemarcar({ agenda, onFechar, onSucesso }: ModalRema
           {/* Observação */}
           {alterarDataSomente && (
             <div>
-              <label className="flex items-center gap-2 text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">
-                Observação <span className="text-red-400 normal-case font-bold text-[10px]">* obrigatório</span>
+              <label className="flex items-center gap-2 text-[13px] font-medium text-body mb-1.5">
+                Observação <span className="text-danger font-medium text-xs">* obrigatório</span>
               </label>
               <textarea
-                className={`w-full p-4 border-2 rounded-2xl text-sm font-medium focus:ring-4 focus:ring-purple-100 focus:border-[#7C3AED] transition-all outline-none resize-none bg-gray-50 focus:bg-white ${
-                  !observacaoRemarcacao.trim() && focoObservacao ? 'border-red-300 bg-red-50/30' : 'border-gray-100'
+                className={`w-full p-3 rounded-md text-sm text-ink bg-white border focus:border-brand-600 focus:shadow-focus transition-shadow outline-none resize-none placeholder:text-muted ${
+                  !observacaoRemarcacao.trim() && focoObservacao ? 'border-danger-border' : 'border-line'
                 }`}
                 rows={3}
                 placeholder="Descreva obrigatoriamente o motivo da remarcação..."
@@ -224,7 +227,7 @@ export default function ModalRemarcar({ agenda, onFechar, onSucesso }: ModalRema
                 onBlur={() => setFocoObservacao(false)}
               />
               {!observacaoRemarcacao.trim() && focoObservacao && (
-                <p className="text-[10px] text-red-500 font-semibold mt-1 flex items-center gap-1">
+                <p className="text-xs text-danger font-medium mt-1 flex items-center gap-1">
                   <AlertCircle className="w-3 h-3" />
                   Campo obrigatório para auditoria.
                 </p>
@@ -234,18 +237,18 @@ export default function ModalRemarcar({ agenda, onFechar, onSucesso }: ModalRema
         </div>
 
         {/* Botões */}
-        <div className="px-6 sm:px-8 pb-6 pt-4 border-t border-gray-50 flex flex-col-reverse sm:flex-row gap-3 shrink-0">
+        <div className="px-6 pb-6 pt-4 border-t border-line flex flex-col-reverse sm:flex-row justify-end gap-2.5 shrink-0">
           <button
             disabled={alterando}
             onClick={onFechar}
-            className="w-full sm:flex-1 py-4 bg-gray-100 text-gray-600 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-gray-200 transition-all text-center"
+            className="w-full sm:w-auto h-10 px-4 text-sm font-semibold text-body bg-white border border-line rounded-md hover:bg-canvas transition-colors"
           >
             Cancelar
           </button>
           <button
             disabled={alterando || !alterarDataSomente || !alterarHorarioSelecionado || !observacaoRemarcacao.trim()}
             onClick={confirmarAlteracaoHora}
-            className="w-full sm:flex-1 py-4 bg-[#7C3AED] text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-purple-100 hover:bg-[#6D28D9] transition-all disabled:opacity-50 disabled:cursor-not-allowed text-center"
+            className="w-full sm:w-auto h-10 px-[18px] text-sm font-semibold text-white bg-brand-600 border border-brand-600 rounded-md hover:bg-brand-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {alterando ? (
               <span className="flex items-center justify-center gap-2">
@@ -257,5 +260,6 @@ export default function ModalRemarcar({ agenda, onFechar, onSucesso }: ModalRema
         </div>
       </div>
     </div>
+    </ModalPortal>
   );
 }

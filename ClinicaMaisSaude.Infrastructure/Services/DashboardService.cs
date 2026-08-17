@@ -202,7 +202,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
         {
             return await _db.Agendamentos.AsNoTracking()
                 .Where(a => a.DataHoraConsulta >= inicio && a.DataHoraConsulta <= fim)
-                .Join(_db.Profissionais, a => a.ProfissionalId, p => p.Id, (a, p) => new { p.Id, p.Nome })
+                .Join(_db.Profissionais, a => a.ProfissionalId, p => p.Id, (a, p) => new { p.Id, Nome = p.Usuario.Nome })
                 .GroupBy(x => new { x.Id, x.Nome })
                 .Select(g => new ProfissionalCargaDto { Id = g.Key.Id, Nome = g.Key.Nome, Total = g.Count() })
                 .OrderByDescending(x => x.Total)
@@ -211,12 +211,13 @@ namespace ClinicaMaisSaude.Infrastructure.Services
 
         private async Task<AuditoriaIADto> ObterAuditoriaIAAsync(DateTime inicio, DateTime fim)
         {
-            var violacoes = await _db.ViolacoesIA.AsNoTracking()
+            var violacoes = await _db.UsoInadequadoIA.AsNoTracking()
                 .Where(v => v.DtCriado >= inicio && v.DtCriado <= fim)
                 .ToListAsync();
 
-            var bloqueados = await _db.Pacientes.AsNoTracking()
-                .Where(p => p.BloqueadoIAAte.HasValue && p.BloqueadoIAAte.Value > DateTime.UtcNow)
+            // Penalidade de IA agora vive no LoginPortal (Fase 6).
+            var bloqueados = await _db.Usuarios.AsNoTracking()
+                .Where(u => u.BloqueadoIAAte.HasValue && u.BloqueadoIAAte.Value > DateTime.UtcNow)
                 .CountAsync();
 
             return new AuditoriaIADto
@@ -232,7 +233,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             dataFim = dataFim.Date.AddDays(1).AddTicks(-1);
 
             var agendamentos = await _db.Agendamentos.AsNoTracking()
-                .Include(a => a.Paciente)
+                .Include(a => a.Paciente).ThenInclude(p => p.Usuario)
                 .Where(a => a.ProfissionalId == profissionalId && a.DataHoraConsulta >= dataInicio && a.DataHoraConsulta <= dataFim)
                 .OrderByDescending(a => a.DataHoraConsulta)
                 .ToListAsync();
@@ -246,7 +247,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                 .Select(a => new UltimoAgendamentoDto
                 {
                     Data = a.DataHoraConsulta.ToString("dd/MM/yyyy HH:mm"),
-                    Paciente = a.Paciente.Nome,
+                    Paciente = a.Paciente.Usuario.Nome,
                     Status = a.Status.ToString()
                 })
                 .ToList();
@@ -430,8 +431,8 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             string nomeUsuario = isAdmin ? "Administrador" : "Desconhecido";
             if (!isAdmin && usuarioId.HasValue)
             {
-                var prof = await _db.Profissionais.AsNoTracking().FirstOrDefaultAsync(p => p.UsuarioId == usuarioId.Value);
-                if (prof != null) nomeUsuario = prof.Nome;
+                var prof = await _db.Profissionais.AsNoTracking().Include(p => p.Usuario).FirstOrDefaultAsync(p => p.UsuarioId == usuarioId.Value);
+                if (prof != null) nomeUsuario = prof.Usuario.Nome;
             }
 
             var document = Document.Create(container =>

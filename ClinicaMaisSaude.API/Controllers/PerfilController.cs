@@ -81,6 +81,19 @@ namespace ClinicaMaisSaude.API.Controllers
             return Ok(new { Mensagem = "Foto atualizada com sucesso.", FotoBase64 = base64 });
         }
 
+        [HttpDelete]
+        public async Task<IActionResult> ExcluirConta([FromBody] ExcluirContaRequest request)
+        {
+            var usuarioId = ObterUsuarioId();
+            if (usuarioId == null) return Unauthorized();
+
+            var tipoUsuario = User.FindFirstValue(ClinicaClaims.TipoUsuario) ?? User.FindFirstValue(ClaimTypes.Role);
+            var erro = await _perfilService.ExcluirContaAsync(usuarioId.Value, tipoUsuario ?? "", request.Senha);
+            if (erro != null) return BadRequest(new { Mensagem = erro });
+
+            return Ok(new { Mensagem = "Conta excluída com sucesso." });
+        }
+
         private Guid? ObterUsuarioId()
         {
             var claim = User.FindFirstValue(ClinicaClaims.UsuarioId) ?? User.FindFirstValue(ClaimTypes.NameIdentifier);

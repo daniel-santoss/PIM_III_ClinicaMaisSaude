@@ -43,7 +43,7 @@ export default function CheckboxDropdown({ label, options, selected, onChange, d
         onClick={() => setAberto(!aberto)}
         className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl border text-sm font-bold transition-all whitespace-nowrap cursor-pointer ${
           aberto
-            ? 'border-[#7C3AED] bg-purple-50 text-[#7C3AED] ring-2 ring-purple-100'
+            ? 'border-[#2C5282] bg-purple-50 text-[#2C5282] ring-2 ring-purple-100'
             : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
         }`}
       >
@@ -93,9 +93,9 @@ export default function CheckboxDropdown({ label, options, selected, onChange, d
                   type="checkbox"
                   checked={checked}
                   onChange={() => toggle(opt)}
-                  className="h-4 w-4 rounded border-gray-300 text-[#7C3AED] focus:ring-[#7C3AED] cursor-pointer shrink-0"
+                  className="h-4 w-4 rounded border-gray-300 text-[#2C5282] focus:ring-[#2C5282] cursor-pointer shrink-0"
                 />
-                <span className={`text-sm font-bold ${checked ? 'text-[#7C3AED]' : 'text-gray-600 group-hover:text-[#7C3AED]'}`}>
+                <span className={`text-sm font-bold ${checked ? 'text-[#2C5282]' : 'text-gray-600 group-hover:text-[#2C5282]'}`}>
                   {display(opt)}
                 </span>
               </label>

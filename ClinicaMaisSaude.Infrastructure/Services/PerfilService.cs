@@ -24,7 +24,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                 if (paciente == null) return null;
 
                 var usuario = await _context.Usuarios.AsNoTracking().Include(u => u.Foto).FirstOrDefaultAsync(u => u.Id == usuarioId);
-                return new { tipo = PerfisUsuario.Paciente, paciente.Nome, paciente.Email, paciente.Telefone, paciente.Cpf, FotoBase64 = usuario?.FotoBase64 };
+                return new { tipo = PerfisUsuario.Paciente, usuario?.Nome, usuario?.Email, usuario?.Telefone, usuario?.Cpf, FotoBase64 = usuario?.FotoBase64 };
             }
 
             var profissional = await _context.Profissionais
@@ -38,8 +38,9 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             return new
             {
                 tipo = profissional.TipoProfissional.ToString(),
-                profissional.Nome,
+                Nome = profissional.Usuario?.Nome,
                 Email = profissional.Usuario?.Email,
+                Telefone = profissional.Usuario?.Telefone,
                 Cpf = profissional.Usuario?.Cpf,
                 profissional.Crm,
                 profissional.UfCrm,
@@ -50,25 +51,33 @@ namespace ClinicaMaisSaude.Infrastructure.Services
 
         public async Task<string?> AtualizarPerfilAsync(Guid usuarioId, string tipoUsuario, string? nome, string? email, string? telefone)
         {
+            // Identidade (Nome/Email/Telefone) vive no LoginPortal para paciente e profissional.
+            var usuario = await _context.Usuarios.FirstOrDefaultAsync(u => u.Id == usuarioId);
+            if (usuario == null) return "Perfil não encontrado.";
+
             if (tipoUsuario == PerfisUsuario.Paciente)
             {
                 var paciente = await _context.Pacientes.FirstOrDefaultAsync(p => p.UsuarioId == usuarioId);
                 if (paciente == null) return "Perfil de paciente não encontrado.";
 
                 if (!string.IsNullOrWhiteSpace(nome))
-                    paciente.AtualizarNome(nome.Trim());
+                    usuario.AtualizarNome(nome.Trim());
                 if (!string.IsNullOrWhiteSpace(email))
-                    paciente.AtualizarEmail(email.Trim().ToLowerInvariant());
+                {
+                    var emailNorm = email.Trim().ToLowerInvariant();
+                    var existe = await _context.Usuarios.AnyAsync(u => u.Email == emailNorm && u.Id != usuarioId);
+                    if (existe) return "Este e-mail já está em uso.";
+                    usuario.AtualizarEmail(emailNorm);
+                }
                 if (!string.IsNullOrWhiteSpace(telefone))
-                    paciente.AtualizarTelefone(telefone.Replace("(", "").Replace(")", "").Replace("-", "").Replace(" ", "").Trim());
+                    usuario.AtualizarTelefone(telefone.Replace("(", "").Replace(")", "").Replace("-", "").Replace(" ", "").Trim());
 
                 await _context.SaveChangesAsync();
                 return null; // sucesso
             }
 
-            var usuario = await _context.Usuarios.FirstOrDefaultAsync(u => u.Id == usuarioId);
             var profissional = await _context.Profissionais.FirstOrDefaultAsync(p => p.UsuarioId == usuarioId);
-            if (usuario == null || profissional == null) return "Perfil não encontrado.";
+            if (profissional == null) return "Perfil não encontrado.";
 
             if (!string.IsNullOrWhiteSpace(email))
             {
@@ -80,8 +89,11 @@ namespace ClinicaMaisSaude.Infrastructure.Services
 
             if (!string.IsNullOrWhiteSpace(nome))
             {
-                profissional.AtualizarNome(nome.Trim());
+                usuario.AtualizarNome(nome.Trim());
             }
+
+            if (!string.IsNullOrWhiteSpace(telefone))
+                usuario.AtualizarTelefone(telefone.Replace("(", "").Replace(")", "").Replace("-", "").Replace(" ", "").Trim());
 
             await _context.SaveChangesAsync();
             return null; // sucesso
@@ -113,6 +125,40 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             usuario.AtualizarFoto(base64);
             await _context.SaveChangesAsync();
             return null;
+        }
+
+        // Exclusão de conta pelo próprio paciente (self-service). Soft-delete coerente
+        // com §1.6 (marca o paciente inativo) + revoga os refresh tokens para encerrar
+        // sessões existentes. A senha atual é exigida como prova de identidade.
+        // A posse é garantida pela camada web: o usuarioId vem do token, não da rota.
+        public async Task<string?> ExcluirContaAsync(Guid usuarioId, string tipoUsuario, string senha)
+        {
+            // Apenas contas de paciente se autoexcluem pelo app; profissionais/admin
+            // são geridos internamente.
+            if (tipoUsuario != PerfisUsuario.Paciente)
+                return "Apenas contas de paciente podem ser excluídas pelo aplicativo.";
+
+            var usuario = await _context.Usuarios.FindAsync(usuarioId);
+            if (usuario == null) return "Usuário não encontrado.";
+
+            if (string.IsNullOrWhiteSpace(senha) || !BCrypt.Net.BCrypt.Verify(senha, usuario.SenhaHash.Trim()))
+                return "Senha incorreta.";
+
+            var paciente = await _context.Pacientes.FirstOrDefaultAsync(p => p.UsuarioId == usuarioId);
+            if (paciente == null) return "Perfil de paciente não encontrado.";
+
+            // Exclusão self-service → SituacaoCliente = Excluido (soft-delete).
+            paciente.Excluir();
+
+            // Revoga refresh tokens ativos → nenhuma sessão consegue renovar o acesso.
+            var tokens = await _context.RefreshTokens
+                .Where(t => t.UsuarioId == usuarioId && !t.Revogado)
+                .ToListAsync();
+            foreach (var t in tokens)
+                t.Revogado = true;
+
+            await _context.SaveChangesAsync();
+            return null; // sucesso
         }
     }
 }

@@ -2,6 +2,7 @@ using ClinicaMaisSaude.Application.DTOs.Paciente;
 using ClinicaMaisSaude.Application.Exceptions;
 using ClinicaMaisSaude.Application.Interfaces;
 using ClinicaMaisSaude.Domain.Entities;
+using ClinicaMaisSaude.Domain.Enums;
 using ClinicaMaisSaude.Domain.Interfaces;
 using System;
 using System.Collections.Generic;
@@ -23,36 +24,12 @@ namespace ClinicaMaisSaude.Application.Services
             _agendamentoRepository = agendamentoRepository;
         }
 
-        public async Task<PacienteResponse> AdicionarAsync(PacienteRequest request)
+        public Task<PacienteResponse> AdicionarAsync(PacienteRequest request)
         {
-            var pacienteExistente = await _repository.ObterPorCpfAsync(request.Cpf);
-
-            if (pacienteExistente != null)
-            {
-                throw new BusinessRuleException("Já existe um cadastro para o CPF informado.");
-            }
-
-            var paciente = new Paciente(
-                request.Nome,
-                request.Cpf.Replace(".", "").Replace("-", ""),
-                request.Telefone.Replace("(", "").Replace(")", "").Replace("-", "").Replace(" ", ""),
-                request.Email,
-                request.TemProblemaMemoria);
-            
-            await _repository.AdicionarAsync(paciente);
-
-            return new PacienteResponse
-            {
-                Id = paciente.Id,
-                Nome = paciente.Nome,
-                Cpf = paciente.Cpf,
-                Telefone = paciente.Telefone,
-                Email = paciente.Email,
-                TemProblemaMemoria = paciente.TemProblemaMemoria,
-                UsuarioId = paciente.UsuarioId
-            };
-
-
+            // A identidade (Nome/Cpf/Email/Telefone) vive no LoginPortal e todo paciente
+            // exige uma conta. Criar paciente "solto" (sem login) deixou de existir — o
+            // cadastro passa pelo fluxo integrado (/api/LoginPortal/cadastro).
+            throw new BusinessRuleException("Pacientes são criados junto da conta de acesso. Utilize o cadastro (/api/LoginPortal/cadastro).");
         }
 
         public async Task<PacienteResponse?> ObterPorIdAsync(Guid id)
@@ -63,10 +40,10 @@ namespace ClinicaMaisSaude.Application.Services
             return new PacienteResponse
             {
                 Id = paciente.Id,
-                Nome = paciente.Nome,
-                Cpf = paciente.Cpf,
-                Telefone = paciente.Telefone,
-                Email = paciente.Email,
+                Nome = paciente.Usuario?.Nome,
+                Cpf = paciente.Usuario?.Cpf,
+                Telefone = paciente.Usuario?.Telefone,
+                Email = paciente.Usuario?.Email,
                 TemProblemaMemoria = paciente.TemProblemaMemoria,
                 UsuarioId = paciente.UsuarioId,
                 Tipo = "Paciente",
@@ -82,26 +59,26 @@ namespace ClinicaMaisSaude.Application.Services
             var resposta = pacientes.Select(p => new PacienteResponse
             {
                 Id = p.Id,
-                Nome = p.Nome,
-                Cpf = p.Cpf,
-                Telefone = p.Telefone,
-                Email = p.Email,
+                Nome = p.Usuario?.Nome,
+                Cpf = p.Usuario?.Cpf,
+                Telefone = p.Usuario?.Telefone,
+                Email = p.Usuario?.Email,
                 TemProblemaMemoria = p.TemProblemaMemoria,
                 UsuarioId = p.UsuarioId,
                 Tipo = "Paciente",
                 UltimoAcesso = p.Usuario?.UltimoAcesso,
-                IsBanidoPermanente = p.Usuario?.BloqueadoAte.HasValue == true && (p.Usuario.BloqueadoAte.Value - DateTime.UtcNow).TotalDays > 3650,
+                IsBanidoPermanente = p.SituacaoCliente == SituacaoCliente.Banido,
                 FotoBase64 = p.Usuario?.FotoBase64
             }).ToList();
 
             if (incluirProfissionais)
             {
                 var profissionais = await _profissionalRepository.ObterTodosAsync();
-                
+
                 // Filtrar por nome/cpf se os filtros foram passados
                 if (!string.IsNullOrWhiteSpace(nome))
                 {
-                    profissionais = profissionais.Where(p => p.Nome.Contains(nome, StringComparison.OrdinalIgnoreCase));
+                    profissionais = profissionais.Where(p => p.Usuario.Nome.Contains(nome, StringComparison.OrdinalIgnoreCase));
                 }
                 if (!string.IsNullOrWhiteSpace(cpf))
                 {
@@ -113,9 +90,9 @@ namespace ClinicaMaisSaude.Application.Services
                     resposta.Add(new PacienteResponse
                     {
                         Id = prof.Id,
-                        Nome = prof.Nome,
+                        Nome = prof.Usuario.Nome,
                         Cpf = prof.Usuario.Cpf,
-                        Telefone = "-", // Profissionais não têm telefone no perfil atual
+                        Telefone = prof.Usuario.Telefone ?? "-",
                         Email = prof.Usuario.Email,
                         UsuarioId = prof.UsuarioId,
                         Tipo = prof.TipoProfissional.ToString(),
@@ -136,15 +113,15 @@ namespace ClinicaMaisSaude.Application.Services
             var resposta = items.Select(p => new PacienteResponse
             {
                 Id = p.Id,
-                Nome = p.Nome,
-                Cpf = p.Cpf,
-                Telefone = p.Telefone,
-                Email = p.Email,
+                Nome = p.Usuario?.Nome,
+                Cpf = p.Usuario?.Cpf,
+                Telefone = p.Usuario?.Telefone,
+                Email = p.Usuario?.Email,
                 TemProblemaMemoria = p.TemProblemaMemoria,
                 UsuarioId = p.UsuarioId,
                 Tipo = "Paciente",
                 UltimoAcesso = p.Usuario?.UltimoAcesso,
-                IsBanidoPermanente = p.Usuario?.BloqueadoAte.HasValue == true && (p.Usuario.BloqueadoAte.Value - DateTime.UtcNow).TotalDays > 3650,
+                IsBanidoPermanente = p.SituacaoCliente == SituacaoCliente.Banido,
                 FotoBase64 = p.Usuario?.FotoBase64
             }).ToList();
 
@@ -153,7 +130,7 @@ namespace ClinicaMaisSaude.Application.Services
                 var profissionais = await _profissionalRepository.ObterTodosAsync();
 
                 if (!string.IsNullOrWhiteSpace(nome))
-                    profissionais = profissionais.Where(p => p.Nome.Contains(nome, StringComparison.OrdinalIgnoreCase));
+                    profissionais = profissionais.Where(p => p.Usuario.Nome.Contains(nome, StringComparison.OrdinalIgnoreCase));
                 if (!string.IsNullOrWhiteSpace(cpf))
                     profissionais = profissionais.Where(p => p.Usuario.Cpf.Contains(cpf));
 
@@ -162,9 +139,9 @@ namespace ClinicaMaisSaude.Application.Services
                     resposta.Add(new PacienteResponse
                     {
                         Id = prof.Id,
-                        Nome = prof.Nome,
+                        Nome = prof.Usuario.Nome,
                         Cpf = prof.Usuario.Cpf,
-                        Telefone = "-",
+                        Telefone = prof.Usuario.Telefone ?? "-",
                         Email = prof.Usuario.Email,
                         UsuarioId = prof.UsuarioId,
                         Tipo = prof.TipoProfissional.ToString(),
@@ -205,22 +182,27 @@ namespace ClinicaMaisSaude.Application.Services
             if (paciente == null)
                 throw new NotFoundException("Paciente não encontrado.");
 
-            paciente.Atualizar(
-                request.Nome,
-                paciente.Cpf,
-                request.Telefone.Replace("(", "").Replace(")", "").Replace("-", "").Replace(" ", ""),
-                request.Email,
-                request.TemProblemaMemoria);
+            // Dados de identidade são atualizados no LoginPortal; o perfil só guarda o clínico.
+            if (paciente.Usuario != null)
+            {
+                if (!string.IsNullOrWhiteSpace(request.Nome))
+                    paciente.Usuario.AtualizarNome(request.Nome);
+                if (!string.IsNullOrWhiteSpace(request.Email))
+                    paciente.Usuario.AtualizarEmail(request.Email.Trim().ToLowerInvariant());
+                if (!string.IsNullOrWhiteSpace(request.Telefone))
+                    paciente.Usuario.AtualizarTelefone(request.Telefone.Replace("(", "").Replace(")", "").Replace("-", "").Replace(" ", ""));
+            }
+            paciente.Atualizar(request.TemProblemaMemoria);
 
             await _repository.AtualizarAsync(paciente);
 
             return new PacienteResponse
             {
                 Id = paciente.Id,
-                Nome = paciente.Nome,
-                Cpf = paciente.Cpf,
-                Telefone = paciente.Telefone,
-                Email = paciente.Email,
+                Nome = paciente.Usuario?.Nome,
+                Cpf = paciente.Usuario?.Cpf,
+                Telefone = paciente.Usuario?.Telefone,
+                Email = paciente.Usuario?.Email,
                 TemProblemaMemoria = paciente.TemProblemaMemoria,
                 UsuarioId = paciente.UsuarioId,
                 FotoBase64 = paciente.Usuario?.FotoBase64
@@ -245,15 +227,15 @@ namespace ClinicaMaisSaude.Application.Services
             var todosAgendamentos = await _agendamentoRepository.ObterTodosAsync();
 
             var inativos = todosPacientes
-                .Where(p => p.Ativo)
+                .Where(p => p.EstaAtivo)
                 .Where(p => !todosAgendamentos.Any(a => a.PacienteId == p.Id && a.DtCriado >= corte))
                 .Select(p => new PacienteResponse
                 {
                     Id = p.Id,
-                    Nome = p.Nome,
-                    Cpf = p.Cpf,
-                    Telefone = p.Telefone,
-                    Email = p.Email,
+                    Nome = p.Usuario?.Nome,
+                    Cpf = p.Usuario?.Cpf,
+                    Telefone = p.Usuario?.Telefone,
+                    Email = p.Usuario?.Email,
                     UsuarioId = p.UsuarioId,
                     Tipo = "Paciente",
                     FotoBase64 = p.Usuario?.FotoBase64

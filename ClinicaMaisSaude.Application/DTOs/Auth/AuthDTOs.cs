@@ -18,8 +18,6 @@ namespace ClinicaMaisSaude.Application.DTOs.Auth
         public Guid? ProfissionalId { get; set; }
         public bool IsAdmin { get; set; }
         public string RefreshToken { get; set; } = string.Empty;
-        /// <summary>True quando o admin removeu uma penalidade de IA — exibe aviso único ao paciente no login</summary>
-        public bool PenalidadeRemovida { get; set; }
         public string? FotoBase64 { get; set; }
     }
 

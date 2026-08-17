@@ -25,7 +25,7 @@ namespace ClinicaMaisSaude.API.Controllers
 
         private (bool isAdmin, Guid? profissionalId) ObterContextoUsuario()
         {
-            var isAdmin = User.FindFirstValue(ClinicaClaims.IsAdmin) == "true";
+            var isAdmin = User.IsInRole(PerfisUsuario.Admin);
             Guid? profId = null;
             if (!isAdmin)
             {

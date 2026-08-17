@@ -1,85 +1,68 @@
 using System;
 using ClinicaMaisSaude.Domain.Common;
+using ClinicaMaisSaude.Domain.Enums;
 
 namespace ClinicaMaisSaude.Domain.Entities
 {
 
-    public class Paciente
+    // Perfil clínico. A identidade (Nome/Cpf/Telefone/Email) vive no LoginPortal (Usuario);
+    // um Paciente sempre referencia uma conta (UsuarioId obrigatório) — não há paciente sem login.
+    public class Paciente : IAuditavel
     {
         public Guid Id { get; private set; }
-        public string Nome { get; private set; }
-        public string Cpf { get; private set; }
-        public string Telefone { get; private set; }
-        public string Email { get; private set; }
-        public bool Ativo { get; private set; }
+        public DateTime? UltAtualizacao { get; private set; }
+        public void MarcarAtualizacao(DateTime quando) => UltAtualizacao = quando;
+        public SituacaoCliente SituacaoCliente { get; private set; }
         public bool TemProblemaMemoria { get; private set; }
-        public Guid? UsuarioId { get; private set; }
+        public Guid UsuarioId { get; private set; }
         public DateTime DtCriado { get; private set; }
-        public DateTime? BloqueadoIAAte { get; private set; }
-        /// <summary>True enquanto o paciente ainda não foi notificado de que a penalidade foi removida pelo admin</summary>
-        public bool PenalidadeRemovidaAvisar { get; private set; }
 
         public virtual Usuario Usuario { get; private set; }
         public virtual ICollection<Agendamento> Agendamentos { get; private set; } = new List<Agendamento>();
 
-        public Paciente(string nome, string cpf, string telefone, string email, bool temProblemaMemoria = false)
+        /// <summary>Só o estado Ativo permite login/uso; qualquer outro bloqueia.</summary>
+        public bool EstaAtivo => SituacaoCliente == SituacaoCliente.Ativo;
+
+        protected Paciente() { } // EF Core
+
+        public Paciente(Guid usuarioId, bool temProblemaMemoria = false)
         {
             Id = SequentialGuid.Next();
-            Nome = nome;
-            Cpf = cpf;
-            Telefone = telefone;
-            Email = email;
-            Ativo = true;
+            UsuarioId = usuarioId;
+            SituacaoCliente = SituacaoCliente.Ativo;
             TemProblemaMemoria = temProblemaMemoria;
             DtCriado = DateTime.UtcNow;
-            BloqueadoIAAte = null;
         }
 
-        public void Atualizar(string nome, string cpf, string telefone, string email, bool temProblemaMemoria)
+        public void Atualizar(bool temProblemaMemoria)
         {
-            Nome = nome;
-            Cpf = cpf;
-            Telefone = telefone;
-            Email = email;
             TemProblemaMemoria = temProblemaMemoria;
         }
 
+        /// <summary>Admin desliga a conta (reversível via <see cref="Reativar"/>).</summary>
         public void Desativar()
         {
-            Ativo = false;
+            SituacaoCliente = SituacaoCliente.Desativado;
         }
 
-        public void BloquearIA(DateTime ate)
+        /// <summary>Soft-delete self-service (o próprio paciente encerra a conta).</summary>
+        public void Excluir()
         {
-            BloqueadoIAAte = ate;
+            SituacaoCliente = SituacaoCliente.Excluido;
         }
 
-        public bool IsIABloqueada()
+        /// <summary>Banimento permanente por abuso (ex.: injeção de IA).</summary>
+        public void Banir()
         {
-            return BloqueadoIAAte.HasValue && BloqueadoIAAte.Value > DateTime.UtcNow;
+            SituacaoCliente = SituacaoCliente.Banido;
         }
 
-        /// <summary>Admin remove a penalidade e agenda o aviso para o próximo login do paciente</summary>
-        public void RemoverPenalidade()
+        /// <summary>Reabilita a conta (Ativo) — usado ao remover penalidade/ban.</summary>
+        public void Reativar()
         {
-            BloqueadoIAAte = null;
-            PenalidadeRemovidaAvisar = true;
+            SituacaoCliente = SituacaoCliente.Ativo;
         }
 
-        /// <summary>Chamado após exibir o aviso ao paciente, para não rexibir</summary>
-        public void ConsumarAvisoPenalidade()
-        {
-            PenalidadeRemovidaAvisar = false;
-        }
-
-        public void VincularUsuario(Guid usuarioId)
-        {
-            UsuarioId = usuarioId;
-        }
-
-        public void AtualizarNome(string nome) => Nome = nome;
-        public void AtualizarEmail(string email) => Email = email;
-        public void AtualizarTelefone(string telefone) => Telefone = telefone;
     }
 }
 

@@ -1,0 +1,78 @@
+name: CI
+
+# Integração Contínua: a cada push/PR, valida que o monorepo inteiro compila
+# e que os testes passam. É a base para o deploy futuro (CD) — que virá quando
+# houver um alvo em nuvem (Etapa 08 do PIM: Cloud/DevOps).
+on:
+  push:
+    branches: [main, teste]
+  pull_request:
+
+jobs:
+  # Backend .NET: build da solução + testes unitários (xUnit).
+  # Os testes usam fakes em memória, então NÃO precisam de banco de dados.
+  backend:
+    name: Backend (.NET build + testes)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configurar .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore ClinicaMaisSaude.slnx
+
+      - name: Build (Release)
+        run: dotnet build ClinicaMaisSaude.slnx --no-restore -c Release
+
+      - name: Testes (xUnit)
+        run: dotnet test ClinicaMaisSaude.slnx --no-build -c Release --verbosity normal
+
+  # Frontend web (React + Vite): typecheck + build de produção.
+  frontend:
+    name: Frontend web (build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: clinica-frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configurar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: clinica-frontend/package-lock.json
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Build (tsc + vite)
+        run: npm run build
+
+  # Mobile (Expo/React Native): typecheck (o build nativo real fica para o EAS/CD).
+  mobile:
+    name: Mobile (typecheck)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: clinica-mobile
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configurar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: clinica-mobile/package-lock.json
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Typecheck (tsc --noEmit)
+        run: npx tsc --noEmit

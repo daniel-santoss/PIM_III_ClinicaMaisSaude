@@ -1,21 +1,30 @@
 using System;
 using System.ComponentModel.DataAnnotations.Schema;
 using ClinicaMaisSaude.Domain.Common;
+using ClinicaMaisSaude.Domain.Enums;
 
 namespace ClinicaMaisSaude.Domain.Entities
 {
-    public class Usuario
+    public class Usuario : IAuditavel
     {
         public Guid Id { get; private set; }
+        public DateTime? UltAtualizacao { get; private set; }
+        public void MarcarAtualizacao(DateTime quando) => UltAtualizacao = quando;
+        public string Nome { get; private set; }
         public string Email { get; private set; }
         public string Cpf { get; private set; }
+        public string? Telefone { get; private set; }
         public string SenhaHash { get; private set; }
-        public bool IsAdmin { get; private set; }
+        public TipoUsuario TipoUsuario { get; private set; }
         public DateTime DtCriado { get; private set; }
         public DateTime? UltimoAcesso { get; private set; }
         
         public int TentativasLogin { get; private set; }
         public DateTime? BloqueadoAte { get; private set; }
+
+        // Penalidade temporária de uso da IA (triagem). Fica na conta (LoginPortal) porque
+        // as violações em UsoInadequadoIA já são por UsuarioId. Auto-expira pela data.
+        public DateTime? BloqueadoIAAte { get; private set; }
 
         // Foto de perfil movida para uma tabela separada (1:1). Só é carregada quando a
         // query faz .Include(u => u.Foto); do contrário, esta navegação fica nula.
@@ -29,25 +38,29 @@ namespace ClinicaMaisSaude.Domain.Entities
 
         public virtual ICollection<UsoInadequadoIA> Violacoes { get; private set; } = new List<UsoInadequadoIA>();
 
-        public Usuario(string email, string cpf, string senhaHash, bool isAdmin = false)
+        public Usuario(string email, string cpf, string senhaHash, string nome, string? telefone = null, TipoUsuario tipoUsuario = TipoUsuario.Paciente)
         {
             Id = SequentialGuid.Next();
+            Nome = nome;
             Email = email;
             Cpf = cpf;
+            Telefone = telefone;
             SenhaHash = senhaHash;
-            IsAdmin = isAdmin;
+            TipoUsuario = tipoUsuario;
             DtCriado = DateTime.UtcNow;
             TentativasLogin = 0;
             BloqueadoAte = null;
         }
 
-        public Usuario(Guid id, string email, string cpf, string senhaHash, bool isAdmin, DateTime dtCriado)
+        public Usuario(Guid id, string email, string cpf, string senhaHash, string nome, string? telefone, TipoUsuario tipoUsuario, DateTime dtCriado)
         {
             Id = id;
+            Nome = nome;
             Email = email;
             Cpf = cpf;
+            Telefone = telefone;
             SenhaHash = senhaHash;
-            IsAdmin = isAdmin;
+            TipoUsuario = tipoUsuario;
             DtCriado = dtCriado;
             TentativasLogin = 0;
             BloqueadoAte = null;
@@ -83,6 +96,18 @@ namespace ClinicaMaisSaude.Domain.Entities
             Email = novoEmail;
         }
 
+        public void AtualizarNome(string nome)
+        {
+            if (string.IsNullOrWhiteSpace(nome))
+                throw new ArgumentException("O nome não pode ser vazio.", nameof(nome));
+            Nome = nome;
+        }
+
+        public void AtualizarTelefone(string? telefone)
+        {
+            Telefone = telefone;
+        }
+
         public void RegistrarFalhaLogin()
         {
             TentativasLogin++;
@@ -101,6 +126,22 @@ namespace ClinicaMaisSaude.Domain.Entities
         public bool IsBloqueado()
         {
             return BloqueadoAte.HasValue && BloqueadoAte.Value > DateTime.UtcNow;
+        }
+
+        public void BloquearIA(DateTime ate)
+        {
+            BloqueadoIAAte = ate;
+        }
+
+        public bool IsIABloqueada()
+        {
+            return BloqueadoIAAte.HasValue && BloqueadoIAAte.Value > DateTime.UtcNow;
+        }
+
+        /// <summary>Admin remove a penalidade de IA — libera a triagem.</summary>
+        public void DesbloquearIA()
+        {
+            BloqueadoIAAte = null;
         }
 
         public void BloquearPermanentemente()

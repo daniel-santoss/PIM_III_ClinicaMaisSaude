@@ -105,21 +105,21 @@ export default function HomePage({
 
               {/* Desktop Menu - Centralizado no meio */}
               <div className="hidden lg:flex items-center space-x-8 absolute left-1/2 -translate-x-1/2">
-                <a href="#" onClick={(e) => scrollToSection(e, '#')} className="text-gray-600 hover:text-[#7C3AED] text-lg font-medium transition-colors">Início</a>
-                <a href="#servicos" onClick={(e) => scrollToSection(e, '#servicos')} className="text-gray-600 hover:text-[#7C3AED] text-lg font-medium transition-colors">Serviços</a>
-                <a href="#sobre" onClick={(e) => scrollToSection(e, '#sobre')} className="text-gray-600 hover:text-[#7C3AED] text-lg font-medium transition-colors">Sobre Nós</a>
-                <a href="#contato" onClick={(e) => scrollToSection(e, '#contato')} className="text-gray-600 hover:text-[#7C3AED] text-lg font-medium transition-colors">Contato</a>
+                <a href="#" onClick={(e) => scrollToSection(e, '#')} className="text-gray-600 hover:text-[#2C5282] text-lg font-medium transition-colors">Início</a>
+                <a href="#servicos" onClick={(e) => scrollToSection(e, '#servicos')} className="text-gray-600 hover:text-[#2C5282] text-lg font-medium transition-colors">Serviços</a>
+                <a href="#sobre" onClick={(e) => scrollToSection(e, '#sobre')} className="text-gray-600 hover:text-[#2C5282] text-lg font-medium transition-colors">Sobre Nós</a>
+                <a href="#contato" onClick={(e) => scrollToSection(e, '#contato')} className="text-gray-600 hover:text-[#2C5282] text-lg font-medium transition-colors">Contato</a>
               </div>
 
               {/* Botão de Agendamento e Menu Mobile à direita */}
               <div className="flex items-center gap-4">
-                <a href="/login" className="hidden lg:inline-block bg-[#7C3AED] text-white px-6 py-2.5 rounded-full font-medium hover:bg-purple-700 transition-colors shadow-md hover:shadow-lg">
+                <a href="/login" className="hidden lg:inline-block bg-[#2C5282] text-white px-6 py-2.5 rounded-full font-medium hover:bg-purple-700 transition-colors shadow-md hover:shadow-lg">
                   Agendar Consulta
                 </a>
 
                 {/* Mobile Menu Button */}
                 <div className="lg:hidden flex items-center">
-                  <button onClick={() => setMenuAberto(!menuAberto)} className="text-gray-600 hover:text-[#7C3AED] transition-colors p-2">
+                  <button onClick={() => setMenuAberto(!menuAberto)} className="text-gray-600 hover:text-[#2C5282] transition-colors p-2">
                     {menuAberto ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
                   </button>
                 </div>
@@ -130,11 +130,11 @@ export default function HomePage({
           {/* Mobile Menu */}
           {menuAberto && (
             <div className="lg:hidden bg-white border-t border-gray-100 shadow-lg absolute left-4 right-4 top-24 rounded-2xl p-4 space-y-2 z-50 border border-gray-100">
-              <a href="#" onClick={(e) => scrollToSection(e, '#')} className="block px-3 py-3 text-base font-medium text-gray-700 hover:text-[#7C3AED] hover:bg-purple-50 rounded-md">Início</a>
-              <a href="#servicos" onClick={(e) => scrollToSection(e, '#servicos')} className="block px-3 py-3 text-base font-medium text-gray-700 hover:text-[#7C3AED] hover:bg-purple-50 rounded-md">Serviços</a>
-              <a href="#sobre" onClick={(e) => scrollToSection(e, '#sobre')} className="block px-3 py-3 text-base font-medium text-gray-700 hover:text-[#7C3AED] hover:bg-purple-50 rounded-md">Sobre Nós</a>
-              <a href="#contato" onClick={(e) => scrollToSection(e, '#contato')} className="block px-3 py-3 text-base font-medium text-gray-700 hover:text-[#7C3AED] hover:bg-purple-50 rounded-md">Contato</a>
-              <a href="/login" className="block w-full text-center mt-4 bg-[#7C3AED] text-white px-6 py-3 rounded-lg font-medium hover:bg-purple-700">
+              <a href="#" onClick={(e) => scrollToSection(e, '#')} className="block px-3 py-3 text-base font-medium text-gray-700 hover:text-[#2C5282] hover:bg-purple-50 rounded-md">Início</a>
+              <a href="#servicos" onClick={(e) => scrollToSection(e, '#servicos')} className="block px-3 py-3 text-base font-medium text-gray-700 hover:text-[#2C5282] hover:bg-purple-50 rounded-md">Serviços</a>
+              <a href="#sobre" onClick={(e) => scrollToSection(e, '#sobre')} className="block px-3 py-3 text-base font-medium text-gray-700 hover:text-[#2C5282] hover:bg-purple-50 rounded-md">Sobre Nós</a>
+              <a href="#contato" onClick={(e) => scrollToSection(e, '#contato')} className="block px-3 py-3 text-base font-medium text-gray-700 hover:text-[#2C5282] hover:bg-purple-50 rounded-md">Contato</a>
+              <a href="/login" className="block w-full text-center mt-4 bg-[#2C5282] text-white px-6 py-3 rounded-lg font-medium hover:bg-purple-700">
                 Agendar Consulta
               </a>
             </div>
@@ -215,7 +215,7 @@ export default function HomePage({
               <button
                 key={i}
                 onClick={() => setSlideAtual(i)}
-                className={`w-3 h-3 rounded-full transition-colors ${i === slideAtual ? 'bg-[#7C3AED]' : 'bg-white/50 hover:bg-white'}`}
+                className={`w-3 h-3 rounded-full transition-colors ${i === slideAtual ? 'bg-[#2C5282]' : 'bg-white/50 hover:bg-white'}`}
                 aria-label={`Ir para slide ${i + 1}`}
               />
             ))}
@@ -227,9 +227,9 @@ export default function HomePage({
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {[
-                { icon: <Heart className="w-8 h-8 text-[#7C3AED]" />, title: "Atendimento Humanizado", desc: "Cuidado centrado no paciente com empatia e respeito." },
-                { icon: <Calendar className="w-8 h-8 text-[#7C3AED]" />, title: "Agendamento Fácil", desc: "Plataforma digital intuitiva para marcar suas consultas." },
-                { icon: <Shield className="w-8 h-8 text-[#7C3AED]" />, title: "Tecnologia Avançada", desc: "Prontuário eletrônico seguro e integrado para sua saúde." }
+                { icon: <Heart className="w-8 h-8 text-[#2C5282]" />, title: "Atendimento Humanizado", desc: "Cuidado centrado no paciente com empatia e respeito." },
+                { icon: <Calendar className="w-8 h-8 text-[#2C5282]" />, title: "Agendamento Fácil", desc: "Plataforma digital intuitiva para marcar suas consultas." },
+                { icon: <Shield className="w-8 h-8 text-[#2C5282]" />, title: "Tecnologia Avançada", desc: "Prontuário eletrônico seguro e integrado para sua saúde." }
               ].map((item, i) => (
                 <div key={i} className="bg-white p-8 rounded-2xl shadow-xl shadow-purple-900/5 hover:-translate-y-1 transition-all duration-300 border-2 border-gray-200 hover:border-purple-300 flex flex-col items-center text-center group">
                   <div className="p-4 bg-purple-50 rounded-full mb-6 group-hover:scale-110 transition-transform">
@@ -260,7 +260,7 @@ export default function HomePage({
                 { icon: <Droplet />, title: "Dermatologia" }
               ].map((item, i) => (
                 <div key={i} className="group p-6 bg-white rounded-2xl shadow-lg shadow-purple-900/5 hover:shadow-xl hover:shadow-purple-900/10 hover:-translate-y-1 transition-all duration-300 border-2 border-gray-200 hover:border-purple-400">
-                  <div className="w-12 h-12 bg-purple-50 rounded-xl shadow-sm flex items-center justify-center text-[#7C3AED] mb-6 group-hover:scale-110 group-hover:bg-[#7C3AED] group-hover:text-white transition-all duration-300">
+                  <div className="w-12 h-12 bg-purple-50 rounded-xl shadow-sm flex items-center justify-center text-[#2C5282] mb-6 group-hover:scale-110 group-hover:bg-[#2C5282] group-hover:text-white transition-all duration-300">
                     {item.icon}
                   </div>
                   <h3 className="text-xl font-bold text-gray-900 mb-2">{item.title}</h3>
@@ -271,7 +271,7 @@ export default function HomePage({
             <div className="mt-6 flex justify-end">
               <button
                 onClick={() => setModalServicosAberto(true)}
-                className="text-[#7C3AED] font-semibold hover:text-purple-700 hover:underline flex items-center transition-colors group cursor-pointer bg-transparent border-none p-0"
+                className="text-[#2C5282] font-semibold hover:text-purple-700 hover:underline flex items-center transition-colors group cursor-pointer bg-transparent border-none p-0"
               >
                 Ver todos os serviços
                 <svg className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -293,7 +293,7 @@ export default function HomePage({
                   <div className="absolute top-0 right-0 w-32 h-32 bg-purple-200/40 rounded-full blur-2xl pointer-events-none" />
 
                   <div className="flex gap-4 items-center">
-                    <span className="p-3 bg-white rounded-2xl text-[#7C3AED] shadow-sm flex items-center justify-center">
+                    <span className="p-3 bg-white rounded-2xl text-[#2C5282] shadow-sm flex items-center justify-center">
                       <Heart className="w-8 h-8" />
                     </span>
                     <div>
@@ -307,19 +307,19 @@ export default function HomePage({
                   {/* Grid de Estatísticas */}
                   <div className="grid grid-cols-2 gap-4">
                     <div className="p-4 bg-white rounded-2xl text-center shadow-sm border border-gray-50">
-                      <span className="text-3xl font-extrabold text-[#7C3AED]">10+</span>
+                      <span className="text-3xl font-extrabold text-[#2C5282]">10+</span>
                       <p className="text-xs text-gray-500 font-semibold mt-1">Anos de História</p>
                     </div>
                     <div className="p-4 bg-white rounded-2xl text-center shadow-sm border border-gray-50">
-                      <span className="text-3xl font-extrabold text-[#7C3AED]">50k+</span>
+                      <span className="text-3xl font-extrabold text-[#2C5282]">50k+</span>
                       <p className="text-xs text-gray-500 font-semibold mt-1">Pacientes Atendidos</p>
                     </div>
                     <div className="p-4 bg-white rounded-2xl text-center shadow-sm border border-gray-50">
-                      <span className="text-3xl font-extrabold text-[#7C3AED]">100+</span>
+                      <span className="text-3xl font-extrabold text-[#2C5282]">100+</span>
                       <p className="text-xs text-gray-500 font-semibold mt-1">Médicos Especialistas</p>
                     </div>
                     <div className="p-4 bg-white rounded-2xl text-center shadow-sm border border-gray-50">
-                      <span className="text-3xl font-extrabold text-[#7C3AED]">99,9%</span>
+                      <span className="text-3xl font-extrabold text-[#2C5282]">99,9%</span>
                       <p className="text-xs text-gray-500 font-semibold mt-1">Satisfação</p>
                     </div>
                   </div>
@@ -328,7 +328,7 @@ export default function HomePage({
 
               {/* Coluna de Texto */}
               <div className="flex flex-col">
-                <span className="text-sm font-bold text-[#7C3AED] uppercase tracking-widest mb-3">Sobre Nós</span>
+                <span className="text-sm font-bold text-[#2C5282] uppercase tracking-widest mb-3">Sobre Nós</span>
                 <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 tracking-tight leading-tight">
                   Cuidado humanizado e tecnologia de ponta para a sua saúde
                 </h2>
@@ -348,7 +348,7 @@ export default function HomePage({
                     "Foco no cuidado preventivo"
                   ].map((valor, idx) => (
                     <div key={idx} className="flex items-center gap-3">
-                      <span className="p-1 bg-purple-50 rounded-full text-[#7C3AED]">
+                      <span className="p-1 bg-purple-50 rounded-full text-[#2C5282]">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                         </svg>
@@ -363,7 +363,7 @@ export default function HomePage({
         </section>
 
         {/* 5. BANNER CTA */}
-        <section className="bg-gradient-to-br from-[#7C3AED] via-[#6D28D9] to-[#4C1D95] py-12 sm:py-20 mx-4 sm:mx-8 lg:mx-12 rounded-3xl shadow-2xl shadow-purple-900/20 text-white relative overflow-hidden my-6">
+        <section className="bg-gradient-to-br from-[#2C5282] via-[#152D5C] to-[#4C1D95] py-12 sm:py-20 mx-4 sm:mx-8 lg:mx-12 rounded-3xl shadow-2xl shadow-purple-900/20 text-white relative overflow-hidden my-6">
           {/* Círculos decorativos sutis em background */}
           <div className="absolute top-0 right-0 w-80 h-80 bg-white/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
           <div className="absolute bottom-0 left-0 w-80 h-80 bg-white/5 rounded-full blur-3xl -ml-20 -mb-20 pointer-events-none" />
@@ -379,7 +379,7 @@ export default function HomePage({
               <a
                 href="#contato"
                 onClick={(e) => scrollToSection(e, '#contato')}
-                className="px-8 py-4 bg-white text-[#7C3AED] font-bold rounded-full hover:bg-gray-50 hover:scale-105 active:scale-95 transition-all duration-300 shadow-lg hover:shadow-[0_0_20px_rgba(255,255,255,0.4)] flex items-center justify-center gap-2"
+                className="px-8 py-4 bg-white text-[#2C5282] font-bold rounded-full hover:bg-gray-50 hover:scale-105 active:scale-95 transition-all duration-300 shadow-lg hover:shadow-[0_0_20px_rgba(255,255,255,0.4)] flex items-center justify-center gap-2"
               >
                 Entrar em Contato
               </a>

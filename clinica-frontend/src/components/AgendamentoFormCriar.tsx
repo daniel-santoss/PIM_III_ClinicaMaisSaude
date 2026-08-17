@@ -9,6 +9,7 @@ import { useToast } from "../hooks/useToast";
 import { perfis } from "../constants/perfis";
 import { statusAgendamento } from "../constants/status";
 import { storageKeys } from "../constants/storage";
+import ModalPortal from "./ui/ModalPortal";
 
 interface AgendamentoFormCriarProps {
   onFechar: () => void;
@@ -196,36 +197,37 @@ export default function AgendamentoFormCriar({
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-0 sm:p-4 bg-purple-900/40 backdrop-blur-sm animate-in fade-in duration-300">
-      
-      <div className="bg-white w-full h-[100dvh] sm:h-auto sm:max-w-xl rounded-none sm:rounded-[3rem] shadow-2xl overflow-hidden border-0 sm:border border-purple-100 flex flex-col sm:max-h-[90vh]">
-        <div className="p-5 sm:p-8 border-b border-purple-50 flex items-center justify-between bg-purple-50/30 shrink-0">
+    <ModalPortal>
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-0 sm:p-4 bg-ink/45 backdrop-blur-sm animate-in fade-in duration-300">
+
+      <div className="bg-white w-full h-[100dvh] sm:h-auto sm:max-w-xl rounded-none sm:rounded-md shadow-modal overflow-hidden border-0 sm:border border-line flex flex-col sm:max-h-[90vh]">
+        <div className="px-6 py-5 border-b border-line flex items-center justify-between shrink-0">
           <div>
-            <h3 className="text-xl sm:text-2xl font-black text-gray-800">
-              {dadosRetorno ? "Agendar Retorno" : "Novo Agendamento"}
+            <h3 className="text-lg font-semibold text-ink">
+              {dadosRetorno ? "Agendar retorno" : "Novo agendamento"}
             </h3>
-            <p className="text-xs font-bold text-purple-400 uppercase tracking-widest">Preencha os detalhes da consulta</p>
+            <p className="text-[13px] text-muted mt-0.5">Preencha os detalhes da consulta.</p>
           </div>
-          <button onClick={onFechar} className="p-2 text-gray-400 hover:bg-white rounded-2xl transition-all">
-            <X className="w-6 h-6" />
+          <button onClick={onFechar} className="w-8 h-8 grid place-items-center text-body bg-canvas border border-line rounded-md hover:bg-line-soft transition-colors">
+            <X className="w-4 h-4" />
           </button>
         </div>
 
         <div className="p-5 sm:p-8 space-y-6 overflow-y-auto">
           <div className="space-y-6">
             {dadosRetorno ? (
-              <div className="bg-purple-50 p-5 rounded-2xl border border-purple-100 space-y-4 mb-4">
+              <div className="bg-brand-50 p-5 rounded-md border border-line space-y-4 mb-4">
                 <div className="flex flex-col gap-1">
-                  <span className="text-[10px] font-black text-purple-400 uppercase tracking-widest">Paciente</span>
-                  <span className="text-sm font-bold text-gray-800">{dadosRetorno.pacienteNome}</span>
+                  <span className="text-[10px] font-black text-muted uppercase tracking-widest">Paciente</span>
+                  <span className="text-sm font-bold text-ink">{dadosRetorno.pacienteNome}</span>
                 </div>
-                <div className="flex flex-col gap-1 border-t border-purple-100/50 pt-2">
-                  <span className="text-[10px] font-black text-purple-400 uppercase tracking-widest">Tipo de Consulta</span>
-                  <span className="text-sm font-bold text-gray-800">Retorno Médico</span>
+                <div className="flex flex-col gap-1 border-t border-line/50 pt-2">
+                  <span className="text-[10px] font-black text-muted uppercase tracking-widest">Tipo de Consulta</span>
+                  <span className="text-sm font-bold text-ink">Retorno Médico</span>
                 </div>
-                <div className="flex flex-col gap-1 border-t border-purple-100/50 pt-2">
-                  <span className="text-[10px] font-black text-purple-400 uppercase tracking-widest">Consulta de Origem</span>
-                  <span className="text-xs font-semibold text-gray-600">
+                <div className="flex flex-col gap-1 border-t border-line/50 pt-2">
+                  <span className="text-[10px] font-black text-muted uppercase tracking-widest">Consulta de Origem</span>
+                  <span className="text-xs font-semibold text-body">
                     {dadosRetorno.dataHoraOrigem ? (
                       <>
                         {getRealDate(dadosRetorno.dataHoraOrigem)!.toLocaleDateString('pt-BR')} às{' '}
@@ -239,21 +241,21 @@ export default function AgendamentoFormCriar({
             ) : (
               <>
                 {/* Triagem por IA */}
-            <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-5 rounded-2xl border border-indigo-100 space-y-3">
+            <div className="bg-brand-50 p-5 rounded-md border border-brand-200 space-y-3">
               <div className="flex items-center gap-2">
-                <Lightbulb className="w-5 h-5 text-indigo-500" />
-                <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Triagem Inteligente (IA)</span>
+                <Lightbulb className="w-5 h-5 text-brand-600" />
+                <span className="text-[10px] font-black text-brand-600 uppercase tracking-widest">Triagem Inteligente (IA)</span>
               </div>
               <div className="relative">
                 <textarea
-                  className="w-full p-3 bg-white border border-indigo-100 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-400 transition-all resize-none pr-16"
+                  className="w-full p-3 bg-white border border-brand-200 rounded-md text-sm font-medium outline-none focus:border-brand-600 focus:shadow-focus transition-shadow resize-none pr-16"
                   rows={2}
                   placeholder="Descreva os sintomas do paciente para sugestão automática..."
                   value={sintomas}
                   onChange={(e) => setSintomas(e.target.value)}
                   maxLength={MAX_PROMPT_LENGTH}
                 />
-                <span className="absolute bottom-2.5 right-3 text-[10px] font-black text-indigo-300 bg-white/80 px-1 rounded">
+                <span className="absolute bottom-2.5 right-3 text-[10px] font-black text-muted bg-white/80 px-1 rounded">
                   {sintomas.length}/{MAX_PROMPT_LENGTH}
                 </span>
               </div>
@@ -294,7 +296,7 @@ export default function AgendamentoFormCriar({
                     } catch { toast.error("Falha ao consultar IA."); }
                     finally { setCarregandoIA(false); }
                   }}
-                  className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-700 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+                  className="px-5 py-2.5 bg-brand-600 text-white rounded-md text-[10px] font-black uppercase tracking-widest hover:bg-brand-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
                 >
                   {carregandoIA ? (
                     <><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> Analisando...</>
@@ -307,16 +309,16 @@ export default function AgendamentoFormCriar({
                 )}
               </div>
               {sugestaoIA?.justificativa && (
-                <p className="text-xs text-indigo-700 bg-white p-3 rounded-xl border border-indigo-50 italic">{sugestaoIA.justificativa}</p>
+                <p className="text-xs text-brand-800 bg-white p-3 rounded-md border border-brand-100 italic">{sugestaoIA.justificativa}</p>
               )}
             </div>
             <div className="relative">
-              <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Paciente</label>
+              <label className="block text-[13px] font-medium text-body mb-1">Paciente</label>
               <div className="relative">
                 <input
                   type="text"
                   placeholder="Buscar por nome ou CPF..."
-                  className="w-full p-4 pr-14 border border-gray-200 rounded-2xl bg-gray-50 focus:ring-2 focus:ring-[#7C3AED] focus:bg-white transition-all outline-none font-bold text-sm"
+                  className="w-full p-4 pr-14 border border-line rounded-md bg-canvas focus:ring-2 focus:ring-[#2C5282] focus:bg-white transition-all outline-none font-bold text-sm"
                   value={buscaPaciente}
                   onBlur={() => {
                     setTimeout(() => setMostrarListaPacientes(false), 200);
@@ -337,7 +339,7 @@ export default function AgendamentoFormCriar({
                   type="button" 
                   onClick={buscarPacientesAPI}
                   onMouseDown={(e) => e.preventDefault()}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-purple-100 text-purple-600 rounded-xl hover:bg-[#7C3AED] hover:text-white transition-colors"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-brand-50 text-brand-600 rounded-md hover:bg-[#2C5282] hover:text-white transition-colors"
                 >
                   {buscandoPacientes ? (
                     <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
@@ -347,26 +349,26 @@ export default function AgendamentoFormCriar({
                 </button>
               </div>
               {mostrarListaPacientes && (
-                <div className="absolute z-[70] w-full bg-white border border-purple-100 mt-2 max-h-48 overflow-y-auto rounded-2xl shadow-2xl custom-scrollbar">
+                <div className="absolute z-[70] w-full bg-white border border-line mt-2 max-h-48 overflow-y-auto rounded-md shadow-2xl custom-scrollbar">
                   {pacientesLista.length === 0 && !buscandoPacientes && (
-                     <div className="p-4 text-center text-sm font-bold text-gray-500">Nenhum paciente encontrado.</div>
+                     <div className="p-4 text-center text-sm font-bold text-muted">Nenhum paciente encontrado.</div>
                   )}
                   {pacientesLista.map((p) => (
                     <div
                       key={p.id}
-                      className="p-4 hover:bg-purple-50 cursor-pointer border-b border-gray-50 last:border-0 transition-colors flex flex-col gap-1"
+                      className="p-4 hover:bg-brand-50 cursor-pointer border-b border-line last:border-0 transition-colors flex flex-col gap-1"
                       onClick={() => {
                         setPacienteSelecionado(p.id);
                         setBuscaPaciente(p.nome);
                         setMostrarListaPacientes(false);
                       }}
                     >
-                      <div className="font-black text-gray-800 text-sm">{p.nome}</div>
-                      <div className="text-[10px] font-bold text-purple-400">CPF: {mascaraCpf(p.cpf)}</div>
+                      <div className="font-black text-ink text-sm">{p.nome}</div>
+                      <div className="text-[10px] font-bold text-muted">CPF: {mascaraCpf(p.cpf)}</div>
                     </div>
                   ))}
                   {totalPacientesBusca > 10 && (
-                     <div className="p-3 text-center text-[10px] font-bold text-purple-600 bg-purple-50 rounded-b-2xl">
+                     <div className="p-3 text-center text-[10px] font-bold text-brand-600 bg-brand-50 rounded-b-2xl">
                         Foram encontrados muitos resultados. Sugerimos a busca por CPF para refinar.
                      </div>
                   )}
@@ -376,9 +378,9 @@ export default function AgendamentoFormCriar({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Especialidade</label>
+                <label className="block text-[13px] font-medium text-body mb-1">Especialidade</label>
                 <select
-                  className="w-full p-4 border border-gray-200 rounded-2xl bg-gray-50 focus:ring-2 focus:ring-[#7C3AED] focus:bg-white outline-none font-bold text-sm"
+                  className="w-full p-4 border border-line rounded-md bg-canvas focus:ring-2 focus:ring-[#2C5282] focus:bg-white outline-none font-bold text-sm"
                   value={tipoProfissional}
                   onChange={(e) => setTipoProfissional(Number(e.target.value))}
                 >
@@ -387,9 +389,9 @@ export default function AgendamentoFormCriar({
                 </select>
               </div>
               <div>
-                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Tipo Consulta</label>
+                <label className="block text-[13px] font-medium text-body mb-1">Tipo Consulta</label>
                 <select
-                  className="w-full p-4 border border-gray-200 rounded-2xl bg-gray-50 focus:ring-2 focus:ring-[#7C3AED] focus:bg-white outline-none font-bold text-sm"
+                  className="w-full p-4 border border-line rounded-md bg-canvas focus:ring-2 focus:ring-[#2C5282] focus:bg-white outline-none font-bold text-sm"
                   value={tipoConsulta}
                   onChange={(e) => setTipoConsulta(Number(e.target.value))}
                 >
@@ -411,9 +413,9 @@ export default function AgendamentoFormCriar({
 
             {tipoProfissional === 1 && tipoConsulta !== 4 && (
               <div className="animate-in fade-in slide-in-from-top-2 duration-300">
-                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Especialidade Médica</label>
+                <label className="block text-[13px] font-medium text-body mb-1">Especialidade Médica</label>
                 {listaEspecialidades.some(e => !especialidadesDisponiveis.includes(e.id)) && (
-                  <div className="flex items-center gap-2 p-2.5 mb-3 bg-red-50 border border-red-100 text-red-500 rounded-xl text-[9px] font-bold uppercase tracking-widest">
+                  <div className="flex items-center gap-2 p-2.5 mb-3 bg-danger-tint border border-danger-border text-danger rounded-md text-[9px] font-bold uppercase tracking-widest">
                     <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
                     <span>Especialidades com ⚠ não possuem médicos no momento.</span>
                   </div>
@@ -428,12 +430,12 @@ export default function AgendamentoFormCriar({
                         type="button"
                         disabled={!disponivel}
                         onClick={() => setEspecialidadeId(e.id)}
-                        className={`py-2.5 px-3 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1.5 ${
+                        className={`py-2.5 px-3 rounded-md border text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1.5 ${
                           !disponivel
                             ? 'border-red-100 bg-red-50 text-red-300 cursor-not-allowed'
                             : selecionado
-                            ? 'border-[#7C3AED] bg-[#7C3AED] text-white shadow-lg shadow-purple-100'
-                            : 'border-gray-200 bg-white text-gray-600 hover:border-purple-300 hover:bg-purple-50'
+                            ? 'border-[#2C5282] bg-[#2C5282] text-white'
+                            : 'border-line bg-white text-body hover:border-brand-200 hover:bg-brand-50'
                         }`}
                       >
                         {e.nome}
@@ -447,9 +449,9 @@ export default function AgendamentoFormCriar({
 
             {tipoConsulta === 4 && (
               <div className="animate-in fade-in slide-in-from-top-2 duration-300">
-                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Consulta de Origem</label>
+                <label className="block text-[13px] font-medium text-body mb-1">Consulta de Origem</label>
                 <select
-                  className="w-full p-4 border border-purple-200 rounded-2xl bg-purple-50/30 focus:ring-2 focus:ring-[#7C3AED] focus:bg-white outline-none font-bold text-sm"
+                  className="w-full p-4 border border-line rounded-md bg-canvas focus:ring-2 focus:ring-[#2C5282] focus:bg-white outline-none font-bold text-sm"
                   value={origemId}
                   onChange={(e) => setOrigemId(e.target.value)}
                 >
@@ -473,24 +475,24 @@ export default function AgendamentoFormCriar({
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="col-span-1">
-                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Data</label>
+                <label className="block text-[13px] font-medium text-body mb-1">Data</label>
                 <input
                   type="date"
-                  className="w-full p-4 border border-gray-200 rounded-2xl bg-gray-50 focus:ring-2 focus:ring-[#7C3AED] focus:bg-white outline-none font-bold text-sm"
+                  className="w-full p-4 border border-line rounded-md bg-canvas focus:ring-2 focus:ring-[#2C5282] focus:bg-white outline-none font-bold text-sm"
                   value={dataSelecionada}
                   min={obterMinDate()}
                   onChange={(e) => setDataSelecionada(e.target.value)}
                 />
               </div>
               <div className="col-span-1">
-                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 ml-1">Horário Selecionado: <span className="text-[#7C3AED]">{horarioSelecionado || '...'}</span></label>
+                <label className="block text-[13px] font-medium text-body mb-1">Horário Selecionado: <span className="text-[#2C5282]">{horarioSelecionado || '...'}</span></label>
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
                   {carregandoHorarios ? (
                     Array.from({ length: 8 }).map((_, i) => (
-                      <div key={i} className="h-10 bg-gray-200 rounded-xl animate-pulse"></div>
+                      <div key={i} className="h-10 bg-line-soft rounded-md animate-pulse"></div>
                     ))
                   ) : dataSelecionada && horariosDisponiveis.length === 0 ? (
-                    <div className="col-span-4 p-4 flex flex-col items-center justify-center text-center bg-orange-50 border border-orange-100 rounded-2xl">
+                    <div className="col-span-4 p-4 flex flex-col items-center justify-center text-center bg-orange-50 border border-orange-100 rounded-md">
                       <AlertTriangle className="w-8 h-8 text-orange-400 mb-2" />
                       <p className="text-xs font-bold text-orange-600">Nenhum horário disponível.</p>
                       <p className="text-[10px] text-orange-500 font-medium mt-1">
@@ -503,9 +505,9 @@ export default function AgendamentoFormCriar({
                         key={h}
                         type="button"
                         onClick={() => setHorarioSelecionado(h)}
-                        className={`py-2.5 text-[11px] font-black rounded-xl border transition-all ${horarioSelecionado === h
-                            ? 'bg-[#7C3AED] text-white border-[#7C3AED] shadow-lg shadow-purple-100'
-                            : 'bg-white text-gray-600 border-gray-200 hover:border-purple-300 hover:bg-purple-50'
+                        className={`h-10 text-[13px] rounded-md border transition-colors ${horarioSelecionado === h
+                            ? 'bg-brand-600 text-white border-brand-600 font-semibold'
+                            : 'bg-white text-body border-line hover:bg-canvas font-medium'
                           }`}
                       >
                         {h}
@@ -517,18 +519,19 @@ export default function AgendamentoFormCriar({
             </div>
           </div>
 
-          <div className="pt-4 flex flex-col-reverse sm:flex-row gap-3">
-            <button onClick={onFechar} disabled={criando} className="w-full sm:flex-1 px-8 py-4 bg-gray-100 text-gray-600 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-gray-200 transition-all text-center disabled:opacity-50">Cancelar</button>
-            <button disabled={criando} onClick={async () => { await criarAgendamento(); }} className="w-full sm:flex-1 px-8 py-4 bg-[#7C3AED] text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-[#6D28D9] shadow-lg shadow-purple-200 transition-all flex justify-center items-center gap-2 disabled:opacity-50">
+          <div className="pt-4 border-t border-line flex flex-col-reverse sm:flex-row sm:justify-end gap-2.5">
+            <button onClick={onFechar} disabled={criando} className="w-full sm:w-auto h-10 px-4 text-sm font-semibold text-body bg-white border border-line rounded-md hover:bg-canvas transition-colors disabled:opacity-50">Cancelar</button>
+            <button disabled={criando} onClick={async () => { await criarAgendamento(); }} className="w-full sm:w-auto h-10 px-[18px] text-sm font-semibold text-white bg-brand-600 border border-brand-600 rounded-md hover:bg-brand-800 transition-colors flex justify-center items-center gap-2 disabled:opacity-50">
               {criando ? (
                 <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> Aguarde...</>
               ) : (
-                "Finalizar Agendamento"
+                "Finalizar agendamento"
               )}
             </button>
           </div>
         </div>
       </div>
     </div>
+    </ModalPortal>
   );
 }

@@ -88,19 +88,27 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             var perfilProfissional = await _context.Profissionais.FirstOrDefaultAsync(p => p.UsuarioId == usuario.Id);
             var perfilPaciente = await _context.Pacientes.FirstOrDefaultAsync(p => p.UsuarioId == usuario.Id);
 
-            // Verificar e consumir flag de penalidade removida
-            bool penalidadeRemovida = false;
-            if (perfilPaciente?.PenalidadeRemovidaAvisar == true)
+            // Conta de paciente não-ativa bloqueia o acesso mesmo com credenciais válidas.
+            // Verificado após a senha para não vazar a existência da conta no tempo de resposta.
+            // Banido = permanente (abuso de IA); Desativado/Excluido = encerrada.
+            if (perfilPaciente != null && perfilPaciente.SituacaoCliente != SituacaoCliente.Ativo)
             {
-                penalidadeRemovida = true;
-                perfilPaciente.ConsumarAvisoPenalidade();
-                await _context.SaveChangesAsync();
+                if (perfilPaciente.SituacaoCliente == SituacaoCliente.Banido)
+                    throw new UnauthorizedException("PERMANENT_BAN:Sua conta foi banida permanentemente devido a violações graves das políticas de segurança.");
+                throw new UnauthorizedException("Esta conta foi encerrada.");
             }
 
-            string tipoUsuarioStr = PerfisUsuario.Admin;
+            // Papel para o token: admin é explícito (não mais inferido do perfil);
+            // profissional detalha em Medico/Enfermeira (usado por regras de negócio);
+            // paciente é paciente. O claim Role dirige o [Authorize].
+            string tipoUsuarioStr;
             Guid? pacienteId = null;
 
-            if (perfilProfissional != null)
+            if (usuario.TipoUsuario == TipoUsuario.Admin)
+            {
+                tipoUsuarioStr = PerfisUsuario.Admin;
+            }
+            else if (perfilProfissional != null)
             {
                 tipoUsuarioStr = perfilProfissional.TipoProfissional.ToString();
             }
@@ -108,6 +116,10 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             {
                 tipoUsuarioStr = PerfisUsuario.Paciente;
                 pacienteId = perfilPaciente.Id;
+            }
+            else
+            {
+                tipoUsuarioStr = usuario.TipoUsuario.ToString();
             }
 
             var tokenHandler = new JwtSecurityTokenHandler();
@@ -121,7 +133,6 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                 new Claim(ClaimTypes.NameIdentifier, usuario.Id.ToString()),
                 new Claim(ClaimTypes.Role, tipoUsuarioStr),
                 new Claim(ClinicaClaims.TipoUsuario, tipoUsuarioStr),
-                new Claim(ClinicaClaims.IsAdmin, usuario.IsAdmin.ToString().ToLower()),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
 
@@ -151,11 +162,11 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             {
                 Token = Guid.NewGuid().ToString() + Guid.NewGuid().ToString(),
                 JwtId = token.Id,
-                IsUsed = false,
-                IsRevoked = false,
+                Usado = false,
+                Revogado = false,
                 UsuarioId = usuario.Id,
-                AddedDate = DateTime.UtcNow,
-                ExpiryDate = DateTime.UtcNow.AddDays(7)
+                DtCriado = DateTime.UtcNow,
+                DtExpiracao = DateTime.UtcNow.AddDays(7)
             };
 
             await LimparRefreshTokensAsync(usuario.Id);
@@ -165,14 +176,13 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             return new LoginResponse
             {
                 Token = jwtToken,
-                Nome = perfilProfissional?.Nome ?? perfilPaciente?.Nome ?? (usuario.IsAdmin ? "Administrador" : "Usuário"),
+                Nome = usuario.Nome,
                 RefreshToken = refreshToken.Token,
                 UsuarioId = usuario.Id,
                 TipoUsuario = tipoUsuarioStr,
                 PacienteId = pacienteId,
                 ProfissionalId = perfilProfissional?.Id,
-                IsAdmin = usuario.IsAdmin,
-                PenalidadeRemovida = penalidadeRemovida,
+                IsAdmin = usuario.TipoUsuario == TipoUsuario.Admin,
                 FotoBase64 = usuario.FotoBase64
             };
         }
@@ -186,7 +196,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             var limiteUsados = agora.AddDays(-1);
             await _context.RefreshTokens
                 .Where(t => t.UsuarioId == usuarioId &&
-                            (t.ExpiryDate < agora || (t.IsUsed && t.AddedDate < limiteUsados)))
+                            (t.DtExpiracao < agora || (t.Usado && t.DtCriado < limiteUsados)))
                 .ExecuteDeleteAsync();
         }
 
@@ -200,11 +210,11 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             var storedToken = await _context.RefreshTokens.FirstOrDefaultAsync(x => x.Token == request.RefreshToken);
 
             if (storedToken == null) throw new UnauthorizedException("Refresh token não existe.");
-            if (storedToken.IsUsed) throw new UnauthorizedException("Refresh token já foi utilizado.");
-            if (storedToken.IsRevoked) throw new UnauthorizedException("Refresh token foi revogado.");
-            if (storedToken.ExpiryDate < DateTime.UtcNow) throw new UnauthorizedException("Refresh token expirado.");
+            if (storedToken.Usado) throw new UnauthorizedException("Refresh token já foi utilizado.");
+            if (storedToken.Revogado) throw new UnauthorizedException("Refresh token foi revogado.");
+            if (storedToken.DtExpiracao < DateTime.UtcNow) throw new UnauthorizedException("Refresh token expirado.");
 
-            storedToken.IsUsed = true;
+            storedToken.Usado = true;
             _context.RefreshTokens.Update(storedToken);
             await _context.SaveChangesAsync();
 
@@ -214,23 +224,26 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             var perfilProfissional = await _context.Profissionais.AsNoTracking().FirstOrDefaultAsync(p => p.UsuarioId == usuario.Id);
             var perfilPaciente = await _context.Pacientes.AsNoTracking().FirstOrDefaultAsync(p => p.UsuarioId == usuario.Id);
 
-            string tipoUsuarioStr = PerfisUsuario.Admin;
+            string tipoUsuarioStr;
             Guid? pacienteId = null;
 
-            if (perfilProfissional != null)
+            if (usuario.TipoUsuario == TipoUsuario.Admin)
+                tipoUsuarioStr = PerfisUsuario.Admin;
+            else if (perfilProfissional != null)
                 tipoUsuarioStr = perfilProfissional.TipoProfissional.ToString();
             else if (perfilPaciente != null)
             {
                 tipoUsuarioStr = PerfisUsuario.Paciente;
                 pacienteId = perfilPaciente.Id;
             }
+            else
+                tipoUsuarioStr = usuario.TipoUsuario.ToString();
 
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.NameIdentifier, usuario.Id.ToString()),
                 new Claim(ClaimTypes.Role, tipoUsuarioStr),
                 new Claim(ClinicaClaims.TipoUsuario, tipoUsuarioStr),
-                new Claim(ClinicaClaims.IsAdmin, usuario.IsAdmin.ToString().ToLower()),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
 
@@ -253,11 +266,11 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             {
                 Token = Guid.NewGuid().ToString() + Guid.NewGuid().ToString(),
                 JwtId = token.Id,
-                IsUsed = false,
-                IsRevoked = false,
+                Usado = false,
+                Revogado = false,
                 UsuarioId = usuario.Id,
-                AddedDate = DateTime.UtcNow,
-                ExpiryDate = DateTime.UtcNow.AddDays(7)
+                DtCriado = DateTime.UtcNow,
+                DtExpiracao = DateTime.UtcNow.AddDays(7)
             };
 
             await LimparRefreshTokensAsync(usuario.Id);
@@ -267,13 +280,13 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             return new LoginResponse
             {
                 Token = jwtToken,
-                Nome = perfilProfissional?.Nome ?? perfilPaciente?.Nome ?? (usuario.IsAdmin ? "Administrador" : "Usuário"),
+                Nome = usuario.Nome,
                 RefreshToken = refreshToken.Token,
                 UsuarioId = usuario.Id,
                 TipoUsuario = tipoUsuarioStr,
                 PacienteId = pacienteId,
                 ProfissionalId = perfilProfissional?.Id,
-                IsAdmin = usuario.IsAdmin,
+                IsAdmin = usuario.TipoUsuario == TipoUsuario.Admin,
                 FotoBase64 = usuario.FotoBase64
             };
         }

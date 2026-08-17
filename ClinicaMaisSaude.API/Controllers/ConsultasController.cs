@@ -27,7 +27,7 @@ namespace ClinicaMaisSaude.API.Controllers
         {
             var pacienteIdClaim = User.FindFirst(ClinicaClaims.PacienteId)?.Value;
             var tipoUsuario = User.FindFirst(ClinicaClaims.TipoUsuario)?.Value;
-            var isAdmin = User.FindFirst(ClinicaClaims.IsAdmin)?.Value?.ToLower() == "true";
+            var isAdmin = User.IsInRole(PerfisUsuario.Admin);
 
             Guid? pId = null;
             if (!string.IsNullOrEmpty(pacienteIdClaim) && Guid.TryParse(pacienteIdClaim, out var parsedId))
@@ -44,8 +44,7 @@ namespace ClinicaMaisSaude.API.Controllers
         [HttpGet("violacoes")]
         public async Task<IActionResult> GetViolacoes()
         {
-            var adminClaim = User.FindFirst(ClinicaClaims.IsAdmin)?.Value;
-            if (adminClaim?.ToLower() != "true")
+            if (!User.IsInRole(PerfisUsuario.Admin))
                 throw new ForbiddenException("Apenas administradores podem ver as violações.");
 
             var violacoes = await _consultaService.ObterViolacoesAsync();
@@ -55,8 +54,7 @@ namespace ClinicaMaisSaude.API.Controllers
         [HttpDelete("violacoes/{pacienteId}/penalidade")]
         public async Task<IActionResult> RemoverPenalidade(Guid pacienteId)
         {
-            var adminClaim = User.FindFirst(ClinicaClaims.IsAdmin)?.Value;
-            if (adminClaim?.ToLower() != "true")
+            if (!User.IsInRole(PerfisUsuario.Admin))
                 throw new ForbiddenException("Apenas administradores podem remover penalidades.");
 
             await _consultaService.RemoverPenalidadeAsync(pacienteId);
@@ -66,8 +64,7 @@ namespace ClinicaMaisSaude.API.Controllers
         [HttpGet("violacoes-debug")]
         public async Task<IActionResult> GetViolacoesDebug()
         {
-            var adminClaim = User.FindFirst(ClinicaClaims.IsAdmin)?.Value;
-            if (adminClaim?.ToLower() != "true")
+            if (!User.IsInRole(PerfisUsuario.Admin))
                 throw new ForbiddenException("Apenas administradores podem ver as violações.");
 
             var violacoes = await _consultaService.ObterViolacoesDebugAsync();

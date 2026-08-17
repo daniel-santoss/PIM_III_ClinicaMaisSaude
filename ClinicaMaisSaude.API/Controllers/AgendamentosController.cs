@@ -29,7 +29,7 @@ namespace ClinicaMaisSaude.API.Controllers
         public async Task<IActionResult> CriarAgendamento([FromBody] AgendamentoRequest request)
         {
             var tipoUsuario = User.FindFirstValue(ClinicaClaims.TipoUsuario) ?? User.FindFirstValue(ClaimTypes.Role);
-            var isAdmin = User.FindFirstValue(ClinicaClaims.IsAdmin) == "true";
+            var isAdmin = User.IsInRole(PerfisUsuario.Admin);
 
             // Bloqueia a criação por médicos, exceto o Admin ou se for um agendamento de Retorno
             if (tipoUsuario == PerfisUsuario.Medico && !isAdmin && request.TipoConsulta != (int)ClinicaMaisSaude.Domain.Enums.TipoConsulta.Retorno)
@@ -51,7 +51,7 @@ namespace ClinicaMaisSaude.API.Controllers
         public async Task<IActionResult> ObterTodos([FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] string? busca = null, [FromQuery] string? data = null, [FromQuery] string? status = null, [FromQuery] bool riscoAltoApenas = false, [FromQuery] string ordem = "asc")
         {
             var tipoUsuario = User.FindFirstValue(ClinicaClaims.TipoUsuario) ?? User.FindFirstValue(ClaimTypes.Role);
-            var isAdmin = User.FindFirstValue(ClinicaClaims.IsAdmin) == "true";
+            var isAdmin = User.IsInRole(PerfisUsuario.Admin);
 
             Guid? filtroProf = null;
             Guid? filtroPac = null;
@@ -130,10 +130,10 @@ namespace ClinicaMaisSaude.API.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var isAdminClaim = User.Claims.FirstOrDefault(c => c.Type == ClinicaClaims.IsAdmin)?.Value;
+            var isAdmin = User.IsInRole(PerfisUsuario.Admin);
             var tipoUsuario = User.FindFirstValue(ClinicaClaims.TipoUsuario) ?? User.FindFirstValue(ClaimTypes.Role);
 
-            if (isAdminClaim != "true" && tipoUsuario == PerfisUsuario.Paciente)
+            if (!isAdmin && tipoUsuario == PerfisUsuario.Paciente)
             {
                 var agendamento = await _agendamentoService.ObterPorIdAsync(id);
                 if (agendamento == null)

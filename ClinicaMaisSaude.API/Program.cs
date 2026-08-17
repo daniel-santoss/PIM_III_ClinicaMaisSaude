@@ -148,6 +148,9 @@ builder.Services.AddAuthentication(x =>
 // SignalR: notificações em tempo real (push), substituindo o polling do front-end.
 builder.Services.AddSignalR();
 
+// Autorização: admin é superusuário — satisfaz qualquer [Authorize] (regra central).
+builder.Services.AddSingleton<Microsoft.AspNetCore.Authorization.IAuthorizationHandler, ClinicaMaisSaude.API.Authorization.AdminSuperusuarioHandler>();
+
 // Injeção de Dependências
 builder.Services.AddSingleton<IDataHoraService, DataHoraService>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
@@ -203,6 +206,17 @@ app.Use(async (context, next) =>
             var dbContext = context.RequestServices.GetRequiredService<ClinicaDbContext>();
             var dbUser = await dbContext.Usuarios.FindAsync(userId);
             if (dbUser != null && dbUser.IsBloqueado())
+            {
+                context.Response.StatusCode = 403;
+                await context.Response.WriteAsync("Sua conta está bloqueada.");
+                return;
+            }
+
+            // Paciente não-ativo (Desativado/Excluido/Banido) não pode usar a API mesmo
+            // com um JWT ainda válido — o gating de login sozinho deixaria uma janela aberta.
+            var pacienteConta = await dbContext.Pacientes
+                .FirstOrDefaultAsync(p => p.UsuarioId == userId);
+            if (pacienteConta != null && pacienteConta.SituacaoCliente != ClinicaMaisSaude.Domain.Enums.SituacaoCliente.Ativo)
             {
                 context.Response.StatusCode = 403;
                 await context.Response.WriteAsync("Sua conta está bloqueada.");

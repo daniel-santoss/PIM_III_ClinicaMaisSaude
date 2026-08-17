@@ -52,24 +52,41 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                 }
             }
 
+            // Telefone é opcional: se informado, sanitiza para só dígitos e exige DDD+9 (11).
+            string? telefoneLimpo = null;
+            if (!string.IsNullOrWhiteSpace(request.Telefone))
+            {
+                telefoneLimpo = new string(request.Telefone.Where(char.IsDigit).ToArray());
+                if (telefoneLimpo.Length != 11)
+                    return new CadastroResult { Sucesso = false, Mensagem = "Telefone inválido. Informe DDD + número (11 dígitos)." };
+            }
+
             // Hash da senha
             var senhaHash = BCrypt.Net.BCrypt.HashPassword(request.Senha);
 
-            // Criação da identidade (LoginPortal)
-            var novoUsuario = new Usuario(request.Email, cpfLimpo, senhaHash);
+            // Papel (grosso) da conta a partir do tipo solicitado.
+            TipoUsuario tipoConta;
+            if (request.TipoUsuario == PerfisUsuario.Paciente)
+                tipoConta = TipoUsuario.Paciente;
+            else if (request.TipoUsuario == PerfisUsuario.Medico || request.TipoUsuario == PerfisUsuario.Enfermeira)
+                tipoConta = TipoUsuario.Profissional;
+            else
+                return new CadastroResult { Sucesso = false, Mensagem = "Tipo de usuário inválido." };
+
+            // Criação da identidade (LoginPortal) — dona de Nome/Cpf/Email/Telefone.
+            var novoUsuario = new Usuario(request.Email, cpfLimpo, senhaHash, request.Nome, telefoneLimpo, tipoConta);
             _context.Usuarios.Add(novoUsuario);
 
-            // Criação do perfil associado
+            // Criação do perfil associado (magro; identidade fica no LoginPortal)
             if (request.TipoUsuario == PerfisUsuario.Paciente)
             {
-                var paciente = new Paciente(request.Nome, cpfLimpo, "00000000000", request.Email, request.TemProblemaMemoria);
-                paciente.VincularUsuario(novoUsuario.Id);
+                var paciente = new Paciente(novoUsuario.Id, request.TemProblemaMemoria);
                 _context.Pacientes.Add(paciente);
             }
             else if (request.TipoUsuario == PerfisUsuario.Medico || request.TipoUsuario == PerfisUsuario.Enfermeira)
             {
                 var tipo = request.TipoUsuario == PerfisUsuario.Medico ? TipoProfissional.Medico : TipoProfissional.Enfermeira;
-                var profissional = new Profissional(novoUsuario.Id, tipo, request.Nome, request.Crm, request.UfCrm);
+                var profissional = new Profissional(novoUsuario.Id, tipo, request.Crm, request.UfCrm);
                 _context.Profissionais.Add(profissional);
             }
             else
@@ -91,7 +108,8 @@ namespace ClinicaMaisSaude.Infrastructure.Services
 
             foreach (var u in usuarios)
             {
-                string nome = "Admin (Sistema)";
+                // Nome vem sempre do LoginPortal (identidade única); o perfil só define o tipo.
+                string nome = u.Nome;
                 string tipo = "Admin";
 
                 var prof = profissionais.FirstOrDefault(p => p.UsuarioId == u.Id);
@@ -100,12 +118,10 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                 if (prof != null)
                 {
                     tipo = prof.TipoProfissional.ToString();
-                    nome = prof.Nome;
                 }
                 else if (pac != null)
                 {
                     tipo = PerfisUsuario.Paciente;
-                    nome = pac.Nome;
                 }
 
                 resposta.Add(new UsuarioResponse
@@ -182,7 +198,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             if (!testUserIds.Any()) return;
 
             var testPatientIds = await _context.Pacientes
-                .Where(p => p.Email.Contains(".homologacao.") || (p.UsuarioId.HasValue && testUserIds.Contains(p.UsuarioId.Value)))
+                .Where(p => testUserIds.Contains(p.UsuarioId))
                 .Select(p => p.Id)
                 .ToListAsync();
 
@@ -209,10 +225,10 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                 _context.Agendamentos.RemoveRange(agendamentos);
             }
 
-            var violacoes = await _context.ViolacoesIA
+            var violacoes = await _context.UsoInadequadoIA
                 .Where(v => testUserIds.Contains(v.UsuarioId))
                 .ToListAsync();
-            _context.ViolacoesIA.RemoveRange(violacoes);
+            _context.UsoInadequadoIA.RemoveRange(violacoes);
 
             var tokens = await _context.RefreshTokens
                 .Where(t => testUserIds.Contains(t.UsuarioId))

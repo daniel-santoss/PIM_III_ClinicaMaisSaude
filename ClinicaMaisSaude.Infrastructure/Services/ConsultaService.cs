@@ -110,13 +110,13 @@ namespace ClinicaMaisSaude.Infrastructure.Services
 
             if (pacienteId.HasValue)
             {
-                paciente = await _context.Pacientes.FirstOrDefaultAsync(p => p.Id == pacienteId.Value);
+                paciente = await _context.Pacientes.Include(p => p.Usuario).FirstOrDefaultAsync(p => p.Id == pacienteId.Value);
                 if (paciente == null)
                     throw new NotFoundException("Paciente não encontrado.");
 
-                if (paciente.IsIABloqueada())
+                if (paciente.Usuario.IsIABloqueada())
                 {
-                    var dataBloqueio = _dataHora.ParaBrasilia(paciente.BloqueadoIAAte!.Value).ToString("dd/MM/yyyy HH:mm");
+                    var dataBloqueio = _dataHora.ParaBrasilia(paciente.Usuario.BloqueadoIAAte!.Value).ToString("dd/MM/yyyy HH:mm");
                     throw new ForbiddenException($"Acesso à IA bloqueado até {dataBloqueio}. Se acha que é um erro, entre em contato: suporte@clinicamaissaude.com");
                 }
             }
@@ -216,13 +216,17 @@ Formato:
                     var userObj = await _context.Usuarios.FirstOrDefaultAsync(u => u.Id == usuarioLogadoId);
                     if (userObj != null)
                     {
-                        userObj.BloquearPermanentemente();
+                        // Banimento permanente: paciente vira SituacaoCliente=Banido; staff
+                        // (sem perfil de paciente) cai no bloqueio de conta como fallback.
+                        var pacienteBan = await _context.Pacientes.FirstOrDefaultAsync(p => p.UsuarioId == usuarioLogadoId);
+                        if (pacienteBan != null) pacienteBan.Banir();
+                        else userObj.BloquearPermanentemente();
                         var novaViolacao = new UsoInadequadoIA(usuarioLogadoId, TipoViolacao.Injecao, sintomas);
-                        _context.ViolacoesIA.Add(novaViolacao);
+                        _context.UsoInadequadoIA.Add(novaViolacao);
 
                         var notificacoes = await CancelarAgendamentosENotificarAsync(usuarioLogadoId);
 
-                        var admins = await _context.Usuarios.AsNoTracking().Where(u => u.IsAdmin).ToListAsync();
+                        var admins = await _context.Usuarios.AsNoTracking().Where(u => u.TipoUsuario == TipoUsuario.Admin).ToListAsync();
                         foreach (var admin in admins)
                         {
                             var notificacao = new Notificacao(
@@ -271,13 +275,17 @@ Formato:
                 var userObj = await _context.Usuarios.FirstOrDefaultAsync(u => u.Id == usuarioLogadoId);
                 if (userObj != null)
                 {
-                    userObj.BloquearPermanentemente();
+                    // Banimento permanente: paciente vira SituacaoCliente=Banido; staff
+                    // (sem perfil de paciente) cai no bloqueio de conta como fallback.
+                    var pacienteBan = await _context.Pacientes.FirstOrDefaultAsync(p => p.UsuarioId == usuarioLogadoId);
+                    if (pacienteBan != null) pacienteBan.Banir();
+                    else userObj.BloquearPermanentemente();
                     var novaViolacao = new UsoInadequadoIA(usuarioLogadoId, TipoViolacao.Injecao, sintomas);
-                    _context.ViolacoesIA.Add(novaViolacao);
+                    _context.UsoInadequadoIA.Add(novaViolacao);
 
                     var notificacoes = await CancelarAgendamentosENotificarAsync(usuarioLogadoId);
 
-                    var admins = await _context.Usuarios.AsNoTracking().Where(u => u.IsAdmin).ToListAsync();
+                    var admins = await _context.Usuarios.AsNoTracking().Where(u => u.TipoUsuario == TipoUsuario.Admin).ToListAsync();
                     foreach (var admin in admins)
                     {
                         var notificacao = new Notificacao(
@@ -298,30 +306,29 @@ Formato:
 
             if (paciente != null && textoResposta != null && textoResposta.Contains("Sintomas inválidos"))
             {
-                if (paciente.UsuarioId.HasValue)
                 {
-                    var totalViolacoes = await _context.ViolacoesIA.CountAsync(v => v.UsuarioId == paciente.UsuarioId.Value) + 1;
-                    var novaViolacao = new UsoInadequadoIA(paciente.UsuarioId.Value, TipoViolacao.UsoIndevido, sintomas);
-                    _context.ViolacoesIA.Add(novaViolacao);
+                    var totalViolacoes = await _context.UsoInadequadoIA.CountAsync(v => v.UsuarioId == paciente.UsuarioId) + 1;
+                    var novaViolacao = new UsoInadequadoIA(paciente.UsuarioId, TipoViolacao.UsoIndevido, sintomas);
+                    _context.UsoInadequadoIA.Add(novaViolacao);
 
                     if (totalViolacoes == 2)
                     {
-                        paciente.BloquearIA(DateTime.UtcNow.AddDays(1));
+                        paciente.Usuario.BloquearIA(DateTime.UtcNow.AddDays(1));
                     }
                     else if (totalViolacoes >= 3)
                     {
-                        paciente.BloquearIA(DateTime.UtcNow.AddDays(7));
+                        paciente.Usuario.BloquearIA(DateTime.UtcNow.AddDays(7));
                     }
 
                     var notificacoes = new List<Notificacao>();
-                    var admins = await _context.Usuarios.AsNoTracking().Where(u => u.IsAdmin).ToListAsync();
+                    var admins = await _context.Usuarios.AsNoTracking().Where(u => u.TipoUsuario == TipoUsuario.Admin).ToListAsync();
                     foreach (var admin in admins)
                     {
                         var notificacao = new Notificacao(
                             admin.Id,
                             "Uso Indevido da IA",
-                            $"O paciente {paciente.Nome} (CPF: {paciente.Cpf}) enviou sintomas irrelevantes à saúde: \"{sintomas}\".",
-                            link: $"violacoes?busca={paciente.Cpf}"
+                            $"O paciente {paciente.Usuario.Nome} (CPF: {paciente.Usuario.Cpf}) enviou sintomas irrelevantes à saúde: \"{sintomas}\".",
+                            link: $"violacoes?busca={paciente.Usuario.Cpf}"
                         );
                         _context.Notificacoes.Add(notificacao);
                         notificacoes.Add(notificacao);
@@ -347,40 +354,58 @@ Formato:
                 usuario.DesbloquearConta();
             }
 
+            // Penalidade temporária de IA vive no LoginPortal (Fase 6).
+            usuario.DesbloquearIA();
+
             var paciente = await _context.Pacientes.FirstOrDefaultAsync(p => p.UsuarioId == usuarioId);
-            if (paciente != null)
+            if (paciente != null && paciente.SituacaoCliente == SituacaoCliente.Banido)
             {
-                paciente.RemoverPenalidade();
+                // Ban permanente por IA vira SituacaoCliente=Banido; ao perdoar, reativa a conta.
+                paciente.Reativar();
             }
 
+            // Antes o aviso ficava esperando o próximo login (flag no Paciente). Agora vira
+            // uma notificação: o feed cobre o "já avisei" (Lida) e o SignalR empurra na hora.
+            var notificacao = new Notificacao(
+                usuarioId,
+                "Penalidade removida",
+                "A restrição de uso da triagem por IA foi removida pela administração. Você já pode utilizar o serviço normalmente.",
+                link: "triagem");
+            _context.Notificacoes.Add(notificacao);
+
             await _context.SaveChangesAsync();
+            await _notificadorTempoReal.NotificarAsync(notificacao);
         }
 
         public async Task<IEnumerable<object>> ObterViolacoesAsync()
         {
-            var violacoes = await _context.ViolacoesIA
+            var violacoes = await _context.UsoInadequadoIA
                 .AsNoTracking()
                 .Include(a => a.Usuario)
                 .Select(a => new
                 {
                     a.Id,
                     PacienteId = a.UsuarioId,
-                    PacienteNome = _context.Pacientes.Where(p => p.UsuarioId == a.UsuarioId).Select(p => p.Nome).FirstOrDefault()
-                                   ?? _context.Profissionais.Where(p => p.UsuarioId == a.UsuarioId).Select(p => p.Nome).FirstOrDefault()
-                                   ?? (a.Usuario.IsAdmin ? "Administrador" : a.Usuario.Email),
+                    PacienteNome = a.Usuario.Nome,
                     PacienteCpf = a.Usuario.Cpf,
                     PacienteTipo = _context.Pacientes.Any(p => p.UsuarioId == a.UsuarioId) ? PerfisUsuario.Paciente
                                    : _context.Profissionais.Where(p => p.UsuarioId == a.UsuarioId)
                                        .Select(p => p.TipoProfissional == TipoProfissional.Medico ? PerfisUsuario.Medico : PerfisUsuario.Enfermeira)
                                        .FirstOrDefault()
-                                   ?? (a.Usuario.IsAdmin ? "Administrador" : PerfisUsuario.Paciente),
+                                   ?? (a.Usuario.TipoUsuario == TipoUsuario.Admin ? "Administrador" : PerfisUsuario.Paciente),
                     PacienteFotoBase64 = a.Usuario.Foto != null ? a.Usuario.Foto.FotoBase64 : null,
                     TipoViolacao = a.TipoViolacao.ToString(),
                     a.TextoInserido,
                     a.DtCriado,
-                    PenalidadeRemovidaAguardandoLogin = _context.Pacientes.Where(p => p.UsuarioId == a.UsuarioId).Select(p => p.PenalidadeRemovidaAvisar).FirstOrDefault(),
-                    IABloqueadaAte = _context.Pacientes.Where(p => p.UsuarioId == a.UsuarioId).Select(p => p.BloqueadoIAAte).FirstOrDefault(),
-                    ContaBloqueadaAte = a.Usuario.BloqueadoAte
+                    // Flag "avisar no login" deixou de existir (Fase 6): o aviso virou notificação.
+                    // Mantido no contrato como false para não quebrar a ViolacoesList do front.
+                    PenalidadeRemovidaAguardandoLogin = false,
+                    IABloqueadaAte = a.Usuario.BloqueadoIAAte,
+                    ContaBloqueadaAte = a.Usuario.BloqueadoAte,
+                    // Ban permanente de paciente vive em Paciente.SituacaoCliente=Banido
+                    // (substituiu o hack BloqueadoAte=+100 anos), então precisa vir explícito
+                    // no contrato — senão a ViolacoesList não enxerga a penalidade ativa.
+                    BanidoPermanente = _context.Pacientes.Any(p => p.UsuarioId == a.UsuarioId && p.SituacaoCliente == SituacaoCliente.Banido)
                 })
                 .OrderByDescending(a => a.DtCriado)
                 .ToListAsync();
@@ -390,7 +415,7 @@ Formato:
 
         public async Task<IEnumerable<object>> ObterViolacoesDebugAsync()
         {
-            var violacoes = await _context.ViolacoesIA
+            var violacoes = await _context.UsoInadequadoIA
                 .AsNoTracking()
                 .Select(a => new
                 {
@@ -425,10 +450,10 @@ Formato:
                     agendamento.AlterarStatus(StatusAgendamento.Cancelado);
                     
                     var pac = await _context.Pacientes.FirstOrDefaultAsync(p => p.Id == agendamento.PacienteId);
-                    if (pac != null && pac.UsuarioId.HasValue)
+                    if (pac != null)
                     {
                         var notificacao = new Notificacao(
-                            pac.UsuarioId.Value,
+                            pac.UsuarioId,
                             "Agendamento Cancelado",
                             "Seu agendamento foi cancelado devido a reajustes cadastrais administrativos do profissional.",
                             agendamento.Id,

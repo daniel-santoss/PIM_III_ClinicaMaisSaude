@@ -1,5 +1,6 @@
 import { AlertTriangle, Info, X } from 'lucide-react';
 import { useScrollBlock } from '../hooks/useScrollBlock';
+import ModalPortal from './ui/ModalPortal';
 
 interface ConfirmModalProps {
   isOpen: boolean;
@@ -31,47 +32,48 @@ export default function ConfirmModal({
   const isDestructive = type === 'destructive';
   const Icon = isDestructive ? AlertTriangle : Info;
   
-  const iconColor = isDestructive ? 'text-red-600' : 'text-[#7C3AED]';
-  const iconBg = isDestructive ? 'bg-red-100' : 'bg-purple-100';
-  
-  const confirmBtnClass = isDestructive 
-    ? 'bg-red-600 hover:bg-red-700 text-white shadow-red-200'
-    : 'bg-[#7C3AED] hover:bg-[#6D28D9] text-white shadow-purple-200';
+  const iconColor = isDestructive ? 'text-danger' : 'text-brand-600';
+  const iconBg = isDestructive ? 'bg-danger-tint' : 'bg-brand-50';
+
+  const confirmBtnClass = isDestructive
+    ? 'bg-danger hover:bg-danger/90 text-white border-danger'
+    : 'bg-brand-600 hover:bg-brand-800 text-white border-brand-600';
 
   return (
-    <div className="fixed inset-0 z-[3000] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className={`bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center animate-in zoom-in-95 duration-200 relative max-h-[92dvh] overflow-y-auto custom-scrollbar`}>
+    <ModalPortal>
+    <div className="fixed inset-0 z-[3000] flex items-center justify-center bg-ink/45 backdrop-blur-[2px] p-4 animate-in fade-in duration-200">
+      <div className="bg-white rounded-xl shadow-modal w-full max-w-sm p-6 text-center animate-in zoom-in-95 duration-200 relative max-h-[92dvh] overflow-y-auto custom-scrollbar">
         {/* Botão Fechar X */}
         <button
           onClick={onCancel}
-          className="absolute right-4 top-4 p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors cursor-pointer border-none bg-transparent flex items-center justify-center"
+          className="absolute right-4 top-4 w-8 h-8 grid place-items-center text-body bg-canvas border border-line rounded-md hover:bg-line-soft transition-colors"
           aria-label="Fechar"
         >
           <X className="w-4 h-4" />
         </button>
-        
-        <div className={`w-14 h-14 ${iconBg} ${iconColor} rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm`}>
-          <Icon className="w-7 h-7" />
+
+        <div className={`w-12 h-12 ${iconBg} ${iconColor} rounded-lg grid place-items-center mx-auto mb-4`}>
+          <Icon className="w-6 h-6" />
         </div>
-        
-        <h3 className="text-xl font-black text-gray-900 mb-2 tracking-tight">{title}</h3>
-        
-        <p className="text-sm text-gray-600 mb-8 font-medium leading-relaxed">
+
+        <h3 className="text-lg font-semibold text-ink mb-1.5">{title}</h3>
+
+        <p className="text-[13px] text-body mb-6 leading-relaxed">
           {description}
         </p>
-        
-        <div className="flex gap-3">
-          <button 
-            disabled={loading} 
-            className="flex-1 py-3 text-sm font-bold text-gray-600 border-2 border-gray-200 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all active:scale-95 disabled:opacity-50" 
+
+        <div className="flex gap-2.5">
+          <button
+            disabled={loading}
+            className="flex-1 h-10 text-sm font-semibold text-body bg-white border border-line rounded-md hover:bg-canvas transition-colors disabled:opacity-50"
             onClick={onCancel}
           >
             {cancelText}
           </button>
-          
-          <button 
-            disabled={loading} 
-            className={`flex-1 py-3 text-sm font-bold rounded-xl shadow-lg transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 ${confirmBtnClass}`} 
+
+          <button
+            disabled={loading}
+            className={`flex-1 h-10 text-sm font-semibold rounded-md border transition-colors disabled:opacity-50 flex items-center justify-center gap-2 ${confirmBtnClass}`}
             onClick={onConfirm}
           >
             {loading ? (
@@ -83,5 +85,6 @@ export default function ConfirmModal({
         </div>
       </div>
     </div>
+    </ModalPortal>
   );
 }

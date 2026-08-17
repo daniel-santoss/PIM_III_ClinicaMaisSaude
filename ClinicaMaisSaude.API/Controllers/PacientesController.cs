@@ -41,7 +41,7 @@ namespace ClinicaMaisSaude.API.Controllers
         [HttpGet]
         public async Task<IActionResult> ObterTodos([FromQuery] string? nome, [FromQuery] string? cpf, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
         {
-            var isAdmin = User.FindFirstValue(ClinicaClaims.IsAdmin) == "true";
+            var isAdmin = User.IsInRole(PerfisUsuario.Admin);
             var result = await _pacienteService.ObterTodosPaginadoAsync(nome, cpf, isAdmin, page, pageSize);
 
             return Ok(result);
