@@ -5,11 +5,12 @@ import { useEffect } from 'react';
 import { useColorScheme } from 'react-native';
 
 import { AuthProvider, useAuth } from '@/auth/AuthContext';
+import TelaBloqueio from '@/components/TelaBloqueio';
 
 SplashScreen.preventAutoHideAsync();
 
 function RootNavigator() {
-  const { session, loading } = useAuth();
+  const { session, loading, bloqueado } = useAuth();
   const segments = useSegments();
   const router = useRouter();
 
@@ -27,7 +28,13 @@ function RootNavigator() {
     SplashScreen.hideAsync();
   }, [session, loading, segments, router]);
 
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+    <>
+      <Stack screenOptions={{ headerShown: false }} />
+      {/* Sobreposição de bloqueio: mantém a navegação montada por baixo. */}
+      {session && bloqueado && <TelaBloqueio />}
+    </>
+  );
 }
 
 export default function RootLayout() {

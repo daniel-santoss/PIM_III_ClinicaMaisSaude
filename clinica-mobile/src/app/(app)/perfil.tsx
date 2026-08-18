@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -7,6 +7,7 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   View,
@@ -20,6 +21,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '@/auth/AuthContext';
 import ExcluirContaModal from '@/components/ExcluirContaModal';
 import TrocarSenhaModal from '@/components/TrocarSenhaModal';
+import { biometriaDisponivel } from '@/lib/biometria';
 import { atualizarDados, enviarFoto, obterPerfil } from '@/lib/perfil';
 import type { PacientePerfil } from '@/types/perfil';
 
@@ -32,10 +34,29 @@ function formatarCpf(cpf: string): string {
 }
 
 export default function PerfilScreen() {
-  const { session, logout, atualizarNome } = useAuth();
+  const { session, logout, atualizarNome, biometriaAtiva, definirBiometria } = useAuth();
   const [perfil, setPerfil] = useState<PacientePerfil | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
+
+  // Biometria: só oferecemos o toggle se o aparelho tem hardware + cadastro.
+  const [biometriaOfertavel, setBiometriaOfertavel] = useState(false);
+  const [alterandoBiometria, setAlterandoBiometria] = useState(false);
+  useEffect(() => {
+    biometriaDisponivel().then(setBiometriaOfertavel);
+  }, []);
+
+  async function aoAlternarBiometria(valor: boolean) {
+    setAlterandoBiometria(true);
+    try {
+      const ok = await definirBiometria(valor);
+      if (!ok && valor) {
+        Alert.alert('Não foi possível ativar', 'A biometria não foi confirmada ou não está disponível.');
+      }
+    } finally {
+      setAlterandoBiometria(false);
+    }
+  }
 
   // Campos editáveis (controlados).
   const [nome, setNome] = useState('');
@@ -252,6 +273,23 @@ export default function PerfilScreen() {
               <Text style={styles.linhaAcaoTexto}>Trocar senha</Text>
               <Ionicons name="chevron-forward" size={18} color="#9CA3AF" />
             </Pressable>
+
+            {biometriaOfertavel && (
+              <View style={styles.linhaAcao}>
+                <Ionicons name="finger-print-outline" size={20} color="#374151" />
+                <View style={styles.biometriaTexto}>
+                  <Text style={styles.linhaAcaoTexto}>Desbloqueio por biometria</Text>
+                  <Text style={styles.biometriaSub}>Exigir biometria ao abrir o app</Text>
+                </View>
+                <Switch
+                  value={biometriaAtiva}
+                  onValueChange={aoAlternarBiometria}
+                  disabled={alterandoBiometria}
+                  trackColor={{ true: ROXO, false: '#E5E7EB' }}
+                  thumbColor="#fff"
+                />
+              </View>
+            )}
           </View>
 
           {/* Zona de risco */}
@@ -365,6 +403,8 @@ const styles = StyleSheet.create({
     borderColor: '#F3F4F6',
   },
   linhaAcaoTexto: { flex: 1, fontSize: 15, fontWeight: '700', color: '#374151' },
+  biometriaTexto: { flex: 1, gap: 2 },
+  biometriaSub: { fontSize: 12, fontWeight: '500', color: '#9CA3AF' },
 
   botaoSair: {
     borderWidth: 1,

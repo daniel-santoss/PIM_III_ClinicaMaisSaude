@@ -40,6 +40,12 @@
           "photosPermission": "O app usa suas fotos para definir a foto de perfil.",
           "cameraPermission": "O app usa a câmera para tirar sua foto de perfil."
         }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "O app usa o Face ID para desbloquear seu acesso."
+        }
       ]
     ],
     "experiments": {

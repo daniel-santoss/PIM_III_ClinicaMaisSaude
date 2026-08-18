@@ -6,6 +6,7 @@ export const storageKeys = {
   refreshToken: 'refreshToken',
   pacienteId: 'pacienteId',
   nomeUsuario: 'nomeUsuario',
+  biometriaAtiva: 'biometriaAtiva',
 } as const;
 
 export type StorageKey = (typeof storageKeys)[keyof typeof storageKeys];
