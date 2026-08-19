@@ -23,15 +23,10 @@ import ExcluirContaModal from '@/components/ExcluirContaModal';
 import TrocarSenhaModal from '@/components/TrocarSenhaModal';
 import { biometriaDisponivel } from '@/lib/biometria';
 import { atualizarDados, enviarFoto, obterPerfil } from '@/lib/perfil';
+import { isEmailValido, isTelefoneValido, mascaraCpf, mascaraTelefone, soDigitos } from '@/lib/validadores';
 import type { PacientePerfil } from '@/types/perfil';
 
 const AZUL = '#2C5282';
-
-function formatarCpf(cpf: string): string {
-  const d = (cpf ?? '').replace(/\D/g, '');
-  if (d.length !== 11) return cpf;
-  return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}`;
-}
 
 export default function PerfilScreen() {
   const { session, logout, atualizarNome, biometriaAtiva, definirBiometria } = useAuth();
@@ -75,7 +70,7 @@ export default function PerfilScreen() {
       setPerfil(p);
       setNome(p.nome ?? '');
       setEmail(p.email ?? '');
-      setTelefone(p.telefone ?? '');
+      setTelefone(mascaraTelefone(p.telefone));
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Erro ao carregar o perfil.');
     } finally {
@@ -93,17 +88,29 @@ export default function PerfilScreen() {
     !!perfil &&
     (nome.trim() !== (perfil.nome ?? '') ||
       email.trim() !== (perfil.email ?? '') ||
-      telefone.trim() !== (perfil.telefone ?? ''));
+      soDigitos(telefone) !== soDigitos(perfil.telefone));
 
   const podeSalvar = alterou && nome.trim().length > 0 && email.trim().length > 0 && !salvando;
 
   async function salvar() {
     if (!podeSalvar) return;
+    // Validações locais antes de enviar (evita salvar dado malformado).
+    if (!isEmailValido(email)) {
+      Alert.alert('E-mail inválido', 'Informe um e-mail no formato nome@dominio.com.');
+      return;
+    }
+    if (!isTelefoneValido(telefone)) {
+      Alert.alert('Telefone inválido', 'Informe um telefone com DDD (10 ou 11 dígitos).');
+      return;
+    }
     setSalvando(true);
     try {
-      const dados = { nome: nome.trim(), email: email.trim(), telefone: telefone.trim() };
+      const dados = { nome: nome.trim(), email: email.trim().toLowerCase(), telefone: soDigitos(telefone) };
       await atualizarDados(dados);
       setPerfil((prev) => (prev ? { ...prev, ...dados } : prev));
+      // Reflete os valores normalizados nos campos (evita "alterou" fantasma).
+      setEmail(dados.email);
+      setTelefone(mascaraTelefone(dados.telefone));
       await atualizarNome(dados.nome);
       Alert.alert('Pronto', 'Seus dados foram atualizados.');
     } catch (e) {
@@ -234,8 +241,11 @@ export default function PerfilScreen() {
             <Text style={[styles.label, { marginTop: 12 }]}>Telefone</Text>
             <TextInput
               value={telefone}
-              onChangeText={setTelefone}
+              onChangeText={(v) => setTelefone(mascaraTelefone(v))}
               keyboardType="phone-pad"
+              placeholder="(00) 00000-0000"
+              placeholderTextColor="#9CA3AF"
+              maxLength={16}
               style={styles.input}
               editable={!salvando}
             />
@@ -254,7 +264,7 @@ export default function PerfilScreen() {
             <Text style={styles.secaoTitulo}>Informações da conta</Text>
             <View style={styles.linhaRO}>
               <Text style={styles.roLabel}>CPF</Text>
-              <Text style={styles.roValor}>{perfil ? formatarCpf(perfil.cpf) : '—'}</Text>
+              <Text style={styles.roValor}>{perfil ? mascaraCpf(perfil.cpf) : '—'}</Text>
             </View>
             <View style={styles.linhaRO}>
               <Text style={styles.roLabel}>Acompanhamento de memória</Text>
