@@ -26,12 +26,19 @@ export async function rotuloBiometria(): Promise<string> {
   }
 }
 
+// Lock de módulo: no Android, duas chamadas concorrentes a authenticateAsync
+// travam o prompt nativo (fica carregando sem aparecer). Garante uma por vez,
+// mesmo com remontagens/StrictMode.
+let autenticando = false;
+
 // Dispara o prompt nativo. Retorna true só em sucesso. `fallbackSenhaDispositivo`
 // permite cair na senha/PIN do aparelho (útil para desbloquear o app).
 export async function autenticarBiometria(
   motivo: string,
   fallbackSenhaDispositivo = true,
 ): Promise<boolean> {
+  if (autenticando) return false;
+  autenticando = true;
   try {
     const r = await LocalAuthentication.authenticateAsync({
       promptMessage: motivo,
@@ -41,5 +48,7 @@ export async function autenticarBiometria(
     return r.success;
   } catch {
     return false;
+  } finally {
+    autenticando = false;
   }
 }

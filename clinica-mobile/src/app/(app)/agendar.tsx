@@ -70,7 +70,8 @@ export default function AgendarScreen() {
     try {
       const s = await sugerirTipo(sintomas.trim());
       if (s.justificativa?.includes(MARCADOR_INJECAO)) {
-        Alert.alert('Acesso bloqueado', s.justificativa, [{ text: 'Entendi', onPress: () => logout() }]);
+        // Banido no servidor: apaga tudo (sem re-login biométrico — o JWT ainda vale ~3h).
+        Alert.alert('Acesso bloqueado', s.justificativa, [{ text: 'Entendi', onPress: () => logout(true) }]);
         return;
       }
       setSugestao(s);

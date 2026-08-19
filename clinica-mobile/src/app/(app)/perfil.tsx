@@ -319,7 +319,7 @@ export default function PerfilScreen() {
         onExcluida={() => {
           setExcluirAberto(false);
           Alert.alert('Conta excluída', 'Sua conta foi encerrada.');
-          logout();
+          logout(true); // conta não existe mais: apaga tudo (sem re-login biométrico)
         }}
       />
     </SafeAreaView>
