@@ -14,7 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { useAuth } from '@/auth/AuthContext';
 
-const ROXO = '#7C3AED';
+const AZUL = '#2C5282';
 
 export default function LoginScreen() {
   const { login, trocarUsuario, lembrarUsuario, identificadorLembrado, nomeLembrado } = useAuth();
@@ -136,7 +136,7 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   container: { flex: 1, justifyContent: 'center', paddingHorizontal: 28, gap: 40 },
   header: { gap: 8 },
-  marca: { fontSize: 28, fontWeight: '800', color: '#111827', letterSpacing: -0.5 },
+  marca: { fontSize: 28, fontWeight: '800', color: AZUL, letterSpacing: -0.5 },
   subtitulo: { fontSize: 15, color: '#6B7280', fontWeight: '500' },
   form: { gap: 18 },
   campo: { gap: 6 },
@@ -169,11 +169,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  checkBoxOn: { backgroundColor: ROXO, borderColor: ROXO },
+  checkBoxOn: { backgroundColor: AZUL, borderColor: AZUL },
   checkTexto: { fontSize: 14, fontWeight: '600', color: '#374151' },
   erro: { color: '#DC2626', fontSize: 13, fontWeight: '600', marginLeft: 4 },
   botao: {
-    backgroundColor: ROXO,
+    backgroundColor: AZUL,
     borderRadius: 16,
     paddingVertical: 16,
     alignItems: 'center',
@@ -183,5 +183,5 @@ const styles = StyleSheet.create({
   botaoPressionado: { opacity: 0.85 },
   botaoTexto: { color: '#fff', fontSize: 15, fontWeight: '800', letterSpacing: 0.5 },
   outraConta: { alignItems: 'center', paddingVertical: 8 },
-  outraContaTexto: { color: ROXO, fontSize: 14, fontWeight: '700' },
+  outraContaTexto: { color: AZUL, fontSize: 14, fontWeight: '700' },
 });

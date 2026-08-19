@@ -15,7 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { useAuth } from '@/auth/AuthContext';
 
-const ROXO = '#7C3AED';
+const AZUL = '#2C5282';
 
 // Cobre o app quando há sessão salva mas ele está bloqueado por biometria.
 // Dispara o prompt quando o app está em foco; permite tentar de novo, cair para
@@ -81,7 +81,7 @@ export default function TelaBloqueio() {
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={styles.corpo}>
           <View style={styles.icone}>
-            <Ionicons name="lock-closed" size={40} color={ROXO} />
+            <Ionicons name="lock-closed" size={40} color={AZUL} />
           </View>
           <Text style={styles.titulo}>App bloqueado</Text>
           <Text style={styles.sub}>
@@ -116,7 +116,7 @@ export default function TelaBloqueio() {
                 {tentando ? <ActivityIndicator color="#fff" /> : <Text style={styles.botaoTexto}>Entrar</Text>}
               </Pressable>
               <Pressable onPress={() => { setModoSenha(false); setErroSenha(null); }} style={styles.alternar}>
-                <Ionicons name="finger-print" size={16} color={ROXO} />
+                <Ionicons name="finger-print" size={16} color={AZUL} />
                 <Text style={styles.alternarTexto}>Usar biometria</Text>
               </Pressable>
             </View>
@@ -133,7 +133,7 @@ export default function TelaBloqueio() {
                 )}
               </Pressable>
               <Pressable onPress={() => setModoSenha(true)} style={styles.alternar}>
-                <Ionicons name="key-outline" size={16} color={ROXO} />
+                <Ionicons name="key-outline" size={16} color={AZUL} />
                 <Text style={styles.alternarTexto}>Usar senha</Text>
               </Pressable>
             </>
@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
     width: 88,
     height: 88,
     borderRadius: 44,
-    backgroundColor: '#F3E8FF',
+    backgroundColor: '#EEF2F7',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
@@ -186,12 +186,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 28,
     paddingVertical: 15,
     borderRadius: 16,
-    backgroundColor: ROXO,
+    backgroundColor: AZUL,
   },
   botaoOff: { opacity: 0.5, marginTop: 0 },
   botaoTexto: { color: '#fff', fontSize: 15, fontWeight: '800' },
   alternar: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 14 },
-  alternarTexto: { color: ROXO, fontSize: 14, fontWeight: '700' },
+  alternarTexto: { color: AZUL, fontSize: 14, fontWeight: '700' },
   sair: { alignItems: 'center', paddingVertical: 20 },
   sairTexto: { color: '#9CA3AF', fontSize: 14, fontWeight: '700' },
 });

@@ -34,7 +34,7 @@ export default function AcoesConsultaModal({ agendamento, onClose, onRemarcar, o
       chave: 'remarcar',
       rotulo: 'Remarcar',
       icone: 'calendar-outline',
-      cor: '#6D28D9',
+      cor: '#2C5282',
       onPress: () => onRemarcar(agendamento),
     });
     acoes.push({

@@ -12,7 +12,7 @@ import {
 
 import { alterarSenha } from '@/lib/perfil';
 
-const ROXO = '#7C3AED';
+const AZUL = '#2C5282';
 
 interface Props {
   visivel: boolean;
@@ -144,7 +144,7 @@ const styles = StyleSheet.create({
   rodape: { flexDirection: 'row', gap: 12, paddingHorizontal: 24, paddingTop: 16 },
   botaoSec: { flex: 1, paddingVertical: 16, alignItems: 'center', borderRadius: 16, backgroundColor: '#F3F4F6' },
   botaoSecTexto: { color: '#6B7280', fontWeight: '800', fontSize: 14 },
-  botao: { flex: 1, paddingVertical: 16, alignItems: 'center', borderRadius: 16, backgroundColor: ROXO },
+  botao: { flex: 1, paddingVertical: 16, alignItems: 'center', borderRadius: 16, backgroundColor: AZUL },
   botaoOff: { opacity: 0.5 },
   botaoTexto: { color: '#fff', fontWeight: '800', fontSize: 15 },
 });

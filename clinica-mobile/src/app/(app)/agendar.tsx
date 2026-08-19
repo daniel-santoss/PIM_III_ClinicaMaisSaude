@@ -29,7 +29,7 @@ import {
 } from '@/lib/consultas';
 import { proximosDiasUteis, type DiaUtil } from '@/lib/datas';
 
-const ROXO = '#7C3AED';
+const AZUL = '#2C5282';
 const MIN_SINTOMAS = 10;
 const MAX_SINTOMAS = 300;
 
@@ -223,7 +223,7 @@ export default function AgendarScreen() {
                 <>
                   <Text style={[styles.label, { marginTop: 8 }]}>Horários disponíveis</Text>
                   {carregandoHorarios ? (
-                    <ActivityIndicator color={ROXO} style={{ marginVertical: 16 }} />
+                    <ActivityIndicator color={AZUL} style={{ marginVertical: 16 }} />
                   ) : horarios.length === 0 ? (
                     <Text style={styles.semHorario}>Nenhum horário disponível neste dia.</Text>
                   ) : (
@@ -294,7 +294,7 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
   contador: { fontSize: 12, color: '#9CA3AF', textAlign: 'right' },
-  botao: { backgroundColor: ROXO, borderRadius: 16, paddingVertical: 16, alignItems: 'center', marginTop: 4 },
+  botao: { backgroundColor: AZUL, borderRadius: 16, paddingVertical: 16, alignItems: 'center', marginTop: 4 },
   botaoOff: { opacity: 0.5 },
   botaoTexto: { color: '#fff', fontSize: 15, fontWeight: '800', letterSpacing: 0.5 },
   botaoSec: { paddingVertical: 12, alignItems: 'center' },
@@ -303,8 +303,8 @@ const styles = StyleSheet.create({
   linha: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   linhaRotulo: { fontSize: 13, fontWeight: '600', color: '#9CA3AF' },
   linhaValor: { fontSize: 15, fontWeight: '800', color: '#111827' },
-  justificativa: { backgroundColor: '#F3E8FF', borderRadius: 12, padding: 12, marginTop: 4 },
-  justificativaTexto: { fontSize: 13, color: '#6D28D9', lineHeight: 19 },
+  justificativa: { backgroundColor: '#EEF2F7', borderRadius: 12, padding: 12, marginTop: 4 },
+  justificativaTexto: { fontSize: 13, color: '#2C5282', lineHeight: 19 },
   diasRow: { gap: 8, paddingVertical: 4 },
   dia: {
     width: 60,
@@ -314,7 +314,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 2,
   },
-  diaAtivo: { backgroundColor: ROXO },
+  diaAtivo: { backgroundColor: AZUL },
   diaSemana: { fontSize: 11, fontWeight: '700', color: '#6B7280' },
   diaNum: { fontSize: 18, fontWeight: '800', color: '#111827' },
   diaMes: { fontSize: 10, fontWeight: '600', color: '#9CA3AF' },
@@ -322,6 +322,6 @@ const styles = StyleSheet.create({
   semHorario: { fontSize: 14, color: '#9CA3AF', paddingVertical: 12 },
   horariosWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   hora: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12, backgroundColor: '#F3F4F6' },
-  horaAtiva: { backgroundColor: ROXO },
+  horaAtiva: { backgroundColor: AZUL },
   horaTexto: { fontSize: 14, fontWeight: '700', color: '#374151' },
 });

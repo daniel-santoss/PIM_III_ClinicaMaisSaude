@@ -2,10 +2,10 @@
 // A API devolve status/tipo/especialidade como nomes de enum (ex.: "Agendado").
 
 export const STATUS_INFO: Record<string, { label: string; cor: string; fundo: string }> = {
-  Agendado: { label: 'Agendado', cor: '#6D28D9', fundo: '#F3E8FF' },
+  Agendado: { label: 'Agendado', cor: '#2C5282', fundo: '#EEF2F7' },
   EmAtendimento: { label: 'Em Atendimento', cor: '#B45309', fundo: '#FEF3C7' },
   AguardandoRetorno: { label: 'Aguardando Retorno', cor: '#B45309', fundo: '#FEF3C7' },
-  RetornoAgendado: { label: 'Retorno Agendado', cor: '#6D28D9', fundo: '#F3E8FF' },
+  RetornoAgendado: { label: 'Retorno Agendado', cor: '#2C5282', fundo: '#EEF2F7' },
   Finalizado: { label: 'Finalizado', cor: '#047857', fundo: '#D1FAE5' },
   Faltou: { label: 'Faltou', cor: '#B91C1C', fundo: '#FEE2E2' },
   Cancelado: { label: 'Cancelado', cor: '#6B7280', fundo: '#F3F4F6' },

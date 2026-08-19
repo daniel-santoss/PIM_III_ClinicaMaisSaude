@@ -25,7 +25,7 @@ import { biometriaDisponivel } from '@/lib/biometria';
 import { atualizarDados, enviarFoto, obterPerfil } from '@/lib/perfil';
 import type { PacientePerfil } from '@/types/perfil';
 
-const ROXO = '#7C3AED';
+const AZUL = '#2C5282';
 
 function formatarCpf(cpf: string): string {
   const d = (cpf ?? '').replace(/\D/g, '');
@@ -169,7 +169,7 @@ export default function PerfilScreen() {
     return (
       <SafeAreaView style={styles.safe} edges={['top']}>
         <View style={styles.centro}>
-          <ActivityIndicator color={ROXO} />
+          <ActivityIndicator color={AZUL} />
         </View>
       </SafeAreaView>
     );
@@ -285,7 +285,7 @@ export default function PerfilScreen() {
                   value={biometriaAtiva}
                   onValueChange={aoAlternarBiometria}
                   disabled={alterandoBiometria}
-                  trackColor={{ true: ROXO, false: '#E5E7EB' }}
+                  trackColor={{ true: AZUL, false: '#E5E7EB' }}
                   thumbColor="#fff"
                 />
               </View>
@@ -334,7 +334,7 @@ const styles = StyleSheet.create({
   erroBox: { gap: 10, padding: 16, borderRadius: 16, backgroundColor: '#FEF2F2' },
   erroTexto: { color: '#B91C1C', fontSize: 14, fontWeight: '600' },
   tentar: { alignSelf: 'flex-start', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 10, backgroundColor: '#fff' },
-  tentarTexto: { color: ROXO, fontWeight: '800', fontSize: 13 },
+  tentarTexto: { color: AZUL, fontWeight: '800', fontSize: 13 },
 
   avatarWrap: { alignItems: 'center', gap: 8 },
   avatarPress: { width: 96, height: 96 },
@@ -342,12 +342,12 @@ const styles = StyleSheet.create({
     width: 96,
     height: 96,
     borderRadius: 48,
-    backgroundColor: '#F3E8FF',
+    backgroundColor: '#EEF2F7',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarImg: { width: 96, height: 96, borderRadius: 48, backgroundColor: '#F3E8FF' },
-  avatarTexto: { fontSize: 38, fontWeight: '800', color: ROXO },
+  avatarImg: { width: 96, height: 96, borderRadius: 48, backgroundColor: '#EEF2F7' },
+  avatarTexto: { fontSize: 38, fontWeight: '800', color: AZUL },
   camera: {
     position: 'absolute',
     right: -2,
@@ -355,7 +355,7 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: ROXO,
+    backgroundColor: AZUL,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
@@ -376,7 +376,7 @@ const styles = StyleSheet.create({
     color: '#111827',
     backgroundColor: '#F9FAFB',
   },
-  botaoSalvar: { marginTop: 16, paddingVertical: 16, alignItems: 'center', borderRadius: 16, backgroundColor: ROXO },
+  botaoSalvar: { marginTop: 16, paddingVertical: 16, alignItems: 'center', borderRadius: 16, backgroundColor: AZUL },
   botaoOff: { opacity: 0.5 },
   botaoSalvarTexto: { color: '#fff', fontWeight: '800', fontSize: 15 },
 
@@ -413,7 +413,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: 'center',
   },
-  botaoSairTexto: { color: ROXO, fontSize: 15, fontWeight: '800', letterSpacing: 0.5 },
+  botaoSairTexto: { color: AZUL, fontSize: 15, fontWeight: '800', letterSpacing: 0.5 },
   botaoExcluir: {
     marginTop: 4,
     paddingVertical: 16,
