@@ -22,7 +22,7 @@ import {
 } from '@/lib/notificacoes';
 import type { Notificacao } from '@/types/notificacao';
 
-const ROXO = '#7C3AED';
+const AZUL = '#2C5282';
 
 export default function NotificacoesScreen() {
   const router = useRouter();
@@ -118,7 +118,7 @@ export default function NotificacoesScreen() {
 
       {carregando ? (
         <View style={styles.centro}>
-          <ActivityIndicator color={ROXO} />
+          <ActivityIndicator color={AZUL} />
         </View>
       ) : erro ? (
         <View style={styles.centro}>
@@ -133,7 +133,7 @@ export default function NotificacoesScreen() {
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
           contentContainerStyle={styles.lista}
-          refreshControl={<RefreshControl refreshing={atualizando} onRefresh={onRefresh} tintColor={ROXO} />}
+          refreshControl={<RefreshControl refreshing={atualizando} onRefresh={onRefresh} tintColor={AZUL} />}
           ListEmptyComponent={
             <View style={styles.vazio}>
               <Ionicons name="notifications-off-outline" size={40} color="#D1D5DB" />
@@ -153,7 +153,7 @@ const styles = StyleSheet.create({
   centro: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16, padding: 24 },
   erro: { color: '#B91C1C', fontSize: 14, fontWeight: '600', textAlign: 'center' },
   tentar: { paddingHorizontal: 20, paddingVertical: 10, borderRadius: 12, backgroundColor: '#F3F4F6' },
-  tentarTexto: { color: ROXO, fontWeight: '800', fontSize: 13 },
+  tentarTexto: { color: AZUL, fontWeight: '800', fontSize: 13 },
   lista: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 24, gap: 10 },
   card: {
     flexDirection: 'row',
@@ -165,9 +165,9 @@ const styles = StyleSheet.create({
     gap: 10,
     backgroundColor: '#fff',
   },
-  cardNaoLida: { backgroundColor: '#FaF5FF', borderColor: '#EDE9FE' },
+  cardNaoLida: { backgroundColor: '#F1F5F9', borderColor: '#E2E8F0' },
   cardPressionado: { opacity: 0.7 },
-  pontoNaoLida: { width: 8, height: 8, borderRadius: 999, backgroundColor: ROXO, marginTop: 6 },
+  pontoNaoLida: { width: 8, height: 8, borderRadius: 999, backgroundColor: AZUL, marginTop: 6 },
   cardConteudo: { flex: 1, gap: 4 },
   cardTopo: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   titulo: { fontSize: 15, fontWeight: '700', color: '#374151', flex: 1 },

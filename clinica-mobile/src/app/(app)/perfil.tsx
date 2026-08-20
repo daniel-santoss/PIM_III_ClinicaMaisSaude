@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -7,6 +7,7 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   View,
@@ -20,22 +21,37 @@ import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '@/auth/AuthContext';
 import ExcluirContaModal from '@/components/ExcluirContaModal';
 import TrocarSenhaModal from '@/components/TrocarSenhaModal';
+import { biometriaDisponivel } from '@/lib/biometria';
 import { atualizarDados, enviarFoto, obterPerfil } from '@/lib/perfil';
+import { isEmailValido, isTelefoneValido, mascaraCpf, mascaraTelefone, soDigitos } from '@/lib/validadores';
 import type { PacientePerfil } from '@/types/perfil';
 
-const ROXO = '#7C3AED';
-
-function formatarCpf(cpf: string): string {
-  const d = (cpf ?? '').replace(/\D/g, '');
-  if (d.length !== 11) return cpf;
-  return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}`;
-}
+const AZUL = '#2C5282';
 
 export default function PerfilScreen() {
-  const { session, logout, atualizarNome } = useAuth();
+  const { session, logout, atualizarNome, biometriaAtiva, definirBiometria } = useAuth();
   const [perfil, setPerfil] = useState<PacientePerfil | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
+
+  // Biometria: só oferecemos o toggle se o aparelho tem hardware + cadastro.
+  const [biometriaOfertavel, setBiometriaOfertavel] = useState(false);
+  const [alterandoBiometria, setAlterandoBiometria] = useState(false);
+  useEffect(() => {
+    biometriaDisponivel().then(setBiometriaOfertavel);
+  }, []);
+
+  async function aoAlternarBiometria(valor: boolean) {
+    setAlterandoBiometria(true);
+    try {
+      const ok = await definirBiometria(valor);
+      if (!ok && valor) {
+        Alert.alert('Não foi possível ativar', 'A biometria não foi confirmada ou não está disponível.');
+      }
+    } finally {
+      setAlterandoBiometria(false);
+    }
+  }
 
   // Campos editáveis (controlados).
   const [nome, setNome] = useState('');
@@ -54,7 +70,7 @@ export default function PerfilScreen() {
       setPerfil(p);
       setNome(p.nome ?? '');
       setEmail(p.email ?? '');
-      setTelefone(p.telefone ?? '');
+      setTelefone(mascaraTelefone(p.telefone));
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Erro ao carregar o perfil.');
     } finally {
@@ -72,17 +88,29 @@ export default function PerfilScreen() {
     !!perfil &&
     (nome.trim() !== (perfil.nome ?? '') ||
       email.trim() !== (perfil.email ?? '') ||
-      telefone.trim() !== (perfil.telefone ?? ''));
+      soDigitos(telefone) !== soDigitos(perfil.telefone));
 
   const podeSalvar = alterou && nome.trim().length > 0 && email.trim().length > 0 && !salvando;
 
   async function salvar() {
     if (!podeSalvar) return;
+    // Validações locais antes de enviar (evita salvar dado malformado).
+    if (!isEmailValido(email)) {
+      Alert.alert('E-mail inválido', 'Informe um e-mail no formato nome@dominio.com.');
+      return;
+    }
+    if (!isTelefoneValido(telefone)) {
+      Alert.alert('Telefone inválido', 'Informe um telefone com DDD (10 ou 11 dígitos).');
+      return;
+    }
     setSalvando(true);
     try {
-      const dados = { nome: nome.trim(), email: email.trim(), telefone: telefone.trim() };
+      const dados = { nome: nome.trim(), email: email.trim().toLowerCase(), telefone: soDigitos(telefone) };
       await atualizarDados(dados);
       setPerfil((prev) => (prev ? { ...prev, ...dados } : prev));
+      // Reflete os valores normalizados nos campos (evita "alterou" fantasma).
+      setEmail(dados.email);
+      setTelefone(mascaraTelefone(dados.telefone));
       await atualizarNome(dados.nome);
       Alert.alert('Pronto', 'Seus dados foram atualizados.');
     } catch (e) {
@@ -148,7 +176,7 @@ export default function PerfilScreen() {
     return (
       <SafeAreaView style={styles.safe} edges={['top']}>
         <View style={styles.centro}>
-          <ActivityIndicator color={ROXO} />
+          <ActivityIndicator color={AZUL} />
         </View>
       </SafeAreaView>
     );
@@ -213,8 +241,11 @@ export default function PerfilScreen() {
             <Text style={[styles.label, { marginTop: 12 }]}>Telefone</Text>
             <TextInput
               value={telefone}
-              onChangeText={setTelefone}
+              onChangeText={(v) => setTelefone(mascaraTelefone(v))}
               keyboardType="phone-pad"
+              placeholder="(00) 00000-0000"
+              placeholderTextColor="#9CA3AF"
+              maxLength={16}
               style={styles.input}
               editable={!salvando}
             />
@@ -233,7 +264,7 @@ export default function PerfilScreen() {
             <Text style={styles.secaoTitulo}>Informações da conta</Text>
             <View style={styles.linhaRO}>
               <Text style={styles.roLabel}>CPF</Text>
-              <Text style={styles.roValor}>{perfil ? formatarCpf(perfil.cpf) : '—'}</Text>
+              <Text style={styles.roValor}>{perfil ? mascaraCpf(perfil.cpf) : '—'}</Text>
             </View>
             <View style={styles.linhaRO}>
               <Text style={styles.roLabel}>Acompanhamento de memória</Text>
@@ -252,6 +283,23 @@ export default function PerfilScreen() {
               <Text style={styles.linhaAcaoTexto}>Trocar senha</Text>
               <Ionicons name="chevron-forward" size={18} color="#9CA3AF" />
             </Pressable>
+
+            {biometriaOfertavel && (
+              <View style={styles.linhaAcao}>
+                <Ionicons name="finger-print-outline" size={20} color="#374151" />
+                <View style={styles.biometriaTexto}>
+                  <Text style={styles.linhaAcaoTexto}>Desbloqueio por biometria</Text>
+                  <Text style={styles.biometriaSub}>Exigir biometria ao abrir o app</Text>
+                </View>
+                <Switch
+                  value={biometriaAtiva}
+                  onValueChange={aoAlternarBiometria}
+                  disabled={alterandoBiometria}
+                  trackColor={{ true: AZUL, false: '#E5E7EB' }}
+                  thumbColor="#fff"
+                />
+              </View>
+            )}
           </View>
 
           {/* Zona de risco */}
@@ -281,7 +329,7 @@ export default function PerfilScreen() {
         onExcluida={() => {
           setExcluirAberto(false);
           Alert.alert('Conta excluída', 'Sua conta foi encerrada.');
-          logout();
+          logout(true); // conta não existe mais: apaga tudo (sem re-login biométrico)
         }}
       />
     </SafeAreaView>
@@ -296,7 +344,7 @@ const styles = StyleSheet.create({
   erroBox: { gap: 10, padding: 16, borderRadius: 16, backgroundColor: '#FEF2F2' },
   erroTexto: { color: '#B91C1C', fontSize: 14, fontWeight: '600' },
   tentar: { alignSelf: 'flex-start', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 10, backgroundColor: '#fff' },
-  tentarTexto: { color: ROXO, fontWeight: '800', fontSize: 13 },
+  tentarTexto: { color: AZUL, fontWeight: '800', fontSize: 13 },
 
   avatarWrap: { alignItems: 'center', gap: 8 },
   avatarPress: { width: 96, height: 96 },
@@ -304,12 +352,12 @@ const styles = StyleSheet.create({
     width: 96,
     height: 96,
     borderRadius: 48,
-    backgroundColor: '#F3E8FF',
+    backgroundColor: '#EEF2F7',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarImg: { width: 96, height: 96, borderRadius: 48, backgroundColor: '#F3E8FF' },
-  avatarTexto: { fontSize: 38, fontWeight: '800', color: ROXO },
+  avatarImg: { width: 96, height: 96, borderRadius: 48, backgroundColor: '#EEF2F7' },
+  avatarTexto: { fontSize: 38, fontWeight: '800', color: AZUL },
   camera: {
     position: 'absolute',
     right: -2,
@@ -317,7 +365,7 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: ROXO,
+    backgroundColor: AZUL,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
@@ -338,7 +386,7 @@ const styles = StyleSheet.create({
     color: '#111827',
     backgroundColor: '#F9FAFB',
   },
-  botaoSalvar: { marginTop: 16, paddingVertical: 16, alignItems: 'center', borderRadius: 16, backgroundColor: ROXO },
+  botaoSalvar: { marginTop: 16, paddingVertical: 16, alignItems: 'center', borderRadius: 16, backgroundColor: AZUL },
   botaoOff: { opacity: 0.5 },
   botaoSalvarTexto: { color: '#fff', fontWeight: '800', fontSize: 15 },
 
@@ -365,6 +413,8 @@ const styles = StyleSheet.create({
     borderColor: '#F3F4F6',
   },
   linhaAcaoTexto: { flex: 1, fontSize: 15, fontWeight: '700', color: '#374151' },
+  biometriaTexto: { flex: 1, gap: 2 },
+  biometriaSub: { fontSize: 12, fontWeight: '500', color: '#9CA3AF' },
 
   botaoSair: {
     borderWidth: 1,
@@ -373,7 +423,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: 'center',
   },
-  botaoSairTexto: { color: ROXO, fontSize: 15, fontWeight: '800', letterSpacing: 0.5 },
+  botaoSairTexto: { color: AZUL, fontSize: 15, fontWeight: '800', letterSpacing: 0.5 },
   botaoExcluir: {
     marginTop: 4,
     paddingVertical: 16,

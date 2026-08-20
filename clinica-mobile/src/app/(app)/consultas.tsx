@@ -26,7 +26,7 @@ import { cancelarConsulta, listarMinhasConsultas } from '@/lib/agendamentos';
 import { formatarDataHora } from '@/lib/datas';
 import type { Agendamento } from '@/types/agendamento';
 
-const ROXO = '#7C3AED';
+const AZUL = '#2C5282';
 type Aba = 'proximas' | 'historico';
 
 export default function MinhasConsultasScreen() {
@@ -135,7 +135,7 @@ export default function MinhasConsultasScreen() {
 
       {carregando ? (
         <View style={styles.centro}>
-          <ActivityIndicator color={ROXO} />
+          <ActivityIndicator color={AZUL} />
         </View>
       ) : erro ? (
         <View style={styles.centro}>
@@ -150,7 +150,7 @@ export default function MinhasConsultasScreen() {
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
           contentContainerStyle={styles.lista}
-          refreshControl={<RefreshControl refreshing={atualizando} onRefresh={onRefresh} tintColor={ROXO} />}
+          refreshControl={<RefreshControl refreshing={atualizando} onRefresh={onRefresh} tintColor={AZUL} />}
           ListEmptyComponent={
             <View style={styles.vazio}>
               <Text style={styles.vazioTexto}>
@@ -192,13 +192,13 @@ const styles = StyleSheet.create({
   titulo: { fontSize: 26, fontWeight: '800', color: '#111827', letterSpacing: -0.5 },
   chips: { flexDirection: 'row', gap: 8, paddingHorizontal: 24, paddingVertical: 12 },
   chip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 999, backgroundColor: '#F3F4F6' },
-  chipAtivo: { backgroundColor: ROXO },
+  chipAtivo: { backgroundColor: AZUL },
   chipTexto: { fontSize: 13, fontWeight: '700', color: '#6B7280' },
   chipTextoAtivo: { color: '#fff' },
   centro: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16, padding: 24 },
   erro: { color: '#B91C1C', fontSize: 14, fontWeight: '600', textAlign: 'center' },
   tentar: { paddingHorizontal: 20, paddingVertical: 10, borderRadius: 12, backgroundColor: '#F3F4F6' },
-  tentarTexto: { color: ROXO, fontWeight: '800', fontSize: 13 },
+  tentarTexto: { color: AZUL, fontWeight: '800', fontSize: 13 },
   lista: { paddingHorizontal: 24, paddingBottom: 24, gap: 12 },
   card: {
     borderWidth: 1,

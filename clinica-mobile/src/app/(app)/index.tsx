@@ -19,7 +19,7 @@ import { listarMinhasConsultas } from '@/lib/agendamentos';
 import { formatarDataHora, parseData } from '@/lib/datas';
 import type { Agendamento } from '@/types/agendamento';
 
-const ROXO = '#7C3AED';
+const AZUL = '#2C5282';
 
 function saudacaoPorHora(): string {
   const h = new Date().getHours();
@@ -88,7 +88,7 @@ export default function InicioScreen() {
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView
         contentContainerStyle={styles.conteudo}
-        refreshControl={<RefreshControl refreshing={atualizando} onRefresh={onRefresh} tintColor={ROXO} />}
+        refreshControl={<RefreshControl refreshing={atualizando} onRefresh={onRefresh} tintColor={AZUL} />}
       >
         {/* Saudação */}
         <View style={styles.header}>
@@ -129,7 +129,7 @@ export default function InicioScreen() {
           </Pressable>
         ) : (
           <View style={styles.cardVazio}>
-            <Ionicons name="calendar-outline" size={32} color="#C4B5FD" />
+            <Ionicons name="calendar-outline" size={32} color="#A3B5CC" />
             <Text style={styles.vazioTexto}>Você não tem consultas agendadas.</Text>
             <Pressable
               onPress={() => router.navigate('/(app)/agendar')}
@@ -151,7 +151,7 @@ export default function InicioScreen() {
               style={({ pressed }) => [styles.atalho, pressed && styles.pressionado]}
             >
               <View style={styles.atalhoIcone}>
-                <Ionicons name={a.icone} size={22} color={ROXO} />
+                <Ionicons name={a.icone} size={22} color={AZUL} />
                 {!!a.badge && a.badge > 0 && (
                   <View style={styles.atalhoBadge}>
                     <Text style={styles.atalhoBadgeTexto}>{a.badge > 9 ? '9+' : a.badge}</Text>
@@ -185,11 +185,11 @@ const styles = StyleSheet.create({
   },
 
   cardDestaque: {
-    backgroundColor: ROXO,
+    backgroundColor: AZUL,
     borderRadius: 24,
     padding: 20,
     gap: 6,
-    shadowColor: ROXO,
+    shadowColor: AZUL,
     shadowOpacity: 0.3,
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 8 },
@@ -218,14 +218,14 @@ const styles = StyleSheet.create({
     padding: 24,
     alignItems: 'center',
     gap: 12,
-    backgroundColor: '#FaF5FF',
+    backgroundColor: '#F1F5F9',
   },
   vazioTexto: { fontSize: 14, fontWeight: '600', color: '#6B7280', textAlign: 'center' },
   vazioBotao: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: ROXO,
+    backgroundColor: AZUL,
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 14,
@@ -249,7 +249,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 14,
-    backgroundColor: '#F5F3FF',
+    backgroundColor: '#F1F5F9',
     alignItems: 'center',
     justifyContent: 'center',
   },
