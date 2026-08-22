@@ -33,6 +33,9 @@ export default function PerfilMedico() {
   const profissionalId = localStorage.getItem(storageKeys.profissionalId);
   const token = localStorage.getItem(storageKeys.authToken);
   const isEnfermeira = localStorage.getItem(storageKeys.tipoUsuario) === perfis.enfermeira;
+  // Admin não é profissional de atendimento: não tem especialidades.
+  const isAdmin = localStorage.getItem(storageKeys.tipoUsuario) === perfis.admin;
+  const temEspecialidades = !isEnfermeira && !isAdmin;
 
   useScrollBlock(!!(editMode || editSenha));
 
@@ -119,7 +122,7 @@ export default function PerfilMedico() {
       }
 
       // 3. Salvar Especialidades (apenas médicos)
-      if (!isEnfermeira) {
+      if (temEspecialidades) {
         const resEsp = await fetch(`${API_URL}/api/Especialidades/minhas`, {
           method: "PUT",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -342,7 +345,7 @@ export default function PerfilMedico() {
       </div>
 
       {/* Seção Especialidades (Apenas Médicos) */}
-      {!isEnfermeira && (
+      {temEspecialidades && (
         <div className="space-y-4">
           <div className="flex items-center justify-between ml-2">
             <h3 className="text-xs font-black text-muted uppercase tracking-[0.2em]">Minhas Especialidades</h3>
