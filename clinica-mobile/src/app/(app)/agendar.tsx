@@ -4,6 +4,7 @@ import {
   ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -19,6 +20,7 @@ import { useAuth } from '@/auth/AuthContext';
 import { ESPECIALIDADE_LABEL, TIPO_CONSULTA_LABEL } from '@/constants/agendamento';
 import {
   criarAgendamento,
+  especialidadesDisponiveis,
   horariosDisponiveis,
   listarEspecialidades,
   MARCADOR_INJECAO,
@@ -61,9 +63,11 @@ export default function AgendarScreen() {
   const [manualPasso, setManualPasso] = useState<1 | 2>(1);
   const [tipoConsultaManual, setTipoConsultaManual] = useState<number>(3);
   const [especialidadeManual, setEspecialidadeManual] = useState<string>('');
+  const [tipoSelectAberto, setTipoSelectAberto] = useState(false);
 
   // Compartilhado
   const [especialidades, setEspecialidades] = useState<Especialidade[]>([]);
+  const [dispIds, setDispIds] = useState<number[]>([]);
   const [diaSel, setDiaSel] = useState<string | null>(null);
   const [horarios, setHorarios] = useState<string[]>([]);
   const [carregandoHorarios, setCarregandoHorarios] = useState(false);
@@ -74,7 +78,10 @@ export default function AgendarScreen() {
 
   useEffect(() => {
     listarEspecialidades().then(setEspecialidades).catch(() => {});
+    especialidadesDisponiveis().then(setDispIds).catch(() => {});
   }, []);
+
+  const tipoManualLabel = TIPOS_MANUAIS.find((t) => t.valor === tipoConsultaManual)?.label ?? 'Selecione';
 
   const ehManual = modo === 'manual';
 
@@ -313,24 +320,10 @@ export default function AgendarScreen() {
           {modo === 'manual' && manualPasso === 1 && (
             <View style={styles.bloco}>
               <Text style={styles.label}>Tipo de atendimento</Text>
-              <View style={styles.chipsWrap}>
-                {TIPOS_MANUAIS.map((t) => {
-                  const ativo = tipoConsultaManual === t.valor;
-                  return (
-                    <Pressable
-                      key={t.valor}
-                      onPress={() => {
-                        setTipoConsultaManual(t.valor);
-                        if (t.valor !== 3) setEspecialidadeManual('');
-                        limparHorarios();
-                      }}
-                      style={[styles.chip, ativo && styles.chipAtivo]}
-                    >
-                      <Text style={[styles.chipTexto, ativo && styles.chipTextoAtivo]}>{t.label}</Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
+              <Pressable onPress={() => setTipoSelectAberto(true)} style={styles.select}>
+                <Text style={styles.selectTexto}>{tipoManualLabel}</Text>
+                <Ionicons name="chevron-down" size={18} color="#6B7280" />
+              </Pressable>
 
               {tipoConsultaManual === 3 && (
                 <>
@@ -338,25 +331,44 @@ export default function AgendarScreen() {
                   {especialidades.length === 0 ? (
                     <ActivityIndicator color={AZUL} style={{ marginVertical: 12 }} />
                   ) : (
-                    <View style={styles.chipsWrap}>
-                      {especialidades.map((e) => {
-                        const ativo = especialidadeManual === e.nome;
-                        return (
-                          <Pressable
-                            key={e.id}
-                            onPress={() => {
-                              setEspecialidadeManual(e.nome);
-                              limparHorarios();
-                            }}
-                            style={[styles.chip, ativo && styles.chipAtivo]}
-                          >
-                            <Text style={[styles.chipTexto, ativo && styles.chipTextoAtivo]}>
-                              {ESPECIALIDADE_LABEL[e.nome] ?? e.nome}
-                            </Text>
-                          </Pressable>
-                        );
-                      })}
-                    </View>
+                    <>
+                      <View style={styles.chipsWrap}>
+                        {especialidades.map((e) => {
+                          const ativo = especialidadeManual === e.nome;
+                          const disponivel = dispIds.includes(e.id);
+                          return (
+                            <Pressable
+                              key={e.id}
+                              disabled={!disponivel}
+                              onPress={() => {
+                                setEspecialidadeManual(e.nome);
+                                limparHorarios();
+                              }}
+                              style={[
+                                styles.chip,
+                                ativo && styles.chipAtivo,
+                                !disponivel && styles.chipOff,
+                              ]}
+                            >
+                              <Text
+                                style={[
+                                  styles.chipTexto,
+                                  ativo && styles.chipTextoAtivo,
+                                  !disponivel && styles.chipTextoOff,
+                                ]}
+                              >
+                                {ESPECIALIDADE_LABEL[e.nome] ?? e.nome}
+                              </Text>
+                            </Pressable>
+                          );
+                        })}
+                      </View>
+                      {especialidades.some((e) => !dispIds.includes(e.id)) && (
+                        <Text style={styles.legenda}>
+                          Especialidades esmaecidas não possuem médico disponível no momento.
+                        </Text>
+                      )}
+                    </>
                   )}
                 </>
               )}
@@ -438,6 +450,33 @@ export default function AgendarScreen() {
           )}
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Select de tipo de atendimento (bottom-sheet) */}
+      <Modal visible={tipoSelectAberto} transparent animationType="fade" onRequestClose={() => setTipoSelectAberto(false)}>
+        <Pressable style={styles.selectBackdrop} onPress={() => setTipoSelectAberto(false)}>
+          <Pressable style={styles.selectSheet} onPress={(e) => e.stopPropagation()}>
+            <Text style={styles.selectSheetTitulo}>Tipo de atendimento</Text>
+            {TIPOS_MANUAIS.map((t) => {
+              const ativo = tipoConsultaManual === t.valor;
+              return (
+                <Pressable
+                  key={t.valor}
+                  onPress={() => {
+                    setTipoConsultaManual(t.valor);
+                    if (t.valor !== 3) setEspecialidadeManual('');
+                    limparHorarios();
+                    setTipoSelectAberto(false);
+                  }}
+                  style={styles.selectOpcao}
+                >
+                  <Text style={[styles.selectOpcaoTexto, ativo && styles.selectOpcaoTextoAtivo]}>{t.label}</Text>
+                  {ativo && <Ionicons name="checkmark" size={20} color={AZUL} />}
+                </Pressable>
+              );
+            })}
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -520,12 +559,34 @@ const styles = StyleSheet.create({
   },
   opcaoManualTitulo: { fontSize: 16, fontWeight: '800', color: '#111827' },
   opcaoManualSub: { fontSize: 13, color: '#6B7280', marginTop: 3, lineHeight: 18 },
-  // Chips (tipo/especialidade no manual)
+  // Select (tipo de atendimento)
+  select: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    backgroundColor: '#F9FAFB',
+  },
+  selectTexto: { fontSize: 15, fontWeight: '700', color: '#111827' },
+  selectBackdrop: { flex: 1, backgroundColor: 'rgba(17,24,39,0.45)', justifyContent: 'flex-end' },
+  selectSheet: { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 32, gap: 4 },
+  selectSheetTitulo: { fontSize: 13, fontWeight: '800', color: '#6B7280', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 },
+  selectOpcao: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14 },
+  selectOpcaoTexto: { fontSize: 16, fontWeight: '600', color: '#374151' },
+  selectOpcaoTextoAtivo: { color: AZUL, fontWeight: '800' },
+  // Chips (especialidade no manual)
   chipsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12, backgroundColor: '#F3F4F6' },
   chipAtivo: { backgroundColor: AZUL },
+  chipOff: { backgroundColor: '#F9FAFB', opacity: 0.5 },
   chipTexto: { fontSize: 14, fontWeight: '700', color: '#374151' },
   chipTextoAtivo: { color: '#fff' },
+  chipTextoOff: { color: '#9CA3AF' },
+  legenda: { fontSize: 12, fontWeight: '500', color: '#9CA3AF', marginTop: 4, lineHeight: 17 },
   cardSugestao: { borderWidth: 1, borderColor: '#F3F4F6', borderRadius: 20, padding: 16, gap: 10 },
   linha: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   linhaRotulo: { fontSize: 13, fontWeight: '600', color: '#9CA3AF' },
