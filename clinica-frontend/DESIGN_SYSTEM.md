@@ -30,9 +30,9 @@ inclusive os não mostrados nos mocks (extrapolar rigorosamente).
 **Fonte:** Inter (`font-sans`), pesos 400/500/600/700. Sem `uppercase black` — títulos são `600`.
 
 ## Layout
-- **Sidebar** 248px, branca, `border-r border-line`, sticky altura total.
-- **Topbar** 64px, branca, `border-b border-line`, sticky. Esquerda: título `600 20px` + subtítulo `400 13px muted`.
-- **Main** `padding: 28px`, `max-width: 1180px`, centralizado. Gap entre seções `24px`.
+- **Sidebar** rail recolhível: **72px** mostrando só ícones; expande p/ **248px** no `hover` (overlay `fixed` com sombra, não empurra o conteúdo; rótulos com fade-in). Branca, `border-r border-line`, altura total. Rodapé: **Notificações** (sino) + perfil + Sair.
+- **Sem topbar.** O título `600 24px` + subtítulo `400 13px muted` da página vão no **topo do `main`** (a barra superior foi removida).
+- **Main** `padding: 28px`, `max-width: 1180px`, centralizado, `margin-left: 72px` (largura do rail). Gap entre seções `24px`.
 
 ## Componentes
 
