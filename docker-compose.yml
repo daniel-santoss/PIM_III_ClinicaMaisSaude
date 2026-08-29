@@ -1,11 +1,67 @@
-# Serviços de apoio para desenvolvimento/produção.
-# O Redis é OPCIONAL: a API funciona sem ele (cai no cache em memória).
-# Suba-o quando quiser exercitar o rate-limit distribuído (multi-instância):
+# Stack de execução — API + SQL Server + Redis.
+# Copie .env.example para .env (gitignored) e preencha antes de subir.
 #
-#   docker compose up -d redis
+#   docker compose up -d --build
 #
-# Depois configure a connection string para a API usá-lo (ver README).
+# IMPORTANTE: a API NÃO migra o banco sozinha. Com o SQL Server no ar, aplique o
+# schema uma vez (ver DEPLOY.md §3):
+#   dotnet ef database update --project ClinicaMaisSaude.Infrastructure \
+#     --startup-project ClinicaMaisSaude.API \
+#     --connection "Server=localhost,1433;Database=ClinicaMaisSaude;User Id=sa;Password=<MSSQL_SA_PASSWORD>;TrustServerCertificate=True"
+#
+# Só Redis (dev, sem publicar a API): docker compose up -d redis
 services:
+  api:
+    build:
+      context: .
+      dockerfile: ClinicaMaisSaude.API/Dockerfile
+    container_name: clinica-api
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=ClinicaMaisSaude;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True"
+      ConnectionStrings__Redis: "redis:6379"
+      JwtConfig__Secret: ${JWT_SECRET}
+      AdminSeed__Email: ${ADMIN_EMAIL}
+      AdminSeed__Cpf: ${ADMIN_CPF}
+      AdminSeed__Password: ${ADMIN_PASSWORD}
+      Security__CodigoRecuperacaoPepper: ${RECUP_PEPPER}
+      EmailConfig__Host: ${EMAIL_HOST}
+      EmailConfig__Port: ${EMAIL_PORT}
+      EmailConfig__User: ${EMAIL_USER}
+      EmailConfig__Password: ${EMAIL_PASSWORD}
+      EmailConfig__From: ${EMAIL_FROM}
+      EmailConfig__FromName: ${EMAIL_FROM_NAME}
+      EmailConfig__LogoUrl: ${EMAIL_LOGO_URL}
+      GeminiAI__ApiKey: ${GEMINI_API_KEY}
+      Cors__AllowedOrigins__0: ${FRONTEND_ORIGIN}
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: clinica-sqlserver
+    restart: unless-stopped
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD}
+    ports:
+      - "1433:1433"
+    volumes:
+      - mssql-data:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -C -Q 'SELECT 1' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # Redis é OPCIONAL: a API funciona sem ele (cai no cache em memória).
+  # Habilita o rate-limit distribuído (multi-instância).
   redis:
     image: redis:7-alpine
     container_name: clinica-redis
@@ -23,3 +79,4 @@ services:
 
 volumes:
   redis-data:
+  mssql-data:

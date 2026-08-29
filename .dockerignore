@@ -1,0 +1,19 @@
+# Mantém o contexto de build enxuto e evita vazar artefatos/segredos locais.
+**/bin/
+**/obj/
+**/.vs/
+**/.vscode/
+**/node_modules/
+.git/
+.github/
+
+# Front-ends não entram na imagem da API (deploy separado).
+clinica-frontend/
+clinica-mobile/
+
+# Docs e locais
+*.md
+!DEPLOY.md
+.env
+**/appsettings.Development.json
+**/*.user
