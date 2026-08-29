@@ -5,4 +5,5 @@
   <Project Path="ClinicaMaisSaude.Infrastructure/ClinicaMaisSaude.Infrastructure.csproj" />
   <Project Path="ClinicaMaisSaude.Domain.Tests/ClinicaMaisSaude.Domain.Tests.csproj" />
   <Project Path="ClinicaMaisSaude.Application.Tests/ClinicaMaisSaude.Application.Tests.csproj" />
+  <Project Path="ClinicaMaisSaude.Infrastructure.Tests/ClinicaMaisSaude.Infrastructure.Tests.csproj" />
 </Solution>
