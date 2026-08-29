@@ -5,8 +5,9 @@ import { useScrollBlock } from "../hooks/useScrollBlock";
 import { isCpfValido, isEmailValido, mascaraCpf } from "../utils/validators";
 import logoPng from "../assets/logo_clinica.png";
 import bgImage from "../assets/itens_medicos_background.png";
-import { Eye, EyeOff, Lock, ArrowLeft, ShieldAlert, X } from 'lucide-react';
+import { Eye, EyeOff, ArrowLeft, ShieldAlert, X } from 'lucide-react';
 import { useToast } from "../hooks/useToast";
+import RecuperarSenhaModal from "../components/RecuperarSenhaModal";
 
 export default function Login({ onLogado }: { onLogado: () => void }) {
   // Usuário lembrado: pré-preenche o identificador (e mantém o checkbox marcado).
@@ -236,42 +237,8 @@ export default function Login({ onLogado }: { onLogado: () => void }) {
         </form>
       </div>
 
-      {/* Modal Esqueci a Senha */}
-      {modalEsqueciSenha && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-gray-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-sm p-8 text-center border border-purple-50 animate-in zoom-in duration-200 relative max-h-[92dvh] overflow-y-auto custom-scrollbar">
-            {/* Botão Fechar X */}
-            <button
-              onClick={() => setModalEsqueciSenha(false)}
-              className="absolute right-4 top-4 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors cursor-pointer border-none bg-transparent flex items-center justify-center shadow-sm"
-              aria-label="Fechar"
-            >
-              <X className="w-5 h-5" />
-            </button>
-            
-            <div className="w-16 h-16 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <Lock className="w-8 h-8" />
-            </div>
-            <h3 className="text-xl font-black text-gray-800 mb-4 uppercase tracking-tight">Recuperar Senha</h3>
-
-            <div className="text-left bg-gray-50 p-4 rounded-xl mb-6 space-y-3 border border-gray-100">
-              <div>
-                <span className="text-[10px] font-black text-purple-600 uppercase tracking-widest block mb-1">Se você é Paciente:</span>
-                <p className="text-sm font-medium text-gray-600">Ligue para a recepção no número <br /><strong className="text-gray-800">{CLINIC_PHONE}</strong>.</p>
-              </div>
-              <div className="h-px bg-gray-200 w-full"></div>
-              <div>
-                <span className="text-[10px] font-black text-purple-600 uppercase tracking-widest block mb-1">Se você é Funcionário:</span>
-                <p className="text-sm font-medium text-gray-600">Entre em contato com o administrador do sistema o mais rápido possível.</p>
-              </div>
-            </div>
-
-            <button className="w-full bg-[#2C5282] text-white font-black py-4 rounded-2xl uppercase tracking-widest text-[10px] shadow-lg shadow-purple-100 hover:bg-[#152D5C] transition-all active:scale-95" onClick={() => setModalEsqueciSenha(false)}>
-              Entendido
-            </button>
-          </div>
-        </div>
-      )}
+      {/* Modal Esqueci a Senha — fluxo funcional de recuperação por código */}
+      <RecuperarSenhaModal open={modalEsqueciSenha} onClose={() => setModalEsqueciSenha(false)} />
 
       {/* Modal Cadastro Presencial */}
       {modalCadastro && (
