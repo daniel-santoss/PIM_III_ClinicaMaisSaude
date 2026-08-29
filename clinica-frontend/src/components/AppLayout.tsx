@@ -35,7 +35,7 @@ type AppLayoutProps = {
   children: React.ReactNode;
 };
 
-const SIDEBAR_W = 248;
+const RAIL_W = 72; // sidebar recolhida (só ícones); expande p/ 248px no hover
 
 // ─── Itens de navegação por perfil ────────────────────────────────────────────
 function getNavItems(tipoUsuario: string, isAdmin: boolean): NavItem[] {
@@ -163,67 +163,94 @@ export default function AppLayout({
     </div>
   );
 
-  // ─── Sidebar (desktop fixa / drawer mobile) ─────────────────────────────────
-  const SidebarContent = ({ isDrawer = false }: { isDrawer?: boolean }) => (
-    <>
-      {/* Header da sidebar */}
-      <div className="flex items-center gap-2.5 px-5 py-[18px] border-b border-line">
-        <div className="w-[34px] h-[34px] shrink-0 rounded-lg bg-white border border-line grid place-items-center overflow-hidden">
-          <img src={logoPng} alt="Logo" className="w-full h-full object-contain p-0.5 mix-blend-multiply" />
-        </div>
-        <div className="min-w-0">
-          <div className="font-bold text-[15px] leading-tight text-ink truncate">{CLINIC_NAME}</div>
-          <div className="font-medium text-[11px] text-muted tracking-wide">Portal Clínico</div>
-        </div>
-        {isDrawer && (
-          <button onClick={() => setIsDrawerOpen(false)} className="ml-auto text-body">
-            <X size={20} />
-          </button>
-        )}
-      </div>
-
-      {/* Navegação */}
-      <nav className="flex-1 flex flex-col gap-0.5 px-3 py-3.5">
-        <div className="font-semibold text-[11px] tracking-wider text-muted uppercase px-3 pt-2 pb-1.5">{sectionLabel}</div>
-        {navItems.map(item => {
-          const ativo = abaAtiva === item.id;
-          return (
-            <button
-              key={item.id}
-              onClick={() => { onNavegar(item.id); if (!isDesktop) setIsDrawerOpen(false); }}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-md w-full text-left text-sm font-medium transition-colors ${
-                ativo ? 'bg-brand-600 text-white' : 'text-body hover:bg-canvas'
-              }`}
-            >
-              <span className="shrink-0 grid place-items-center">{item.icon}</span>
-              <span className="truncate">{item.label}</span>
-            </button>
-          );
-        })}
-      </nav>
-
-      {/* Footer: Perfil e Sair */}
-      <div className="mt-auto border-t border-line p-3 flex flex-col gap-0.5">
-        <button
-          onClick={() => { onAbrirPerfil(); if (!isDesktop) setIsDrawerOpen(false); }}
-          className="flex items-center gap-2.5 px-2.5 py-2 rounded-md hover:bg-canvas transition-colors w-full text-left"
-        >
-          {avatar}
-          <div className="min-w-0 text-left">
-            <div className="font-semibold text-[13px] leading-tight text-ink truncate">{nomeUsuario}</div>
-            <div className="font-medium text-[11px] text-muted">{papelLabel(tipoUsuario, isAdmin)}</div>
+  // ─── Sidebar (desktop rail recolhível / drawer mobile) ──────────────────────
+  // Quando `colapsavel` (desktop), o rail mostra só ícones; os textos ficam
+  // ocultos (opacity 0) e aparecem quando o <aside> expande no hover (group).
+  const SidebarContent = ({ isDrawer = false, colapsavel = false }: { isDrawer?: boolean; colapsavel?: boolean }) => {
+    const texto = colapsavel ? 'opacity-0 group-hover:opacity-100 transition-opacity duration-200' : '';
+    return (
+      <>
+        {/* Header da sidebar */}
+        <div className="flex items-center gap-2.5 px-[18px] h-[65px] shrink-0 border-b border-line">
+          <div className="w-[34px] h-[34px] shrink-0 rounded-lg bg-white border border-line grid place-items-center overflow-hidden">
+            <img src={logoPng} alt="Logo" className="w-full h-full object-contain p-0.5 mix-blend-multiply" />
           </div>
-        </button>
-        <button
-          onClick={onLogout}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-md w-full text-left text-sm font-medium text-danger hover:bg-danger-tint transition-colors"
-        >
-          <LogOut size={17} className="shrink-0" />
-          <span>Sair</span>
-        </button>
-      </div>
-    </>
-  );
+          <div className={`min-w-0 ${texto}`}>
+            <div className="font-bold text-[15px] leading-tight text-ink truncate">{CLINIC_NAME}</div>
+            <div className="font-medium text-[11px] text-muted tracking-wide">Portal Clínico</div>
+          </div>
+          {isDrawer && (
+            <button onClick={() => setIsDrawerOpen(false)} className="ml-auto text-body">
+              <X size={20} />
+            </button>
+          )}
+        </div>
+
+        {/* Navegação */}
+        <nav className="flex-1 flex flex-col gap-0.5 px-3 py-3.5">
+          <div className={`font-semibold text-[11px] tracking-wider text-muted uppercase px-3 pt-2 pb-1.5 whitespace-nowrap ${texto}`}>{sectionLabel}</div>
+          {navItems.map(item => {
+            const ativo = abaAtiva === item.id;
+            return (
+              <button
+                key={item.id}
+                title={item.label}
+                onClick={() => { onNavegar(item.id); if (!isDesktop) setIsDrawerOpen(false); }}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-md w-full text-left text-sm font-medium transition-colors ${
+                  ativo ? 'bg-brand-600 text-white' : 'text-body hover:bg-canvas'
+                }`}
+              >
+                <span className="shrink-0 grid place-items-center">{item.icon}</span>
+                <span className={`truncate ${texto}`}>{item.label}</span>
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* Footer: Notificações, Perfil e Sair */}
+        <div className="mt-auto border-t border-line p-3 flex flex-col gap-0.5">
+          <button
+            onClick={() => setNotifAberto(v => !v)}
+            title="Notificações"
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-md w-full text-left text-sm font-medium transition-colors ${
+              notifAberto ? 'bg-canvas text-ink' : 'text-body hover:bg-canvas'
+            }`}
+          >
+            <span className="shrink-0 grid place-items-center relative">
+              <Bell size={18} />
+              {naoLidas > 0 && (
+                <span className="absolute -top-1 -right-1 w-[7px] h-[7px] rounded-full bg-danger border-[1.5px] border-white" />
+              )}
+            </span>
+            <span className={`truncate flex-1 ${texto}`}>Notificações</span>
+            {naoLidas > 0 && (
+              <span className={`text-[11px] font-semibold text-brand-600 bg-brand-50 px-1.5 py-0.5 rounded ${texto}`}>{naoLidas}</span>
+            )}
+          </button>
+
+          <button
+            onClick={() => { onAbrirPerfil(); if (!isDesktop) setIsDrawerOpen(false); }}
+            title={nomeUsuario}
+            className="flex items-center gap-2.5 px-2.5 py-2 rounded-md hover:bg-canvas transition-colors w-full text-left"
+          >
+            {avatar}
+            <div className={`min-w-0 text-left ${texto}`}>
+              <div className="font-semibold text-[13px] leading-tight text-ink truncate">{nomeUsuario}</div>
+              <div className="font-medium text-[11px] text-muted">{papelLabel(tipoUsuario, isAdmin)}</div>
+            </div>
+          </button>
+          <button
+            onClick={onLogout}
+            title="Sair"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-md w-full text-left text-sm font-medium text-danger hover:bg-danger-tint transition-colors"
+          >
+            <LogOut size={17} className="shrink-0" />
+            <span className={texto}>Sair</span>
+          </button>
+        </div>
+      </>
+    );
+  };
 
   const bellButton = (
     <button
@@ -247,13 +274,12 @@ export default function AppLayout({
         <div onClick={() => setIsDrawerOpen(false)} className="fixed inset-0 bg-ink/45 z-[1100] backdrop-blur-[2px]" />
       )}
 
-      {/* ── SIDEBAR DESKTOP (fixa 248px) ── */}
+      {/* ── SIDEBAR DESKTOP (rail 72px; expande p/ 248px no hover) ── */}
       {isDesktop && (
         <aside
-          className="fixed top-0 left-0 h-screen bg-white border-r border-line flex flex-col z-[1200]"
-          style={{ width: SIDEBAR_W }}
+          className="group fixed top-0 left-0 h-screen bg-white border-r border-line flex flex-col z-[1200] overflow-hidden w-[72px] hover:w-[248px] hover:shadow-modal transition-[width] duration-200 ease-out"
         >
-          <SidebarContent />
+          <SidebarContent colapsavel />
         </aside>
       )}
 
@@ -289,9 +315,10 @@ export default function AppLayout({
           <div
             className="fixed max-w-[360px] bg-white rounded-xl border border-line shadow-modal z-[2000] overflow-hidden"
             style={{
-              top: isDesktop ? 60 : 68,
-              left: isDesktop ? 'auto' : 8,
-              right: isDesktop ? 20 : 8,
+              bottom: isDesktop ? 16 : 'auto',
+              top: isDesktop ? 'auto' : 68,
+              left: isDesktop ? RAIL_W + 8 : 8,
+              right: isDesktop ? 'auto' : 8,
               width: isDesktop ? 360 : 'auto',
             }}
           >
@@ -337,21 +364,19 @@ export default function AppLayout({
       {/* ── COLUNA PRINCIPAL ── */}
       <div
         className="flex-1 min-w-0 flex flex-col"
-        style={{ marginLeft: isDesktop ? SIDEBAR_W : 0, marginTop: isDesktop ? 0 : 60 }}
+        style={{ marginLeft: isDesktop ? RAIL_W : 0, marginTop: isDesktop ? 0 : 60 }}
       >
-        {/* Topbar desktop */}
-        {isDesktop && (
-          <header className="h-16 shrink-0 bg-white border-b border-line flex items-center justify-between px-7 sticky top-0 z-[5]">
-            <div>
-              <div className="font-semibold text-xl text-ink leading-tight">{header.titulo}</div>
-              <div className="text-[13px] text-muted">{header.subtitulo}</div>
-            </div>
-            <div className="flex items-center gap-2.5">{bellButton}</div>
-          </header>
-        )}
-
         <main className="flex-1 min-w-0 px-7 py-7">
-          <div className="max-w-[1180px] mx-auto">{children}</div>
+          <div className="max-w-[1180px] mx-auto">
+            {/* Título da página (a topbar desktop foi removida; título agora no conteúdo) */}
+            {isDesktop && (
+              <div className="mb-6">
+                <h1 className="font-semibold text-2xl text-ink leading-tight">{header.titulo}</h1>
+                <p className="text-[13px] text-muted mt-1">{header.subtitulo}</p>
+              </div>
+            )}
+            {children}
+          </div>
         </main>
       </div>
 
