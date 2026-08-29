@@ -94,6 +94,19 @@ builder.Services.AddRateLimiter(options =>
                 PermitLimit = 20,
                 QueueLimit = 0
             }));
+
+    // Recuperação de senha (3 endpoints anônimos): teto por IP contra brute force de código.
+    // 10/min cobre o fluxo legítimo (solicitar + algumas validações + redefinir); o limite de
+    // 5 tentativas por código é a trava fina por-conta.
+    options.AddPolicy("recuperacao", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "sem-ip",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                Window = TimeSpan.FromMinutes(1),
+                PermitLimit = 10,
+                QueueLimit = 0
+            }));
 });
 
 // String de conexão com o banco de dados
@@ -164,6 +177,8 @@ builder.Services.AddScoped<IDelegacaoProfissionalService, DelegacaoProfissionalS
 builder.Services.AddScoped<IAgendamentoService, AgendamentoService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ICadastroService, CadastroService>();
+builder.Services.AddScoped<IEmailService, SmtpEmailService>();
+builder.Services.AddScoped<IRecuperacaoSenhaService, RecuperacaoSenhaService>();
 builder.Services.AddScoped<IProbabilidadeFaltaService, ProbabilidadeFaltaService>();
 builder.Services.AddScoped<IEspecialidadeService, EspecialidadeService>();
 builder.Services.AddScoped<IPerfilService, PerfilService>();

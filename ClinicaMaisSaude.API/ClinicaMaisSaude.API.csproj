@@ -26,4 +26,12 @@
     <ProjectReference Include="..\ClinicaMaisSaude.Infrastructure\ClinicaMaisSaude.Infrastructure.csproj" />
   </ItemGroup>
 
+  <!-- Assets embutidos nos e-mails (logo inline via Content-ID). Copiados para o output
+       para o SmtpEmailService lê-los em AppContext.BaseDirectory/EmailAssets. -->
+  <ItemGroup>
+    <None Update="EmailAssets\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

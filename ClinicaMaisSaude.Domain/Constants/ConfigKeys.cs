@@ -16,5 +16,22 @@ namespace ClinicaMaisSaude.Domain.Constants
         public const string AdminSeedPassword = "AdminSeed:Password";
         public const string RateLimitGlobal = "RateLimit_Global";
         public const string RateLimitUser = "RateLimit_User_";
+
+        // Envio de e-mail transacional (SMTP). Valores reais em user-secrets (dev) / env (prod).
+        // Se EmailHost não estiver configurado, o SmtpEmailService loga o conteúdo em vez de enviar.
+        public const string EmailHost = "EmailConfig:Host";
+        public const string EmailPort = "EmailConfig:Port";
+        public const string EmailUser = "EmailConfig:User";
+        public const string EmailPassword = "EmailConfig:Password";
+        public const string EmailFrom = "EmailConfig:From";
+        public const string EmailFromName = "EmailConfig:FromName";
+        // URL pública da logo usada nos e-mails. Se definida, o HTML usa <img src="URL"> (sem anexo);
+        // se vazia, cai no fallback de logo embutida (cid) — que o Gmail lista como anexo.
+        public const string EmailLogoUrl = "EmailConfig:LogoUrl";
+
+        // Pepper (chave secreta do servidor) do HMAC-SHA256 aplicado ao código de recuperação.
+        // Fica FORA do banco (config/user-secrets/env) — é o que protege o código curto contra
+        // brute force num vazamento do banco. Par conceitual do JwtConfig:Secret.
+        public const string CodigoRecuperacaoPepper = "Security:CodigoRecuperacaoPepper";
     }
 }

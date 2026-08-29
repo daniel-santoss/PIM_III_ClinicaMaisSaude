@@ -66,6 +66,7 @@ namespace ClinicaMaisSaude.Infrastructure.Data
         public DbSet<ProfissionalEspecialidade> ProfissionalEspecialidades { get; set; }
         public DbSet<UsoInadequadoIA> UsoInadequadoIA { get; set; } = null!;
         public DbSet<RefreshToken> RefreshTokens { get; set; } = null!;
+        public DbSet<CodigoRecuperacaoSenha> CodigosRecuperacaoSenha { get; set; } = null!;
         public DbSet<Notificacao> Notificacoes { get; set; } = null!;
         public DbSet<UsuarioFoto> UsuarioFotos { get; set; } = null!;
 
@@ -242,6 +243,25 @@ namespace ClinicaMaisSaude.Infrastructure.Data
                 entidade.HasOne(r => r.Usuario)
                     .WithMany()
                     .HasForeignKey(r => r.UsuarioId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<CodigoRecuperacaoSenha>(entidade =>
+            {
+                entidade.ToTable("CodigosRecuperacaoSenha");
+                entidade.HasKey(c => c.Id);
+                entidade.Property(c => c.CodigoHash).IsRequired().HasMaxLength(64);      // HMAC-SHA256 hex
+                entidade.Property(c => c.ResetTokenHash).HasMaxLength(64).IsRequired(false); // SHA-256 hex
+                entidade.Property(c => c.DtCriado).HasColumnName("Dt_Criado");
+                entidade.Property(c => c.DtExpiracao).HasColumnName("Dt_Expiracao");
+                entidade.Property(c => c.DtExpiracaoReset).HasColumnName("Dt_Expiracao_Reset");
+                // A redefinição faz WHERE ResetTokenHash = @hash; índice acelera e evita scan.
+                entidade.HasIndex(c => c.ResetTokenHash);
+                // A validação busca o código ativo mais recente do usuário.
+                entidade.HasIndex(c => c.UsuarioId);
+                entidade.HasOne(c => c.Usuario)
+                    .WithMany()
+                    .HasForeignKey(c => c.UsuarioId)
                     .OnDelete(DeleteBehavior.Cascade);
             });
 
