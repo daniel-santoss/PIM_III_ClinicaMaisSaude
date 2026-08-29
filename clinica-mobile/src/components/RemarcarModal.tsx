@@ -18,7 +18,7 @@ import { horariosDisponiveis } from '@/lib/consultas';
 import { parseData, proximosDiasUteis, type DiaUtil } from '@/lib/datas';
 import type { Agendamento } from '@/types/agendamento';
 
-const ROXO = '#7C3AED';
+const AZUL = '#2C5282';
 
 interface Props {
   agendamento: Agendamento | null; // null = fechado
@@ -127,7 +127,7 @@ export default function RemarcarModal({ agendamento, onClose, onSuccess }: Props
             <>
               <Text style={[styles.label, { marginTop: 12 }]}>Horário</Text>
               {carregandoHorarios ? (
-                <ActivityIndicator color={ROXO} style={{ marginVertical: 12 }} />
+                <ActivityIndicator color={AZUL} style={{ marginVertical: 12 }} />
               ) : horarios.length === 0 ? (
                 <Text style={styles.semHorario}>Nenhum horário disponível para esta data.</Text>
               ) : (
@@ -185,15 +185,15 @@ const styles = StyleSheet.create({
   },
   handle: { alignSelf: 'center', width: 40, height: 5, borderRadius: 999, backgroundColor: '#E5E7EB', marginTop: 10 },
   header: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
-  eyebrow: { fontSize: 11, fontWeight: '800', color: ROXO, textTransform: 'uppercase', letterSpacing: 1 },
+  eyebrow: { fontSize: 11, fontWeight: '800', color: AZUL, textTransform: 'uppercase', letterSpacing: 1 },
   profissional: { fontSize: 20, fontWeight: '800', color: '#111827', marginTop: 2 },
-  chipTipo: { alignSelf: 'flex-start', backgroundColor: '#F3E8FF', borderRadius: 999, paddingHorizontal: 12, paddingVertical: 4, marginTop: 6 },
-  chipTipoTexto: { fontSize: 11, fontWeight: '800', color: '#6D28D9' },
+  chipTipo: { alignSelf: 'flex-start', backgroundColor: '#EEF2F7', borderRadius: 999, paddingHorizontal: 12, paddingVertical: 4, marginTop: 6 },
+  chipTipoTexto: { fontSize: 11, fontWeight: '800', color: '#2C5282' },
   corpo: { paddingHorizontal: 24, paddingVertical: 16 },
   label: { fontSize: 12, fontWeight: '800', color: '#374151', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 },
   diasRow: { gap: 8, paddingVertical: 2 },
   dia: { width: 58, paddingVertical: 10, borderRadius: 14, backgroundColor: '#F3F4F6', alignItems: 'center', gap: 2 },
-  diaAtivo: { backgroundColor: ROXO },
+  diaAtivo: { backgroundColor: AZUL },
   diaSemana: { fontSize: 11, fontWeight: '700', color: '#6B7280' },
   diaNum: { fontSize: 17, fontWeight: '800', color: '#111827' },
   diaMes: { fontSize: 10, fontWeight: '600', color: '#9CA3AF' },
@@ -201,7 +201,7 @@ const styles = StyleSheet.create({
   semHorario: { fontSize: 14, color: '#9CA3AF', paddingVertical: 8 },
   horariosWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   hora: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12, backgroundColor: '#F3F4F6' },
-  horaAtiva: { backgroundColor: ROXO },
+  horaAtiva: { backgroundColor: AZUL },
   horaTexto: { fontSize: 14, fontWeight: '700', color: '#374151' },
   textarea: {
     borderWidth: 1,
@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
   rodape: { flexDirection: 'row', gap: 12, paddingHorizontal: 24, paddingTop: 12 },
   botaoSec: { flex: 1, paddingVertical: 16, alignItems: 'center', borderRadius: 16, backgroundColor: '#F3F4F6' },
   botaoSecTexto: { color: '#6B7280', fontWeight: '800', fontSize: 14 },
-  botao: { flex: 1, paddingVertical: 16, alignItems: 'center', borderRadius: 16, backgroundColor: ROXO },
+  botao: { flex: 1, paddingVertical: 16, alignItems: 'center', borderRadius: 16, backgroundColor: AZUL },
   botaoOff: { opacity: 0.5 },
   botaoTexto: { color: '#fff', fontWeight: '800', fontSize: 15 },
 });

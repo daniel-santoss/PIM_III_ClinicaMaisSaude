@@ -3,7 +3,7 @@ import { Tabs } from 'expo-router';
 
 import { NaoLidasProvider, useNaoLidas } from '@/context/NaoLidasContext';
 
-const ROXO = '#7C3AED';
+const AZUL = '#2C5282';
 
 // Grupo protegido: abas do paciente — Início, Consultas, Agendar, Notificações e Perfil.
 // O provider de não-lidas envolve as abas para alimentar o badge de Avisos.
@@ -22,7 +22,7 @@ function AbasPaciente() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: ROXO,
+        tabBarActiveTintColor: AZUL,
         tabBarInactiveTintColor: '#9CA3AF',
         tabBarStyle: { borderTopColor: '#F3F4F6' },
         tabBarLabelStyle: { fontSize: 11, fontWeight: '700' },
@@ -65,6 +65,8 @@ function AbasPaciente() {
           tabBarIcon: ({ color, size }) => <Ionicons name="person" color={color} size={size} />,
         }}
       />
+      {/* Rota acessível pelo Perfil, escondida da barra de abas. */}
+      <Tabs.Screen name="configuracoes" options={{ href: null }} />
     </Tabs>
   );
 }

@@ -35,6 +35,14 @@ bld/
 
 # Arquivos de documentação
 *.md
+# Exceto os docs do projeto (versionados de propósito):
+!ANALISE_PROJETO.md
+!ESPEC_MODELAGEM_BANCO.md
+!MELHORIAS_TECNICAS.md
+!PLANO_MOBILE.md
+!README.md
+!clinica-context.md
+!requisitos_e_regras.md
 
 # Visual Studio 2015/2017 cache/options directory
 .vs/

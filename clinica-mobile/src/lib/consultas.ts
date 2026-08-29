@@ -34,6 +34,13 @@ export async function listarEspecialidades(): Promise<Especialidade[]> {
   return (await res.json()) as Especialidade[];
 }
 
+// IDs das especialidades que têm ao menos um médico disponível (espelha o web).
+export async function especialidadesDisponiveis(): Promise<number[]> {
+  const res = await apiFetch('/api/Especialidades/disponiveis');
+  if (!res.ok) return [];
+  return (await res.json()) as number[];
+}
+
 export async function horariosDisponiveis(
   data: string,
   tipoConsulta: number,
