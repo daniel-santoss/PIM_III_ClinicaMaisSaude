@@ -32,6 +32,10 @@ namespace ClinicaMaisSaude.Domain.Entities
         public byte[] RowVersion { get; private set; } = Array.Empty<byte>();
 
         public virtual Paciente Paciente { get; private set; }
+        // Profissional responsável (FK ProfissionalId, obrigatória). Só materializado via .Include.
+        public virtual Profissional Profissional { get; private set; }
+        // Agendamento de origem na cadeia de retorno/remarcação (auto-referência, opcional).
+        public virtual Agendamento? AgendamentoOrigem { get; private set; }
 
         public Agendamento(Guid pacienteId, Guid profissionalId, DateTime dataHoraConsulta,
             TipoProfissional tipoProfissional, TipoConsulta tipoConsulta, Guid? agendamentoOrigemId = null)

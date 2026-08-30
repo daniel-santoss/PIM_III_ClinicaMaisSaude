@@ -130,14 +130,15 @@ namespace ClinicaMaisSaude.Infrastructure.Data
                     .HasForeignKey(a => a.PacienteId)
                     .OnDelete(DeleteBehavior.Restrict);
 
-                // Integridade referencial faltante (Fase 5): profissional responsável,
-                // cadeia de origem (retorno/remarcação, auto-referência) e especialidade.
-                entidade.HasOne<Profissional>()
+                // Integridade referencial (Fase 5): profissional responsável, cadeia de
+                // origem (retorno/remarcação, auto-referência) e especialidade. Agora com
+                // navegações explícitas (Fase 0) — mesmas FKs, sem mudança de schema.
+                entidade.HasOne(a => a.Profissional)
                     .WithMany()
                     .HasForeignKey(a => a.ProfissionalId)
                     .OnDelete(DeleteBehavior.Restrict);
 
-                entidade.HasOne<Agendamento>()
+                entidade.HasOne(a => a.AgendamentoOrigem)
                     .WithMany()
                     .HasForeignKey(a => a.AgendamentoOrigemId)
                     .OnDelete(DeleteBehavior.Restrict);
