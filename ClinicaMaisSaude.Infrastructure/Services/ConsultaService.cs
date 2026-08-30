@@ -226,7 +226,7 @@ Formato:
 
                         var notificacoes = await CancelarAgendamentosENotificarAsync(usuarioLogadoId);
 
-                        var admins = await _context.Usuarios.AsNoTracking().Where(u => u.TipoUsuario == TipoUsuario.Admin).ToListAsync();
+                        var admins = await _context.Usuarios.AsNoTracking().Where(u => u.Role == RoleUsuario.Admin).ToListAsync();
                         foreach (var admin in admins)
                         {
                             var notificacao = new Notificacao(
@@ -285,7 +285,7 @@ Formato:
 
                     var notificacoes = await CancelarAgendamentosENotificarAsync(usuarioLogadoId);
 
-                    var admins = await _context.Usuarios.AsNoTracking().Where(u => u.TipoUsuario == TipoUsuario.Admin).ToListAsync();
+                    var admins = await _context.Usuarios.AsNoTracking().Where(u => u.Role == RoleUsuario.Admin).ToListAsync();
                     foreach (var admin in admins)
                     {
                         var notificacao = new Notificacao(
@@ -321,7 +321,7 @@ Formato:
                     }
 
                     var notificacoes = new List<Notificacao>();
-                    var admins = await _context.Usuarios.AsNoTracking().Where(u => u.TipoUsuario == TipoUsuario.Admin).ToListAsync();
+                    var admins = await _context.Usuarios.AsNoTracking().Where(u => u.Role == RoleUsuario.Admin).ToListAsync();
                     foreach (var admin in admins)
                     {
                         var notificacao = new Notificacao(
