@@ -75,20 +75,28 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             else
                 return new CadastroResult { Sucesso = false, Mensagem = "Tipo de usuário inválido." };
 
-            // Criação da identidade (LoginPortal) — dona de Nome/Cpf/Email/Telefone.
+            // Identidade (Thread B): a Pessoa é a dona de Nome/Cpf/Email/Telefone. O LoginPortal
+            // ainda recebe uma cópia enquanto suas colunas de identidade existirem (removidas no B3).
+            var pessoa = new Pessoa(request.Nome, cpfLimpo, request.Email, telefoneLimpo);
+            _context.Pessoas.Add(pessoa);
+
+            // Criação da credencial (LoginPortal), vinculada à Pessoa.
             var novoUsuario = new Usuario(request.Email, cpfLimpo, senhaHash, request.Nome, telefoneLimpo, role);
+            novoUsuario.VincularPessoa(pessoa.Id);
             _context.Usuarios.Add(novoUsuario);
 
-            // Criação do perfil associado (magro; identidade fica no LoginPortal)
+            // Criação do perfil associado (magro), vinculado à mesma Pessoa e à conta.
             if (request.TipoUsuario == PerfisUsuario.Paciente)
             {
                 var paciente = new Paciente(novoUsuario.Id, request.TemProblemaMemoria);
+                paciente.VincularPessoa(pessoa.Id);
                 _context.Pacientes.Add(paciente);
             }
             else if (request.TipoUsuario == PerfisUsuario.Medico || request.TipoUsuario == PerfisUsuario.Enfermeira)
             {
                 // Categoria vem do Role (definido acima); o Profissional é magro, sem TipoProfissional (Fase A3b).
                 var profissional = new Profissional(novoUsuario.Id, request.Crm, request.UfCrm);
+                profissional.VincularPessoa(pessoa.Id);
                 _context.Profissionais.Add(profissional);
             }
             else
@@ -178,12 +186,17 @@ namespace ClinicaMaisSaude.Infrastructure.Services
 
         public async Task PurgeTestsAsync()
         {
-            var testUserIds = await _context.Usuarios
+            var testUsers = await _context.Usuarios
                 .Where(u => u.Email.Contains(".homologacao."))
-                .Select(u => u.Id)
+                .Select(u => new { u.Id, u.PessoaId })
                 .ToListAsync();
 
-            if (!testUserIds.Any()) return;
+            if (!testUsers.Any()) return;
+
+            var testUserIds = testUsers.Select(u => u.Id).ToList();
+            // Identidade (Thread B): a criação passou a gerar uma Pessoa por usuário; o purge
+            // precisa removê-las também, senão ficam órfãs.
+            var testPessoaIds = testUsers.Where(u => u.PessoaId.HasValue).Select(u => u.PessoaId!.Value).ToList();
 
             var testPatientIds = await _context.Pacientes
                 .Where(p => testUserIds.Contains(p.UsuarioId))
@@ -253,6 +266,14 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                 .Where(u => testUserIds.Contains(u.Id))
                 .ToListAsync();
             _context.Usuarios.RemoveRange(usuarios);
+
+            if (testPessoaIds.Any())
+            {
+                var pessoas = await _context.Pessoas
+                    .Where(p => testPessoaIds.Contains(p.Id))
+                    .ToListAsync();
+                _context.Pessoas.RemoveRange(pessoas);
+            }
 
             await _context.SaveChangesAsync();
         }

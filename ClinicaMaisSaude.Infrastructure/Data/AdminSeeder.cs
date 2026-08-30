@@ -48,11 +48,17 @@ namespace ClinicaMaisSaude.Infrastructure.Data
 
             var senhaHash = BCrypt.Net.BCrypt.HashPassword(senha);
 
+            // Identidade (Thread B): Pessoa é a dona da identidade; o LoginPortal recebe cópia até o B3.
+            var pessoa = new Pessoa("Administrador", cpf, email, null);
+            await context.Pessoas.AddAsync(pessoa);
+
             var admin = new Usuario(email, cpf, senhaHash, "Administrador", null, RoleUsuario.Admin);
+            admin.VincularPessoa(pessoa.Id);
             await context.Usuarios.AddAsync(admin);
 
             // Profissional vestigial do admin (categoria não se aplica; papel já é Admin no Role).
             var profissionalAdmin = new Profissional(admin.Id, "123456", "SP");
+            profissionalAdmin.VincularPessoa(pessoa.Id);
             await context.Profissionais.AddAsync(profissionalAdmin);
 
             await context.SaveChangesAsync();
