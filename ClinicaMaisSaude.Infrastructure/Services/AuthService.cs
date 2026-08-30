@@ -98,29 +98,15 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                 throw new UnauthorizedException("Esta conta foi encerrada.");
             }
 
-            // Papel para o token: admin é explícito (não mais inferido do perfil);
-            // profissional detalha em Medico/Enfermeira (usado por regras de negócio);
-            // paciente é paciente. O claim Role dirige o [Authorize].
-            string tipoUsuarioStr;
-            Guid? pacienteId = null;
-
-            if (usuario.TipoUsuario == TipoUsuario.Admin)
-            {
-                tipoUsuarioStr = PerfisUsuario.Admin;
-            }
-            else if (perfilProfissional != null)
-            {
-                tipoUsuarioStr = perfilProfissional.TipoProfissional.ToString();
-            }
-            else if (perfilPaciente != null)
-            {
-                tipoUsuarioStr = PerfisUsuario.Paciente;
-                pacienteId = perfilPaciente.Id;
-            }
-            else
-            {
-                tipoUsuarioStr = usuario.TipoUsuario.ToString();
-            }
+            // Papel unificado (Fase A2): a string do papel vem do Role — formato de fio
+            // idêntico ({Admin, Medico, Enfermeira, Paciente}), então os fronts não mudam.
+            // Fallback à taxonomia antiga só se Role ainda não estiver populado (defensivo).
+            string tipoUsuarioStr = usuario.Role?.ToString()
+                ?? (usuario.TipoUsuario == TipoUsuario.Admin ? PerfisUsuario.Admin
+                    : perfilProfissional != null ? perfilProfissional.TipoProfissional.ToString()
+                    : perfilPaciente != null ? PerfisUsuario.Paciente
+                    : usuario.TipoUsuario.ToString());
+            Guid? pacienteId = perfilPaciente?.Id;
 
             var tokenHandler = new JwtSecurityTokenHandler();
             var secretKey = _configuration[ConfigKeys.JwtSecret] ?? throw new InvalidOperationException($"{ConfigKeys.JwtSecret} não configurado.");
@@ -182,7 +168,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                 TipoUsuario = tipoUsuarioStr,
                 PacienteId = pacienteId,
                 ProfissionalId = perfilProfissional?.Id,
-                IsAdmin = usuario.TipoUsuario == TipoUsuario.Admin,
+                IsAdmin = tipoUsuarioStr == PerfisUsuario.Admin,
                 FotoBase64 = usuario.FotoBase64
             };
         }
@@ -224,20 +210,13 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             var perfilProfissional = await _context.Profissionais.AsNoTracking().FirstOrDefaultAsync(p => p.UsuarioId == usuario.Id);
             var perfilPaciente = await _context.Pacientes.AsNoTracking().FirstOrDefaultAsync(p => p.UsuarioId == usuario.Id);
 
-            string tipoUsuarioStr;
-            Guid? pacienteId = null;
-
-            if (usuario.TipoUsuario == TipoUsuario.Admin)
-                tipoUsuarioStr = PerfisUsuario.Admin;
-            else if (perfilProfissional != null)
-                tipoUsuarioStr = perfilProfissional.TipoProfissional.ToString();
-            else if (perfilPaciente != null)
-            {
-                tipoUsuarioStr = PerfisUsuario.Paciente;
-                pacienteId = perfilPaciente.Id;
-            }
-            else
-                tipoUsuarioStr = usuario.TipoUsuario.ToString();
+            // Papel unificado (Fase A2): mesma derivação do login — string do papel vem do Role.
+            string tipoUsuarioStr = usuario.Role?.ToString()
+                ?? (usuario.TipoUsuario == TipoUsuario.Admin ? PerfisUsuario.Admin
+                    : perfilProfissional != null ? perfilProfissional.TipoProfissional.ToString()
+                    : perfilPaciente != null ? PerfisUsuario.Paciente
+                    : usuario.TipoUsuario.ToString());
+            Guid? pacienteId = perfilPaciente?.Id;
 
             var claims = new List<Claim>
             {
@@ -286,7 +265,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                 TipoUsuario = tipoUsuarioStr,
                 PacienteId = pacienteId,
                 ProfissionalId = perfilProfissional?.Id,
-                IsAdmin = usuario.TipoUsuario == TipoUsuario.Admin,
+                IsAdmin = tipoUsuarioStr == PerfisUsuario.Admin,
                 FotoBase64 = usuario.FotoBase64
             };
         }

@@ -75,6 +75,13 @@ namespace ClinicaMaisSaude.Infrastructure.Services
 
             // Criação da identidade (LoginPortal) — dona de Nome/Cpf/Email/Telefone.
             var novoUsuario = new Usuario(request.Email, cpfLimpo, senhaHash, request.Nome, telefoneLimpo, tipoConta);
+            // Dual-write do papel unificado (Fase A2): grava Role junto com TipoUsuario.
+            novoUsuario.DefinirRole(request.TipoUsuario switch
+            {
+                PerfisUsuario.Medico => RoleUsuario.Medico,
+                PerfisUsuario.Enfermeira => RoleUsuario.Enfermeira,
+                _ => RoleUsuario.Paciente
+            });
             _context.Usuarios.Add(novoUsuario);
 
             // Criação do perfil associado (magro; identidade fica no LoginPortal)
@@ -108,21 +115,17 @@ namespace ClinicaMaisSaude.Infrastructure.Services
 
             foreach (var u in usuarios)
             {
-                // Nome vem sempre do LoginPortal (identidade única); o perfil só define o tipo.
+                // Nome vem sempre do LoginPortal (identidade única). O tipo agora vem do
+                // papel unificado Role (Fase A2); fallback à taxonomia antiga se null.
                 string nome = u.Nome;
-                string tipo = "Admin";
 
                 var prof = profissionais.FirstOrDefault(p => p.UsuarioId == u.Id);
                 var pac = pacientes.FirstOrDefault(p => p.UsuarioId == u.Id);
 
-                if (prof != null)
-                {
-                    tipo = prof.TipoProfissional.ToString();
-                }
-                else if (pac != null)
-                {
-                    tipo = PerfisUsuario.Paciente;
-                }
+                string tipo = u.Role?.ToString()
+                    ?? (prof != null ? prof.TipoProfissional.ToString()
+                        : pac != null ? PerfisUsuario.Paciente
+                        : "Admin");
 
                 resposta.Add(new UsuarioResponse
                 {
