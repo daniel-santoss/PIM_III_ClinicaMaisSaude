@@ -53,6 +53,7 @@ namespace ClinicaMaisSaude.Infrastructure.Data
         public DbSet<Paciente> Pacientes { get; set; }
         public DbSet<Agendamento> Agendamentos { get; set; }
         public DbSet<Usuario> Usuarios { get; set; }
+        public DbSet<Pessoa> Pessoas { get; set; }
         public DbSet<Profissional> Profissionais { get; set; }
         public DbSet<StatusAgendamentoLookup> StatusAgendamentoLookup { get; set; }
         public DbSet<SituacaoClienteLookup> SituacaoClienteLookup { get; set; }
@@ -290,6 +291,22 @@ namespace ClinicaMaisSaude.Infrastructure.Data
                     .OnDelete(DeleteBehavior.SetNull);
             });
 
+            // Identidade da pessoa física (Thread B). Espelha as constraints de identidade que
+            // hoje moram no LoginPortal; na expand-phase ambas as tabelas guardam os mesmos dados.
+            modelBuilder.Entity<Pessoa>(entidade =>
+            {
+                entidade.ToTable("Pessoas");
+                entidade.HasKey(p => p.Id);
+                entidade.HasIndex(p => p.Email).IsUnique();
+                entidade.HasIndex(p => p.Cpf).IsUnique();
+                entidade.Property(p => p.Nome).IsRequired().HasMaxLength(100);
+                entidade.Property(p => p.Email).IsRequired().HasMaxLength(150);
+                entidade.Property(p => p.Cpf).HasColumnType("varchar(11)").IsRequired();
+                entidade.Property(p => p.Telefone).HasColumnType("varchar(11)");
+                entidade.Property(p => p.DtCriado).HasColumnName("Dt_Criado");
+                entidade.Property(p => p.UltAtualizacao).HasColumnName("ult_Atualizacao");
+            });
+
             modelBuilder.Entity<Usuario>(entidade =>
             {
                 entidade.ToTable("LoginPortal");
@@ -308,6 +325,12 @@ namespace ClinicaMaisSaude.Infrastructure.Data
                 entidade.HasOne<RoleUsuarioLookup>()
                     .WithMany()
                     .HasForeignKey(u => u.Role)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                // Identidade (Thread B, aditivo/nulável na B1). Login vira credencial da Pessoa.
+                entidade.HasOne(u => u.Pessoa)
+                    .WithMany()
+                    .HasForeignKey(u => u.PessoaId)
                     .OnDelete(DeleteBehavior.Restrict);
 
                 // Foto 1:1 em tabela separada (UsuarioFotos), com PK compartilhada. Só é

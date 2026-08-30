@@ -20,7 +20,14 @@ namespace ClinicaMaisSaude.Domain.Entities
         public RoleUsuario Role { get; private set; }
         public DateTime DtCriado { get; private set; }
         public DateTime? UltimoAcesso { get; private set; }
-        
+
+        // Identidade da conta (Thread B). Aditivo/nulável na Fase B1: o backfill aponta cada
+        // LoginPortal para a Pessoa correspondente. Nas fases seguintes a identidade
+        // (Nome/Cpf/Email/Telefone) passa a ser lida da Pessoa e o login vira opcional.
+        public Guid? PessoaId { get; private set; }
+        public virtual Pessoa? Pessoa { get; private set; }
+        public void VincularPessoa(Guid pessoaId) => PessoaId = pessoaId;
+
         public int TentativasLogin { get; private set; }
         public DateTime? BloqueadoAte { get; private set; }
 
