@@ -6,6 +6,25 @@ Objetivo: consolidar identidade, unificar papéis, fechar furos de integridade r
 
 ---
 
+## ⚠️ v2 EM ANDAMENTO (2026-08-30) — este doc descreve o refactor de 8 fases (concluído); um SEGUNDO refactor está em curso
+
+O **user-model v2** (incremental, branch `teste`) revisa parte do que está abaixo. Detalhe
+executável completo no plano `~/.claude/plans/peppy-weaving-truffle.md`. Resumo do que muda:
+
+- **`TipoUsuario` REMOVIDO** → enum unificado **`RoleUsuario`** {Paciente=1, Admin=2, Medico=3,
+  Enfermeira=4} + `RoleUsuarioLookup`. `LoginPortal.Role` NOT NULL é a fonte única do papel. (Migrations Fase11/Fase12.)
+- **`Profissional.TipoProfissional` será removido** (A3b): a categoria do profissional vem do `Role`.
+  O enum `TipoProfissional` + `TipoProfissionalLookup` + `Agendamento.TipoProfissional` **sobrevivem**
+  só como conceito de **agenda** (state machine) — "papel da pessoa" ≠ "categoria da consulta".
+- **`Profissional.SituacaoProfissional`** (Ativo/Inativo) + lookup — simetria com `Paciente.SituacaoCliente`. (Migration Fase10.)
+- **`Agendamento`** ganhou navegações `Profissional`/`AgendamentoOrigem`; enum `TipoViolacao` movido p/ `Domain/Enums`.
+- **Reversão da decisão "SEM Pessoa"**: virá tabela **`Pessoa`** (identidade) + `LoginPortal` credencial
+  **opcional** — porque a feature de **auto-cadastro moderado** cria um paciente **em análise sem login**.
+- Depois: decouplings (tabela `LembreteEnviado`, Value Object `Cpf`, auditoria com ator) + as 4
+  tabelas da **declaração de saúde** (ModeloDeclaracaoSaude/Pergunta/Resposta + SolicitacaoCadastro).
+
+Progresso: Fase 0 + Thread A (papéis) feitas e pushadas (topo `074c067`). Próximo: **A3b**.
+
 ## 0. Status de implementação (2026-08-15)
 
 Migrations aplicadas no banco local: `InitialCreate` → `Fase1_LookupsEnums` → `Fase2_TipoUsuario`. Testes = **61** (44 Domain + 17 Application). Commits **locais, não pushados**.
