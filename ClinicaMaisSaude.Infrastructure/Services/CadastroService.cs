@@ -34,7 +34,8 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                 return new CadastroResult { Sucesso = false, Mensagem = "O CPF informado não é matematicamente válido." };
             }
 
-            if (await _context.Usuarios.AnyAsync(u => u.Cpf == cpfLimpo || u.Email == request.Email))
+            // Unicidade de identidade vive na Pessoa (Thread B).
+            if (await _context.Pessoas.AnyAsync(p => p.Cpf == cpfLimpo || p.Email == request.Email))
             {
                 return new CadastroResult { Sucesso = false, Mensagem = "Já existe um usuário com este CPF ou E-mail." };
             }
@@ -80,9 +81,8 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             var pessoa = new Pessoa(request.Nome, cpfLimpo, request.Email, telefoneLimpo);
             _context.Pessoas.Add(pessoa);
 
-            // Criação da credencial (LoginPortal), vinculada à Pessoa.
-            var novoUsuario = new Usuario(request.Email, cpfLimpo, senhaHash, request.Nome, telefoneLimpo, role);
-            novoUsuario.VincularPessoa(pessoa.Id);
+            // Criação da credencial (LoginPortal), vinculada à Pessoa (identidade).
+            var novoUsuario = new Usuario(pessoa.Id, senhaHash, role);
             _context.Usuarios.Add(novoUsuario);
 
             // Criação do perfil associado (magro), vinculado à mesma Pessoa e à conta.
@@ -110,22 +110,21 @@ namespace ClinicaMaisSaude.Infrastructure.Services
 
         public async Task<IEnumerable<UsuarioResponse>> ListarUsuariosAsync()
         {
-            var usuarios = await _context.Usuarios.AsNoTracking().ToListAsync();
+            var usuarios = await _context.Usuarios.AsNoTracking().Include(u => u.Pessoa).ToListAsync();
 
             var resposta = new List<UsuarioResponse>();
 
             foreach (var u in usuarios)
             {
-                // Nome e papel vêm do LoginPortal (identidade única). O tipo é o Role (Fase A3).
-                string nome = u.Nome;
+                // Identidade vem da Pessoa (Thread B); o tipo é o Role (Fase A3).
                 string tipo = u.Role.ToString();
 
                 resposta.Add(new UsuarioResponse
                 {
                     Id = u.Id,
-                    Nome = nome,
-                    Email = u.Email,
-                    Cpf = u.Cpf,
+                    Nome = u.Pessoa?.Nome,
+                    Email = u.Pessoa?.Email,
+                    Cpf = u.Pessoa?.Cpf,
                     TipoUsuario = tipo
                 });
             }
@@ -186,8 +185,9 @@ namespace ClinicaMaisSaude.Infrastructure.Services
 
         public async Task PurgeTestsAsync()
         {
+            // Identidade (e-mail de teste) vive na Pessoa (Thread B).
             var testUsers = await _context.Usuarios
-                .Where(u => u.Email.Contains(".homologacao."))
+                .Where(u => u.Pessoa!.Email.Contains(".homologacao."))
                 .Select(u => new { u.Id, u.PessoaId })
                 .ToListAsync();
 

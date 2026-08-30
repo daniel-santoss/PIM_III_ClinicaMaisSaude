@@ -52,8 +52,7 @@ namespace ClinicaMaisSaude.Infrastructure.Data
             var pessoa = new Pessoa("Administrador", cpf, email, null);
             await context.Pessoas.AddAsync(pessoa);
 
-            var admin = new Usuario(email, cpf, senhaHash, "Administrador", null, RoleUsuario.Admin);
-            admin.VincularPessoa(pessoa.Id);
+            var admin = new Usuario(pessoa.Id, senhaHash, RoleUsuario.Admin);
             await context.Usuarios.AddAsync(admin);
 
             // Profissional vestigial do admin (categoria não se aplica; papel já é Admin no Role).

@@ -51,9 +51,7 @@ namespace ClinicaMaisSaude.Infrastructure.Tests.Services
             var pessoa = new Pessoa("Paciente Teste", CpfUsuario, EmailUsuario, null);
             _context.Pessoas.Add(pessoa);
 
-            var usuario = new Usuario(EmailUsuario, CpfUsuario,
-                BCrypt.Net.BCrypt.HashPassword(senha), "Paciente Teste", null, RoleUsuario.Paciente);
-            usuario.VincularPessoa(pessoa.Id);
+            var usuario = new Usuario(pessoa.Id, BCrypt.Net.BCrypt.HashPassword(senha), RoleUsuario.Paciente);
             _context.Usuarios.Add(usuario);
             _context.SaveChanges();
             return usuario;

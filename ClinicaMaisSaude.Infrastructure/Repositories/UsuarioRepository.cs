@@ -25,9 +25,9 @@ namespace ClinicaMaisSaude.Infrastructure.Repositories
 
         public async Task<string> ObterNomeUsuarioAsync(Guid id)
         {
-            // Nome é único e vive no LoginPortal (identidade), independentemente do perfil.
-            var usuario = await _context.Usuarios.AsNoTracking().FirstOrDefaultAsync(u => u.Id == id);
-            return usuario?.Nome ?? "Sistema";
+            // Nome vive na Pessoa (identidade — Thread B), independentemente do perfil.
+            var usuario = await _context.Usuarios.AsNoTracking().Include(u => u.Pessoa).FirstOrDefaultAsync(u => u.Id == id);
+            return usuario?.Pessoa?.Nome ?? "Sistema";
         }
     }
 }

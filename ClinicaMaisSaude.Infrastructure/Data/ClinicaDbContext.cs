@@ -317,12 +317,7 @@ namespace ClinicaMaisSaude.Infrastructure.Data
             {
                 entidade.ToTable("LoginPortal");
                 entidade.HasKey(u => u.Id);
-                entidade.HasIndex(u => u.Email).IsUnique();
-                entidade.HasIndex(u => u.Cpf).IsUnique();
-                entidade.Property(u => u.Nome).IsRequired().HasMaxLength(100);
-                entidade.Property(u => u.Email).IsRequired().HasMaxLength(150);
-                entidade.Property(u => u.Cpf).HasColumnType("varchar(11)").IsRequired();
-                entidade.Property(u => u.Telefone).HasColumnType("varchar(11)");
+                // Identidade (Nome/Cpf/Email/Telefone + índices únicos) migrou para a Pessoa (Fase B3).
                 entidade.Property(u => u.SenhaHash).IsRequired();
                 entidade.Property(u => u.DtCriado).HasColumnName("Dt_Criado");
                 entidade.Property(u => u.UltAtualizacao).HasColumnName("ult_Atualizacao");

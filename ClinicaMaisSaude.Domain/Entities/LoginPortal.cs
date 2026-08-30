@@ -10,10 +10,8 @@ namespace ClinicaMaisSaude.Domain.Entities
         public Guid Id { get; private set; }
         public DateTime? UltAtualizacao { get; private set; }
         public void MarcarAtualizacao(DateTime quando) => UltAtualizacao = quando;
-        public string Nome { get; private set; }
-        public string Email { get; private set; }
-        public string Cpf { get; private set; }
-        public string? Telefone { get; private set; }
+        // Identidade (Nome/Cpf/Email/Telefone) migrou para a Pessoa (Thread B). O LoginPortal é
+        // agora uma credencial pura: senha + papel + estado de login, apontando para a Pessoa.
         public string SenhaHash { get; private set; }
         // Papel unificado do usuário. Fonte única do papel após o A3 remover TipoUsuario.
         // NOT NULL — todo usuário tem um papel.
@@ -21,12 +19,9 @@ namespace ClinicaMaisSaude.Domain.Entities
         public DateTime DtCriado { get; private set; }
         public DateTime? UltimoAcesso { get; private set; }
 
-        // Identidade da conta (Thread B). Aditivo/nulável na Fase B1: o backfill aponta cada
-        // LoginPortal para a Pessoa correspondente. Nas fases seguintes a identidade
-        // (Nome/Cpf/Email/Telefone) passa a ser lida da Pessoa e o login vira opcional.
+        // Identidade da conta (Thread B): FK para a Pessoa dona de Nome/Cpf/Email/Telefone.
         public Guid? PessoaId { get; private set; }
         public virtual Pessoa? Pessoa { get; private set; }
-        public void VincularPessoa(Guid pessoaId) => PessoaId = pessoaId;
 
         public int TentativasLogin { get; private set; }
         public DateTime? BloqueadoAte { get; private set; }
@@ -47,30 +42,15 @@ namespace ClinicaMaisSaude.Domain.Entities
 
         public virtual ICollection<UsoInadequadoIA> Violacoes { get; private set; } = new List<UsoInadequadoIA>();
 
-        public Usuario(string email, string cpf, string senhaHash, string nome, string? telefone = null, RoleUsuario role = RoleUsuario.Paciente)
+        protected Usuario() { } // EF Core
+
+        public Usuario(Guid pessoaId, string senhaHash, RoleUsuario role = RoleUsuario.Paciente)
         {
             Id = SequentialGuid.Next();
-            Nome = nome;
-            Email = email;
-            Cpf = cpf;
-            Telefone = telefone;
+            PessoaId = pessoaId;
             SenhaHash = senhaHash;
             Role = role;
             DtCriado = DateTime.UtcNow;
-            TentativasLogin = 0;
-            BloqueadoAte = null;
-        }
-
-        public Usuario(Guid id, string email, string cpf, string senhaHash, string nome, string? telefone, RoleUsuario role, DateTime dtCriado)
-        {
-            Id = id;
-            Nome = nome;
-            Email = email;
-            Cpf = cpf;
-            Telefone = telefone;
-            SenhaHash = senhaHash;
-            Role = role;
-            DtCriado = dtCriado;
             TentativasLogin = 0;
             BloqueadoAte = null;
         }
@@ -101,23 +81,6 @@ namespace ClinicaMaisSaude.Domain.Entities
         public void AtualizarUltimoAcesso()
         {
             UltimoAcesso = DateTime.UtcNow;
-        }
-
-        public void AtualizarEmail(string novoEmail)
-        {
-            Email = novoEmail;
-        }
-
-        public void AtualizarNome(string nome)
-        {
-            if (string.IsNullOrWhiteSpace(nome))
-                throw new ArgumentException("O nome não pode ser vazio.", nameof(nome));
-            Nome = nome;
-        }
-
-        public void AtualizarTelefone(string? telefone)
-        {
-            Telefone = telefone;
         }
 
         public void RegistrarFalhaLogin()

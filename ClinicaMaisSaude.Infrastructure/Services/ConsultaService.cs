@@ -291,8 +291,8 @@ Formato:
                         var notificacao = new Notificacao(
                             admin.Id,
                             "Violação Grave de IA",
-                            $"Tentativa grave de injeção de prompt detectada pelo usuário {userObj.Email} (CPF: {userObj.Cpf}). Conta bloqueada automaticamente.",
-                            link: $"violacoes?busca={userObj.Cpf}"
+                            $"Tentativa grave de injeção de prompt detectada pelo usuário {userObj.Pessoa?.Email} (CPF: {userObj.Pessoa?.Cpf}). Conta bloqueada automaticamente.",
+                            link: $"violacoes?busca={userObj.Pessoa?.Cpf}"
                         );
                         _context.Notificacoes.Add(notificacao);
                         notificacoes.Add(notificacao);
