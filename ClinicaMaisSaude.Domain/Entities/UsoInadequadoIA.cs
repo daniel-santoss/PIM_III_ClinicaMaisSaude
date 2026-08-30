@@ -1,14 +1,9 @@
 using System;
 using ClinicaMaisSaude.Domain.Common;
+using ClinicaMaisSaude.Domain.Enums;
 
 namespace ClinicaMaisSaude.Domain.Entities
 {
-    public enum TipoViolacao
-    {
-        Injecao = 1,
-        UsoIndevido = 2
-    }
-
     public class UsoInadequadoIA
     {
         public Guid Id { get; private set; }

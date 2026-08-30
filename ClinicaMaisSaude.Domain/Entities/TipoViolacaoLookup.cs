@@ -1,4 +1,5 @@
 using System;
+using ClinicaMaisSaude.Domain.Enums;
 
 namespace ClinicaMaisSaude.Domain.Entities
 {
