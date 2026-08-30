@@ -388,11 +388,11 @@ Formato:
                     PacienteId = a.UsuarioId,
                     PacienteNome = a.Usuario.Nome,
                     PacienteCpf = a.Usuario.Cpf,
-                    PacienteTipo = _context.Pacientes.Any(p => p.UsuarioId == a.UsuarioId) ? PerfisUsuario.Paciente
-                                   : _context.Profissionais.Where(p => p.UsuarioId == a.UsuarioId)
-                                       .Select(p => p.TipoProfissional == TipoProfissional.Medico ? PerfisUsuario.Medico : PerfisUsuario.Enfermeira)
-                                       .FirstOrDefault()
-                                   ?? (a.Usuario.TipoUsuario == TipoUsuario.Admin ? "Administrador" : PerfisUsuario.Paciente),
+                    // Papel do autor da violação a partir do papel unificado Role (Fase A2b).
+                    PacienteTipo = a.Usuario.Role == RoleUsuario.Medico ? PerfisUsuario.Medico
+                                   : a.Usuario.Role == RoleUsuario.Enfermeira ? PerfisUsuario.Enfermeira
+                                   : a.Usuario.Role == RoleUsuario.Admin ? "Administrador"
+                                   : PerfisUsuario.Paciente,
                     PacienteFotoBase64 = a.Usuario.Foto != null ? a.Usuario.Foto.FotoBase64 : null,
                     TipoViolacao = a.TipoViolacao.ToString(),
                     a.TextoInserido,

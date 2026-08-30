@@ -37,7 +37,8 @@ namespace ClinicaMaisSaude.Infrastructure.Services
 
             return new
             {
-                tipo = profissional.TipoProfissional.ToString(),
+                // Categoria a partir do papel unificado (Fase A2b).
+                tipo = profissional.Usuario?.Role?.ToString() ?? profissional.TipoProfissional.ToString(),
                 Nome = profissional.Usuario?.Nome,
                 Email = profissional.Usuario?.Email,
                 Telefone = profissional.Usuario?.Telefone,
