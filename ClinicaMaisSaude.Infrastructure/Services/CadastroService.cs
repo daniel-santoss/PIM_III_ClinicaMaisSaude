@@ -199,7 +199,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             var testPessoaIds = testUsers.Where(u => u.PessoaId.HasValue).Select(u => u.PessoaId!.Value).ToList();
 
             var testPatientIds = await _context.Pacientes
-                .Where(p => testUserIds.Contains(p.UsuarioId))
+                .Where(p => p.UsuarioId != null && testUserIds.Contains(p.UsuarioId.Value))
                 .Select(p => p.Id)
                 .ToListAsync();
 

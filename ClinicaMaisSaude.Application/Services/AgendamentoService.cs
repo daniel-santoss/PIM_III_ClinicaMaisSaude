@@ -224,7 +224,7 @@ namespace ClinicaMaisSaude.Application.Services
                         ? $"Seu retorno com {profissionalNome} foi agendado para {agendamento.DataHoraConsulta:dd/MM/yyyy HH:mm}."
                         : $"Sua consulta com {profissionalNome} foi agendada para {agendamento.DataHoraConsulta:dd/MM/yyyy HH:mm}.";
 
-                    var notifPaciente = new Notificacao(paciente.UsuarioId, "Consulta Agendada", msgPac, agendamento.Id, link: $"agendamentos?id={agendamento.Id}");
+                    var notifPaciente = new Notificacao(paciente.UsuarioId!.Value, "Consulta Agendada", msgPac, agendamento.Id, link: $"agendamentos?id={agendamento.Id}");
                     await _notificacaoRepository.AdicionarAsync(notifPaciente);
                 }
             });
@@ -325,7 +325,7 @@ namespace ClinicaMaisSaude.Application.Services
                     if (paciente != null)
                     {
                         var msg = $"Sua consulta com {profissional?.Pessoa?.Nome ?? "N/A"} em {agendamento.DataHoraConsulta:dd/MM/yyyy HH:mm} foi cancelada.";
-                        var notif = new Notificacao(paciente.UsuarioId, "Consulta Cancelada", msg, agendamento.Id, link: $"agendamentos?id={agendamento.Id}");
+                        var notif = new Notificacao(paciente.UsuarioId!.Value,"Consulta Cancelada", msg, agendamento.Id, link: $"agendamentos?id={agendamento.Id}");
                         await _notificacaoRepository.AdicionarAsync(notif);
                     }
                     if (profissional != null)
@@ -492,7 +492,7 @@ namespace ClinicaMaisSaude.Application.Services
                 if (paciente != null)
                 {
                     var msg = $"Sua consulta foi remarcada para {request.NovaDataHora:dd/MM/yyyy HH:mm}.";
-                    var notif = new Notificacao(paciente.UsuarioId, "Consulta Remarcada", msg, agendamento.Id, link: $"agendamentos?id={agendamento.Id}");
+                    var notif = new Notificacao(paciente.UsuarioId!.Value,"Consulta Remarcada", msg, agendamento.Id, link: $"agendamentos?id={agendamento.Id}");
                     await _notificacaoRepository.AdicionarAsync(notif);
                 }
                 if (profissional != null)
@@ -748,8 +748,8 @@ namespace ClinicaMaisSaude.Application.Services
             if (paciente != null)
             {
                 var notif = new Notificacao(
-                    paciente.UsuarioId, 
-                    "Resultado de Exame", 
+                    paciente.UsuarioId!.Value,
+                    "Resultado de Exame",
                     $"O resultado do seu exame de {agendamento.DataHoraConsulta:dd/MM/yyyy} já está disponível para retirada.", 
                     agendamento.Id,
                     link: $"agendamentos?id={agendamento.Id}");

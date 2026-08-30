@@ -88,7 +88,7 @@ namespace ClinicaMaisSaude.API.Services
                 if (!a.LembreteManhaEnviado && a.DataHoraConsulta.Date == agora.Date)
                 {
                     var msg = $"Sua consulta de {a.TipoConsulta} está agendada para hoje às {a.DataHoraConsulta:HH:mm}.";
-                    var notificacao = new Notificacao(a.Paciente.UsuarioId, "Você tem consulta hoje", msg, a.Id, link: $"agendamentos?id={a.Id}");
+                    var notificacao = new Notificacao(a.Paciente.UsuarioId!.Value,"Você tem consulta hoje", msg, a.Id, link: $"agendamentos?id={a.Id}");
 
                     dbContext.Notificacoes.Add(notificacao);
                     novasNotificacoes.Add(notificacao);
@@ -100,7 +100,7 @@ namespace ClinicaMaisSaude.API.Services
                 if (!a.LembreteDuasHorasEnviado && agora >= duasHorasAntes && agora < a.DataHoraConsulta)
                 {
                     var msg = $"Sua consulta está marcada para hoje às {a.DataHoraConsulta:HH:mm}. Não esqueça!";
-                    var notificacao = new Notificacao(a.Paciente.UsuarioId, "Lembrete de consulta", msg, a.Id, link: $"agendamentos?id={a.Id}");
+                    var notificacao = new Notificacao(a.Paciente.UsuarioId!.Value,"Lembrete de consulta", msg, a.Id, link: $"agendamentos?id={a.Id}");
 
                     dbContext.Notificacoes.Add(notificacao);
                     novasNotificacoes.Add(notificacao);

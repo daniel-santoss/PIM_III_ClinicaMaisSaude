@@ -308,7 +308,7 @@ Formato:
             {
                 {
                     var totalViolacoes = await _context.UsoInadequadoIA.CountAsync(v => v.UsuarioId == paciente.UsuarioId) + 1;
-                    var novaViolacao = new UsoInadequadoIA(paciente.UsuarioId, TipoViolacao.UsoIndevido, sintomas);
+                    var novaViolacao = new UsoInadequadoIA(paciente.UsuarioId!.Value, TipoViolacao.UsoIndevido, sintomas);
                     _context.UsoInadequadoIA.Add(novaViolacao);
 
                     if (totalViolacoes == 2)
@@ -454,7 +454,7 @@ Formato:
                     if (pac != null)
                     {
                         var notificacao = new Notificacao(
-                            pac.UsuarioId,
+                            pac.UsuarioId!.Value,
                             "Agendamento Cancelado",
                             "Seu agendamento foi cancelado devido a reajustes cadastrais administrativos do profissional.",
                             agendamento.Id,

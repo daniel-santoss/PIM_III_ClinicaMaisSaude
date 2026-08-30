@@ -71,6 +71,13 @@ namespace ClinicaMaisSaude.Infrastructure.Data
         public DbSet<Notificacao> Notificacoes { get; set; } = null!;
         public DbSet<UsuarioFoto> UsuarioFotos { get; set; } = null!;
 
+        // Auto-cadastro moderado (Thread D): Declaração de Saúde + solicitação.
+        public DbSet<ModeloDeclaracaoSaude> ModelosDeclaracaoSaude { get; set; } = null!;
+        public DbSet<PerguntaDeclaracaoSaude> PerguntasDeclaracaoSaude { get; set; } = null!;
+        public DbSet<SolicitacaoCadastro> SolicitacoesCadastro { get; set; } = null!;
+        public DbSet<RespostaDeclaracaoSaude> RespostasDeclaracaoSaude { get; set; } = null!;
+        public DbSet<StatusSolicitacaoLookup> StatusSolicitacaoLookup { get; set; } = null!;
+
         // Método que intercepta a criação das tabelas no SQL Server
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -91,13 +98,14 @@ namespace ClinicaMaisSaude.Infrastructure.Data
                     .HasForeignKey(p => p.Situacao)
                     .OnDelete(DeleteBehavior.Restrict);
 
-                // Identidade (Nome/Cpf/Telefone/Email) vive no LoginPortal. O Paciente é um
-                // perfil magro que referencia a conta: UsuarioId obrigatório e único (1:1).
+                // Conta de acesso OPCIONAL (Fase B4): o proponente em análise não tem UsuarioId.
+                // Índice único FILTRADO — 1:1 para contas reais, permitindo vários NULL (proponentes).
                 entidade.HasOne(p => p.Usuario)
                     .WithMany()
                     .HasForeignKey(p => p.UsuarioId)
+                    .IsRequired(false)
                     .OnDelete(DeleteBehavior.Cascade);
-                entidade.HasIndex(p => p.UsuarioId).IsUnique();
+                entidade.HasIndex(p => p.UsuarioId).IsUnique().HasFilter("[UsuarioId] IS NOT NULL");
 
                 // Identidade (Thread B, aditivo/nulável na B2a).
                 entidade.HasOne(p => p.Pessoa)
@@ -472,6 +480,88 @@ namespace ClinicaMaisSaude.Infrastructure.Data
                 entidade.Property(s => s.DtCriado).HasColumnName("Dt_Criado");
                 entidade.HasData(Enum.GetValues(typeof(TipoViolacao)).Cast<TipoViolacao>()
                     .Select(v => new TipoViolacaoLookup { Id = v, Nome = v.ToString(), DtCriado = dtSeedLookup }));
+            });
+
+            // ===== Auto-cadastro moderado (Thread D): Declaração de Saúde + solicitação =====
+            modelBuilder.Entity<StatusSolicitacaoLookup>(entidade =>
+            {
+                entidade.HasKey(s => s.Id);
+                entidade.Property(s => s.Id).HasConversion<int>().ValueGeneratedNever();
+                entidade.Property(s => s.Nome).IsRequired().HasMaxLength(50);
+                entidade.Property(s => s.DtCriado).HasColumnName("Dt_Criado");
+                entidade.HasData(Enum.GetValues(typeof(StatusSolicitacao)).Cast<StatusSolicitacao>()
+                    .Select(v => new StatusSolicitacaoLookup { Id = v, Nome = v.ToString(), DtCriado = dtSeedLookup }));
+            });
+
+            modelBuilder.Entity<ModeloDeclaracaoSaude>(entidade =>
+            {
+                entidade.ToTable("ModelosDeclaracaoSaude");
+                entidade.HasKey(m => m.Id);
+                entidade.Property(m => m.Nome).IsRequired().HasMaxLength(150);
+                entidade.Property(m => m.ModeloPadrao).HasDefaultValue(false);
+                entidade.Property(m => m.DtCriado).HasColumnName("Dt_Criado");
+                entidade.Property(m => m.UltAtualizacao).HasColumnName("ult_Atualizacao");
+                // No máximo um modelo padrão por vez (índice único filtrado).
+                entidade.HasIndex(m => m.ModeloPadrao).IsUnique().HasFilter("[ModeloPadrao] = 1");
+                entidade.HasMany(m => m.Perguntas)
+                    .WithOne(p => p.Modelo)
+                    .HasForeignKey(p => p.ModeloId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<PerguntaDeclaracaoSaude>(entidade =>
+            {
+                entidade.ToTable("PerguntasDeclaracaoSaude");
+                entidade.HasKey(p => p.Id);
+                entidade.Property(p => p.Pergunta).IsRequired().HasMaxLength(500);
+                entidade.Property(p => p.Ordem).IsRequired();
+                entidade.Property(p => p.DtCriado).HasColumnName("Dt_Criado");
+                entidade.Property(p => p.UltAtualizacao).HasColumnName("ult_Atualizacao");
+                entidade.HasIndex(p => new { p.ModeloId, p.Ordem });
+            });
+
+            modelBuilder.Entity<SolicitacaoCadastro>(entidade =>
+            {
+                entidade.ToTable("SolicitacoesCadastro");
+                entidade.HasKey(s => s.Id);
+                entidade.Property(s => s.MotivoRecusa).HasMaxLength(1000);
+                entidade.Property(s => s.DtCriado).HasColumnName("Dt_Criado");
+                entidade.Property(s => s.UltAtualizacao).HasColumnName("ult_Atualizacao");
+                entidade.Property(s => s.Status).HasDefaultValue(StatusSolicitacao.EmAnalise);
+
+                entidade.HasOne(s => s.Pessoa)
+                    .WithMany()
+                    .HasForeignKey(s => s.PessoaId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entidade.HasOne(s => s.Modelo)
+                    .WithMany()
+                    .HasForeignKey(s => s.ModeloId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entidade.HasOne<StatusSolicitacaoLookup>()
+                    .WithMany()
+                    .HasForeignKey(s => s.Status)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entidade.HasMany(s => s.Respostas)
+                    .WithOne(r => r.Solicitacao)
+                    .HasForeignKey(r => r.SolicitacaoId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entidade.HasIndex(s => s.PessoaId);
+                entidade.HasIndex(s => s.Status);
+            });
+
+            modelBuilder.Entity<RespostaDeclaracaoSaude>(entidade =>
+            {
+                entidade.ToTable("RespostasDeclaracaoSaude");
+                entidade.HasKey(r => r.Id);
+                entidade.Property(r => r.Detalhe).HasMaxLength(1000);
+                entidade.Property(r => r.DtCriado).HasColumnName("Dt_Criado");
+                entidade.HasOne(r => r.Pergunta)
+                    .WithMany()
+                    .HasForeignKey(r => r.PerguntaId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                // Uma resposta por pergunta dentro de cada solicitação.
+                entidade.HasIndex(r => new { r.SolicitacaoId, r.PerguntaId }).IsUnique();
             });
         }
     }
