@@ -39,9 +39,11 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             var cleanIdentificador = request.Identificador.Replace(".", "").Replace("-", "").Trim();
             var emailNormalizado = request.Identificador.Trim().ToLowerInvariant();
 
+            // Identidade (Thread B): a busca por e-mail/CPF passa a ser pela Pessoa (fonte única).
             var usuario = await _context.Usuarios
                 .Include(u => u.Foto)
-                .FirstOrDefaultAsync(u => u.Email == emailNormalizado || u.Cpf == cleanIdentificador);
+                .Include(u => u.Pessoa)
+                .FirstOrDefaultAsync(u => u.Pessoa!.Email == emailNormalizado || u.Pessoa!.Cpf == cleanIdentificador);
 
             if (usuario == null)
             {
@@ -157,7 +159,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             return new LoginResponse
             {
                 Token = jwtToken,
-                Nome = usuario.Nome,
+                Nome = usuario.Pessoa?.Nome ?? string.Empty,
                 RefreshToken = refreshToken.Token,
                 UsuarioId = usuario.Id,
                 TipoUsuario = tipoUsuarioStr,
@@ -199,7 +201,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             _context.RefreshTokens.Update(storedToken);
             await _context.SaveChangesAsync();
 
-            var usuario = await _context.Usuarios.AsNoTracking().Include(u => u.Foto).FirstOrDefaultAsync(u => u.Id == storedToken.UsuarioId);
+            var usuario = await _context.Usuarios.AsNoTracking().Include(u => u.Foto).Include(u => u.Pessoa).FirstOrDefaultAsync(u => u.Id == storedToken.UsuarioId);
             if (usuario == null) throw new UnauthorizedException("Usuário não encontrado.");
 
             var perfilProfissional = await _context.Profissionais.AsNoTracking().FirstOrDefaultAsync(p => p.UsuarioId == usuario.Id);
@@ -250,7 +252,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             return new LoginResponse
             {
                 Token = jwtToken,
-                Nome = usuario.Nome,
+                Nome = usuario.Pessoa?.Nome ?? string.Empty,
                 RefreshToken = refreshToken.Token,
                 UsuarioId = usuario.Id,
                 TipoUsuario = tipoUsuarioStr,

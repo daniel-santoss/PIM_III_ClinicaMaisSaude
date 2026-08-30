@@ -76,9 +76,10 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             var logoSrc = _configuration[ConfigKeys.EmailLogoUrl];
             if (string.IsNullOrWhiteSpace(logoSrc)) logoSrc = "cid:logoclinica";
 
-            await _emailService.EnviarAsync(usuario.Email, "Código de recuperação de senha",
-                MontarCorpoEmail(usuario.Nome, codigo, logoSrc),
-                MontarCorpoTexto(usuario.Nome, codigo));
+            // Identidade (Thread B): destinatário e nome vêm da Pessoa (fonte única).
+            await _emailService.EnviarAsync(usuario.Pessoa!.Email, "Código de recuperação de senha",
+                MontarCorpoEmail(usuario.Pessoa!.Nome, codigo, logoSrc),
+                MontarCorpoTexto(usuario.Pessoa!.Nome, codigo));
         }
 
         public async Task<ValidarCodigoResponse> ValidarCodigoAsync(ValidarCodigoRequest request)
@@ -152,7 +153,10 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             if (string.IsNullOrWhiteSpace(identificador)) return null;
             var cpf = identificador.Replace(".", "").Replace("-", "").Trim();
             var email = identificador.Trim().ToLowerInvariant();
-            return await _context.Usuarios.FirstOrDefaultAsync(u => u.Email == email || u.Cpf == cpf);
+            // Identidade (Thread B): busca pela Pessoa (fonte única); Include para ler nome/e-mail depois.
+            return await _context.Usuarios
+                .Include(u => u.Pessoa)
+                .FirstOrDefaultAsync(u => u.Pessoa!.Email == email || u.Pessoa!.Cpf == cpf);
         }
 
         private static string GerarCodigo()

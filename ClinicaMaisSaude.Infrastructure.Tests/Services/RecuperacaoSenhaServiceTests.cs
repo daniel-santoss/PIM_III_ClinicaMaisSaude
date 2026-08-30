@@ -46,8 +46,14 @@ namespace ClinicaMaisSaude.Infrastructure.Tests.Services
 
         private Usuario SemearUsuario(string senha = "senhaAntiga1")
         {
+            // Identidade (Thread B): a busca do serviço é pela Pessoa, então o usuário de teste
+            // precisa de uma Pessoa vinculada — como no fluxo real de cadastro.
+            var pessoa = new Pessoa("Paciente Teste", CpfUsuario, EmailUsuario, null);
+            _context.Pessoas.Add(pessoa);
+
             var usuario = new Usuario(EmailUsuario, CpfUsuario,
                 BCrypt.Net.BCrypt.HashPassword(senha), "Paciente Teste", null, RoleUsuario.Paciente);
+            usuario.VincularPessoa(pessoa.Id);
             _context.Usuarios.Add(usuario);
             _context.SaveChanges();
             return usuario;
