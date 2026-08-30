@@ -9,21 +9,39 @@ Objetivo: consolidar identidade, unificar papéis, fechar furos de integridade r
 ## ⚠️ v2 EM ANDAMENTO (2026-08-30) — este doc descreve o refactor de 8 fases (concluído); um SEGUNDO refactor está em curso
 
 O **user-model v2** (incremental, branch `teste`) revisa parte do que está abaixo. Detalhe
-executável completo no plano `~/.claude/plans/peppy-weaving-truffle.md`. Resumo do que muda:
+executável completo no plano `~/.claude/plans/peppy-weaving-truffle.md` e na memória
+`refactor-modelo-usuario-v2`. **Migrations Fase10..Fase18.** Estado (2026-08-30, topo `74edfe2`):
 
+**✅ Papéis (Thread A):**
 - **`TipoUsuario` REMOVIDO** → enum unificado **`RoleUsuario`** {Paciente=1, Admin=2, Medico=3,
-  Enfermeira=4} + `RoleUsuarioLookup`. `LoginPortal.Role` NOT NULL é a fonte única do papel. (Migrations Fase11/Fase12.)
-- **`Profissional.TipoProfissional` será removido** (A3b): a categoria do profissional vem do `Role`.
-  O enum `TipoProfissional` + `TipoProfissionalLookup` + `Agendamento.TipoProfissional` **sobrevivem**
-  só como conceito de **agenda** (state machine) — "papel da pessoa" ≠ "categoria da consulta".
-- **`Profissional.SituacaoProfissional`** (Ativo/Inativo) + lookup — simetria com `Paciente.SituacaoCliente`. (Migration Fase10.)
-- **`Agendamento`** ganhou navegações `Profissional`/`AgendamentoOrigem`; enum `TipoViolacao` movido p/ `Domain/Enums`.
-- **Reversão da decisão "SEM Pessoa"**: virá tabela **`Pessoa`** (identidade) + `LoginPortal` credencial
-  **opcional** — porque a feature de **auto-cadastro moderado** cria um paciente **em análise sem login**.
-- Depois: decouplings (tabela `LembreteEnviado`, Value Object `Cpf`, auditoria com ator) + as 4
-  tabelas da **declaração de saúde** (ModeloDeclaracaoSaude/Pergunta/Resposta + SolicitacaoCadastro).
+  Enfermeira=4} + `RoleUsuarioLookup`. `LoginPortal.Role` NOT NULL é a fonte única do papel. (Fase11/Fase12.)
+- **`Profissional.TipoProfissional` REMOVIDO** (Fase13): a categoria do profissional vem do `Role` (via
+  `PapeisMap.RoleDoTipo`). O enum `TipoProfissional` + lookup + `Agendamento.TipoProfissional` **sobrevivem**
+  só como conceito de **agenda** — "papel da pessoa" ≠ "categoria da consulta".
 
-Progresso: Fase 0 + Thread A (papéis) feitas e pushadas (topo `074c067`). Próximo: **A3b**.
+**✅ Identidade (Thread B) — reversão da decisão "SEM Pessoa":**
+- Nova tabela **`Pessoa`** (Nome/Cpf/Email/Telefone, únicos) é a fonte única de identidade. `LoginPortal`
+  virou **credencial pura** (SenhaHash+PessoaId+Role+estado de login) — colunas de identidade DROPADAS
+  (Fase16). `Paciente`/`Profissional` referenciam `Pessoa`. (Fase14/Fase15/Fase16.)
+- **`Paciente.UsuarioId` agora OPCIONAL** (Fase18, índice único FILTRADO): permite o **proponente sem
+  login** (auto-cadastro em análise).
+
+**✅ Situação unificada (Fase17):** `SituacaoCliente` + `SituacaoProfissional` fundidos num único enum/lookup
+**`Situacao`** {Ativo=1, Inativo=2, Excluido=3, Banido=4, EmAnalise=5} (validade por tipo garantida no domínio).
+
+**✅ Auto-cadastro moderado (Thread D — D1/D2):** 4 tabelas de **Declaração de Saúde** —
+`ModeloDeclaracaoSaude` (ModeloPadrao único), `PerguntaDeclaracaoSaude`, `SolicitacaoCadastro`
+(Status EmAnalise/Aprovada/Recusada) + `RespostaDeclaracaoSaude` (única por Solicitacao+Pergunta) +
+lookup `StatusSolicitacao` (Fase18). Endpoints anônimos GET declaração / POST solicitar (anti-fraude:
+CPF checksum + 1 solicitação aberta por CPF + rate-limit por IP generoso). Proponente = Pessoa +
+Paciente[EmAnalise] sem login + Solicitacao + Respostas.
+
+**Fase 0 (pré-Thread A):** `Agendamento` ganhou navegações `Profissional`/`AgendamentoOrigem`; enum
+`TipoViolacao` movido p/ `Domain/Enums`; `SituacaoProfissional` Ativo/Inativo (depois unificado em Situacao).
+
+Progresso: 78 testes. **Próximo: D3** (aprovação admin) → D4 (1º acesso) → D5 (editor web) → D6 (fila web) →
+D7 (mobile). Pendente do backlog v1: decouplings (tabela `LembreteEnviado`, Value Object `Cpf` — hoje há
+o helper `Domain/Common/Cpf`, auditoria com ator).
 
 ## 0. Status de implementação (2026-08-15)
 
