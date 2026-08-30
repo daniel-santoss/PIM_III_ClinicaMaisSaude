@@ -10,7 +10,6 @@ namespace ClinicaMaisSaude.Domain.Entities
         public DateTime? UltAtualizacao { get; private set; }
         public void MarcarAtualizacao(DateTime quando) => UltAtualizacao = quando;
         public Guid UsuarioId { get; private set; }
-        public TipoProfissional TipoProfissional { get; private set; }
         public SituacaoProfissional SituacaoProfissional { get; private set; }
         public string? Crm { get; private set; }
         public string? UfCrm { get; private set; }
@@ -21,11 +20,10 @@ namespace ClinicaMaisSaude.Domain.Entities
 
         protected Profissional() { } // EF Core
 
-        public Profissional(Guid usuarioId, TipoProfissional tipoProfissional, string? crm = null, string? ufCrm = null)
+        public Profissional(Guid usuarioId, string? crm = null, string? ufCrm = null)
         {
             Id = SequentialGuid.Next();
             UsuarioId = usuarioId;
-            TipoProfissional = tipoProfissional;
             Crm = crm;
             UfCrm = ufCrm;
             SituacaoProfissional = SituacaoProfissional.Ativo;
@@ -33,11 +31,10 @@ namespace ClinicaMaisSaude.Domain.Entities
         }
 
         // Construtor para HasData (onde o Id é pré-definido)
-        public Profissional(Guid id, Guid usuarioId, TipoProfissional tipoProfissional, string? crm, string? ufCrm, DateTime dtCriado)
+        public Profissional(Guid id, Guid usuarioId, string? crm, string? ufCrm, DateTime dtCriado)
         {
             Id = id;
             UsuarioId = usuarioId;
-            TipoProfissional = tipoProfissional;
             Crm = crm;
             UfCrm = ufCrm;
             SituacaoProfissional = SituacaoProfissional.Ativo;

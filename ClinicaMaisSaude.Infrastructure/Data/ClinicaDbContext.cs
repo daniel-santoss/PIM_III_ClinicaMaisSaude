@@ -332,7 +332,6 @@ namespace ClinicaMaisSaude.Infrastructure.Data
             modelBuilder.Entity<Profissional>(entidade =>
             {
                 entidade.HasKey(p => p.Id);
-                entidade.Property(p => p.TipoProfissional).IsRequired();
                 entidade.Property(p => p.Crm).HasMaxLength(20);
                 entidade.Property(p => p.UfCrm).HasMaxLength(2);
                 entidade.Property(p => p.DtCriado).HasColumnName("Dt_Criado");
@@ -351,11 +350,8 @@ namespace ClinicaMaisSaude.Infrastructure.Data
                     .HasForeignKey(p => p.UsuarioId)
                     .OnDelete(DeleteBehavior.Cascade);
                 entidade.HasIndex(p => p.UsuarioId).IsUnique();
-
-                entidade.HasOne<TipoProfissionalLookup>()
-                    .WithMany()
-                    .HasForeignKey(p => p.TipoProfissional)
-                    .OnDelete(DeleteBehavior.Restrict);
+                // TipoProfissional foi removido do Profissional (Fase A3b) — a categoria vem do Role.
+                // O lookup TipoProfissionalLookup permanece, referenciado por Agendamento.
             });
 
             modelBuilder.Entity<StatusAgendamentoLookup>(entidade =>

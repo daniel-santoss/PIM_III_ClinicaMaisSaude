@@ -87,8 +87,8 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             }
             else if (request.TipoUsuario == PerfisUsuario.Medico || request.TipoUsuario == PerfisUsuario.Enfermeira)
             {
-                var tipo = request.TipoUsuario == PerfisUsuario.Medico ? TipoProfissional.Medico : TipoProfissional.Enfermeira;
-                var profissional = new Profissional(novoUsuario.Id, tipo, request.Crm, request.UfCrm);
+                // Categoria vem do Role (definido acima); o Profissional é magro, sem TipoProfissional (Fase A3b).
+                var profissional = new Profissional(novoUsuario.Id, request.Crm, request.UfCrm);
                 _context.Profissionais.Add(profissional);
             }
             else

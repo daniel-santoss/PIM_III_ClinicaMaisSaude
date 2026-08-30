@@ -95,7 +95,7 @@ namespace ClinicaMaisSaude.Application.Services
                         Telefone = prof.Usuario.Telefone ?? "-",
                         Email = prof.Usuario.Email,
                         UsuarioId = prof.UsuarioId,
-                        Tipo = prof.Usuario?.Role.ToString() ?? prof.TipoProfissional.ToString(),
+                        Tipo = prof.Usuario.Role.ToString(),
                         UltimoAcesso = prof.Usuario.UltimoAcesso,
                         IsBanidoPermanente = prof.Usuario?.BloqueadoAte.HasValue == true && (prof.Usuario.BloqueadoAte.Value - DateTime.UtcNow).TotalDays > 3650,
                         FotoBase64 = prof.Usuario?.FotoBase64
@@ -144,7 +144,7 @@ namespace ClinicaMaisSaude.Application.Services
                         Telefone = prof.Usuario.Telefone ?? "-",
                         Email = prof.Usuario.Email,
                         UsuarioId = prof.UsuarioId,
-                        Tipo = prof.Usuario?.Role.ToString() ?? prof.TipoProfissional.ToString(),
+                        Tipo = prof.Usuario.Role.ToString(),
                         UltimoAcesso = prof.Usuario.UltimoAcesso,
                         IsBanidoPermanente = prof.Usuario?.BloqueadoAte.HasValue == true && (prof.Usuario.BloqueadoAte.Value - DateTime.UtcNow).TotalDays > 3650,
                         FotoBase64 = prof.Usuario?.FotoBase64

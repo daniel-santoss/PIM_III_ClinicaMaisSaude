@@ -21,11 +21,13 @@ namespace ClinicaMaisSaude.Infrastructure.Repositories
 
         public async Task<IEnumerable<Profissional>> ObterTodosPorTipoAsync(TipoProfissional tipo)
         {
+            // Avaliado no cliente (fora da árvore de expressão) para o EF traduzir a comparação por constante.
+            var role = PapeisMap.RoleDoTipo(tipo);
             return await _context.Profissionais
                 .AsNoTracking()
                 .Include(p => p.Usuario)
                 .Include(p => p.Especialidades)
-                .Where(p => p.TipoProfissional == tipo && p.Usuario.Role != RoleUsuario.Admin)
+                .Where(p => p.Usuario.Role == role)
                 .ToListAsync();
         }
 

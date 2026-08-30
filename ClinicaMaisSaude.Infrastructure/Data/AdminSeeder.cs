@@ -51,7 +51,8 @@ namespace ClinicaMaisSaude.Infrastructure.Data
             var admin = new Usuario(email, cpf, senhaHash, "Administrador", null, RoleUsuario.Admin);
             await context.Usuarios.AddAsync(admin);
 
-            var profissionalAdmin = new Profissional(admin.Id, TipoProfissional.Medico, "123456", "SP");
+            // Profissional vestigial do admin (categoria não se aplica; papel já é Admin no Role).
+            var profissionalAdmin = new Profissional(admin.Id, "123456", "SP");
             await context.Profissionais.AddAsync(profissionalAdmin);
 
             await context.SaveChangesAsync();

@@ -78,11 +78,9 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             return prof.Especialidades.Select(e => new { id = (int)e.EspecialidadeId, nome = FormatarNome(e.EspecialidadeId) });
         }
 
-        // Categoria do profissional a partir do papel unificado (Fase A2b); fallback à
-        // coluna antiga TipoProfissional enquanto ela existir (removida na A3).
+        // Categoria do profissional a partir do papel unificado (Role é a fonte única — Fase A3b).
         private static bool EhEnfermeira(Profissional prof) =>
-            prof.Usuario?.Role == RoleUsuario.Enfermeira
-            || (prof.Usuario?.Role is null && prof.TipoProfissional == TipoProfissional.Enfermeira);
+            prof.Usuario?.Role == RoleUsuario.Enfermeira;
 
         private static string FormatarNome(EspecialidadeMedica e) => e switch
         {
