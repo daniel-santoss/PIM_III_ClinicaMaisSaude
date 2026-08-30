@@ -4,7 +4,7 @@ using ClinicaMaisSaude.Domain.Enums;
 
 namespace ClinicaMaisSaude.Domain.Tests.Entities
 {
-    // Invariantes de situação do paciente (SituacaoCliente). O login passou a bloquear
+    // Invariantes de situação do paciente (Situacao). O login passou a bloquear
     // pacientes não-ativos (desativado/excluído/banido), então estes contratos
     // sustentam essa regra de segurança.
     public class PacienteTests
@@ -17,7 +17,7 @@ namespace ClinicaMaisSaude.Domain.Tests.Entities
         public void Paciente_NasceAtivo()
         {
             var paciente = NovoPaciente();
-            Assert.Equal(SituacaoCliente.Ativo, paciente.SituacaoCliente);
+            Assert.Equal(Situacao.Ativo, paciente.Situacao);
             Assert.True(paciente.EstaAtivo);
         }
 
@@ -28,7 +28,7 @@ namespace ClinicaMaisSaude.Domain.Tests.Entities
 
             paciente.Desativar();
 
-            Assert.Equal(SituacaoCliente.Desativado, paciente.SituacaoCliente);
+            Assert.Equal(Situacao.Inativo, paciente.Situacao);
             Assert.False(paciente.EstaAtivo);
         }
 
@@ -39,7 +39,7 @@ namespace ClinicaMaisSaude.Domain.Tests.Entities
 
             paciente.Excluir();
 
-            Assert.Equal(SituacaoCliente.Excluido, paciente.SituacaoCliente);
+            Assert.Equal(Situacao.Excluido, paciente.Situacao);
             Assert.False(paciente.EstaAtivo);
         }
 
@@ -50,7 +50,7 @@ namespace ClinicaMaisSaude.Domain.Tests.Entities
 
             paciente.Banir();
 
-            Assert.Equal(SituacaoCliente.Banido, paciente.SituacaoCliente);
+            Assert.Equal(Situacao.Banido, paciente.Situacao);
             Assert.False(paciente.EstaAtivo);
         }
 
@@ -62,7 +62,7 @@ namespace ClinicaMaisSaude.Domain.Tests.Entities
 
             paciente.Reativar();
 
-            Assert.Equal(SituacaoCliente.Ativo, paciente.SituacaoCliente);
+            Assert.Equal(Situacao.Ativo, paciente.Situacao);
             Assert.True(paciente.EstaAtivo);
         }
 

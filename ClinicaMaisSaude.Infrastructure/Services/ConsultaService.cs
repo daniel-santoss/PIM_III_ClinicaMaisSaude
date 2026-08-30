@@ -216,7 +216,7 @@ Formato:
                     var userObj = await _context.Usuarios.Include(u => u.Pessoa).FirstOrDefaultAsync(u => u.Id == usuarioLogadoId);
                     if (userObj != null)
                     {
-                        // Banimento permanente: paciente vira SituacaoCliente=Banido; staff
+                        // Banimento permanente: paciente vira Situacao=Banido; staff
                         // (sem perfil de paciente) cai no bloqueio de conta como fallback.
                         var pacienteBan = await _context.Pacientes.FirstOrDefaultAsync(p => p.UsuarioId == usuarioLogadoId);
                         if (pacienteBan != null) pacienteBan.Banir();
@@ -275,7 +275,7 @@ Formato:
                 var userObj = await _context.Usuarios.FirstOrDefaultAsync(u => u.Id == usuarioLogadoId);
                 if (userObj != null)
                 {
-                    // Banimento permanente: paciente vira SituacaoCliente=Banido; staff
+                    // Banimento permanente: paciente vira Situacao=Banido; staff
                     // (sem perfil de paciente) cai no bloqueio de conta como fallback.
                     var pacienteBan = await _context.Pacientes.FirstOrDefaultAsync(p => p.UsuarioId == usuarioLogadoId);
                     if (pacienteBan != null) pacienteBan.Banir();
@@ -358,9 +358,9 @@ Formato:
             usuario.DesbloquearIA();
 
             var paciente = await _context.Pacientes.FirstOrDefaultAsync(p => p.UsuarioId == usuarioId);
-            if (paciente != null && paciente.SituacaoCliente == SituacaoCliente.Banido)
+            if (paciente != null && paciente.Situacao == Situacao.Banido)
             {
-                // Ban permanente por IA vira SituacaoCliente=Banido; ao perdoar, reativa a conta.
+                // Ban permanente por IA vira Situacao=Banido; ao perdoar, reativa a conta.
                 paciente.Reativar();
             }
 
@@ -403,10 +403,10 @@ Formato:
                     PenalidadeRemovidaAguardandoLogin = false,
                     IABloqueadaAte = a.Usuario.BloqueadoIAAte,
                     ContaBloqueadaAte = a.Usuario.BloqueadoAte,
-                    // Ban permanente de paciente vive em Paciente.SituacaoCliente=Banido
+                    // Ban permanente de paciente vive em Paciente.Situacao=Banido
                     // (substituiu o hack BloqueadoAte=+100 anos), então precisa vir explícito
                     // no contrato — senão a ViolacoesList não enxerga a penalidade ativa.
-                    BanidoPermanente = _context.Pacientes.Any(p => p.UsuarioId == a.UsuarioId && p.SituacaoCliente == SituacaoCliente.Banido)
+                    BanidoPermanente = _context.Pacientes.Any(p => p.UsuarioId == a.UsuarioId && p.Situacao == Situacao.Banido)
                 })
                 .OrderByDescending(a => a.DtCriado)
                 .ToListAsync();

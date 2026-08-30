@@ -45,7 +45,7 @@ namespace ClinicaMaisSaude.Infrastructure.Repositories
                                 .AsNoTracking()
                                 .Include(p => p.Usuario).ThenInclude(u => u.Foto)
                                 .Include(p => p.Pessoa)
-                                .Where(p => p.SituacaoCliente == SituacaoCliente.Ativo);
+                                .Where(p => p.Situacao == Situacao.Ativo);
 
             if (!string.IsNullOrWhiteSpace(nome))
                 query = query.Where(p => p.Pessoa!.Nome.Contains(nome));
@@ -62,7 +62,7 @@ namespace ClinicaMaisSaude.Infrastructure.Repositories
                                 .AsNoTracking()
                                 .Include(p => p.Usuario).ThenInclude(u => u.Foto)
                                 .Include(p => p.Pessoa)
-                                .Where(p => p.SituacaoCliente == SituacaoCliente.Ativo);
+                                .Where(p => p.Situacao == Situacao.Ativo);
 
             if (!string.IsNullOrWhiteSpace(nome))
                 query = query.Where(p => p.Pessoa!.Nome.Contains(nome));

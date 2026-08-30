@@ -68,7 +68,7 @@ namespace ClinicaMaisSaude.Application.Services
                 UsuarioId = p.UsuarioId,
                 Tipo = "Paciente",
                 UltimoAcesso = p.Usuario?.UltimoAcesso,
-                IsBanidoPermanente = p.SituacaoCliente == SituacaoCliente.Banido,
+                IsBanidoPermanente = p.Situacao == Situacao.Banido,
                 FotoBase64 = p.Usuario?.FotoBase64
             }).ToList();
 
@@ -122,7 +122,7 @@ namespace ClinicaMaisSaude.Application.Services
                 UsuarioId = p.UsuarioId,
                 Tipo = "Paciente",
                 UltimoAcesso = p.Usuario?.UltimoAcesso,
-                IsBanidoPermanente = p.SituacaoCliente == SituacaoCliente.Banido,
+                IsBanidoPermanente = p.Situacao == Situacao.Banido,
                 FotoBase64 = p.Usuario?.FotoBase64
             }).ToList();
 

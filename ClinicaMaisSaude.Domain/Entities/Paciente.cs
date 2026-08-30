@@ -12,7 +12,7 @@ namespace ClinicaMaisSaude.Domain.Entities
         public Guid Id { get; private set; }
         public DateTime? UltAtualizacao { get; private set; }
         public void MarcarAtualizacao(DateTime quando) => UltAtualizacao = quando;
-        public SituacaoCliente SituacaoCliente { get; private set; }
+        public Situacao Situacao { get; private set; }
         public bool TemProblemaMemoria { get; private set; }
         public Guid UsuarioId { get; private set; }
 
@@ -29,7 +29,7 @@ namespace ClinicaMaisSaude.Domain.Entities
         public virtual ICollection<Agendamento> Agendamentos { get; private set; } = new List<Agendamento>();
 
         /// <summary>Só o estado Ativo permite login/uso; qualquer outro bloqueia.</summary>
-        public bool EstaAtivo => SituacaoCliente == SituacaoCliente.Ativo;
+        public bool EstaAtivo => Situacao == Situacao.Ativo;
 
         protected Paciente() { } // EF Core
 
@@ -37,7 +37,7 @@ namespace ClinicaMaisSaude.Domain.Entities
         {
             Id = SequentialGuid.Next();
             UsuarioId = usuarioId;
-            SituacaoCliente = SituacaoCliente.Ativo;
+            Situacao = Situacao.Ativo;
             TemProblemaMemoria = temProblemaMemoria;
             DtCriado = DateTime.UtcNow;
         }
@@ -50,25 +50,25 @@ namespace ClinicaMaisSaude.Domain.Entities
         /// <summary>Admin desliga a conta (reversível via <see cref="Reativar"/>).</summary>
         public void Desativar()
         {
-            SituacaoCliente = SituacaoCliente.Desativado;
+            Situacao = Situacao.Inativo;
         }
 
         /// <summary>Soft-delete self-service (o próprio paciente encerra a conta).</summary>
         public void Excluir()
         {
-            SituacaoCliente = SituacaoCliente.Excluido;
+            Situacao = Situacao.Excluido;
         }
 
         /// <summary>Banimento permanente por abuso (ex.: injeção de IA).</summary>
         public void Banir()
         {
-            SituacaoCliente = SituacaoCliente.Banido;
+            Situacao = Situacao.Banido;
         }
 
         /// <summary>Reabilita a conta (Ativo) — usado ao remover penalidade/ban.</summary>
         public void Reativar()
         {
-            SituacaoCliente = SituacaoCliente.Ativo;
+            Situacao = Situacao.Ativo;
         }
 
     }
