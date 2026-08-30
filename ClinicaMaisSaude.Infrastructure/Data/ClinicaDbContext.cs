@@ -99,6 +99,12 @@ namespace ClinicaMaisSaude.Infrastructure.Data
                     .HasForeignKey(p => p.UsuarioId)
                     .OnDelete(DeleteBehavior.Cascade);
                 entidade.HasIndex(p => p.UsuarioId).IsUnique();
+
+                // Identidade (Thread B, aditivo/nulável na B2a).
+                entidade.HasOne(p => p.Pessoa)
+                    .WithMany()
+                    .HasForeignKey(p => p.PessoaId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             modelBuilder.Entity<Agendamento>(entidade =>
@@ -375,6 +381,12 @@ namespace ClinicaMaisSaude.Infrastructure.Data
                 entidade.HasIndex(p => p.UsuarioId).IsUnique();
                 // TipoProfissional foi removido do Profissional (Fase A3b) — a categoria vem do Role.
                 // O lookup TipoProfissionalLookup permanece, referenciado por Agendamento.
+
+                // Identidade (Thread B, aditivo/nulável na B2a).
+                entidade.HasOne(p => p.Pessoa)
+                    .WithMany()
+                    .HasForeignKey(p => p.PessoaId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             modelBuilder.Entity<StatusAgendamentoLookup>(entidade =>

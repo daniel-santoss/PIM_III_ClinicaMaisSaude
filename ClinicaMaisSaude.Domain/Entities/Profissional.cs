@@ -13,6 +13,12 @@ namespace ClinicaMaisSaude.Domain.Entities
         public SituacaoProfissional SituacaoProfissional { get; private set; }
         public string? Crm { get; private set; }
         public string? UfCrm { get; private set; }
+
+        // Identidade (Thread B). Aditivo/nulável na Fase B2a: backfill aponta para a Pessoa da conta.
+        public Guid? PessoaId { get; private set; }
+        public virtual Pessoa? Pessoa { get; private set; }
+        public void VincularPessoa(Guid pessoaId) => PessoaId = pessoaId;
+
         public DateTime DtCriado { get; private set; }
 
         public Usuario Usuario { get; private set; }

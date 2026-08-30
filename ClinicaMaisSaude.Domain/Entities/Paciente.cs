@@ -15,6 +15,14 @@ namespace ClinicaMaisSaude.Domain.Entities
         public SituacaoCliente SituacaoCliente { get; private set; }
         public bool TemProblemaMemoria { get; private set; }
         public Guid UsuarioId { get; private set; }
+
+        // Identidade (Thread B). Aditivo/nulável na Fase B2a: o backfill aponta cada Paciente
+        // para a mesma Pessoa da sua conta. Nas fases seguintes a identidade é lida da Pessoa e
+        // o vínculo com a conta (UsuarioId) passa a ser opcional (proponente = paciente sem login).
+        public Guid? PessoaId { get; private set; }
+        public virtual Pessoa? Pessoa { get; private set; }
+        public void VincularPessoa(Guid pessoaId) => PessoaId = pessoaId;
+
         public DateTime DtCriado { get; private set; }
 
         public virtual Usuario Usuario { get; private set; }
