@@ -26,6 +26,7 @@ namespace ClinicaMaisSaude.Infrastructure.Repositories
             return await _context.Profissionais
                 .AsNoTracking()
                 .Include(p => p.Usuario)
+                .Include(p => p.Pessoa)
                 .Include(p => p.Especialidades)
                 .Where(p => p.Usuario.Role == role)
                 .ToListAsync();
@@ -36,6 +37,7 @@ namespace ClinicaMaisSaude.Infrastructure.Repositories
             return await _context.Profissionais
                 .AsNoTracking()
                 .Include(p => p.Usuario).ThenInclude(u => u.Foto)
+                .Include(p => p.Pessoa)
                 .FirstOrDefaultAsync(p => p.Id == id);
         }
 
@@ -44,6 +46,7 @@ namespace ClinicaMaisSaude.Infrastructure.Repositories
             return await _context.Profissionais
                 .AsNoTracking()
                 .Include(p => p.Usuario).ThenInclude(u => u.Foto)
+                .Include(p => p.Pessoa)
                 .Include(p => p.Especialidades)
                 .ToListAsync();
         }

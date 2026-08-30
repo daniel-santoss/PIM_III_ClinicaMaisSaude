@@ -207,13 +207,13 @@ namespace ClinicaMaisSaude.Application.Services
                 }
 
                 profissional = await _profissionalRepository.ObterPorIdAsync(agendamento.ProfissionalId);
-                profissionalNome = profissional?.Usuario?.Nome ?? "N/A";
+                profissionalNome = profissional?.Pessoa?.Nome ?? "N/A";
 
                 if (profissional != null)
                 {
                     var msgProf = tipoConsulta == TipoConsulta.Retorno
-                        ? $"Retorno de {paciente.Usuario?.Nome} agendado para {agendamento.DataHoraConsulta:dd/MM/yyyy HH:mm}."
-                        : $"Nova consulta de {paciente.Usuario?.Nome} agendada para {agendamento.DataHoraConsulta:dd/MM/yyyy HH:mm}.";
+                        ? $"Retorno de {paciente.Pessoa?.Nome} agendado para {agendamento.DataHoraConsulta:dd/MM/yyyy HH:mm}."
+                        : $"Nova consulta de {paciente.Pessoa?.Nome} agendada para {agendamento.DataHoraConsulta:dd/MM/yyyy HH:mm}.";
 
                     var notifProfissional = new Notificacao(profissional.UsuarioId, "Novo Agendamento", msgProf, agendamento.Id, link: $"agendamentos?id={agendamento.Id}");
                     await _notificacaoRepository.AdicionarAsync(notifProfissional);
@@ -229,7 +229,7 @@ namespace ClinicaMaisSaude.Application.Services
                 }
             });
 
-            var response = MapearResponse(agendamento, paciente.Usuario?.Nome ?? "N/A", profissionalNome, paciente.Usuario?.FotoBase64, profissional?.Usuario?.FotoBase64);
+            var response = MapearResponse(agendamento, paciente.Pessoa?.Nome ?? "N/A", profissionalNome, paciente.Usuario?.FotoBase64, profissional?.Usuario?.FotoBase64);
             var (probFinal, nivelFinal) = await _probabilidadeFaltaService.CalcularProbabilidadeAsync(agendamento.PacienteId, agendamento.DataHoraConsulta);
             response.NivelProbabilidadeFalta = nivelFinal;
             response.ProbabilidadeFalta = probFinal;
@@ -270,9 +270,9 @@ namespace ClinicaMaisSaude.Application.Services
             await _repository.AtualizarAsync(agendamento);
 
             var paciente = await _pacienteRepository.ObterPorIdAsync(agendamento.PacienteId);
-            var pacienteNome = paciente?.Usuario?.Nome ?? "N/A";
+            var pacienteNome = paciente?.Pessoa?.Nome ?? "N/A";
             var profissional = await _profissionalRepository.ObterPorIdAsync(agendamento.ProfissionalId);
-            var profissionalNome = profissional?.Usuario?.Nome ?? "N/A";
+            var profissionalNome = profissional?.Pessoa?.Nome ?? "N/A";
 
             var response = MapearResponse(agendamento, pacienteNome, profissionalNome, paciente?.Usuario?.FotoBase64, profissional?.Usuario?.FotoBase64);
             var (probFinal, nivelFinal) = await _probabilidadeFaltaService.CalcularProbabilidadeAsync(agendamento.PacienteId, agendamento.DataHoraConsulta);
@@ -324,21 +324,21 @@ namespace ClinicaMaisSaude.Application.Services
                 {
                     if (paciente != null)
                     {
-                        var msg = $"Sua consulta com {profissional?.Usuario?.Nome ?? "N/A"} em {agendamento.DataHoraConsulta:dd/MM/yyyy HH:mm} foi cancelada.";
+                        var msg = $"Sua consulta com {profissional?.Pessoa?.Nome ?? "N/A"} em {agendamento.DataHoraConsulta:dd/MM/yyyy HH:mm} foi cancelada.";
                         var notif = new Notificacao(paciente.UsuarioId, "Consulta Cancelada", msg, agendamento.Id, link: $"agendamentos?id={agendamento.Id}");
                         await _notificacaoRepository.AdicionarAsync(notif);
                     }
                     if (profissional != null)
                     {
-                        var msg = $"A consulta com {paciente?.Usuario?.Nome ?? "N/A"} em {agendamento.DataHoraConsulta:dd/MM/yyyy HH:mm} foi cancelada.";
+                        var msg = $"A consulta com {paciente?.Pessoa?.Nome ?? "N/A"} em {agendamento.DataHoraConsulta:dd/MM/yyyy HH:mm} foi cancelada.";
                         var notif = new Notificacao(profissional.UsuarioId, "Consulta Cancelada", msg, agendamento.Id, link: $"agendamentos?id={agendamento.Id}");
                         await _notificacaoRepository.AdicionarAsync(notif);
                     }
                 }
             });
 
-            var pacienteNome = paciente?.Usuario?.Nome ?? "N/A";
-            var profissionalNome = profissional?.Usuario?.Nome ?? "N/A";
+            var pacienteNome = paciente?.Pessoa?.Nome ?? "N/A";
+            var profissionalNome = profissional?.Pessoa?.Nome ?? "N/A";
 
             var response = MapearResponse(agendamento, pacienteNome, profissionalNome, paciente?.Usuario?.FotoBase64, profissional?.Usuario?.FotoBase64);
             var (probFinal, nivelFinal) = await _probabilidadeFaltaService.CalcularProbabilidadeAsync(agendamento.PacienteId, agendamento.DataHoraConsulta);
@@ -386,9 +386,9 @@ namespace ClinicaMaisSaude.Application.Services
                 throw new NotFoundException("Agendamento não encontrado.");
 
             var paciente = await _pacienteRepository.ObterPorIdAsync(agendamento.PacienteId);
-            var pacienteNome = paciente?.Usuario?.Nome ?? "N/A";
+            var pacienteNome = paciente?.Pessoa?.Nome ?? "N/A";
             var profissional = await _profissionalRepository.ObterPorIdAsync(agendamento.ProfissionalId);
-            var profissionalNome = profissional?.Usuario?.Nome ?? "N/A";
+            var profissionalNome = profissional?.Pessoa?.Nome ?? "N/A";
 
             var response = MapearResponse(agendamento, pacienteNome, profissionalNome, paciente?.Usuario?.FotoBase64, profissional?.Usuario?.FotoBase64);
             var (probFinal, nivelFinal) = await _probabilidadeFaltaService.CalcularProbabilidadeAsync(agendamento.PacienteId, agendamento.DataHoraConsulta);
@@ -497,14 +497,14 @@ namespace ClinicaMaisSaude.Application.Services
                 }
                 if (profissional != null)
                 {
-                    var msg = $"A consulta com {paciente?.Usuario?.Nome ?? "N/A"} foi remarcada para {request.NovaDataHora:dd/MM/yyyy HH:mm}.";
+                    var msg = $"A consulta com {paciente?.Pessoa?.Nome ?? "N/A"} foi remarcada para {request.NovaDataHora:dd/MM/yyyy HH:mm}.";
                     var notif = new Notificacao(profissional.UsuarioId, "Consulta Remarcada", msg, agendamento.Id, link: $"agendamentos?id={agendamento.Id}");
                     await _notificacaoRepository.AdicionarAsync(notif);
                 }
             });
 
-            var pacienteNome = paciente?.Usuario?.Nome ?? "N/A";
-            var profissionalNome = profissional?.Usuario?.Nome ?? "N/A";
+            var pacienteNome = paciente?.Pessoa?.Nome ?? "N/A";
+            var profissionalNome = profissional?.Pessoa?.Nome ?? "N/A";
 
             var response = MapearResponse(agendamento, pacienteNome, profissionalNome, paciente?.Usuario?.FotoBase64, profissional?.Usuario?.FotoBase64);
             var (probFinal, nivelFinal) = await _probabilidadeFaltaService.CalcularProbabilidadeAsync(agendamento.PacienteId, agendamento.DataHoraConsulta);
@@ -706,9 +706,9 @@ namespace ClinicaMaisSaude.Application.Services
             {
                 Id = a.Id,
                 PacienteId = a.PacienteId,
-                PacienteNome = a.Paciente?.Usuario?.Nome ?? "N/A",
+                PacienteNome = a.Paciente?.Pessoa?.Nome ?? "N/A",
                 ProfissionalId = a.ProfissionalId,
-                NomeProfissional = prof?.Usuario?.Nome ?? "N/A",
+                NomeProfissional = prof?.Pessoa?.Nome ?? "N/A",
                 DataHoraConsulta = a.DataHoraConsulta,
                 TipoProfissional = a.TipoProfissional.ToString(),
                 TipoConsulta = a.TipoConsulta.ToString(),

@@ -110,7 +110,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
 
             if (pacienteId.HasValue)
             {
-                paciente = await _context.Pacientes.Include(p => p.Usuario).FirstOrDefaultAsync(p => p.Id == pacienteId.Value);
+                paciente = await _context.Pacientes.Include(p => p.Usuario).Include(p => p.Pessoa).FirstOrDefaultAsync(p => p.Id == pacienteId.Value);
                 if (paciente == null)
                     throw new NotFoundException("Paciente não encontrado.");
 
@@ -213,7 +213,7 @@ Formato:
                 
                 if (finishReason == "SAFETY")
                 {
-                    var userObj = await _context.Usuarios.FirstOrDefaultAsync(u => u.Id == usuarioLogadoId);
+                    var userObj = await _context.Usuarios.Include(u => u.Pessoa).FirstOrDefaultAsync(u => u.Id == usuarioLogadoId);
                     if (userObj != null)
                     {
                         // Banimento permanente: paciente vira SituacaoCliente=Banido; staff
@@ -232,8 +232,8 @@ Formato:
                             var notificacao = new Notificacao(
                                 admin.Id,
                                 "Violação Grave de IA",
-                                $"Tentativa grave de injeção de prompt detectada pelo usuário {userObj.Email} (CPF: {userObj.Cpf}). Conta bloqueada automaticamente.",
-                                link: $"violacoes?busca={userObj.Cpf}"
+                                $"Tentativa grave de injeção de prompt detectada pelo usuário {userObj.Pessoa?.Email} (CPF: {userObj.Pessoa?.Cpf}). Conta bloqueada automaticamente.",
+                                link: $"violacoes?busca={userObj.Pessoa?.Cpf}"
                             );
                             _context.Notificacoes.Add(notificacao);
                             notificacoes.Add(notificacao);
@@ -327,8 +327,8 @@ Formato:
                         var notificacao = new Notificacao(
                             admin.Id,
                             "Uso Indevido da IA",
-                            $"O paciente {paciente.Usuario.Nome} (CPF: {paciente.Usuario.Cpf}) enviou sintomas irrelevantes à saúde: \"{sintomas}\".",
-                            link: $"violacoes?busca={paciente.Usuario.Cpf}"
+                            $"O paciente {paciente.Pessoa?.Nome} (CPF: {paciente.Pessoa?.Cpf}) enviou sintomas irrelevantes à saúde: \"{sintomas}\".",
+                            link: $"violacoes?busca={paciente.Pessoa?.Cpf}"
                         );
                         _context.Notificacoes.Add(notificacao);
                         notificacoes.Add(notificacao);
@@ -386,8 +386,9 @@ Formato:
                 {
                     a.Id,
                     PacienteId = a.UsuarioId,
-                    PacienteNome = a.Usuario.Nome,
-                    PacienteCpf = a.Usuario.Cpf,
+                    // Identidade a partir da Pessoa (fonte única — Thread B); demais campos são da conta.
+                    PacienteNome = a.Usuario.Pessoa!.Nome,
+                    PacienteCpf = a.Usuario.Pessoa!.Cpf,
                     // Papel do autor da violação a partir do papel unificado Role (Fase A2b).
                     PacienteTipo = a.Usuario.Role == RoleUsuario.Medico ? PerfisUsuario.Medico
                                    : a.Usuario.Role == RoleUsuario.Enfermeira ? PerfisUsuario.Enfermeira

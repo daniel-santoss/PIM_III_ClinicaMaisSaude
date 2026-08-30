@@ -61,7 +61,7 @@ namespace ClinicaMaisSaude.API.Services
 
             // Busca os agendamentos pendentes ou em atendimento (não finalizados/cancelados) na janela.
             var agendamentos = await dbContext.Agendamentos
-                .Include(a => a.Paciente).ThenInclude(p => p.Usuario)
+                .Include(a => a.Paciente).ThenInclude(p => p.Pessoa)
                 .Where(a => (a.Status == StatusAgendamento.Agendado || a.Status == StatusAgendamento.EmAtendimento)
                             && a.DataHoraConsulta >= inicioJanela && a.DataHoraConsulta <= fimJanela)
                 .ToListAsync(stoppingToken);
@@ -75,7 +75,7 @@ namespace ClinicaMaisSaude.API.Services
                     var profissional = await dbContext.Profissionais.FirstOrDefaultAsync(p => p.Id == a.ProfissionalId, stoppingToken);
                     if (profissional != null)
                     {
-                        var msg = $"Consulta de {a.Paciente.Usuario.Nome} em {a.DataHoraConsulta:dd/MM/yyyy} às {a.DataHoraConsulta:HH:mm} não foi finalizada. Atualize o status.";
+                        var msg = $"Consulta de {a.Paciente.Pessoa?.Nome} em {a.DataHoraConsulta:dd/MM/yyyy} às {a.DataHoraConsulta:HH:mm} não foi finalizada. Atualize o status.";
                         var notificacao = new Notificacao(profissional.UsuarioId, "Consulta não finalizada", msg, a.Id, link: $"agendamentos?id={a.Id}");
                         
                         dbContext.Notificacoes.Add(notificacao);
