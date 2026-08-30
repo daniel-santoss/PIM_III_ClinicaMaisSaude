@@ -11,6 +11,7 @@ namespace ClinicaMaisSaude.Domain.Entities
         public void MarcarAtualizacao(DateTime quando) => UltAtualizacao = quando;
         public Guid UsuarioId { get; private set; }
         public TipoProfissional TipoProfissional { get; private set; }
+        public SituacaoProfissional SituacaoProfissional { get; private set; }
         public string? Crm { get; private set; }
         public string? UfCrm { get; private set; }
         public DateTime DtCriado { get; private set; }
@@ -27,6 +28,7 @@ namespace ClinicaMaisSaude.Domain.Entities
             TipoProfissional = tipoProfissional;
             Crm = crm;
             UfCrm = ufCrm;
+            SituacaoProfissional = SituacaoProfissional.Ativo;
             DtCriado = DateTime.UtcNow;
         }
 
@@ -38,7 +40,17 @@ namespace ClinicaMaisSaude.Domain.Entities
             TipoProfissional = tipoProfissional;
             Crm = crm;
             UfCrm = ufCrm;
+            SituacaoProfissional = SituacaoProfissional.Ativo;
             DtCriado = dtCriado;
         }
+
+        /// <summary>Só o estado Ativo permite operar; qualquer outro desliga o profissional.</summary>
+        public bool EstaAtivo => SituacaoProfissional == SituacaoProfissional.Ativo;
+
+        /// <summary>Desliga o profissional (ex.: saiu da clínica). Reversível via Reativar.</summary>
+        public void Desativar() => SituacaoProfissional = SituacaoProfissional.Inativo;
+
+        /// <summary>Reabilita o profissional (Ativo).</summary>
+        public void Reativar() => SituacaoProfissional = SituacaoProfissional.Ativo;
     }
 }
