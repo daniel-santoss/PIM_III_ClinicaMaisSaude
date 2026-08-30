@@ -16,6 +16,9 @@ namespace ClinicaMaisSaude.Domain.Entities
         public string? Telefone { get; private set; }
         public string SenhaHash { get; private set; }
         public TipoUsuario TipoUsuario { get; private set; }
+        // Papel unificado (Fase A). Nulável durante a transição — populado por backfill a
+        // partir de TipoUsuario + Profissional.TipoProfissional. Leituras migram na Fase A2.
+        public RoleUsuario? Role { get; private set; }
         public DateTime DtCriado { get; private set; }
         public DateTime? UltimoAcesso { get; private set; }
         
@@ -70,6 +73,9 @@ namespace ClinicaMaisSaude.Domain.Entities
         {
             SenhaHash = novoHash;
         }
+
+        /// <summary>Define o papel unificado (RoleUsuario) — usado no backfill e no cadastro (Fase A).</summary>
+        public void DefinirRole(RoleUsuario role) => Role = role;
 
         public void AtualizarFoto(string? base64)
         {

@@ -57,6 +57,7 @@ namespace ClinicaMaisSaude.Infrastructure.Data
         public DbSet<StatusAgendamentoLookup> StatusAgendamentoLookup { get; set; }
         public DbSet<SituacaoClienteLookup> SituacaoClienteLookup { get; set; }
         public DbSet<TipoUsuarioLookup> TipoUsuarioLookup { get; set; }
+        public DbSet<RoleUsuarioLookup> RoleUsuarioLookup { get; set; }
         public DbSet<TipoProfissionalLookup> TipoProfissionalLookup { get; set; }
         public DbSet<SituacaoProfissionalLookup> SituacaoProfissionalLookup { get; set; }
         public DbSet<EspecialidadeLookup> EspecialidadeLookup { get; set; }
@@ -309,6 +310,13 @@ namespace ClinicaMaisSaude.Infrastructure.Data
                     .HasForeignKey(u => u.TipoUsuario)
                     .OnDelete(DeleteBehavior.Restrict);
 
+                // Papel unificado (Fase A). Nulável durante a transição (backfill preenche);
+                // leituras migram na Fase A2, remoção do TipoUsuario na A3.
+                entidade.HasOne<RoleUsuarioLookup>()
+                    .WithMany()
+                    .HasForeignKey(u => u.Role)
+                    .OnDelete(DeleteBehavior.Restrict);
+
                 // Foto 1:1 em tabela separada (UsuarioFotos), com PK compartilhada. Só é
                 // materializada via .Include(u => u.Foto). Cascade: remover o usuário (ou
                 // orfanar a navegação) apaga a linha da foto.
@@ -406,6 +414,16 @@ namespace ClinicaMaisSaude.Infrastructure.Data
                 entidade.Property(s => s.DtCriado).HasColumnName("Dt_Criado");
                 entidade.HasData(Enum.GetValues(typeof(TipoUsuario)).Cast<TipoUsuario>()
                     .Select(v => new TipoUsuarioLookup { Id = v, Nome = v.ToString(), DtCriado = dtSeedLookup }));
+            });
+
+            modelBuilder.Entity<RoleUsuarioLookup>(entidade =>
+            {
+                entidade.HasKey(s => s.Id);
+                entidade.Property(s => s.Id).HasConversion<int>().ValueGeneratedNever();
+                entidade.Property(s => s.Nome).IsRequired().HasMaxLength(50);
+                entidade.Property(s => s.DtCriado).HasColumnName("Dt_Criado");
+                entidade.HasData(Enum.GetValues(typeof(RoleUsuario)).Cast<RoleUsuario>()
+                    .Select(v => new RoleUsuarioLookup { Id = v, Nome = v.ToString(), DtCriado = dtSeedLookup }));
             });
 
             modelBuilder.Entity<TipoProfissionalLookup>(entidade =>
