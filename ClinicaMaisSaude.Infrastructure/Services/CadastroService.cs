@@ -3,6 +3,7 @@ using ClinicaMaisSaude.Application.Interfaces;
 using ClinicaMaisSaude.Domain.Entities;
 using ClinicaMaisSaude.Domain.Enums;
 using ClinicaMaisSaude.Domain.Constants;
+using ClinicaMaisSaude.Domain.Common;
 using ClinicaMaisSaude.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -26,10 +27,10 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             // Normalização do e-mail (tudo minúsculo)
             request.Email = request.Email.Trim().ToLowerInvariant();
 
-            // Sanitização do CPF (responsabilidade da camada de serviço)
-            var cpfLimpo = request.Cpf.Replace(".", "").Replace("-", "").Trim();
+            // Sanitização + validação do CPF (helper compartilhado do Domain).
+            var cpfLimpo = Cpf.Sanitizar(request.Cpf);
 
-            if (cpfLimpo.Length != 11 || !IsCpfValido(cpfLimpo))
+            if (!Cpf.EhValido(cpfLimpo))
             {
                 return new CadastroResult { Sucesso = false, Mensagem = "O CPF informado não é matematicamente válido." };
             }
@@ -146,41 +147,6 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             await _context.SaveChangesAsync();
 
             return new CadastroResult { Sucesso = true, Mensagem = "Senha redefinida com sucesso." };
-        }
-
-        private bool IsCpfValido(string cpf)
-        {
-            int[] multiplicador1 = new int[9] { 10, 9, 8, 7, 6, 5, 4, 3, 2 };
-            int[] multiplicador2 = new int[10] { 11, 10, 9, 8, 7, 6, 5, 4, 3, 2 };
-            string tempCpf;
-            string digito;
-            int soma;
-            int resto;
-
-            if (cpf.Distinct().Count() == 1) return false;
-
-            tempCpf = cpf.Substring(0, 9);
-            soma = 0;
-
-            for (int i = 0; i < 9; i++)
-                soma += int.Parse(tempCpf[i].ToString()) * multiplicador1[i];
-
-            resto = soma % 11;
-            if (resto < 2) resto = 0;
-            else resto = 11 - resto;
-
-            digito = resto.ToString();
-            tempCpf = tempCpf + digito;
-            soma = 0;
-            for (int i = 0; i < 10; i++)
-                soma += int.Parse(tempCpf[i].ToString()) * multiplicador2[i];
-
-            resto = soma % 11;
-            if (resto < 2) resto = 0;
-            else resto = 11 - resto;
-
-            digito = digito + resto.ToString();
-            return cpf.EndsWith(digito);
         }
 
         public async Task PurgeTestsAsync()

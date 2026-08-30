@@ -73,6 +73,17 @@ namespace ClinicaMaisSaude.Domain.Entities
             Situacao = Situacao.Ativo;
         }
 
+        /// <summary>
+        /// Reabre um perfil (de uma solicitação anterior recusada/inativa, sem conta) como proponente
+        /// em análise — reaproveita a Pessoa (CPF é único) numa nova solicitação de auto-cadastro.
+        /// </summary>
+        public void ReabrirComoProponente(bool temProblemaMemoria)
+        {
+            UsuarioId = null;
+            Situacao = Situacao.EmAnalise;
+            TemProblemaMemoria = temProblemaMemoria;
+        }
+
         public void Atualizar(bool temProblemaMemoria)
         {
             TemProblemaMemoria = temProblemaMemoria;

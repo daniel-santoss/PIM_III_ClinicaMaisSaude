@@ -107,6 +107,20 @@ builder.Services.AddRateLimiter(options =>
                 PermitLimit = 10,
                 QueueLimit = 0
             }));
+
+    // Auto-cadastro moderado (POST anônimo): anti-flood GENEROSO por IP — NÃO é identidade.
+    // O dedupe por pessoa é por CPF (no serviço). Folgado de propósito p/ não punir aparelho
+    // compartilhado (ex.: mãe e filha no mesmo celular). Configurável via AutoCadastro:MaxPorIpHora.
+    var maxAutoCadastroPorHora = builder.Configuration.GetValue<int?>("AutoCadastro:MaxPorIpHora") ?? 8;
+    options.AddPolicy("autocadastro", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "sem-ip",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                Window = TimeSpan.FromHours(1),
+                PermitLimit = maxAutoCadastroPorHora,
+                QueueLimit = 0
+            }));
 });
 
 // String de conexão com o banco de dados
@@ -177,6 +191,7 @@ builder.Services.AddScoped<IDelegacaoProfissionalService, DelegacaoProfissionalS
 builder.Services.AddScoped<IAgendamentoService, AgendamentoService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ICadastroService, CadastroService>();
+builder.Services.AddScoped<IAutoCadastroService, AutoCadastroService>();
 builder.Services.AddScoped<IEmailService, SmtpEmailService>();
 builder.Services.AddScoped<IRecuperacaoSenhaService, RecuperacaoSenhaService>();
 builder.Services.AddScoped<IProbabilidadeFaltaService, ProbabilidadeFaltaService>();
@@ -258,6 +273,12 @@ using (var scope = app.Services.CreateScope())
     await AdminSeeder.SeedAdminAsync(
         services.GetRequiredService<ClinicaDbContext>(),
         services.GetRequiredService<IConfiguration>(),
+        app.Environment.IsDevelopment(),
+        services.GetRequiredService<ILogger<Program>>());
+
+    // Modelo de Declaração de Saúde de exemplo (Development, se não houver nenhum).
+    await DeclaracaoSaudeSeeder.SeedExemploAsync(
+        services.GetRequiredService<ClinicaDbContext>(),
         app.Environment.IsDevelopment(),
         services.GetRequiredService<ILogger<Program>>());
 }
