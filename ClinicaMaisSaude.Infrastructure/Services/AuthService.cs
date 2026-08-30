@@ -98,14 +98,9 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                 throw new UnauthorizedException("Esta conta foi encerrada.");
             }
 
-            // Papel unificado (Fase A2): a string do papel vem do Role — formato de fio
-            // idêntico ({Admin, Medico, Enfermeira, Paciente}), então os fronts não mudam.
-            // Fallback à taxonomia antiga só se Role ainda não estiver populado (defensivo).
-            string tipoUsuarioStr = usuario.Role?.ToString()
-                ?? (usuario.TipoUsuario == TipoUsuario.Admin ? PerfisUsuario.Admin
-                    : perfilProfissional != null ? perfilProfissional.TipoProfissional.ToString()
-                    : perfilPaciente != null ? PerfisUsuario.Paciente
-                    : usuario.TipoUsuario.ToString());
+            // Papel unificado (Fase A3): a string do papel vem direto do Role — formato de
+            // fio idêntico ({Admin, Medico, Enfermeira, Paciente}), então os fronts não mudam.
+            string tipoUsuarioStr = usuario.Role.ToString();
             Guid? pacienteId = perfilPaciente?.Id;
 
             var tokenHandler = new JwtSecurityTokenHandler();
@@ -210,12 +205,8 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             var perfilProfissional = await _context.Profissionais.AsNoTracking().FirstOrDefaultAsync(p => p.UsuarioId == usuario.Id);
             var perfilPaciente = await _context.Pacientes.AsNoTracking().FirstOrDefaultAsync(p => p.UsuarioId == usuario.Id);
 
-            // Papel unificado (Fase A2): mesma derivação do login — string do papel vem do Role.
-            string tipoUsuarioStr = usuario.Role?.ToString()
-                ?? (usuario.TipoUsuario == TipoUsuario.Admin ? PerfisUsuario.Admin
-                    : perfilProfissional != null ? perfilProfissional.TipoProfissional.ToString()
-                    : perfilPaciente != null ? PerfisUsuario.Paciente
-                    : usuario.TipoUsuario.ToString());
+            // Papel unificado (Fase A3): string do papel direto do Role.
+            string tipoUsuarioStr = usuario.Role.ToString();
             Guid? pacienteId = perfilPaciente?.Id;
 
             var claims = new List<Claim>

@@ -29,7 +29,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                 prof.Crm,
                 prof.UfCrm,
                 // Categoria do profissional a partir do papel unificado (Fase A2b).
-                TipoProfissional = prof.Usuario?.Role?.ToString() ?? prof.TipoProfissional.ToString(),
+                TipoProfissional = prof.Usuario?.Role.ToString() ?? prof.TipoProfissional.ToString(),
                 Email = prof.Usuario?.Email
             };
         }

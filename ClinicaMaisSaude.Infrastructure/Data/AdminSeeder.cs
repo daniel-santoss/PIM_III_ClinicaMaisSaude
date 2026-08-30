@@ -23,7 +23,7 @@ namespace ClinicaMaisSaude.Infrastructure.Data
             bool isDevelopment,
             ILogger logger)
         {
-            if (await context.Usuarios.AnyAsync(u => u.TipoUsuario == TipoUsuario.Admin))
+            if (await context.Usuarios.AnyAsync(u => u.Role == RoleUsuario.Admin))
                 return;
 
             var email = config[ConfigKeys.AdminSeedEmail] ?? "admin@clinicamaissaude.com.br";
@@ -48,8 +48,7 @@ namespace ClinicaMaisSaude.Infrastructure.Data
 
             var senhaHash = BCrypt.Net.BCrypt.HashPassword(senha);
 
-            var admin = new Usuario(email, cpf, senhaHash, "Administrador", null, TipoUsuario.Admin);
-            admin.DefinirRole(RoleUsuario.Admin); // dual-write do papel unificado (Fase A2)
+            var admin = new Usuario(email, cpf, senhaHash, "Administrador", null, RoleUsuario.Admin);
             await context.Usuarios.AddAsync(admin);
 
             var profissionalAdmin = new Profissional(admin.Id, TipoProfissional.Medico, "123456", "SP");

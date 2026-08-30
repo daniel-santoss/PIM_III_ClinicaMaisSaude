@@ -64,24 +64,19 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             // Hash da senha
             var senhaHash = BCrypt.Net.BCrypt.HashPassword(request.Senha);
 
-            // Papel (grosso) da conta a partir do tipo solicitado.
-            TipoUsuario tipoConta;
+            // Papel unificado da conta a partir do tipo solicitado (com validação).
+            RoleUsuario role;
             if (request.TipoUsuario == PerfisUsuario.Paciente)
-                tipoConta = TipoUsuario.Paciente;
-            else if (request.TipoUsuario == PerfisUsuario.Medico || request.TipoUsuario == PerfisUsuario.Enfermeira)
-                tipoConta = TipoUsuario.Profissional;
+                role = RoleUsuario.Paciente;
+            else if (request.TipoUsuario == PerfisUsuario.Medico)
+                role = RoleUsuario.Medico;
+            else if (request.TipoUsuario == PerfisUsuario.Enfermeira)
+                role = RoleUsuario.Enfermeira;
             else
                 return new CadastroResult { Sucesso = false, Mensagem = "Tipo de usuário inválido." };
 
             // Criação da identidade (LoginPortal) — dona de Nome/Cpf/Email/Telefone.
-            var novoUsuario = new Usuario(request.Email, cpfLimpo, senhaHash, request.Nome, telefoneLimpo, tipoConta);
-            // Dual-write do papel unificado (Fase A2): grava Role junto com TipoUsuario.
-            novoUsuario.DefinirRole(request.TipoUsuario switch
-            {
-                PerfisUsuario.Medico => RoleUsuario.Medico,
-                PerfisUsuario.Enfermeira => RoleUsuario.Enfermeira,
-                _ => RoleUsuario.Paciente
-            });
+            var novoUsuario = new Usuario(request.Email, cpfLimpo, senhaHash, request.Nome, telefoneLimpo, role);
             _context.Usuarios.Add(novoUsuario);
 
             // Criação do perfil associado (magro; identidade fica no LoginPortal)
@@ -108,24 +103,14 @@ namespace ClinicaMaisSaude.Infrastructure.Services
         public async Task<IEnumerable<UsuarioResponse>> ListarUsuariosAsync()
         {
             var usuarios = await _context.Usuarios.AsNoTracking().ToListAsync();
-            var profissionais = await _context.Profissionais.AsNoTracking().ToListAsync();
-            var pacientes = await _context.Pacientes.AsNoTracking().ToListAsync();
 
             var resposta = new List<UsuarioResponse>();
 
             foreach (var u in usuarios)
             {
-                // Nome vem sempre do LoginPortal (identidade única). O tipo agora vem do
-                // papel unificado Role (Fase A2); fallback à taxonomia antiga se null.
+                // Nome e papel vêm do LoginPortal (identidade única). O tipo é o Role (Fase A3).
                 string nome = u.Nome;
-
-                var prof = profissionais.FirstOrDefault(p => p.UsuarioId == u.Id);
-                var pac = pacientes.FirstOrDefault(p => p.UsuarioId == u.Id);
-
-                string tipo = u.Role?.ToString()
-                    ?? (prof != null ? prof.TipoProfissional.ToString()
-                        : pac != null ? PerfisUsuario.Paciente
-                        : "Admin");
+                string tipo = u.Role.ToString();
 
                 resposta.Add(new UsuarioResponse
                 {

@@ -25,7 +25,7 @@ namespace ClinicaMaisSaude.Infrastructure.Repositories
                 .AsNoTracking()
                 .Include(p => p.Usuario)
                 .Include(p => p.Especialidades)
-                .Where(p => p.TipoProfissional == tipo && p.Usuario.TipoUsuario != TipoUsuario.Admin)
+                .Where(p => p.TipoProfissional == tipo && p.Usuario.Role != RoleUsuario.Admin)
                 .ToListAsync();
         }
 

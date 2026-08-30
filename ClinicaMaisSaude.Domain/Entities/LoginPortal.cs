@@ -15,10 +15,9 @@ namespace ClinicaMaisSaude.Domain.Entities
         public string Cpf { get; private set; }
         public string? Telefone { get; private set; }
         public string SenhaHash { get; private set; }
-        public TipoUsuario TipoUsuario { get; private set; }
-        // Papel unificado (Fase A). Nulável durante a transição — populado por backfill a
-        // partir de TipoUsuario + Profissional.TipoProfissional. Leituras migram na Fase A2.
-        public RoleUsuario? Role { get; private set; }
+        // Papel unificado do usuário. Fonte única do papel após o A3 remover TipoUsuario.
+        // NOT NULL — todo usuário tem um papel.
+        public RoleUsuario Role { get; private set; }
         public DateTime DtCriado { get; private set; }
         public DateTime? UltimoAcesso { get; private set; }
         
@@ -41,7 +40,7 @@ namespace ClinicaMaisSaude.Domain.Entities
 
         public virtual ICollection<UsoInadequadoIA> Violacoes { get; private set; } = new List<UsoInadequadoIA>();
 
-        public Usuario(string email, string cpf, string senhaHash, string nome, string? telefone = null, TipoUsuario tipoUsuario = TipoUsuario.Paciente)
+        public Usuario(string email, string cpf, string senhaHash, string nome, string? telefone = null, RoleUsuario role = RoleUsuario.Paciente)
         {
             Id = SequentialGuid.Next();
             Nome = nome;
@@ -49,13 +48,13 @@ namespace ClinicaMaisSaude.Domain.Entities
             Cpf = cpf;
             Telefone = telefone;
             SenhaHash = senhaHash;
-            TipoUsuario = tipoUsuario;
+            Role = role;
             DtCriado = DateTime.UtcNow;
             TentativasLogin = 0;
             BloqueadoAte = null;
         }
 
-        public Usuario(Guid id, string email, string cpf, string senhaHash, string nome, string? telefone, TipoUsuario tipoUsuario, DateTime dtCriado)
+        public Usuario(Guid id, string email, string cpf, string senhaHash, string nome, string? telefone, RoleUsuario role, DateTime dtCriado)
         {
             Id = id;
             Nome = nome;
@@ -63,7 +62,7 @@ namespace ClinicaMaisSaude.Domain.Entities
             Cpf = cpf;
             Telefone = telefone;
             SenhaHash = senhaHash;
-            TipoUsuario = tipoUsuario;
+            Role = role;
             DtCriado = dtCriado;
             TentativasLogin = 0;
             BloqueadoAte = null;

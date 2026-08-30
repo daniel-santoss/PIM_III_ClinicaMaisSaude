@@ -47,7 +47,7 @@ namespace ClinicaMaisSaude.Infrastructure.Tests.Services
         private Usuario SemearUsuario(string senha = "senhaAntiga1")
         {
             var usuario = new Usuario(EmailUsuario, CpfUsuario,
-                BCrypt.Net.BCrypt.HashPassword(senha), "Paciente Teste", null, TipoUsuario.Paciente);
+                BCrypt.Net.BCrypt.HashPassword(senha), "Paciente Teste", null, RoleUsuario.Paciente);
             _context.Usuarios.Add(usuario);
             _context.SaveChanges();
             return usuario;
