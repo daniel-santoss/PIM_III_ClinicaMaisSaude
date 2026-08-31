@@ -29,18 +29,19 @@ executável completo no plano `~/.claude/plans/peppy-weaving-truffle.md` e na me
 **✅ Situação unificada (Fase17):** `SituacaoCliente` + `SituacaoProfissional` fundidos num único enum/lookup
 **`Situacao`** {Ativo=1, Inativo=2, Excluido=3, Banido=4, EmAnalise=5} (validade por tipo garantida no domínio).
 
-**✅ Auto-cadastro moderado (Thread D — D1/D2):** 4 tabelas de **Declaração de Saúde** —
+**✅ Auto-cadastro moderado (Thread D — D1/D2/D3):** 4 tabelas de **Declaração de Saúde** —
 `ModeloDeclaracaoSaude` (ModeloPadrao único), `PerguntaDeclaracaoSaude`, `SolicitacaoCadastro`
 (Status EmAnalise/Aprovada/Recusada) + `RespostaDeclaracaoSaude` (única por Solicitacao+Pergunta) +
 lookup `StatusSolicitacao` (Fase18). Endpoints anônimos GET declaração / POST solicitar (anti-fraude:
 CPF checksum + 1 solicitação aberta por CPF + rate-limit por IP generoso). Proponente = Pessoa +
-Paciente[EmAnalise] sem login + Solicitacao + Respostas.
+Paciente[EmAnalise] sem login + Solicitacao + Respostas. **D3 (aprovação admin):** endpoints admin
+listar/aprovar/recusar as solicitações (state machine Aprovar/Recusar) — sem mudança de schema.
 
 **Fase 0 (pré-Thread A):** `Agendamento` ganhou navegações `Profissional`/`AgendamentoOrigem`; enum
 `TipoViolacao` movido p/ `Domain/Enums`; `SituacaoProfissional` Ativo/Inativo (depois unificado em Situacao).
 
-Progresso: 78 testes. **Próximo: D3** (aprovação admin) → D4 (1º acesso) → D5 (editor web) → D6 (fila web) →
-D7 (mobile). Pendente do backlog v1: decouplings (tabela `LembreteEnviado`, Value Object `Cpf` — hoje há
+Progresso: 83 testes. **Próximo: D4** (1º acesso) → D5 (editor web) → D6 (fila web) → D7 (mobile).
+Pendente do backlog v1: decouplings (tabela `LembreteEnviado`, Value Object `Cpf` — hoje há
 o helper `Domain/Common/Cpf`, auditoria com ator).
 
 ## 0. Status de implementação (2026-08-15)
