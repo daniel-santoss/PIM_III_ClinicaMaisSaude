@@ -26,9 +26,6 @@ namespace ClinicaMaisSaude.Infrastructure.Services
         private readonly IConfiguration _configuration;
         private readonly IEmailService _emailService;
 
-        // Alfabeto sem caracteres ambíguos (0/O, 1/I/L). 32 símbolos → divide 256 sem viés de módulo.
-        private const string Alfabeto = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-        private const int TamanhoCodigo = 6;
         private const int ExpiracaoCodigoMin = 15;
         private const int ExpiracaoResetMin = 10;
         private const int MaxTentativas = 5;
@@ -66,9 +63,9 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             if (velhos.Count > 0)
                 _context.CodigosRecuperacaoSenha.RemoveRange(velhos);
 
-            var codigo = GerarCodigo();
+            var codigo = CodigoVerificacaoCripto.GerarCodigo();
             var entidade = new CodigoRecuperacaoSenha(
-                usuario.Id, HashCodigoHex(codigo), agora.AddMinutes(ExpiracaoCodigoMin));
+                usuario.Id, CodigoVerificacaoCripto.HashCodigoHex(codigo, Pepper()), agora.AddMinutes(ExpiracaoCodigoMin));
             _context.CodigosRecuperacaoSenha.Add(entidade);
             await _context.SaveChangesAsync();
 
@@ -103,7 +100,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                 throw generico;
             }
 
-            var candidato = HashCodigoBytes(request.Codigo);
+            var candidato = CodigoVerificacaoCripto.HashCodigoBytes(request.Codigo, Pepper());
             var armazenado = Convert.FromHexString(codigo.CodigoHash);
             if (!CryptographicOperations.FixedTimeEquals(candidato, armazenado))
             {
@@ -115,8 +112,8 @@ namespace ClinicaMaisSaude.Infrastructure.Services
 
             // Sucesso: consome o código e emite um reset token de alta entropia.
             codigo.MarcarUsado();
-            var resetToken = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
-            codigo.DefinirResetToken(HashResetTokenHex(resetToken), agora.AddMinutes(ExpiracaoResetMin));
+            var resetToken = CodigoVerificacaoCripto.GerarResetToken();
+            codigo.DefinirResetToken(CodigoVerificacaoCripto.HashResetTokenHex(resetToken), agora.AddMinutes(ExpiracaoResetMin));
             await _context.SaveChangesAsync();
 
             return new ValidarCodigoResponse { ResetToken = resetToken };
@@ -130,7 +127,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             ValidarForcaSenha(request.NovaSenha);
 
             var agora = DateTime.UtcNow;
-            var tokenHash = HashResetTokenHex(request.ResetToken);
+            var tokenHash = CodigoVerificacaoCripto.HashResetTokenHex(request.ResetToken);
             var codigo = await _context.CodigosRecuperacaoSenha
                 .Include(c => c.Usuario)
                 .FirstOrDefaultAsync(c => c.ResetTokenHash == tokenHash && c.DtExpiracaoReset > agora);
@@ -159,29 +156,10 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                 .FirstOrDefaultAsync(u => u.Pessoa!.Email == email || u.Pessoa!.Cpf == cpf);
         }
 
-        private static string GerarCodigo()
-        {
-            Span<byte> bytes = stackalloc byte[TamanhoCodigo];
-            RandomNumberGenerator.Fill(bytes);
-            var chars = new char[TamanhoCodigo];
-            for (int i = 0; i < TamanhoCodigo; i++)
-                chars[i] = Alfabeto[bytes[i] % Alfabeto.Length];
-            return new string(chars);
-        }
-
-        private byte[] HashCodigoBytes(string codigo)
-        {
-            var pepper = _configuration[ConfigKeys.CodigoRecuperacaoPepper]
+        // Pepper (fora do banco) do HMAC do código — protege o segredo curto num vazamento do banco.
+        private string Pepper() =>
+            _configuration[ConfigKeys.CodigoRecuperacaoPepper]
                 ?? throw new InvalidOperationException($"{ConfigKeys.CodigoRecuperacaoPepper} não configurado.");
-            using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(pepper));
-            // Normaliza p/ maiúsculas: o código é case-insensitive para o usuário.
-            return hmac.ComputeHash(Encoding.UTF8.GetBytes(codigo.Trim().ToUpperInvariant()));
-        }
-
-        private string HashCodigoHex(string codigo) => Convert.ToHexString(HashCodigoBytes(codigo));
-
-        private static string HashResetTokenHex(string token) =>
-            Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
 
         private static void ValidarForcaSenha(string senha)
         {
