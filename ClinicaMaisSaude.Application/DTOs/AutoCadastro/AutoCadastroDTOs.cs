@@ -36,4 +36,32 @@ namespace ClinicaMaisSaude.Application.DTOs.AutoCadastro
         public bool Resposta { get; set; }
         public string? Detalhe { get; set; }
     }
+
+    /// <summary>Uma solicitação em análise, com identidade e respostas da DS — para a fila de aprovação do admin.</summary>
+    public class SolicitacaoAdminResponse
+    {
+        public Guid SolicitacaoId { get; set; }
+        public DateTime DtCriado { get; set; }
+        public string Nome { get; set; } = string.Empty;
+        public string Cpf { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string? Telefone { get; set; }
+        /// <summary>Sinal de acessibilidade (proponente declarou dificuldade de memória).</summary>
+        public bool TemProblemaMemoria { get; set; }
+        public List<RespostaAdminItem> Respostas { get; set; } = new();
+    }
+
+    public class RespostaAdminItem
+    {
+        public string Pergunta { get; set; } = string.Empty;
+        public int Ordem { get; set; }
+        public bool Resposta { get; set; }
+        public string? Detalhe { get; set; }
+    }
+
+    /// <summary>Corpo da recusa de uma solicitação (o motivo vai no e-mail ao proponente).</summary>
+    public class RecusarSolicitacaoRequest
+    {
+        public string Motivo { get; set; } = string.Empty;
+    }
 }

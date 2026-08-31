@@ -1,15 +1,20 @@
 using ClinicaMaisSaude.Application.DTOs.AutoCadastro;
+using ClinicaMaisSaude.Application.Exceptions;
 using ClinicaMaisSaude.Application.Interfaces;
+using ClinicaMaisSaude.Domain.Constants;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using System;
 using System.Threading.Tasks;
 
 namespace ClinicaMaisSaude.API.Controllers
 {
     /// <summary>
-    /// Auto-cadastro moderado (Thread D) — endpoints ANÔNIMOS. O proponente busca a Declaração de
-    /// Saúde vigente e envia o mini-cadastro + respostas. Anti-fraude: dedupe por CPF no serviço +
-    /// rate-limit por IP (anti-flood generoso) só no POST; o backstop real é a avaliação presencial.
+    /// Auto-cadastro moderado (Thread D). Endpoints ANÔNIMOS (proponente): busca a Declaração de Saúde
+    /// vigente e envia o mini-cadastro + respostas (anti-fraude: dedupe por CPF + rate-limit por IP só
+    /// no POST; backstop = avaliação presencial). Endpoints ADMIN (D3): fila de aprovação — listar as
+    /// solicitações em análise e aprovar/recusar.
     /// </summary>
     [ApiController]
     [Route("api/[controller]")]
@@ -40,6 +45,45 @@ namespace ClinicaMaisSaude.API.Controllers
             if (!resultado.Sucesso)
                 return BadRequest(resultado.Mensagem);
             return Ok(new { Mensagem = resultado.Mensagem });
+        }
+
+        // ----------------- Fila de aprovação (ADMIN, D3) -----------------
+
+        [HttpGet("solicitacoes")]
+        [Authorize]
+        public async Task<IActionResult> ListarSolicitacoes()
+        {
+            ExigirAdmin();
+            var solicitacoes = await _service.ListarSolicitacoesEmAnaliseAsync();
+            return Ok(solicitacoes);
+        }
+
+        [HttpPost("solicitacoes/{id}/aprovar")]
+        [Authorize]
+        public async Task<IActionResult> Aprovar(Guid id)
+        {
+            ExigirAdmin();
+            var resultado = await _service.AprovarAsync(id);
+            if (!resultado.Sucesso)
+                return BadRequest(resultado.Mensagem);
+            return Ok(new { Mensagem = resultado.Mensagem });
+        }
+
+        [HttpPost("solicitacoes/{id}/recusar")]
+        [Authorize]
+        public async Task<IActionResult> Recusar(Guid id, [FromBody] RecusarSolicitacaoRequest request)
+        {
+            ExigirAdmin();
+            var resultado = await _service.RecusarAsync(id, request?.Motivo ?? string.Empty);
+            if (!resultado.Sucesso)
+                return BadRequest(resultado.Mensagem);
+            return Ok(new { Mensagem = resultado.Mensagem });
+        }
+
+        private void ExigirAdmin()
+        {
+            if (!User.IsInRole(PerfisUsuario.Admin))
+                throw new ForbiddenException("Apenas administradores podem gerenciar solicitações de cadastro.");
         }
     }
 }

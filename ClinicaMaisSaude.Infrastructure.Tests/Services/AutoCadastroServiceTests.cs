@@ -8,13 +8,15 @@ using ClinicaMaisSaude.Domain.Enums;
 using ClinicaMaisSaude.Infrastructure.Data;
 using ClinicaMaisSaude.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 
 namespace ClinicaMaisSaude.Infrastructure.Tests.Services
 {
-    // Auto-cadastro moderado (D2) contra EF InMemory. CPF válido de teste: 39053344705.
+    // Auto-cadastro moderado (D2 anônimo + D3 admin) contra EF InMemory. CPF válido de teste: 39053344705.
     public class AutoCadastroServiceTests : IDisposable
     {
         private readonly ClinicaDbContext _context;
+        private readonly EmailFake _email = new();
         private readonly AutoCadastroService _service;
         private readonly ModeloDeclaracaoSaude _modelo;
         private readonly PerguntaDeclaracaoSaude _p1;
@@ -28,7 +30,8 @@ namespace ClinicaMaisSaude.Infrastructure.Tests.Services
                 .UseInMemoryDatabase($"autocadastro-{Guid.NewGuid()}")
                 .Options;
             _context = new ClinicaDbContext(options);
-            _service = new AutoCadastroService(_context);
+            var config = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>()).Build();
+            _service = new AutoCadastroService(_context, config, _email);
 
             _modelo = new ModeloDeclaracaoSaude("DS Teste", modeloPadrao: true);
             _context.ModelosDeclaracaoSaude.Add(_modelo);
@@ -119,6 +122,89 @@ namespace ClinicaMaisSaude.Infrastructure.Tests.Services
             var segunda = await _service.SolicitarAsync(RequestValido());
             Assert.False(segunda.Sucesso);
             Assert.Contains("análise", segunda.Mensagem);
+        }
+
+        // ----------------- Fluxo admin (D3) -----------------
+
+        [Fact]
+        public async Task Listar_TrazSolicitacaoEmAnaliseComRespostasOrdenadas()
+        {
+            await _service.SolicitarAsync(RequestValido());
+
+            var fila = await _service.ListarSolicitacoesEmAnaliseAsync();
+
+            var s = Assert.Single(fila);
+            Assert.Equal("Fulano de Tal", s.Nome);
+            Assert.Equal(CpfValido, s.Cpf);
+            Assert.Equal(2, s.Respostas.Count);
+            Assert.Equal(1, s.Respostas[0].Ordem);
+            Assert.Equal("Losartana 50mg", s.Respostas[1].Detalhe);
+        }
+
+        [Fact]
+        public async Task Aprovar_MudaStatusEnviaEmailEProponenteContinuaSemLogin()
+        {
+            await _service.SolicitarAsync(RequestValido());
+            var solicitacao = await _context.SolicitacoesCadastro.SingleAsync();
+
+            var r = await _service.AprovarAsync(solicitacao.Id);
+
+            Assert.True(r.Sucesso);
+            var atualizada = await _context.SolicitacoesCadastro.AsNoTracking().SingleAsync();
+            Assert.Equal(StatusSolicitacao.Aprovada, atualizada.Status);
+            Assert.NotNull(_email.UltimoCorpo);
+            Assert.Equal("fulano@teste.com", _email.UltimoDestinatario);
+            // Ainda sem conta e ainda EmAnalise: a ativação acontece só no 1º acesso (D4).
+            var paciente = await _context.Pacientes.SingleAsync();
+            Assert.Null(paciente.UsuarioId);
+            Assert.Equal(Situacao.EmAnalise, paciente.Situacao);
+        }
+
+        [Fact]
+        public async Task Recusar_ExigeMotivoGravaMotivoEncerraProponenteEEnviaEmail()
+        {
+            await _service.SolicitarAsync(RequestValido());
+            var solicitacao = await _context.SolicitacoesCadastro.SingleAsync();
+
+            var semMotivo = await _service.RecusarAsync(solicitacao.Id, "   ");
+            Assert.False(semMotivo.Sucesso);
+
+            var r = await _service.RecusarAsync(solicitacao.Id, "Dados divergentes na avaliação presencial.");
+            Assert.True(r.Sucesso);
+
+            var atualizada = await _context.SolicitacoesCadastro.AsNoTracking().SingleAsync();
+            Assert.Equal(StatusSolicitacao.Recusada, atualizada.Status);
+            Assert.Equal("Dados divergentes na avaliação presencial.", atualizada.MotivoRecusa);
+            var paciente = await _context.Pacientes.AsNoTracking().SingleAsync();
+            Assert.Equal(Situacao.Excluido, paciente.Situacao);
+            Assert.Contains("Dados divergentes", _email.UltimoCorpo);
+        }
+
+        [Fact]
+        public async Task Aprovar_SolicitacaoJaDecidida_Falha()
+        {
+            await _service.SolicitarAsync(RequestValido());
+            var solicitacao = await _context.SolicitacoesCadastro.SingleAsync();
+            await _service.AprovarAsync(solicitacao.Id);
+
+            var denovo = await _service.AprovarAsync(solicitacao.Id);
+            Assert.False(denovo.Sucesso);
+        }
+
+        [Fact]
+        public async Task Recusar_DepoisReaplicar_ReabreProponenteEmAnalise()
+        {
+            await _service.SolicitarAsync(RequestValido());
+            var solicitacao = await _context.SolicitacoesCadastro.SingleAsync();
+            await _service.RecusarAsync(solicitacao.Id, "Reprovado na avaliação.");
+
+            // Mesmo CPF pode solicitar de novo (Pessoa reaproveitada, perfil reaberto).
+            var reaplicacao = await _service.SolicitarAsync(RequestValido());
+            Assert.True(reaplicacao.Sucesso);
+            Assert.Equal(1, await _context.Pessoas.CountAsync(p => p.Cpf == CpfValido));
+            var paciente = await _context.Pacientes.AsNoTracking().SingleAsync();
+            Assert.Equal(Situacao.EmAnalise, paciente.Situacao);
+            Assert.Equal(1, await _context.SolicitacoesCadastro.CountAsync(s => s.Status == StatusSolicitacao.EmAnalise));
         }
 
         public void Dispose() => _context.Dispose();
