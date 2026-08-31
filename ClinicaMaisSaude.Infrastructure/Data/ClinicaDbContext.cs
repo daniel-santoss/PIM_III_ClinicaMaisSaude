@@ -77,6 +77,7 @@ namespace ClinicaMaisSaude.Infrastructure.Data
         public DbSet<SolicitacaoCadastro> SolicitacoesCadastro { get; set; } = null!;
         public DbSet<RespostaDeclaracaoSaude> RespostasDeclaracaoSaude { get; set; } = null!;
         public DbSet<StatusSolicitacaoLookup> StatusSolicitacaoLookup { get; set; } = null!;
+        public DbSet<CodigoPrimeiroAcesso> CodigosPrimeiroAcesso { get; set; } = null!;
 
         // Método que intercepta a criação das tabelas no SQL Server
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -548,6 +549,30 @@ namespace ClinicaMaisSaude.Infrastructure.Data
 
                 entidade.HasIndex(s => s.PessoaId);
                 entidade.HasIndex(s => s.Status);
+            });
+
+            modelBuilder.Entity<CodigoPrimeiroAcesso>(entidade =>
+            {
+                entidade.ToTable("CodigosPrimeiroAcesso");
+                entidade.HasKey(c => c.Id);
+                entidade.Property(c => c.CodigoHash).IsRequired().HasMaxLength(64);      // HMAC-SHA256 hex
+                entidade.Property(c => c.ResetTokenHash).HasMaxLength(64).IsRequired(false); // SHA-256 hex
+                entidade.Property(c => c.DtCriado).HasColumnName("Dt_Criado");
+                entidade.Property(c => c.DtExpiracao).HasColumnName("Dt_Expiracao");
+                entidade.Property(c => c.DtExpiracaoReset).HasColumnName("Dt_Expiracao_Reset");
+                // A redefinição faz WHERE ResetTokenHash = @hash; índice acelera e evita scan.
+                entidade.HasIndex(c => c.ResetTokenHash);
+                // A validação busca o código ativo mais recente da pessoa.
+                entidade.HasIndex(c => c.PessoaId);
+                entidade.HasOne(c => c.Pessoa)
+                    .WithMany()
+                    .HasForeignKey(c => c.PessoaId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                // Restrict p/ evitar múltiplos caminhos de cascade (Pessoa já cobre a limpeza).
+                entidade.HasOne(c => c.Solicitacao)
+                    .WithMany()
+                    .HasForeignKey(c => c.SolicitacaoId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             modelBuilder.Entity<RespostaDeclaracaoSaude>(entidade =>
