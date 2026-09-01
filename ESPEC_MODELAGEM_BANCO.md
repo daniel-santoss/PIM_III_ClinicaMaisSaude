@@ -44,9 +44,9 @@ reset token SHA-256, uso único/15 min/trava de 5 tentativas). Fluxo: solicitar 
 **Fase 0 (pré-Thread A):** `Agendamento` ganhou navegações `Profissional`/`AgendamentoOrigem`; enum
 `TipoViolacao` movido p/ `Domain/Enums`; `SituacaoProfissional` Ativo/Inativo (depois unificado em Situacao).
 
-Progresso: 90 testes; **backend do auto-cadastro fechado (D1–D4)**. **Próximo: só UI** — D5 (editor web)
-→ D6 (fila web) → D7 (mobile). Pendente do backlog v1: decouplings (tabela `LembreteEnviado`, Value
-Object `Cpf` — hoje há o helper `Domain/Common/Cpf`, auditoria com ator).
+Progresso: 97 testes; **backend do auto-cadastro fechado (D1–D4) + editor web da DS (D5)**. **Próximo: só
+UI** — D6 (fila web de aprovação) → D7 (mobile). Pendente do backlog v1: decouplings (tabela `LembreteEnviado`,
+Value Object `Cpf` — hoje há o helper `Domain/Common/Cpf`, auditoria com ator).
 
 ## 0. Status de implementação (2026-08-15)
 
