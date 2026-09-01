@@ -1,3 +1,4 @@
+using ClinicaMaisSaude.Application.DTOs.Auth;
 using ClinicaMaisSaude.Application.DTOs.AutoCadastro;
 using ClinicaMaisSaude.Application.Exceptions;
 using ClinicaMaisSaude.Application.Interfaces;
@@ -21,10 +22,12 @@ namespace ClinicaMaisSaude.API.Controllers
     public class AutoCadastroController : ControllerBase
     {
         private readonly IAutoCadastroService _service;
+        private readonly IPrimeiroAcessoService _primeiroAcesso;
 
-        public AutoCadastroController(IAutoCadastroService service)
+        public AutoCadastroController(IAutoCadastroService service, IPrimeiroAcessoService primeiroAcesso)
         {
             _service = service;
+            _primeiroAcesso = primeiroAcesso;
         }
 
         // Leitura pública do formulário (sem rate-limit: recarregar não deve punir).
@@ -84,6 +87,40 @@ namespace ClinicaMaisSaude.API.Controllers
         {
             if (!User.IsInRole(PerfisUsuario.Admin))
                 throw new ForbiddenException("Apenas administradores podem gerenciar solicitações de cadastro.");
+        }
+
+        // ----------------- Primeiro acesso (ANÔNIMO, D4) -----------------
+        // Proponente aprovado conclui o cadastro: pede o código, confirma com o CPF e define a senha.
+        // Rate-limit por IP (mesma política da recuperação). Respostas de "solicitar" são genéricas.
+
+        [HttpPost("primeiro-acesso/solicitar")]
+        [EnableRateLimiting("recuperacao")]
+        public async Task<IActionResult> SolicitarPrimeiroAcesso([FromBody] SolicitarPrimeiroAcessoRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request?.Identificador))
+                throw new ValidationException("Informe o CPF ou e-mail cadastrado.");
+
+            await _primeiroAcesso.SolicitarAsync(request);
+            return Ok(new MensagemResponse
+            {
+                Mensagem = "Se o cadastro estiver aprovado, enviamos um código para o e-mail cadastrado."
+            });
+        }
+
+        [HttpPost("primeiro-acesso/confirmar")]
+        [EnableRateLimiting("recuperacao")]
+        public async Task<IActionResult> ConfirmarPrimeiroAcesso([FromBody] ConfirmarPrimeiroAcessoRequest request)
+        {
+            var response = await _primeiroAcesso.ConfirmarAsync(request);
+            return Ok(response);
+        }
+
+        [HttpPost("primeiro-acesso/definir-senha")]
+        [EnableRateLimiting("recuperacao")]
+        public async Task<IActionResult> DefinirSenhaPrimeiroAcesso([FromBody] DefinirSenhaPrimeiroAcessoRequest request)
+        {
+            await _primeiroAcesso.DefinirSenhaAsync(request);
+            return Ok(new MensagemResponse { Mensagem = "Conta criada com sucesso. Você já pode fazer login." });
         }
     }
 }
