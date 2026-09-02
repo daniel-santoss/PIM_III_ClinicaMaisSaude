@@ -1,4 +1,4 @@
-import { API_URL, ADMIN_EMAIL, CLINIC_NAME, CLINIC_PHONE, CLINIC_ADDRESS } from "../constants/api";
+import { API_URL, ADMIN_EMAIL, CLINIC_NAME } from "../constants/api";
 import { storageKeys } from "../constants/storage";
 import { useState } from "react";
 import { useScrollBlock } from "../hooks/useScrollBlock";
@@ -8,6 +8,7 @@ import bgImage from "../assets/itens_medicos_background.png";
 import { Eye, EyeOff, ArrowLeft, ShieldAlert, X } from 'lucide-react';
 import { useToast } from "../hooks/useToast";
 import RecuperarSenhaModal from "../components/RecuperarSenhaModal";
+import AutoCadastro from "./AutoCadastro";
 
 export default function Login({ onLogado }: { onLogado: () => void }) {
   // Usuário lembrado: pré-preenche o identificador (e mantém o checkbox marcado).
@@ -20,14 +21,14 @@ export default function Login({ onLogado }: { onLogado: () => void }) {
   const [carregando, setCarregando] = useState(false);
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const [modalEsqueciSenha, setModalEsqueciSenha] = useState(false);
-  const [modalCadastro, setModalCadastro] = useState(false);
+  const [mostrarCadastro, setMostrarCadastro] = useState(false);
   // Se o identificador salvo é um CPF (sem letras/@), já entra em modo máscara.
   const [isCpfMask, setIsCpfMask] = useState(!!identificadorSalvo && !/[a-zA-Z@]/.test(identificadorSalvo));
   const [modalPenalidadeRemovida, setModalPenalidadeRemovida] = useState(false);
   const [violacaoDetectada, setViolacaoDetectada] = useState(() => localStorage.getItem(storageKeys.violacaoDetectada) === "true");
   const toast = useToast();
 
-  useScrollBlock(modalEsqueciSenha || modalCadastro || modalPenalidadeRemovida || violacaoDetectada);
+  useScrollBlock(modalEsqueciSenha || modalPenalidadeRemovida || violacaoDetectada);
 
   const handleIdentificador = (valor: string) => {
     if (/[a-zA-Z@]/.test(valor)) {
@@ -109,8 +110,13 @@ export default function Login({ onLogado }: { onLogado: () => void }) {
     }
   };
 
+  // Auto-cadastro (self-service): substitui a tela de login enquanto ativo.
+  if (mostrarCadastro) {
+    return <AutoCadastro onVoltar={() => setMostrarCadastro(false)} />;
+  }
+
   return (
-    <div 
+    <div
       className="min-h-screen flex flex-col justify-center items-center p-4 bg-gray-50"
       style={{
         backgroundImage: `url(${bgImage})`,
@@ -228,7 +234,7 @@ export default function Login({ onLogado }: { onLogado: () => void }) {
             </button>
             <button
               type="button"
-              onClick={() => setModalCadastro(true)}
+              onClick={() => setMostrarCadastro(true)}
               className="text-xs font-medium text-gray-500 hover:text-[#2C5282] transition-colors"
             >
               É novo por aqui? <span className="font-bold text-[#2C5282] underline underline-offset-4">Cadastre-se</span>
@@ -239,66 +245,6 @@ export default function Login({ onLogado }: { onLogado: () => void }) {
 
       {/* Modal Esqueci a Senha — fluxo funcional de recuperação por código */}
       <RecuperarSenhaModal open={modalEsqueciSenha} onClose={() => setModalEsqueciSenha(false)} />
-
-      {/* Modal Cadastro Presencial */}
-      {modalCadastro && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-gray-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-xl p-8 text-center border border-purple-50 animate-in zoom-in duration-200 relative max-h-[92dvh] sm:max-h-[90vh] overflow-y-auto custom-scrollbar">
-            {/* Botão Fechar X */}
-            <button
-              onClick={() => setModalCadastro(false)}
-              className="absolute right-4 top-4 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors cursor-pointer border-none bg-transparent flex items-center justify-center shadow-sm"
-              aria-label="Fechar"
-            >
-              <X className="w-5 h-5" />
-            </button>
-            
-            <div className="w-16 h-16 bg-purple-50 text-[#2C5282] rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-              </svg>
-            </div>
-            <h3 className="text-xl font-black text-gray-800 mb-4 uppercase tracking-tight">Como se cadastrar</h3>
-
-            <div className="text-left bg-gray-50 p-5 rounded-2xl mb-6 space-y-4 border border-gray-100">
-              <p className="text-sm font-medium text-gray-600 leading-relaxed">
-                Para garantir a segurança e a integridade dos seus dados de saúde, o cadastro em nossa plataforma deve ser realizado <strong>presencialmente</strong>.
-              </p>
-              
-              <div className="h-px bg-gray-200 w-full"></div>
-              
-              <div className="space-y-3">
-                <div>
-                  <span className="text-[11px] font-black text-[#2C5282] uppercase tracking-widest block mb-1.5">Como proceder:</span>
-                  <p className="text-sm font-semibold text-gray-600 leading-relaxed space-y-1">
-                    1. Entre em contato conosco para agendar o seu comparecimento.<br />
-                    2. Compareça à clínica com seus documentos (RG, CPF, comprovante de residência) e <strong>declare todas as suas doenças preexistentes e laudos médicos</strong>.<br />
-                    3. Após o comparecimento físico, o seu cadastro entrará em <strong>análise clínica e administrativa</strong> para verificação antes da ativação do acesso.
-                  </p>
-                </div>
-
-                <div className="h-px bg-gray-200 w-full"></div>
-
-                <div>
-                  <span className="text-[10px] font-black text-[#2C5282] uppercase tracking-widest block mb-1">Endereço da Clínica:</span>
-                  <p className="text-sm font-bold text-gray-800 leading-normal">{CLINIC_ADDRESS}</p>
-                </div>
-
-                <div className="h-px bg-gray-200 w-full"></div>
-
-                <div>
-                  <span className="text-[10px] font-black text-[#2C5282] uppercase tracking-widest block mb-1">Telefone para Agendamento:</span>
-                  <p className="text-sm font-bold text-gray-800">{CLINIC_PHONE}</p>
-                </div>
-              </div>
-            </div>
-
-            <button className="w-full bg-[#2C5282] text-white font-black py-4 rounded-2xl uppercase tracking-widest text-[10px] shadow-lg shadow-purple-100 hover:bg-[#152D5C] transition-all active:scale-95" onClick={() => setModalCadastro(false)}>
-              Entendido
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Modal: Penalidade de IA removida */}
       {modalPenalidadeRemovida && (
