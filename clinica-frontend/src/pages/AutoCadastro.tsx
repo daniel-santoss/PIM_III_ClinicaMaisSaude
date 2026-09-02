@@ -16,6 +16,13 @@ type Etapa = "termos" | "dados" | "codigo" | "ds" | "sucesso";
 const soDigitos = (v: string) => v.replace(/\D/g, "");
 const TERMOS_VERSAO = "1.0";
 
+// A API responde erros como ProblemDetails ({ message/detail, ... }). Nunca mostrar o JSON cru:
+// extrai a mensagem amigável e cai num texto padrão se não houver.
+async function lerErro(res: Response, padrao: string): Promise<string> {
+  const data = await res.json().catch(() => null);
+  return data?.message || data?.detail || padrao;
+}
+
 export default function AutoCadastro({ onVoltar }: { onVoltar: () => void }) {
   const toast = useToast();
 
@@ -91,7 +98,7 @@ export default function AutoCadastro({ onVoltar }: { onVoltar: () => void }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.trim() }),
       });
-      if (!res.ok) { const t = await res.text(); setErro(t); toast.error(t || "Não foi possível enviar o código."); return; }
+      if (!res.ok) { const t = await lerErro(res, "Não foi possível enviar o código."); setErro(t); toast.error(t); return; }
       setCodigo("");
       setTokenEmail(null);
       setEtapa("codigo");
@@ -114,7 +121,7 @@ export default function AutoCadastro({ onVoltar }: { onVoltar: () => void }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.trim(), codigo: cod }),
       });
-      if (!res.ok) { const t = await res.text(); setErro(t || "Código inválido ou expirado."); toast.error(t || "Código inválido."); return; }
+      if (!res.ok) { const t = await lerErro(res, "Código inválido ou expirado."); setErro(t); toast.error(t); return; }
       const data = await res.json();
       setTokenEmail(data.token);
       setEtapa("ds");
@@ -160,7 +167,7 @@ export default function AutoCadastro({ onVoltar }: { onVoltar: () => void }) {
           }),
         }),
       });
-      if (!res.ok) { const t = await res.text(); setErro(t); toast.error(t || "Não foi possível enviar."); return; }
+      if (!res.ok) { const t = await lerErro(res, "Não foi possível enviar a solicitação."); setErro(t); toast.error(t); return; }
       const data = await res.json().catch(() => null);
       setSucesso(data?.mensagem ?? "Solicitação enviada!");
       setEtapa("sucesso");

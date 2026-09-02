@@ -8,6 +8,7 @@ import bgImage from "../assets/itens_medicos_background.png";
 import { Eye, EyeOff, ArrowLeft, ShieldAlert, X } from 'lucide-react';
 import { useToast } from "../hooks/useToast";
 import RecuperarSenhaModal from "../components/RecuperarSenhaModal";
+import PrimeiroAcessoModal from "../components/PrimeiroAcessoModal";
 import AutoCadastro from "./AutoCadastro";
 
 export default function Login({ onLogado }: { onLogado: () => void }) {
@@ -21,6 +22,7 @@ export default function Login({ onLogado }: { onLogado: () => void }) {
   const [carregando, setCarregando] = useState(false);
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const [modalEsqueciSenha, setModalEsqueciSenha] = useState(false);
+  const [modalPrimeiroAcesso, setModalPrimeiroAcesso] = useState(false);
   const [mostrarCadastro, setMostrarCadastro] = useState(false);
   // Se o identificador salvo é um CPF (sem letras/@), já entra em modo máscara.
   const [isCpfMask, setIsCpfMask] = useState(!!identificadorSalvo && !/[a-zA-Z@]/.test(identificadorSalvo));
@@ -28,7 +30,7 @@ export default function Login({ onLogado }: { onLogado: () => void }) {
   const [violacaoDetectada, setViolacaoDetectada] = useState(() => localStorage.getItem(storageKeys.violacaoDetectada) === "true");
   const toast = useToast();
 
-  useScrollBlock(modalEsqueciSenha || modalPenalidadeRemovida || violacaoDetectada);
+  useScrollBlock(modalEsqueciSenha || modalPrimeiroAcesso || modalPenalidadeRemovida || violacaoDetectada);
 
   const handleIdentificador = (valor: string) => {
     if (/[a-zA-Z@]/.test(valor)) {
@@ -239,12 +241,22 @@ export default function Login({ onLogado }: { onLogado: () => void }) {
             >
               É novo por aqui? <span className="font-bold text-[#2C5282] underline underline-offset-4">Cadastre-se</span>
             </button>
+            <button
+              type="button"
+              onClick={() => setModalPrimeiroAcesso(true)}
+              className="text-xs font-medium text-gray-500 hover:text-[#2C5282] transition-colors"
+            >
+              Cadastro aprovado? <span className="font-bold text-[#2C5282] underline underline-offset-4">Primeiro acesso</span>
+            </button>
           </div>
         </form>
       </div>
 
       {/* Modal Esqueci a Senha — fluxo funcional de recuperação por código */}
       <RecuperarSenhaModal open={modalEsqueciSenha} onClose={() => setModalEsqueciSenha(false)} />
+
+      {/* Modal Primeiro Acesso — proponente aprovado define a senha e conclui o cadastro */}
+      <PrimeiroAcessoModal open={modalPrimeiroAcesso} onClose={() => setModalPrimeiroAcesso(false)} />
 
       {/* Modal: Penalidade de IA removida */}
       {modalPenalidadeRemovida && (
