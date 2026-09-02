@@ -176,6 +176,10 @@ namespace ClinicaMaisSaude.Infrastructure.Services
 
             await _context.SaveChangesAsync();
 
+            // Confirmação ao proponente de que a solicitação chegou (o e-mail já foi verificado no wizard).
+            await EnviarEmailAsync(pessoa, "Recebemos a sua solicitação de cadastro",
+                CorpoConfirmacao(pessoa.Nome), TextoConfirmacao(pessoa.Nome));
+
             return new CadastroResult
             {
                 Sucesso = true,
@@ -301,6 +305,34 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             var logo = _configuration[ConfigKeys.EmailLogoUrl];
             return string.IsNullOrWhiteSpace(logo) ? "cid:logoclinica" : logo;
         }
+
+        private string CorpoConfirmacao(string nome) => Layout(Saudacao(nome), $@"
+            <p style=""font-size:14px;color:#475569;line-height:21px;margin:0 0 18px"">
+              Recebemos a sua solicitação de cadastro na <strong style=""color:#0F172A"">Clínica Mais Saúde</strong>
+              e o seu e-mail foi confirmado.
+            </p>
+            <p style=""font-size:14px;color:#475569;line-height:21px;margin:0 0 18px"">
+              O próximo passo é a <strong style=""color:#2C5282"">avaliação presencial</strong> na clínica. Após
+              ela, avisaremos por este e-mail se o cadastro foi aprovado.
+            </p>
+            <p style=""font-size:13px;color:#475569;line-height:20px;margin:0 0 6px"">
+              Qualquer dúvida, fale com a recepção da clínica.
+            </p>");
+
+        private static string TextoConfirmacao(string nome) =>
+$@"CLÍNICA MAIS SAÚDE
+Solicitação de cadastro recebida
+
+{Saudacao(nome)}.
+
+Recebemos a sua solicitação de cadastro e o seu e-mail foi confirmado.
+O próximo passo é a avaliação presencial na clínica. Após ela, avisaremos
+por este e-mail se o cadastro foi aprovado.
+
+Qualquer dúvida, fale com a recepção da clínica.
+
+—
+Clínica Mais Saúde • e-mail automático, não responda.";
 
         private string CorpoAprovacao(string nome) => Layout(Saudacao(nome), $@"
             <p style=""font-size:14px;color:#475569;line-height:21px;margin:0 0 18px"">
