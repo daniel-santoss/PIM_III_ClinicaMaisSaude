@@ -175,6 +175,10 @@ export default function LoginScreen() {
                   <Pressable onPress={() => setModalEsqueci(true)} hitSlop={6}>
                     <Text style={styles.linkForte}>Esqueci minha senha</Text>
                   </Pressable>
+                  <Pressable onPress={() => router.push('/(auth)/primeiro-acesso')} hitSlop={6} style={styles.cadastroLinha}>
+                    <Text style={styles.cadastroTexto}>Cadastro aprovado? </Text>
+                    <Text style={styles.linkForte}>Primeiro acesso</Text>
+                  </Pressable>
                   <Pressable onPress={() => router.push('/(auth)/auto-cadastro')} hitSlop={6} style={styles.cadastroLinha}>
                     <Text style={styles.cadastroTexto}>É novo por aqui? </Text>
                     <Text style={styles.linkForte}>Cadastre-se</Text>
