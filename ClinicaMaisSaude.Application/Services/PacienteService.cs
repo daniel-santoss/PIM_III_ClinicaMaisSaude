@@ -26,7 +26,7 @@ namespace ClinicaMaisSaude.Application.Services
 
         public Task<PacienteResponse> AdicionarAsync(PacienteRequest request)
         {
-            // A identidade (Nome/Cpf/Email/Telefone) vive no LoginPortal e todo paciente
+            // A identidade (Nome/Cpf/Email/Telefone) vive na Pessoa e todo paciente
             // exige uma conta. Criar paciente "solto" (sem login) deixou de existir — o
             // cadastro passa pelo fluxo integrado (/api/LoginPortal/cadastro).
             throw new BusinessRuleException("Pacientes são criados junto da conta de acesso. Utilize o cadastro (/api/LoginPortal/cadastro).");
@@ -40,10 +40,11 @@ namespace ClinicaMaisSaude.Application.Services
             return new PacienteResponse
             {
                 Id = paciente.Id,
-                Nome = paciente.Usuario?.Nome,
-                Cpf = paciente.Usuario?.Cpf,
-                Telefone = paciente.Usuario?.Telefone,
-                Email = paciente.Usuario?.Email,
+                // Identidade a partir da Pessoa (fonte única — Thread B); a foto continua na conta.
+                Nome = paciente.Pessoa?.Nome,
+                Cpf = paciente.Pessoa?.Cpf,
+                Telefone = paciente.Pessoa?.Telefone,
+                Email = paciente.Pessoa?.Email,
                 TemProblemaMemoria = paciente.TemProblemaMemoria,
                 UsuarioId = paciente.UsuarioId,
                 Tipo = "Paciente",
@@ -59,15 +60,15 @@ namespace ClinicaMaisSaude.Application.Services
             var resposta = pacientes.Select(p => new PacienteResponse
             {
                 Id = p.Id,
-                Nome = p.Usuario?.Nome,
-                Cpf = p.Usuario?.Cpf,
-                Telefone = p.Usuario?.Telefone,
-                Email = p.Usuario?.Email,
+                Nome = p.Pessoa?.Nome,
+                Cpf = p.Pessoa?.Cpf,
+                Telefone = p.Pessoa?.Telefone,
+                Email = p.Pessoa?.Email,
                 TemProblemaMemoria = p.TemProblemaMemoria,
                 UsuarioId = p.UsuarioId,
                 Tipo = "Paciente",
                 UltimoAcesso = p.Usuario?.UltimoAcesso,
-                IsBanidoPermanente = p.SituacaoCliente == SituacaoCliente.Banido,
+                IsBanidoPermanente = p.Situacao == Situacao.Banido,
                 FotoBase64 = p.Usuario?.FotoBase64
             }).ToList();
 
@@ -75,14 +76,14 @@ namespace ClinicaMaisSaude.Application.Services
             {
                 var profissionais = await _profissionalRepository.ObterTodosAsync();
 
-                // Filtrar por nome/cpf se os filtros foram passados
+                // Filtrar por nome/cpf (identidade a partir da Pessoa) se os filtros foram passados
                 if (!string.IsNullOrWhiteSpace(nome))
                 {
-                    profissionais = profissionais.Where(p => p.Usuario.Nome.Contains(nome, StringComparison.OrdinalIgnoreCase));
+                    profissionais = profissionais.Where(p => p.Pessoa != null && p.Pessoa.Nome.Contains(nome, StringComparison.OrdinalIgnoreCase));
                 }
                 if (!string.IsNullOrWhiteSpace(cpf))
                 {
-                    profissionais = profissionais.Where(p => p.Usuario.Cpf.Contains(cpf));
+                    profissionais = profissionais.Where(p => p.Pessoa != null && p.Pessoa.Cpf.Contains(cpf));
                 }
 
                 foreach (var prof in profissionais)
@@ -90,13 +91,13 @@ namespace ClinicaMaisSaude.Application.Services
                     resposta.Add(new PacienteResponse
                     {
                         Id = prof.Id,
-                        Nome = prof.Usuario.Nome,
-                        Cpf = prof.Usuario.Cpf,
-                        Telefone = prof.Usuario.Telefone ?? "-",
-                        Email = prof.Usuario.Email,
+                        Nome = prof.Pessoa?.Nome,
+                        Cpf = prof.Pessoa?.Cpf,
+                        Telefone = prof.Pessoa?.Telefone ?? "-",
+                        Email = prof.Pessoa?.Email,
                         UsuarioId = prof.UsuarioId,
-                        Tipo = prof.Usuario.TipoUsuario == TipoUsuario.Admin ? "Admin" : prof.TipoProfissional.ToString(),
-                        UltimoAcesso = prof.Usuario.UltimoAcesso,
+                        Tipo = prof.Usuario?.Role.ToString(),
+                        UltimoAcesso = prof.Usuario?.UltimoAcesso,
                         IsBanidoPermanente = prof.Usuario?.BloqueadoAte.HasValue == true && (prof.Usuario.BloqueadoAte.Value - DateTime.UtcNow).TotalDays > 3650,
                         FotoBase64 = prof.Usuario?.FotoBase64
                     });
@@ -113,15 +114,15 @@ namespace ClinicaMaisSaude.Application.Services
             var resposta = items.Select(p => new PacienteResponse
             {
                 Id = p.Id,
-                Nome = p.Usuario?.Nome,
-                Cpf = p.Usuario?.Cpf,
-                Telefone = p.Usuario?.Telefone,
-                Email = p.Usuario?.Email,
+                Nome = p.Pessoa?.Nome,
+                Cpf = p.Pessoa?.Cpf,
+                Telefone = p.Pessoa?.Telefone,
+                Email = p.Pessoa?.Email,
                 TemProblemaMemoria = p.TemProblemaMemoria,
                 UsuarioId = p.UsuarioId,
                 Tipo = "Paciente",
                 UltimoAcesso = p.Usuario?.UltimoAcesso,
-                IsBanidoPermanente = p.SituacaoCliente == SituacaoCliente.Banido,
+                IsBanidoPermanente = p.Situacao == Situacao.Banido,
                 FotoBase64 = p.Usuario?.FotoBase64
             }).ToList();
 
@@ -130,27 +131,27 @@ namespace ClinicaMaisSaude.Application.Services
                 var profissionais = await _profissionalRepository.ObterTodosAsync();
 
                 if (!string.IsNullOrWhiteSpace(nome))
-                    profissionais = profissionais.Where(p => p.Usuario.Nome.Contains(nome, StringComparison.OrdinalIgnoreCase));
+                    profissionais = profissionais.Where(p => p.Pessoa != null && p.Pessoa.Nome.Contains(nome, StringComparison.OrdinalIgnoreCase));
                 if (!string.IsNullOrWhiteSpace(cpf))
-                    profissionais = profissionais.Where(p => p.Usuario.Cpf.Contains(cpf));
+                    profissionais = profissionais.Where(p => p.Pessoa != null && p.Pessoa.Cpf.Contains(cpf));
 
                 foreach (var prof in profissionais)
                 {
                     resposta.Add(new PacienteResponse
                     {
                         Id = prof.Id,
-                        Nome = prof.Usuario.Nome,
-                        Cpf = prof.Usuario.Cpf,
-                        Telefone = prof.Usuario.Telefone ?? "-",
-                        Email = prof.Usuario.Email,
+                        Nome = prof.Pessoa?.Nome,
+                        Cpf = prof.Pessoa?.Cpf,
+                        Telefone = prof.Pessoa?.Telefone ?? "-",
+                        Email = prof.Pessoa?.Email,
                         UsuarioId = prof.UsuarioId,
-                        Tipo = prof.Usuario.TipoUsuario == TipoUsuario.Admin ? "Admin" : prof.TipoProfissional.ToString(),
-                        UltimoAcesso = prof.Usuario.UltimoAcesso,
+                        Tipo = prof.Usuario?.Role.ToString(),
+                        UltimoAcesso = prof.Usuario?.UltimoAcesso,
                         IsBanidoPermanente = prof.Usuario?.BloqueadoAte.HasValue == true && (prof.Usuario.BloqueadoAte.Value - DateTime.UtcNow).TotalDays > 3650,
                         FotoBase64 = prof.Usuario?.FotoBase64
                     });
                 }
-                
+
                 // Recalculate if we added profissionais
                 totalCount += profissionais.Count();
             }
@@ -182,15 +183,16 @@ namespace ClinicaMaisSaude.Application.Services
             if (paciente == null)
                 throw new NotFoundException("Paciente não encontrado.");
 
-            // Dados de identidade são atualizados no LoginPortal; o perfil só guarda o clínico.
-            if (paciente.Usuario != null)
+            // Identidade (Nome/Email/Telefone) é atualizada na Pessoa (fonte única — Thread B);
+            // o perfil de paciente só guarda o dado clínico.
+            if (paciente.Pessoa != null)
             {
                 if (!string.IsNullOrWhiteSpace(request.Nome))
-                    paciente.Usuario.AtualizarNome(request.Nome);
+                    paciente.Pessoa.AtualizarNome(request.Nome);
                 if (!string.IsNullOrWhiteSpace(request.Email))
-                    paciente.Usuario.AtualizarEmail(request.Email.Trim().ToLowerInvariant());
+                    paciente.Pessoa.AtualizarEmail(request.Email.Trim().ToLowerInvariant());
                 if (!string.IsNullOrWhiteSpace(request.Telefone))
-                    paciente.Usuario.AtualizarTelefone(request.Telefone.Replace("(", "").Replace(")", "").Replace("-", "").Replace(" ", ""));
+                    paciente.Pessoa.AtualizarTelefone(request.Telefone.Replace("(", "").Replace(")", "").Replace("-", "").Replace(" ", ""));
             }
             paciente.Atualizar(request.TemProblemaMemoria);
 
@@ -199,10 +201,10 @@ namespace ClinicaMaisSaude.Application.Services
             return new PacienteResponse
             {
                 Id = paciente.Id,
-                Nome = paciente.Usuario?.Nome,
-                Cpf = paciente.Usuario?.Cpf,
-                Telefone = paciente.Usuario?.Telefone,
-                Email = paciente.Usuario?.Email,
+                Nome = paciente.Pessoa?.Nome,
+                Cpf = paciente.Pessoa?.Cpf,
+                Telefone = paciente.Pessoa?.Telefone,
+                Email = paciente.Pessoa?.Email,
                 TemProblemaMemoria = paciente.TemProblemaMemoria,
                 UsuarioId = paciente.UsuarioId,
                 FotoBase64 = paciente.Usuario?.FotoBase64
@@ -232,10 +234,10 @@ namespace ClinicaMaisSaude.Application.Services
                 .Select(p => new PacienteResponse
                 {
                     Id = p.Id,
-                    Nome = p.Usuario?.Nome,
-                    Cpf = p.Usuario?.Cpf,
-                    Telefone = p.Usuario?.Telefone,
-                    Email = p.Usuario?.Email,
+                    Nome = p.Pessoa?.Nome,
+                    Cpf = p.Pessoa?.Cpf,
+                    Telefone = p.Pessoa?.Telefone,
+                    Email = p.Pessoa?.Email,
                     UsuarioId = p.UsuarioId,
                     Tipo = "Paciente",
                     FotoBase64 = p.Usuario?.FotoBase64

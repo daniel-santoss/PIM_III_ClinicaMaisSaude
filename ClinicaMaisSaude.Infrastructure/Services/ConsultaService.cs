@@ -110,7 +110,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
 
             if (pacienteId.HasValue)
             {
-                paciente = await _context.Pacientes.Include(p => p.Usuario).FirstOrDefaultAsync(p => p.Id == pacienteId.Value);
+                paciente = await _context.Pacientes.Include(p => p.Usuario).Include(p => p.Pessoa).FirstOrDefaultAsync(p => p.Id == pacienteId.Value);
                 if (paciente == null)
                     throw new NotFoundException("Paciente não encontrado.");
 
@@ -213,10 +213,10 @@ Formato:
                 
                 if (finishReason == "SAFETY")
                 {
-                    var userObj = await _context.Usuarios.FirstOrDefaultAsync(u => u.Id == usuarioLogadoId);
+                    var userObj = await _context.Usuarios.Include(u => u.Pessoa).FirstOrDefaultAsync(u => u.Id == usuarioLogadoId);
                     if (userObj != null)
                     {
-                        // Banimento permanente: paciente vira SituacaoCliente=Banido; staff
+                        // Banimento permanente: paciente vira Situacao=Banido; staff
                         // (sem perfil de paciente) cai no bloqueio de conta como fallback.
                         var pacienteBan = await _context.Pacientes.FirstOrDefaultAsync(p => p.UsuarioId == usuarioLogadoId);
                         if (pacienteBan != null) pacienteBan.Banir();
@@ -226,14 +226,14 @@ Formato:
 
                         var notificacoes = await CancelarAgendamentosENotificarAsync(usuarioLogadoId);
 
-                        var admins = await _context.Usuarios.AsNoTracking().Where(u => u.TipoUsuario == TipoUsuario.Admin).ToListAsync();
+                        var admins = await _context.Usuarios.AsNoTracking().Where(u => u.Role == RoleUsuario.Admin).ToListAsync();
                         foreach (var admin in admins)
                         {
                             var notificacao = new Notificacao(
                                 admin.Id,
                                 "Violação Grave de IA",
-                                $"Tentativa grave de injeção de prompt detectada pelo usuário {userObj.Email} (CPF: {userObj.Cpf}). Conta bloqueada automaticamente.",
-                                link: $"violacoes?busca={userObj.Cpf}"
+                                $"Tentativa grave de injeção de prompt detectada pelo usuário {userObj.Pessoa?.Email} (CPF: {userObj.Pessoa?.Cpf}). Conta bloqueada automaticamente.",
+                                link: $"violacoes?busca={userObj.Pessoa?.Cpf}"
                             );
                             _context.Notificacoes.Add(notificacao);
                             notificacoes.Add(notificacao);
@@ -275,7 +275,7 @@ Formato:
                 var userObj = await _context.Usuarios.FirstOrDefaultAsync(u => u.Id == usuarioLogadoId);
                 if (userObj != null)
                 {
-                    // Banimento permanente: paciente vira SituacaoCliente=Banido; staff
+                    // Banimento permanente: paciente vira Situacao=Banido; staff
                     // (sem perfil de paciente) cai no bloqueio de conta como fallback.
                     var pacienteBan = await _context.Pacientes.FirstOrDefaultAsync(p => p.UsuarioId == usuarioLogadoId);
                     if (pacienteBan != null) pacienteBan.Banir();
@@ -285,14 +285,14 @@ Formato:
 
                     var notificacoes = await CancelarAgendamentosENotificarAsync(usuarioLogadoId);
 
-                    var admins = await _context.Usuarios.AsNoTracking().Where(u => u.TipoUsuario == TipoUsuario.Admin).ToListAsync();
+                    var admins = await _context.Usuarios.AsNoTracking().Where(u => u.Role == RoleUsuario.Admin).ToListAsync();
                     foreach (var admin in admins)
                     {
                         var notificacao = new Notificacao(
                             admin.Id,
                             "Violação Grave de IA",
-                            $"Tentativa grave de injeção de prompt detectada pelo usuário {userObj.Email} (CPF: {userObj.Cpf}). Conta bloqueada automaticamente.",
-                            link: $"violacoes?busca={userObj.Cpf}"
+                            $"Tentativa grave de injeção de prompt detectada pelo usuário {userObj.Pessoa?.Email} (CPF: {userObj.Pessoa?.Cpf}). Conta bloqueada automaticamente.",
+                            link: $"violacoes?busca={userObj.Pessoa?.Cpf}"
                         );
                         _context.Notificacoes.Add(notificacao);
                         notificacoes.Add(notificacao);
@@ -308,7 +308,7 @@ Formato:
             {
                 {
                     var totalViolacoes = await _context.UsoInadequadoIA.CountAsync(v => v.UsuarioId == paciente.UsuarioId) + 1;
-                    var novaViolacao = new UsoInadequadoIA(paciente.UsuarioId, TipoViolacao.UsoIndevido, sintomas);
+                    var novaViolacao = new UsoInadequadoIA(paciente.UsuarioId!.Value, TipoViolacao.UsoIndevido, sintomas);
                     _context.UsoInadequadoIA.Add(novaViolacao);
 
                     if (totalViolacoes == 2)
@@ -321,14 +321,14 @@ Formato:
                     }
 
                     var notificacoes = new List<Notificacao>();
-                    var admins = await _context.Usuarios.AsNoTracking().Where(u => u.TipoUsuario == TipoUsuario.Admin).ToListAsync();
+                    var admins = await _context.Usuarios.AsNoTracking().Where(u => u.Role == RoleUsuario.Admin).ToListAsync();
                     foreach (var admin in admins)
                     {
                         var notificacao = new Notificacao(
                             admin.Id,
                             "Uso Indevido da IA",
-                            $"O paciente {paciente.Usuario.Nome} (CPF: {paciente.Usuario.Cpf}) enviou sintomas irrelevantes à saúde: \"{sintomas}\".",
-                            link: $"violacoes?busca={paciente.Usuario.Cpf}"
+                            $"O paciente {paciente.Pessoa?.Nome} (CPF: {paciente.Pessoa?.Cpf}) enviou sintomas irrelevantes à saúde: \"{sintomas}\".",
+                            link: $"violacoes?busca={paciente.Pessoa?.Cpf}"
                         );
                         _context.Notificacoes.Add(notificacao);
                         notificacoes.Add(notificacao);
@@ -358,9 +358,9 @@ Formato:
             usuario.DesbloquearIA();
 
             var paciente = await _context.Pacientes.FirstOrDefaultAsync(p => p.UsuarioId == usuarioId);
-            if (paciente != null && paciente.SituacaoCliente == SituacaoCliente.Banido)
+            if (paciente != null && paciente.Situacao == Situacao.Banido)
             {
-                // Ban permanente por IA vira SituacaoCliente=Banido; ao perdoar, reativa a conta.
+                // Ban permanente por IA vira Situacao=Banido; ao perdoar, reativa a conta.
                 paciente.Reativar();
             }
 
@@ -386,13 +386,14 @@ Formato:
                 {
                     a.Id,
                     PacienteId = a.UsuarioId,
-                    PacienteNome = a.Usuario.Nome,
-                    PacienteCpf = a.Usuario.Cpf,
-                    PacienteTipo = _context.Pacientes.Any(p => p.UsuarioId == a.UsuarioId) ? PerfisUsuario.Paciente
-                                   : _context.Profissionais.Where(p => p.UsuarioId == a.UsuarioId)
-                                       .Select(p => p.TipoProfissional == TipoProfissional.Medico ? PerfisUsuario.Medico : PerfisUsuario.Enfermeira)
-                                       .FirstOrDefault()
-                                   ?? (a.Usuario.TipoUsuario == TipoUsuario.Admin ? "Administrador" : PerfisUsuario.Paciente),
+                    // Identidade a partir da Pessoa (fonte única — Thread B); demais campos são da conta.
+                    PacienteNome = a.Usuario.Pessoa!.Nome,
+                    PacienteCpf = a.Usuario.Pessoa!.Cpf,
+                    // Papel do autor da violação a partir do papel unificado Role (Fase A2b).
+                    PacienteTipo = a.Usuario.Role == RoleUsuario.Medico ? PerfisUsuario.Medico
+                                   : a.Usuario.Role == RoleUsuario.Enfermeira ? PerfisUsuario.Enfermeira
+                                   : a.Usuario.Role == RoleUsuario.Admin ? "Administrador"
+                                   : PerfisUsuario.Paciente,
                     PacienteFotoBase64 = a.Usuario.Foto != null ? a.Usuario.Foto.FotoBase64 : null,
                     TipoViolacao = a.TipoViolacao.ToString(),
                     a.TextoInserido,
@@ -402,10 +403,10 @@ Formato:
                     PenalidadeRemovidaAguardandoLogin = false,
                     IABloqueadaAte = a.Usuario.BloqueadoIAAte,
                     ContaBloqueadaAte = a.Usuario.BloqueadoAte,
-                    // Ban permanente de paciente vive em Paciente.SituacaoCliente=Banido
+                    // Ban permanente de paciente vive em Paciente.Situacao=Banido
                     // (substituiu o hack BloqueadoAte=+100 anos), então precisa vir explícito
                     // no contrato — senão a ViolacoesList não enxerga a penalidade ativa.
-                    BanidoPermanente = _context.Pacientes.Any(p => p.UsuarioId == a.UsuarioId && p.SituacaoCliente == SituacaoCliente.Banido)
+                    BanidoPermanente = _context.Pacientes.Any(p => p.UsuarioId == a.UsuarioId && p.Situacao == Situacao.Banido)
                 })
                 .OrderByDescending(a => a.DtCriado)
                 .ToListAsync();
@@ -453,7 +454,7 @@ Formato:
                     if (pac != null)
                     {
                         var notificacao = new Notificacao(
-                            pac.UsuarioId,
+                            pac.UsuarioId!.Value,
                             "Agendamento Cancelado",
                             "Seu agendamento foi cancelado devido a reajustes cadastrais administrativos do profissional.",
                             agendamento.Id,

@@ -15,9 +15,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 
 import { useAuth } from '@/auth/AuthContext';
-import { CLINIC_NAME, CLINIC_PHONE, CLINIC_ADDRESS } from '@/constants/clinica';
+import { CLINIC_NAME } from '@/constants/clinica';
 import { solicitarRecuperacao, validarCodigo, redefinirSenha } from '@/lib/recuperacao';
 
 const CODIGO_ALFABETO = /[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]/g;
@@ -28,6 +29,7 @@ const AZUL_ESCURO = '#152D5C';
 
 export default function LoginScreen() {
   const { login, trocarUsuario, lembrarUsuario, identificadorLembrado, nomeLembrado } = useAuth();
+  const router = useRouter();
   const [identificador, setIdentificador] = useState('');
   const [senha, setSenha] = useState('');
   const [lembrar, setLembrar] = useState(lembrarUsuario);
@@ -35,7 +37,6 @@ export default function LoginScreen() {
   const [entrando, setEntrando] = useState(false);
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const [modalEsqueci, setModalEsqueci] = useState(false);
-  const [modalCadastro, setModalCadastro] = useState(false);
 
   // Modo "só senha": há um usuário lembrado (identificador + nome).
   const modoLembrado = !!identificadorLembrado;
@@ -174,7 +175,11 @@ export default function LoginScreen() {
                   <Pressable onPress={() => setModalEsqueci(true)} hitSlop={6}>
                     <Text style={styles.linkForte}>Esqueci minha senha</Text>
                   </Pressable>
-                  <Pressable onPress={() => setModalCadastro(true)} hitSlop={6} style={styles.cadastroLinha}>
+                  <Pressable onPress={() => router.push('/(auth)/primeiro-acesso')} hitSlop={6} style={styles.cadastroLinha}>
+                    <Text style={styles.cadastroTexto}>Cadastro aprovado? </Text>
+                    <Text style={styles.linkForte}>Primeiro acesso</Text>
+                  </Pressable>
+                  <Pressable onPress={() => router.push('/(auth)/auto-cadastro')} hitSlop={6} style={styles.cadastroLinha}>
                     <Text style={styles.cadastroTexto}>É novo por aqui? </Text>
                     <Text style={styles.linkForte}>Cadastre-se</Text>
                   </Pressable>
@@ -187,33 +192,6 @@ export default function LoginScreen() {
 
       {/* Modal: Esqueci a senha — fluxo funcional de recuperação por código */}
       <RecuperarSenhaModal visivel={modalEsqueci} onFechar={() => setModalEsqueci(false)} />
-
-      {/* Modal: Cadastro presencial */}
-      <InfoModal visivel={modalCadastro} onFechar={() => setModalCadastro(false)} icone="person-add" titulo="Como se cadastrar">
-        <Text style={styles.blocoTexto}>
-          Para garantir a segurança dos seus dados de saúde, o cadastro deve ser feito{' '}
-          <Text style={styles.blocoForte}>presencialmente</Text> na clínica.
-        </Text>
-        <View style={styles.divisor} />
-        <View style={styles.bloco}>
-          <Text style={styles.blocoRotulo}>Como proceder:</Text>
-          <Text style={styles.blocoTexto}>
-            1. Agende seu comparecimento pelo telefone.{'\n'}
-            2. Compareça com seus documentos (RG, CPF, comprovante de residência).{'\n'}
-            3. Após o comparecimento, seu cadastro entra em análise antes da ativação.
-          </Text>
-        </View>
-        <View style={styles.divisor} />
-        <View style={styles.bloco}>
-          <Text style={styles.blocoRotulo}>Endereço:</Text>
-          <Text style={styles.blocoForte}>{CLINIC_ADDRESS}</Text>
-        </View>
-        <View style={styles.divisor} />
-        <View style={styles.bloco}>
-          <Text style={styles.blocoRotulo}>Telefone para agendamento:</Text>
-          <Text style={styles.blocoForte}>{CLINIC_PHONE}</Text>
-        </View>
-      </InfoModal>
     </ImageBackground>
   );
 }
@@ -400,42 +378,6 @@ function RecuperarSenhaModal({ visivel, onFechar }: { visivel: boolean; onFechar
           </View>
         </View>
       </KeyboardAvoidingView>
-    </Modal>
-  );
-}
-
-function InfoModal({
-  visivel,
-  onFechar,
-  icone,
-  titulo,
-  children,
-}: {
-  visivel: boolean;
-  onFechar: () => void;
-  icone: keyof typeof Ionicons.glyphMap;
-  titulo: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <Modal visible={visivel} transparent animationType="fade" onRequestClose={onFechar}>
-      <View style={styles.overlay}>
-        <View style={styles.modalCard}>
-          <Pressable onPress={onFechar} style={styles.fechar} hitSlop={8}>
-            <Ionicons name="close" size={22} color="#9CA3AF" />
-          </Pressable>
-          <View style={styles.modalIcone}>
-            <Ionicons name={icone} size={28} color={AZUL} />
-          </View>
-          <Text style={styles.modalTitulo}>{titulo}</Text>
-          <ScrollView style={styles.modalCorpo} contentContainerStyle={styles.modalCorpoInner}>
-            {children}
-          </ScrollView>
-          <Pressable onPress={onFechar} style={styles.modalBotao}>
-            <Text style={styles.modalBotaoTexto}>Entendido</Text>
-          </Pressable>
-        </View>
-      </View>
     </Modal>
   );
 }

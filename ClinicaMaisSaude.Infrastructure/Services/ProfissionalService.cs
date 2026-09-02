@@ -18,6 +18,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             var prof = await _context.Profissionais
                 .AsNoTracking()
                 .Include(p => p.Usuario)
+                .Include(p => p.Pessoa)
                 .FirstOrDefaultAsync(p => p.Id == id);
 
             if (prof == null) return null;
@@ -25,11 +26,13 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             return new
             {
                 prof.Id,
-                Nome = prof.Usuario?.Nome,
+                // Identidade a partir da Pessoa (fonte única — Thread B).
+                Nome = prof.Pessoa?.Nome,
                 prof.Crm,
                 prof.UfCrm,
-                TipoProfissional = prof.TipoProfissional.ToString(),
-                Email = prof.Usuario?.Email
+                // Categoria do profissional a partir do papel unificado (Role é a fonte única — Fase A3b).
+                TipoProfissional = prof.Usuario?.Role.ToString(),
+                Email = prof.Pessoa?.Email
             };
         }
     }

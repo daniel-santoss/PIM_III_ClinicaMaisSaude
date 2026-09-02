@@ -50,6 +50,8 @@ namespace ClinicaMaisSaude.Infrastructure.Repositories
                 .Include(a => a.Paciente)
                 .ThenInclude(p => p.Usuario)
                 .ThenInclude(u => u.Foto)
+                .Include(a => a.Paciente)
+                .ThenInclude(p => p.Pessoa)
                 .FirstOrDefaultAsync(a => a.Id == id);
         }
 
@@ -65,6 +67,8 @@ namespace ClinicaMaisSaude.Infrastructure.Repositories
                 .AsNoTracking()
                 .Include(a => a.Paciente)
                 .ThenInclude(p => p.Usuario)
+                .Include(a => a.Paciente)
+                .ThenInclude(p => p.Pessoa)
                 .Where(x => x.DataHoraConsulta.Date == date.Date)
                 .ToListAsync();
         }
@@ -76,6 +80,8 @@ namespace ClinicaMaisSaude.Infrastructure.Repositories
                 .Include(a => a.Paciente)
                 .ThenInclude(p => p.Usuario)
                 .ThenInclude(u => u.Foto)
+                .Include(a => a.Paciente)
+                .ThenInclude(p => p.Pessoa)
                 .ToListAsync();
         }
 
@@ -86,6 +92,8 @@ namespace ClinicaMaisSaude.Infrastructure.Repositories
                                 .Include(a => a.Paciente)
                                 .ThenInclude(p => p.Usuario)
                                 .ThenInclude(u => u.Foto)
+                                .Include(a => a.Paciente)
+                                .ThenInclude(p => p.Pessoa)
                                 .AsQueryable();
 
             if (profissionalId.HasValue)
@@ -98,7 +106,7 @@ namespace ClinicaMaisSaude.Infrastructure.Repositories
             {
                 // CPF por prefixo (SARGable, usa índice); nome por Contains (UX de busca).
                 // Para nome em escala, a evolução seria full-text search do SQL Server.
-                query = query.Where(a => a.Paciente.Usuario.Nome.Contains(buscaPaciente) || a.Paciente.Usuario.Cpf.StartsWith(buscaPaciente));
+                query = query.Where(a => a.Paciente.Pessoa!.Nome.Contains(buscaPaciente) || a.Paciente.Pessoa!.Cpf.StartsWith(buscaPaciente));
             }
 
             if (!string.IsNullOrWhiteSpace(dataConsulta))

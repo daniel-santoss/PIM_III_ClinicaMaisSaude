@@ -39,9 +39,11 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             var cleanIdentificador = request.Identificador.Replace(".", "").Replace("-", "").Trim();
             var emailNormalizado = request.Identificador.Trim().ToLowerInvariant();
 
+            // Identidade (Thread B): a busca por e-mail/CPF passa a ser pela Pessoa (fonte única).
             var usuario = await _context.Usuarios
                 .Include(u => u.Foto)
-                .FirstOrDefaultAsync(u => u.Email == emailNormalizado || u.Cpf == cleanIdentificador);
+                .Include(u => u.Pessoa)
+                .FirstOrDefaultAsync(u => u.Pessoa!.Email == emailNormalizado || u.Pessoa!.Cpf == cleanIdentificador);
 
             if (usuario == null)
             {
@@ -91,36 +93,17 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             // Conta de paciente não-ativa bloqueia o acesso mesmo com credenciais válidas.
             // Verificado após a senha para não vazar a existência da conta no tempo de resposta.
             // Banido = permanente (abuso de IA); Desativado/Excluido = encerrada.
-            if (perfilPaciente != null && perfilPaciente.SituacaoCliente != SituacaoCliente.Ativo)
+            if (perfilPaciente != null && perfilPaciente.Situacao != Situacao.Ativo)
             {
-                if (perfilPaciente.SituacaoCliente == SituacaoCliente.Banido)
+                if (perfilPaciente.Situacao == Situacao.Banido)
                     throw new UnauthorizedException("PERMANENT_BAN:Sua conta foi banida permanentemente devido a violações graves das políticas de segurança.");
                 throw new UnauthorizedException("Esta conta foi encerrada.");
             }
 
-            // Papel para o token: admin é explícito (não mais inferido do perfil);
-            // profissional detalha em Medico/Enfermeira (usado por regras de negócio);
-            // paciente é paciente. O claim Role dirige o [Authorize].
-            string tipoUsuarioStr;
-            Guid? pacienteId = null;
-
-            if (usuario.TipoUsuario == TipoUsuario.Admin)
-            {
-                tipoUsuarioStr = PerfisUsuario.Admin;
-            }
-            else if (perfilProfissional != null)
-            {
-                tipoUsuarioStr = perfilProfissional.TipoProfissional.ToString();
-            }
-            else if (perfilPaciente != null)
-            {
-                tipoUsuarioStr = PerfisUsuario.Paciente;
-                pacienteId = perfilPaciente.Id;
-            }
-            else
-            {
-                tipoUsuarioStr = usuario.TipoUsuario.ToString();
-            }
+            // Papel unificado (Fase A3): a string do papel vem direto do Role — formato de
+            // fio idêntico ({Admin, Medico, Enfermeira, Paciente}), então os fronts não mudam.
+            string tipoUsuarioStr = usuario.Role.ToString();
+            Guid? pacienteId = perfilPaciente?.Id;
 
             var tokenHandler = new JwtSecurityTokenHandler();
             var secretKey = _configuration[ConfigKeys.JwtSecret] ?? throw new InvalidOperationException($"{ConfigKeys.JwtSecret} não configurado.");
@@ -176,13 +159,13 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             return new LoginResponse
             {
                 Token = jwtToken,
-                Nome = usuario.Nome,
+                Nome = usuario.Pessoa?.Nome ?? string.Empty,
                 RefreshToken = refreshToken.Token,
                 UsuarioId = usuario.Id,
                 TipoUsuario = tipoUsuarioStr,
                 PacienteId = pacienteId,
                 ProfissionalId = perfilProfissional?.Id,
-                IsAdmin = usuario.TipoUsuario == TipoUsuario.Admin,
+                IsAdmin = tipoUsuarioStr == PerfisUsuario.Admin,
                 FotoBase64 = usuario.FotoBase64
             };
         }
@@ -218,26 +201,15 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             _context.RefreshTokens.Update(storedToken);
             await _context.SaveChangesAsync();
 
-            var usuario = await _context.Usuarios.AsNoTracking().Include(u => u.Foto).FirstOrDefaultAsync(u => u.Id == storedToken.UsuarioId);
+            var usuario = await _context.Usuarios.AsNoTracking().Include(u => u.Foto).Include(u => u.Pessoa).FirstOrDefaultAsync(u => u.Id == storedToken.UsuarioId);
             if (usuario == null) throw new UnauthorizedException("Usuário não encontrado.");
 
             var perfilProfissional = await _context.Profissionais.AsNoTracking().FirstOrDefaultAsync(p => p.UsuarioId == usuario.Id);
             var perfilPaciente = await _context.Pacientes.AsNoTracking().FirstOrDefaultAsync(p => p.UsuarioId == usuario.Id);
 
-            string tipoUsuarioStr;
-            Guid? pacienteId = null;
-
-            if (usuario.TipoUsuario == TipoUsuario.Admin)
-                tipoUsuarioStr = PerfisUsuario.Admin;
-            else if (perfilProfissional != null)
-                tipoUsuarioStr = perfilProfissional.TipoProfissional.ToString();
-            else if (perfilPaciente != null)
-            {
-                tipoUsuarioStr = PerfisUsuario.Paciente;
-                pacienteId = perfilPaciente.Id;
-            }
-            else
-                tipoUsuarioStr = usuario.TipoUsuario.ToString();
+            // Papel unificado (Fase A3): string do papel direto do Role.
+            string tipoUsuarioStr = usuario.Role.ToString();
+            Guid? pacienteId = perfilPaciente?.Id;
 
             var claims = new List<Claim>
             {
@@ -280,13 +252,13 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             return new LoginResponse
             {
                 Token = jwtToken,
-                Nome = usuario.Nome,
+                Nome = usuario.Pessoa?.Nome ?? string.Empty,
                 RefreshToken = refreshToken.Token,
                 UsuarioId = usuario.Id,
                 TipoUsuario = tipoUsuarioStr,
                 PacienteId = pacienteId,
                 ProfissionalId = perfilProfissional?.Id,
-                IsAdmin = usuario.TipoUsuario == TipoUsuario.Admin,
+                IsAdmin = tipoUsuarioStr == PerfisUsuario.Admin,
                 FotoBase64 = usuario.FotoBase64
             };
         }

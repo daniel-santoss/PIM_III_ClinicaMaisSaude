@@ -3,9 +3,10 @@ using ClinicaMaisSaude.Domain.Enums;
 
 namespace ClinicaMaisSaude.Domain.Entities
 {
-    public class TipoUsuarioLookup
+    /// <summary>Lookup de <see cref="StatusSolicitacao"/> (integridade do enum no banco).</summary>
+    public class StatusSolicitacaoLookup
     {
-        public TipoUsuario Id { get; set; }
+        public StatusSolicitacao Id { get; set; }
         public string Nome { get; set; } = string.Empty;
         public DateTime DtCriado { get; set; }
     }

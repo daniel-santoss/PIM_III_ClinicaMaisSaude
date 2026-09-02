@@ -29,9 +29,14 @@ namespace ClinicaMaisSaude.Domain.Constants
         // se vazia, cai no fallback de logo embutida (cid) — que o Gmail lista como anexo.
         public const string EmailLogoUrl = "EmailConfig:LogoUrl";
 
-        // Pepper (chave secreta do servidor) do HMAC-SHA256 aplicado ao código de recuperação.
+        // Pepper (chave secreta do servidor) do HMAC-SHA256 aplicado ao código de verificação.
         // Fica FORA do banco (config/user-secrets/env) — é o que protege o código curto contra
         // brute force num vazamento do banco. Par conceitual do JwtConfig:Secret.
         public const string CodigoRecuperacaoPepper = "Security:CodigoRecuperacaoPepper";
+
+        // Auxílio de DEV: se "true" (apenas em appsettings.Development.json), a API loga no console o
+        // código de verificação gerado, para testar os fluxos sem depender do e-mail. Fora de dev fica
+        // ausente/false — o código nunca sai em claro. Ver CodigoDevLog.
+        public const string ExporCodigosDev = "Security:ExporCodigosDev";
     }
 }

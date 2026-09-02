@@ -1,4 +1,4 @@
-import { Bell, LayoutDashboard, Users, CalendarDays, ShieldAlert, BarChart2, LogOut, Menu, X } from 'lucide-react';
+import { Bell, LayoutDashboard, Users, CalendarDays, ShieldAlert, BarChart2, ClipboardList, Inbox, LogOut, Menu, X } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import logoPng from '../assets/logo_clinica.png';
 import { useScrollBlock } from '../hooks/useScrollBlock';
@@ -44,6 +44,8 @@ function getNavItems(tipoUsuario: string, isAdmin: boolean): NavItem[] {
       { id: 'pacientes',    label: 'Usuários',        icon: <Users size={18} /> },
       { id: 'agendamentos', label: 'Agendamentos',    icon: <CalendarDays size={18} /> },
       { id: 'relatorios',   label: 'Relatórios',      icon: <BarChart2 size={18} /> },
+      { id: 'solicitacoes', label: 'Solicitações',    icon: <Inbox size={18} /> },
+      { id: 'declaracao-saude', label: 'Declaração de Saúde', icon: <ClipboardList size={18} /> },
       { id: 'violacoes',    label: 'Violações IA',    icon: <ShieldAlert size={18} /> },
     ];
   }
@@ -83,6 +85,10 @@ function getHeader(abaAtiva: string, tipoUsuario: string, isAdmin: boolean): { t
       return { titulo: 'Relatórios', subtitulo: 'Indicadores e exportações' };
     case 'violacoes':
       return { titulo: 'Violações IA', subtitulo: 'Auditoria de segurança' };
+    case 'declaracao-saude':
+      return { titulo: 'Declaração de Saúde', subtitulo: 'Modelos e perguntas do auto-cadastro' };
+    case 'solicitacoes':
+      return { titulo: 'Solicitações de cadastro', subtitulo: 'Fila de aprovação do auto-cadastro' };
     case 'minhas-consultas':
       return { titulo: 'Meus agendamentos', subtitulo: 'Histórico e consultas marcadas' };
     default:

@@ -23,13 +23,15 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                     .FirstOrDefaultAsync(p => p.UsuarioId == usuarioId);
                 if (paciente == null) return null;
 
-                var usuario = await _context.Usuarios.AsNoTracking().Include(u => u.Foto).FirstOrDefaultAsync(u => u.Id == usuarioId);
-                return new { tipo = PerfisUsuario.Paciente, usuario?.Nome, usuario?.Email, usuario?.Telefone, usuario?.Cpf, FotoBase64 = usuario?.FotoBase64 };
+                // Identidade (Thread B): Nome/Email/Telefone/Cpf vêm da Pessoa; a foto continua na conta.
+                var usuario = await _context.Usuarios.AsNoTracking().Include(u => u.Foto).Include(u => u.Pessoa).FirstOrDefaultAsync(u => u.Id == usuarioId);
+                return new { tipo = PerfisUsuario.Paciente, usuario?.Pessoa?.Nome, usuario?.Pessoa?.Email, usuario?.Pessoa?.Telefone, usuario?.Pessoa?.Cpf, FotoBase64 = usuario?.FotoBase64 };
             }
 
             var profissional = await _context.Profissionais
                 .AsNoTracking()
                 .Include(p => p.Usuario).ThenInclude(u => u.Foto)
+                .Include(p => p.Pessoa)
                 .Include(p => p.Especialidades)
                 .FirstOrDefaultAsync(p => p.UsuarioId == usuarioId);
 
@@ -37,11 +39,13 @@ namespace ClinicaMaisSaude.Infrastructure.Services
 
             return new
             {
-                tipo = profissional.TipoProfissional.ToString(),
-                Nome = profissional.Usuario?.Nome,
-                Email = profissional.Usuario?.Email,
-                Telefone = profissional.Usuario?.Telefone,
-                Cpf = profissional.Usuario?.Cpf,
+                // Categoria a partir do papel unificado (Role é a fonte única — Fase A3b).
+                tipo = profissional.Usuario?.Role.ToString(),
+                // Identidade (Thread B): Nome/Email/Telefone/Cpf vêm da Pessoa; a foto continua na conta.
+                Nome = profissional.Pessoa?.Nome,
+                Email = profissional.Pessoa?.Email,
+                Telefone = profissional.Pessoa?.Telefone,
+                Cpf = profissional.Pessoa?.Cpf,
                 profissional.Crm,
                 profissional.UfCrm,
                 Especialidades = profissional.Especialidades.Select(e => new { id = (int)e.EspecialidadeId }),
@@ -51,49 +55,37 @@ namespace ClinicaMaisSaude.Infrastructure.Services
 
         public async Task<string?> AtualizarPerfilAsync(Guid usuarioId, string tipoUsuario, string? nome, string? email, string? telefone)
         {
-            // Identidade (Nome/Email/Telefone) vive no LoginPortal para paciente e profissional.
-            var usuario = await _context.Usuarios.FirstOrDefaultAsync(u => u.Id == usuarioId);
-            if (usuario == null) return "Perfil não encontrado.";
+            // Identidade (Thread B): Nome/Email/Telefone vivem na Pessoa (fonte única). Carrega a
+            // conta com a Pessoa para editá-la; a existência do perfil (paciente/profissional) é validada.
+            var usuario = await _context.Usuarios.Include(u => u.Pessoa).FirstOrDefaultAsync(u => u.Id == usuarioId);
+            if (usuario?.Pessoa == null) return "Perfil não encontrado.";
 
             if (tipoUsuario == PerfisUsuario.Paciente)
             {
-                var paciente = await _context.Pacientes.FirstOrDefaultAsync(p => p.UsuarioId == usuarioId);
-                if (paciente == null) return "Perfil de paciente não encontrado.";
-
-                if (!string.IsNullOrWhiteSpace(nome))
-                    usuario.AtualizarNome(nome.Trim());
-                if (!string.IsNullOrWhiteSpace(email))
-                {
-                    var emailNorm = email.Trim().ToLowerInvariant();
-                    var existe = await _context.Usuarios.AnyAsync(u => u.Email == emailNorm && u.Id != usuarioId);
-                    if (existe) return "Este e-mail já está em uso.";
-                    usuario.AtualizarEmail(emailNorm);
-                }
-                if (!string.IsNullOrWhiteSpace(telefone))
-                    usuario.AtualizarTelefone(telefone.Replace("(", "").Replace(")", "").Replace("-", "").Replace(" ", "").Trim());
-
-                await _context.SaveChangesAsync();
-                return null; // sucesso
+                var existePaciente = await _context.Pacientes.AnyAsync(p => p.UsuarioId == usuarioId);
+                if (!existePaciente) return "Perfil de paciente não encontrado.";
+            }
+            else
+            {
+                var existeProfissional = await _context.Profissionais.AnyAsync(p => p.UsuarioId == usuarioId);
+                if (!existeProfissional) return "Perfil não encontrado.";
             }
 
-            var profissional = await _context.Profissionais.FirstOrDefaultAsync(p => p.UsuarioId == usuarioId);
-            if (profissional == null) return "Perfil não encontrado.";
+            var pessoa = usuario.Pessoa;
+
+            if (!string.IsNullOrWhiteSpace(nome))
+                pessoa.AtualizarNome(nome.Trim());
 
             if (!string.IsNullOrWhiteSpace(email))
             {
                 var emailNorm = email.Trim().ToLowerInvariant();
-                var existe = await _context.Usuarios.AnyAsync(u => u.Email == emailNorm && u.Id != usuarioId);
+                var existe = await _context.Pessoas.AnyAsync(p => p.Email == emailNorm && p.Id != pessoa.Id);
                 if (existe) return "Este e-mail já está em uso.";
-                usuario.AtualizarEmail(emailNorm);
-            }
-
-            if (!string.IsNullOrWhiteSpace(nome))
-            {
-                usuario.AtualizarNome(nome.Trim());
+                pessoa.AtualizarEmail(emailNorm);
             }
 
             if (!string.IsNullOrWhiteSpace(telefone))
-                usuario.AtualizarTelefone(telefone.Replace("(", "").Replace(")", "").Replace("-", "").Replace(" ", "").Trim());
+                pessoa.AtualizarTelefone(telefone.Replace("(", "").Replace(")", "").Replace("-", "").Replace(" ", "").Trim());
 
             await _context.SaveChangesAsync();
             return null; // sucesso
@@ -147,7 +139,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             var paciente = await _context.Pacientes.FirstOrDefaultAsync(p => p.UsuarioId == usuarioId);
             if (paciente == null) return "Perfil de paciente não encontrado.";
 
-            // Exclusão self-service → SituacaoCliente = Excluido (soft-delete).
+            // Exclusão self-service → Situacao = Excluido (soft-delete).
             paciente.Excluir();
 
             // Revoga refresh tokens ativos → nenhuma sessão consegue renovar o acesso.

@@ -10,9 +10,15 @@ namespace ClinicaMaisSaude.Domain.Entities
         public DateTime? UltAtualizacao { get; private set; }
         public void MarcarAtualizacao(DateTime quando) => UltAtualizacao = quando;
         public Guid UsuarioId { get; private set; }
-        public TipoProfissional TipoProfissional { get; private set; }
+        public Situacao Situacao { get; private set; }
         public string? Crm { get; private set; }
         public string? UfCrm { get; private set; }
+
+        // Identidade (Thread B). Aditivo/nulável na Fase B2a: backfill aponta para a Pessoa da conta.
+        public Guid? PessoaId { get; private set; }
+        public virtual Pessoa? Pessoa { get; private set; }
+        public void VincularPessoa(Guid pessoaId) => PessoaId = pessoaId;
+
         public DateTime DtCriado { get; private set; }
 
         public Usuario Usuario { get; private set; }
@@ -20,25 +26,34 @@ namespace ClinicaMaisSaude.Domain.Entities
 
         protected Profissional() { } // EF Core
 
-        public Profissional(Guid usuarioId, TipoProfissional tipoProfissional, string? crm = null, string? ufCrm = null)
+        public Profissional(Guid usuarioId, string? crm = null, string? ufCrm = null)
         {
             Id = SequentialGuid.Next();
             UsuarioId = usuarioId;
-            TipoProfissional = tipoProfissional;
             Crm = crm;
             UfCrm = ufCrm;
+            Situacao = Situacao.Ativo;
             DtCriado = DateTime.UtcNow;
         }
 
         // Construtor para HasData (onde o Id é pré-definido)
-        public Profissional(Guid id, Guid usuarioId, TipoProfissional tipoProfissional, string? crm, string? ufCrm, DateTime dtCriado)
+        public Profissional(Guid id, Guid usuarioId, string? crm, string? ufCrm, DateTime dtCriado)
         {
             Id = id;
             UsuarioId = usuarioId;
-            TipoProfissional = tipoProfissional;
             Crm = crm;
             UfCrm = ufCrm;
+            Situacao = Situacao.Ativo;
             DtCriado = dtCriado;
         }
+
+        /// <summary>Só o estado Ativo permite operar; qualquer outro desliga o profissional.</summary>
+        public bool EstaAtivo => Situacao == Situacao.Ativo;
+
+        /// <summary>Desliga o profissional (ex.: saiu da clínica). Reversível via Reativar.</summary>
+        public void Desativar() => Situacao = Situacao.Inativo;
+
+        /// <summary>Reabilita o profissional (Ativo).</summary>
+        public void Reativar() => Situacao = Situacao.Ativo;
     }
 }

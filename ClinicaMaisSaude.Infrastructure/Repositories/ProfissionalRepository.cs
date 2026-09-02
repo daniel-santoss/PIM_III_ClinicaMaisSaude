@@ -21,11 +21,14 @@ namespace ClinicaMaisSaude.Infrastructure.Repositories
 
         public async Task<IEnumerable<Profissional>> ObterTodosPorTipoAsync(TipoProfissional tipo)
         {
+            // Avaliado no cliente (fora da árvore de expressão) para o EF traduzir a comparação por constante.
+            var role = PapeisMap.RoleDoTipo(tipo);
             return await _context.Profissionais
                 .AsNoTracking()
                 .Include(p => p.Usuario)
+                .Include(p => p.Pessoa)
                 .Include(p => p.Especialidades)
-                .Where(p => p.TipoProfissional == tipo && p.Usuario.TipoUsuario != TipoUsuario.Admin)
+                .Where(p => p.Usuario.Role == role)
                 .ToListAsync();
         }
 
@@ -34,6 +37,7 @@ namespace ClinicaMaisSaude.Infrastructure.Repositories
             return await _context.Profissionais
                 .AsNoTracking()
                 .Include(p => p.Usuario).ThenInclude(u => u.Foto)
+                .Include(p => p.Pessoa)
                 .FirstOrDefaultAsync(p => p.Id == id);
         }
 
@@ -42,6 +46,7 @@ namespace ClinicaMaisSaude.Infrastructure.Repositories
             return await _context.Profissionais
                 .AsNoTracking()
                 .Include(p => p.Usuario).ThenInclude(u => u.Foto)
+                .Include(p => p.Pessoa)
                 .Include(p => p.Especialidades)
                 .ToListAsync();
         }

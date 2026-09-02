@@ -23,7 +23,7 @@ namespace ClinicaMaisSaude.Infrastructure.Data
             bool isDevelopment,
             ILogger logger)
         {
-            if (await context.Usuarios.AnyAsync(u => u.TipoUsuario == TipoUsuario.Admin))
+            if (await context.Usuarios.AnyAsync(u => u.Role == RoleUsuario.Admin))
                 return;
 
             var email = config[ConfigKeys.AdminSeedEmail] ?? "admin@clinicamaissaude.com.br";
@@ -48,10 +48,16 @@ namespace ClinicaMaisSaude.Infrastructure.Data
 
             var senhaHash = BCrypt.Net.BCrypt.HashPassword(senha);
 
-            var admin = new Usuario(email, cpf, senhaHash, "Administrador", null, TipoUsuario.Admin);
+            // Identidade (Thread B): Pessoa é a dona da identidade; o LoginPortal recebe cópia até o B3.
+            var pessoa = new Pessoa("Administrador", cpf, email, null);
+            await context.Pessoas.AddAsync(pessoa);
+
+            var admin = new Usuario(pessoa.Id, senhaHash, RoleUsuario.Admin);
             await context.Usuarios.AddAsync(admin);
 
-            var profissionalAdmin = new Profissional(admin.Id, TipoProfissional.Medico, "123456", "SP");
+            // Profissional vestigial do admin (categoria não se aplica; papel já é Admin no Role).
+            var profissionalAdmin = new Profissional(admin.Id, "123456", "SP");
+            profissionalAdmin.VincularPessoa(pessoa.Id);
             await context.Profissionais.AddAsync(profissionalAdmin);
 
             await context.SaveChangesAsync();

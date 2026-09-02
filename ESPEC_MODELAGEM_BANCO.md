@@ -6,6 +6,48 @@ Objetivo: consolidar identidade, unificar papéis, fechar furos de integridade r
 
 ---
 
+## ⚠️ v2 EM ANDAMENTO (2026-08-30) — este doc descreve o refactor de 8 fases (concluído); um SEGUNDO refactor está em curso
+
+O **user-model v2** (incremental, branch `teste`) revisa parte do que está abaixo. Detalhe
+executável completo no plano `~/.claude/plans/peppy-weaving-truffle.md` e na memória
+`refactor-modelo-usuario-v2`. **Migrations Fase10..Fase18.** Estado (2026-08-30, topo `74edfe2`):
+
+**✅ Papéis (Thread A):**
+- **`TipoUsuario` REMOVIDO** → enum unificado **`RoleUsuario`** {Paciente=1, Admin=2, Medico=3,
+  Enfermeira=4} + `RoleUsuarioLookup`. `LoginPortal.Role` NOT NULL é a fonte única do papel. (Fase11/Fase12.)
+- **`Profissional.TipoProfissional` REMOVIDO** (Fase13): a categoria do profissional vem do `Role` (via
+  `PapeisMap.RoleDoTipo`). O enum `TipoProfissional` + lookup + `Agendamento.TipoProfissional` **sobrevivem**
+  só como conceito de **agenda** — "papel da pessoa" ≠ "categoria da consulta".
+
+**✅ Identidade (Thread B) — reversão da decisão "SEM Pessoa":**
+- Nova tabela **`Pessoa`** (Nome/Cpf/Email/Telefone, únicos) é a fonte única de identidade. `LoginPortal`
+  virou **credencial pura** (SenhaHash+PessoaId+Role+estado de login) — colunas de identidade DROPADAS
+  (Fase16). `Paciente`/`Profissional` referenciam `Pessoa`. (Fase14/Fase15/Fase16.)
+- **`Paciente.UsuarioId` agora OPCIONAL** (Fase18, índice único FILTRADO): permite o **proponente sem
+  login** (auto-cadastro em análise).
+
+**✅ Situação unificada (Fase17):** `SituacaoCliente` + `SituacaoProfissional` fundidos num único enum/lookup
+**`Situacao`** {Ativo=1, Inativo=2, Excluido=3, Banido=4, EmAnalise=5} (validade por tipo garantida no domínio).
+
+**✅ Auto-cadastro moderado (Thread D — D1/D2/D3/D4):** 4 tabelas de **Declaração de Saúde** —
+`ModeloDeclaracaoSaude` (ModeloPadrao único), `PerguntaDeclaracaoSaude`, `SolicitacaoCadastro`
+(Status EmAnalise/Aprovada/Recusada) + `RespostaDeclaracaoSaude` (única por Solicitacao+Pergunta) +
+lookup `StatusSolicitacao` (Fase18). Endpoints anônimos GET declaração / POST solicitar (anti-fraude:
+CPF checksum + 1 solicitação aberta por CPF + rate-limit por IP generoso). Proponente = Pessoa +
+Paciente[EmAnalise] sem login + Solicitacao + Respostas. **D3 (aprovação admin):** endpoints admin
+listar/aprovar/recusar as solicitações (state machine Aprovar/Recusar) — sem mudança de schema.
+**D4 (primeiro acesso):** tabela `CodigosPrimeiroAcesso` (gêmea de `CodigosRecuperacaoSenha`, mas
+chaveada por `PessoaId` + `SolicitacaoId` — o proponente ainda não tem conta; código HMAC+pepper,
+reset token SHA-256, uso único/15 min/trava de 5 tentativas). Fluxo: solicitar código → confirmar
+(código + CPF) → definir senha → **cria `Usuario` + `Paciente.AtivarComConta`**. Migração Fase19.
+
+**Fase 0 (pré-Thread A):** `Agendamento` ganhou navegações `Profissional`/`AgendamentoOrigem`; enum
+`TipoViolacao` movido p/ `Domain/Enums`; `SituacaoProfissional` Ativo/Inativo (depois unificado em Situacao).
+
+Progresso: 97 testes; **auto-cadastro moderado COMPLETO ponta a ponta** — backend (D1–D4) + web (D5 editor da
+DS + D6 fila de aprovação) + mobile (D7 mini-cadastro + 1º acesso). Pendente do backlog v1: decouplings (tabela
+`LembreteEnviado`, Value Object `Cpf` — hoje há o helper `Domain/Common/Cpf`, auditoria com ator); multi-tenant.
+
 ## 0. Status de implementação (2026-08-15)
 
 Migrations aplicadas no banco local: `InitialCreate` → `Fase1_LookupsEnums` → `Fase2_TipoUsuario`. Testes = **61** (44 Domain + 17 Application). Commits **locais, não pushados**.

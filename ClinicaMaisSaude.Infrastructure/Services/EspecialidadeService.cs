@@ -36,11 +36,12 @@ namespace ClinicaMaisSaude.Infrastructure.Services
         {
             var prof = await _context.Profissionais
                 .AsNoTracking()
+                .Include(p => p.Usuario)
                 .Include(p => p.Especialidades)
                 .FirstOrDefaultAsync(p => p.Id == profissionalId);
 
             if (prof == null) return null;
-            if (prof.TipoProfissional == TipoProfissional.Enfermeira)
+            if (EhEnfermeira(prof))
                 throw new BusinessRuleException("Enfermeiras não possuem especialidades.");
 
             return prof.Especialidades
@@ -51,11 +52,12 @@ namespace ClinicaMaisSaude.Infrastructure.Services
         public async Task<object?> AtualizarMinhasAsync(Guid profissionalId, List<int> especialidadeIds)
         {
             var prof = await _context.Profissionais
+                .Include(p => p.Usuario)
                 .Include(p => p.Especialidades)
                 .FirstOrDefaultAsync(p => p.Id == profissionalId);
 
             if (prof == null) return null;
-            if (prof.TipoProfissional == TipoProfissional.Enfermeira)
+            if (EhEnfermeira(prof))
                 throw new BusinessRuleException("Enfermeiras não possuem especialidades.");
 
             var validos = Enum.GetValues<EspecialidadeMedica>().Cast<int>().ToHashSet();
@@ -75,6 +77,10 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             await _context.SaveChangesAsync();
             return prof.Especialidades.Select(e => new { id = (int)e.EspecialidadeId, nome = FormatarNome(e.EspecialidadeId) });
         }
+
+        // Categoria do profissional a partir do papel unificado (Role é a fonte única — Fase A3b).
+        private static bool EhEnfermeira(Profissional prof) =>
+            prof.Usuario?.Role == RoleUsuario.Enfermeira;
 
         private static string FormatarNome(EspecialidadeMedica e) => e switch
         {

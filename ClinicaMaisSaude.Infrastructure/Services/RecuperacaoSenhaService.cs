@@ -7,9 +7,11 @@ using ClinicaMaisSaude.Application.Exceptions;
 using ClinicaMaisSaude.Application.Interfaces;
 using ClinicaMaisSaude.Domain.Constants;
 using ClinicaMaisSaude.Domain.Entities;
+using ClinicaMaisSaude.Domain.Enums;
 using ClinicaMaisSaude.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 
 namespace ClinicaMaisSaude.Infrastructure.Services
 {
@@ -25,21 +27,20 @@ namespace ClinicaMaisSaude.Infrastructure.Services
         private readonly ClinicaDbContext _context;
         private readonly IConfiguration _configuration;
         private readonly IEmailService _emailService;
+        private readonly ILogger<RecuperacaoSenhaService> _logger;
 
-        // Alfabeto sem caracteres ambíguos (0/O, 1/I/L). 32 símbolos → divide 256 sem viés de módulo.
-        private const string Alfabeto = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-        private const int TamanhoCodigo = 6;
         private const int ExpiracaoCodigoMin = 15;
         private const int ExpiracaoResetMin = 10;
         private const int MaxTentativas = 5;
         private const int ThrottleSegundos = 60;
         private const int TamanhoMinimoSenha = 8;
 
-        public RecuperacaoSenhaService(ClinicaDbContext context, IConfiguration configuration, IEmailService emailService)
+        public RecuperacaoSenhaService(ClinicaDbContext context, IConfiguration configuration, IEmailService emailService, ILogger<RecuperacaoSenhaService> logger)
         {
             _context = context;
             _configuration = configuration;
             _emailService = emailService;
+            _logger = logger;
         }
 
         public async Task SolicitarAsync(SolicitarRecuperacaoRequest request)
@@ -49,8 +50,8 @@ namespace ClinicaMaisSaude.Infrastructure.Services
 
             var agora = DateTime.UtcNow;
 
-            var codigosDoUsuario = await _context.CodigosRecuperacaoSenha
-                .Where(c => c.UsuarioId == usuario.Id)
+            var codigosDoUsuario = await _context.CodigosVerificacao
+                .Where(c => c.Tipo == TipoVerificacao.RecuperacaoSenha && c.UsuarioId == usuario.Id)
                 .ToListAsync();
 
             // Throttle: se já foi emitido um código há menos de 60s, não reenvia (anti-spam/anti-abuso).
@@ -64,21 +65,26 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             // Housekeeping: remove códigos velhos já expirados há mais de 1 dia.
             var velhos = codigosDoUsuario.Where(c => c.DtExpiracao < agora.AddDays(-1)).ToList();
             if (velhos.Count > 0)
-                _context.CodigosRecuperacaoSenha.RemoveRange(velhos);
+                _context.CodigosVerificacao.RemoveRange(velhos);
 
-            var codigo = GerarCodigo();
-            var entidade = new CodigoRecuperacaoSenha(
-                usuario.Id, HashCodigoHex(codigo), agora.AddMinutes(ExpiracaoCodigoMin));
-            _context.CodigosRecuperacaoSenha.Add(entidade);
+            var codigo = CodigoVerificacaoCripto.GerarCodigo();
+            var entidade = CodigoVerificacao.ParaRecuperacaoSenha(
+                usuario.Id, usuario.Pessoa!.Email,
+                CodigoVerificacaoCripto.HashCodigoHex(codigo, Pepper()), agora.AddMinutes(ExpiracaoCodigoMin));
+            _context.CodigosVerificacao.Add(entidade);
             await _context.SaveChangesAsync();
+
+            // Atalho de dev (só com a flag ligada): loga o código no console p/ testar sem e-mail.
+            CodigoDevLog.Emitir(_configuration, _logger, TipoVerificacao.RecuperacaoSenha, usuario.Pessoa!.Email, codigo, ExpiracaoCodigoMin);
 
             // Logo: URL pública se configurada (sem anexo); senão, cai na logo embutida (cid).
             var logoSrc = _configuration[ConfigKeys.EmailLogoUrl];
             if (string.IsNullOrWhiteSpace(logoSrc)) logoSrc = "cid:logoclinica";
 
-            await _emailService.EnviarAsync(usuario.Email, "Código de recuperação de senha",
-                MontarCorpoEmail(usuario.Nome, codigo, logoSrc),
-                MontarCorpoTexto(usuario.Nome, codigo));
+            // Identidade (Thread B): destinatário e nome vêm da Pessoa (fonte única).
+            await _emailService.EnviarAsync(usuario.Pessoa!.Email, "Código de recuperação de senha",
+                MontarCorpoEmail(usuario.Pessoa!.Nome, codigo, logoSrc),
+                MontarCorpoTexto(usuario.Pessoa!.Nome, codigo));
         }
 
         public async Task<ValidarCodigoResponse> ValidarCodigoAsync(ValidarCodigoRequest request)
@@ -89,8 +95,8 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             if (usuario == null || string.IsNullOrWhiteSpace(request.Codigo)) throw generico;
 
             var agora = DateTime.UtcNow;
-            var codigo = await _context.CodigosRecuperacaoSenha
-                .Where(c => c.UsuarioId == usuario.Id && !c.Usado && c.DtExpiracao > agora)
+            var codigo = await _context.CodigosVerificacao
+                .Where(c => c.Tipo == TipoVerificacao.RecuperacaoSenha && c.UsuarioId == usuario.Id && !c.Usado && c.DtExpiracao > agora)
                 .OrderByDescending(c => c.DtCriado)
                 .FirstOrDefaultAsync();
             if (codigo == null) throw generico;
@@ -102,7 +108,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                 throw generico;
             }
 
-            var candidato = HashCodigoBytes(request.Codigo);
+            var candidato = CodigoVerificacaoCripto.HashCodigoBytes(request.Codigo, Pepper());
             var armazenado = Convert.FromHexString(codigo.CodigoHash);
             if (!CryptographicOperations.FixedTimeEquals(candidato, armazenado))
             {
@@ -114,8 +120,8 @@ namespace ClinicaMaisSaude.Infrastructure.Services
 
             // Sucesso: consome o código e emite um reset token de alta entropia.
             codigo.MarcarUsado();
-            var resetToken = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
-            codigo.DefinirResetToken(HashResetTokenHex(resetToken), agora.AddMinutes(ExpiracaoResetMin));
+            var resetToken = CodigoVerificacaoCripto.GerarResetToken();
+            codigo.DefinirResetToken(CodigoVerificacaoCripto.HashResetTokenHex(resetToken), agora.AddMinutes(ExpiracaoResetMin));
             await _context.SaveChangesAsync();
 
             return new ValidarCodigoResponse { ResetToken = resetToken };
@@ -129,18 +135,18 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             ValidarForcaSenha(request.NovaSenha);
 
             var agora = DateTime.UtcNow;
-            var tokenHash = HashResetTokenHex(request.ResetToken);
-            var codigo = await _context.CodigosRecuperacaoSenha
+            var tokenHash = CodigoVerificacaoCripto.HashResetTokenHex(request.ResetToken);
+            var codigo = await _context.CodigosVerificacao
                 .Include(c => c.Usuario)
-                .FirstOrDefaultAsync(c => c.ResetTokenHash == tokenHash && c.DtExpiracaoReset > agora);
+                .FirstOrDefaultAsync(c => c.Tipo == TipoVerificacao.RecuperacaoSenha && c.ResetTokenHash == tokenHash && c.DtExpiracaoReset > agora);
             if (codigo == null) throw new ValidationException("Token inválido ou expirado.");
 
-            var usuario = codigo.Usuario;
+            var usuario = codigo.Usuario!;
             usuario.AlterarSenha(BCrypt.Net.BCrypt.HashPassword(request.NovaSenha));
             usuario.DesbloquearConta(); // troca de senha bem-sucedida zera o lockout de login
 
             // Reset token é de uso único: remove a linha para impedir reuso.
-            _context.CodigosRecuperacaoSenha.Remove(codigo);
+            _context.CodigosVerificacao.Remove(codigo);
             await _context.SaveChangesAsync();
         }
 
@@ -152,32 +158,16 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             if (string.IsNullOrWhiteSpace(identificador)) return null;
             var cpf = identificador.Replace(".", "").Replace("-", "").Trim();
             var email = identificador.Trim().ToLowerInvariant();
-            return await _context.Usuarios.FirstOrDefaultAsync(u => u.Email == email || u.Cpf == cpf);
+            // Identidade (Thread B): busca pela Pessoa (fonte única); Include para ler nome/e-mail depois.
+            return await _context.Usuarios
+                .Include(u => u.Pessoa)
+                .FirstOrDefaultAsync(u => u.Pessoa!.Email == email || u.Pessoa!.Cpf == cpf);
         }
 
-        private static string GerarCodigo()
-        {
-            Span<byte> bytes = stackalloc byte[TamanhoCodigo];
-            RandomNumberGenerator.Fill(bytes);
-            var chars = new char[TamanhoCodigo];
-            for (int i = 0; i < TamanhoCodigo; i++)
-                chars[i] = Alfabeto[bytes[i] % Alfabeto.Length];
-            return new string(chars);
-        }
-
-        private byte[] HashCodigoBytes(string codigo)
-        {
-            var pepper = _configuration[ConfigKeys.CodigoRecuperacaoPepper]
+        // Pepper (fora do banco) do HMAC do código — protege o segredo curto num vazamento do banco.
+        private string Pepper() =>
+            _configuration[ConfigKeys.CodigoRecuperacaoPepper]
                 ?? throw new InvalidOperationException($"{ConfigKeys.CodigoRecuperacaoPepper} não configurado.");
-            using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(pepper));
-            // Normaliza p/ maiúsculas: o código é case-insensitive para o usuário.
-            return hmac.ComputeHash(Encoding.UTF8.GetBytes(codigo.Trim().ToUpperInvariant()));
-        }
-
-        private string HashCodigoHex(string codigo) => Convert.ToHexString(HashCodigoBytes(codigo));
-
-        private static string HashResetTokenHex(string token) =>
-            Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
 
         private static void ValidarForcaSenha(string senha)
         {

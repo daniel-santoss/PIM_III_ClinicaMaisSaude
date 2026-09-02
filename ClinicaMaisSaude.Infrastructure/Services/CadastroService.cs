@@ -3,6 +3,7 @@ using ClinicaMaisSaude.Application.Interfaces;
 using ClinicaMaisSaude.Domain.Entities;
 using ClinicaMaisSaude.Domain.Enums;
 using ClinicaMaisSaude.Domain.Constants;
+using ClinicaMaisSaude.Domain.Common;
 using ClinicaMaisSaude.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -26,15 +27,16 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             // Normalização do e-mail (tudo minúsculo)
             request.Email = request.Email.Trim().ToLowerInvariant();
 
-            // Sanitização do CPF (responsabilidade da camada de serviço)
-            var cpfLimpo = request.Cpf.Replace(".", "").Replace("-", "").Trim();
+            // Sanitização + validação do CPF (helper compartilhado do Domain).
+            var cpfLimpo = Cpf.Sanitizar(request.Cpf);
 
-            if (cpfLimpo.Length != 11 || !IsCpfValido(cpfLimpo))
+            if (!Cpf.EhValido(cpfLimpo))
             {
                 return new CadastroResult { Sucesso = false, Mensagem = "O CPF informado não é matematicamente válido." };
             }
 
-            if (await _context.Usuarios.AnyAsync(u => u.Cpf == cpfLimpo || u.Email == request.Email))
+            // Unicidade de identidade vive na Pessoa (Thread B).
+            if (await _context.Pessoas.AnyAsync(p => p.Cpf == cpfLimpo || p.Email == request.Email))
             {
                 return new CadastroResult { Sucesso = false, Mensagem = "Já existe um usuário com este CPF ou E-mail." };
             }
@@ -64,29 +66,38 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             // Hash da senha
             var senhaHash = BCrypt.Net.BCrypt.HashPassword(request.Senha);
 
-            // Papel (grosso) da conta a partir do tipo solicitado.
-            TipoUsuario tipoConta;
+            // Papel unificado da conta a partir do tipo solicitado (com validação).
+            RoleUsuario role;
             if (request.TipoUsuario == PerfisUsuario.Paciente)
-                tipoConta = TipoUsuario.Paciente;
-            else if (request.TipoUsuario == PerfisUsuario.Medico || request.TipoUsuario == PerfisUsuario.Enfermeira)
-                tipoConta = TipoUsuario.Profissional;
+                role = RoleUsuario.Paciente;
+            else if (request.TipoUsuario == PerfisUsuario.Medico)
+                role = RoleUsuario.Medico;
+            else if (request.TipoUsuario == PerfisUsuario.Enfermeira)
+                role = RoleUsuario.Enfermeira;
             else
                 return new CadastroResult { Sucesso = false, Mensagem = "Tipo de usuário inválido." };
 
-            // Criação da identidade (LoginPortal) — dona de Nome/Cpf/Email/Telefone.
-            var novoUsuario = new Usuario(request.Email, cpfLimpo, senhaHash, request.Nome, telefoneLimpo, tipoConta);
+            // Identidade (Thread B): a Pessoa é a dona de Nome/Cpf/Email/Telefone. O LoginPortal
+            // ainda recebe uma cópia enquanto suas colunas de identidade existirem (removidas no B3).
+            var pessoa = new Pessoa(request.Nome, cpfLimpo, request.Email, telefoneLimpo);
+            _context.Pessoas.Add(pessoa);
+
+            // Criação da credencial (LoginPortal), vinculada à Pessoa (identidade).
+            var novoUsuario = new Usuario(pessoa.Id, senhaHash, role);
             _context.Usuarios.Add(novoUsuario);
 
-            // Criação do perfil associado (magro; identidade fica no LoginPortal)
+            // Criação do perfil associado (magro), vinculado à mesma Pessoa e à conta.
             if (request.TipoUsuario == PerfisUsuario.Paciente)
             {
                 var paciente = new Paciente(novoUsuario.Id, request.TemProblemaMemoria);
+                paciente.VincularPessoa(pessoa.Id);
                 _context.Pacientes.Add(paciente);
             }
             else if (request.TipoUsuario == PerfisUsuario.Medico || request.TipoUsuario == PerfisUsuario.Enfermeira)
             {
-                var tipo = request.TipoUsuario == PerfisUsuario.Medico ? TipoProfissional.Medico : TipoProfissional.Enfermeira;
-                var profissional = new Profissional(novoUsuario.Id, tipo, request.Crm, request.UfCrm);
+                // Categoria vem do Role (definido acima); o Profissional é magro, sem TipoProfissional (Fase A3b).
+                var profissional = new Profissional(novoUsuario.Id, request.Crm, request.UfCrm);
+                profissional.VincularPessoa(pessoa.Id);
                 _context.Profissionais.Add(profissional);
             }
             else
@@ -100,36 +111,21 @@ namespace ClinicaMaisSaude.Infrastructure.Services
 
         public async Task<IEnumerable<UsuarioResponse>> ListarUsuariosAsync()
         {
-            var usuarios = await _context.Usuarios.AsNoTracking().ToListAsync();
-            var profissionais = await _context.Profissionais.AsNoTracking().ToListAsync();
-            var pacientes = await _context.Pacientes.AsNoTracking().ToListAsync();
+            var usuarios = await _context.Usuarios.AsNoTracking().Include(u => u.Pessoa).ToListAsync();
 
             var resposta = new List<UsuarioResponse>();
 
             foreach (var u in usuarios)
             {
-                // Nome vem sempre do LoginPortal (identidade única); o perfil só define o tipo.
-                string nome = u.Nome;
-                string tipo = "Admin";
-
-                var prof = profissionais.FirstOrDefault(p => p.UsuarioId == u.Id);
-                var pac = pacientes.FirstOrDefault(p => p.UsuarioId == u.Id);
-
-                if (prof != null)
-                {
-                    tipo = prof.TipoProfissional.ToString();
-                }
-                else if (pac != null)
-                {
-                    tipo = PerfisUsuario.Paciente;
-                }
+                // Identidade vem da Pessoa (Thread B); o tipo é o Role (Fase A3).
+                string tipo = u.Role.ToString();
 
                 resposta.Add(new UsuarioResponse
                 {
                     Id = u.Id,
-                    Nome = nome,
-                    Email = u.Email,
-                    Cpf = u.Cpf,
+                    Nome = u.Pessoa?.Nome,
+                    Email = u.Pessoa?.Email,
+                    Cpf = u.Pessoa?.Cpf,
                     TipoUsuario = tipo
                 });
             }
@@ -153,52 +149,23 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             return new CadastroResult { Sucesso = true, Mensagem = "Senha redefinida com sucesso." };
         }
 
-        private bool IsCpfValido(string cpf)
-        {
-            int[] multiplicador1 = new int[9] { 10, 9, 8, 7, 6, 5, 4, 3, 2 };
-            int[] multiplicador2 = new int[10] { 11, 10, 9, 8, 7, 6, 5, 4, 3, 2 };
-            string tempCpf;
-            string digito;
-            int soma;
-            int resto;
-
-            if (cpf.Distinct().Count() == 1) return false;
-
-            tempCpf = cpf.Substring(0, 9);
-            soma = 0;
-
-            for (int i = 0; i < 9; i++)
-                soma += int.Parse(tempCpf[i].ToString()) * multiplicador1[i];
-
-            resto = soma % 11;
-            if (resto < 2) resto = 0;
-            else resto = 11 - resto;
-
-            digito = resto.ToString();
-            tempCpf = tempCpf + digito;
-            soma = 0;
-            for (int i = 0; i < 10; i++)
-                soma += int.Parse(tempCpf[i].ToString()) * multiplicador2[i];
-
-            resto = soma % 11;
-            if (resto < 2) resto = 0;
-            else resto = 11 - resto;
-
-            digito = digito + resto.ToString();
-            return cpf.EndsWith(digito);
-        }
-
         public async Task PurgeTestsAsync()
         {
-            var testUserIds = await _context.Usuarios
-                .Where(u => u.Email.Contains(".homologacao."))
-                .Select(u => u.Id)
+            // Identidade (e-mail de teste) vive na Pessoa (Thread B).
+            var testUsers = await _context.Usuarios
+                .Where(u => u.Pessoa!.Email.Contains(".homologacao."))
+                .Select(u => new { u.Id, u.PessoaId })
                 .ToListAsync();
 
-            if (!testUserIds.Any()) return;
+            if (!testUsers.Any()) return;
+
+            var testUserIds = testUsers.Select(u => u.Id).ToList();
+            // Identidade (Thread B): a criação passou a gerar uma Pessoa por usuário; o purge
+            // precisa removê-las também, senão ficam órfãs.
+            var testPessoaIds = testUsers.Where(u => u.PessoaId.HasValue).Select(u => u.PessoaId!.Value).ToList();
 
             var testPatientIds = await _context.Pacientes
-                .Where(p => testUserIds.Contains(p.UsuarioId))
+                .Where(p => p.UsuarioId != null && testUserIds.Contains(p.UsuarioId.Value))
                 .Select(p => p.Id)
                 .ToListAsync();
 
@@ -265,6 +232,14 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                 .Where(u => testUserIds.Contains(u.Id))
                 .ToListAsync();
             _context.Usuarios.RemoveRange(usuarios);
+
+            if (testPessoaIds.Any())
+            {
+                var pessoas = await _context.Pessoas
+                    .Where(p => testPessoaIds.Contains(p.Id))
+                    .ToListAsync();
+                _context.Pessoas.RemoveRange(pessoas);
+            }
 
             await _context.SaveChangesAsync();
         }

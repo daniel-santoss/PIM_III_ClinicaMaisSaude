@@ -202,7 +202,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
         {
             return await _db.Agendamentos.AsNoTracking()
                 .Where(a => a.DataHoraConsulta >= inicio && a.DataHoraConsulta <= fim)
-                .Join(_db.Profissionais, a => a.ProfissionalId, p => p.Id, (a, p) => new { p.Id, Nome = p.Usuario.Nome })
+                .Join(_db.Profissionais, a => a.ProfissionalId, p => p.Id, (a, p) => new { p.Id, Nome = p.Pessoa!.Nome })
                 .GroupBy(x => new { x.Id, x.Nome })
                 .Select(g => new ProfissionalCargaDto { Id = g.Key.Id, Nome = g.Key.Nome, Total = g.Count() })
                 .OrderByDescending(x => x.Total)
@@ -247,7 +247,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                 .Select(a => new UltimoAgendamentoDto
                 {
                     Data = a.DataHoraConsulta.ToString("dd/MM/yyyy HH:mm"),
-                    Paciente = a.Paciente.Usuario.Nome,
+                    Paciente = a.Paciente.Pessoa!.Nome,
                     Status = a.Status.ToString()
                 })
                 .ToList();
@@ -431,8 +431,8 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             string nomeUsuario = isAdmin ? "Administrador" : "Desconhecido";
             if (!isAdmin && usuarioId.HasValue)
             {
-                var prof = await _db.Profissionais.AsNoTracking().Include(p => p.Usuario).FirstOrDefaultAsync(p => p.UsuarioId == usuarioId.Value);
-                if (prof != null) nomeUsuario = prof.Usuario.Nome;
+                var prof = await _db.Profissionais.AsNoTracking().Include(p => p.Pessoa).FirstOrDefaultAsync(p => p.UsuarioId == usuarioId.Value);
+                if (prof?.Pessoa != null) nomeUsuario = prof.Pessoa.Nome;
             }
 
             var document = Document.Create(container =>

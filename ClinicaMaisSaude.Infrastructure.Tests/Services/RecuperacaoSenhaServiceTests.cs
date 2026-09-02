@@ -11,6 +11,7 @@ using ClinicaMaisSaude.Infrastructure.Data;
 using ClinicaMaisSaude.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace ClinicaMaisSaude.Infrastructure.Tests.Services
 {
@@ -41,13 +42,17 @@ namespace ClinicaMaisSaude.Infrastructure.Tests.Services
                 })
                 .Build();
 
-            _service = new RecuperacaoSenhaService(_context, config, _email);
+            _service = new RecuperacaoSenhaService(_context, config, _email, NullLogger<RecuperacaoSenhaService>.Instance);
         }
 
         private Usuario SemearUsuario(string senha = "senhaAntiga1")
         {
-            var usuario = new Usuario(EmailUsuario, CpfUsuario,
-                BCrypt.Net.BCrypt.HashPassword(senha), "Paciente Teste", null, TipoUsuario.Paciente);
+            // Identidade (Thread B): a busca do serviço é pela Pessoa, então o usuário de teste
+            // precisa de uma Pessoa vinculada — como no fluxo real de cadastro.
+            var pessoa = new Pessoa("Paciente Teste", CpfUsuario, EmailUsuario, null);
+            _context.Pessoas.Add(pessoa);
+
+            var usuario = new Usuario(pessoa.Id, BCrypt.Net.BCrypt.HashPassword(senha), RoleUsuario.Paciente);
             _context.Usuarios.Add(usuario);
             _context.SaveChanges();
             return usuario;
@@ -83,7 +88,7 @@ namespace ClinicaMaisSaude.Infrastructure.Tests.Services
             SemearUsuario();
             await _service.SolicitarAsync(new SolicitarRecuperacaoRequest { Identificador = CpfUsuario });
             Assert.NotNull(_email.UltimoCorpo);
-            Assert.Equal(1, await _context.CodigosRecuperacaoSenha.CountAsync());
+            Assert.Equal(1, await _context.CodigosVerificacao.CountAsync());
         }
 
         [Fact]
@@ -91,7 +96,7 @@ namespace ClinicaMaisSaude.Infrastructure.Tests.Services
         {
             await _service.SolicitarAsync(new SolicitarRecuperacaoRequest { Identificador = "naoexiste@nada.com" });
             Assert.Null(_email.UltimoCorpo);
-            Assert.Equal(0, await _context.CodigosRecuperacaoSenha.CountAsync());
+            Assert.Equal(0, await _context.CodigosVerificacao.CountAsync());
         }
 
         [Fact]
@@ -167,8 +172,8 @@ namespace ClinicaMaisSaude.Infrastructure.Tests.Services
         {
             var usuario = SemearUsuario();
             // Insere diretamente um código já expirado (o serviço filtra por DtExpiracao > agora).
-            _context.CodigosRecuperacaoSenha.Add(
-                new CodigoRecuperacaoSenha(usuario.Id, "deadbeef", DateTime.UtcNow.AddMinutes(-1)));
+            _context.CodigosVerificacao.Add(
+                CodigoVerificacao.ParaRecuperacaoSenha(usuario.Id, EmailUsuario, "deadbeef", DateTime.UtcNow.AddMinutes(-1)));
             await _context.SaveChangesAsync();
 
             await Assert.ThrowsAsync<ValidationException>(() =>

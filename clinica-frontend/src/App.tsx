@@ -16,6 +16,8 @@ import MeusAgendamentos from "./pages/MeusAgendamentos";
 import PerfilPaciente from "./components/PerfilPaciente";
 import PerfilMedico from "./components/PerfilMedico";
 import ViolacoesList from "./pages/ViolacoesList";
+import DeclaracaoSaudeEditor from "./pages/DeclaracaoSaudeEditor";
+import SolicitacoesCadastroList from "./pages/SolicitacoesCadastroList";
 import Relatorios from "./pages/Relatorios";
 import type { PacienteResponse } from "./types/PacienteResponse";
 import { useScrollBlock } from "./hooks/useScrollBlock";
@@ -32,7 +34,7 @@ type Notificacao = {
 };
 
 // Aba ativa — inclui "painel" (reservado para uso futuro) sem quebrar nada
-type AbaAtiva = "painel" | "pacientes" | "agendamentos" | "minhas-consultas" | "violacoes" | "relatorios";
+type AbaAtiva = "painel" | "pacientes" | "agendamentos" | "minhas-consultas" | "violacoes" | "relatorios" | "declaracao-saude" | "solicitacoes";
 
 export default function App() {
   const [autenticado, setAutenticado] = useState(false);
@@ -414,6 +416,20 @@ export default function App() {
       {abaAtiva === "relatorios" && tipoUsuario !== perfis.paciente && (
         <section aria-label="Relatórios">
           <Relatorios />
+        </section>
+      )}
+
+      {/* ── Declaração de Saúde (editor admin) ────────────────────────────── */}
+      {abaAtiva === "declaracao-saude" && isAdmin && (
+        <section aria-label="Editor da Declaração de Saúde">
+          <DeclaracaoSaudeEditor />
+        </section>
+      )}
+
+      {/* ── Solicitações de auto-cadastro (fila de aprovação) ─────────────── */}
+      {abaAtiva === "solicitacoes" && isAdmin && (
+        <section aria-label="Fila de aprovação de auto-cadastro">
+          <SolicitacoesCadastroList />
         </section>
       )}
 
