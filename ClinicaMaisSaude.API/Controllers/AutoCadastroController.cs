@@ -23,11 +23,13 @@ namespace ClinicaMaisSaude.API.Controllers
     {
         private readonly IAutoCadastroService _service;
         private readonly IPrimeiroAcessoService _primeiroAcesso;
+        private readonly IVerificacaoEmailService _verificacaoEmail;
 
-        public AutoCadastroController(IAutoCadastroService service, IPrimeiroAcessoService primeiroAcesso)
+        public AutoCadastroController(IAutoCadastroService service, IPrimeiroAcessoService primeiroAcesso, IVerificacaoEmailService verificacaoEmail)
         {
             _service = service;
             _primeiroAcesso = primeiroAcesso;
+            _verificacaoEmail = verificacaoEmail;
         }
 
         // Leitura pública do formulário (sem rate-limit: recarregar não deve punir).
@@ -38,6 +40,24 @@ namespace ClinicaMaisSaude.API.Controllers
             if (modelo == null)
                 return NotFound("Nenhuma declaração de saúde configurada no momento.");
             return Ok(modelo);
+        }
+
+        // Verificação de e-mail do wizard (ANÔNIMO): confirma a posse do e-mail antes da DS.
+        // Rate-limit por IP (política da recuperação) + throttle por e-mail no serviço (anti-bombing).
+        [HttpPost("verificar-email/solicitar")]
+        [EnableRateLimiting("recuperacao")]
+        public async Task<IActionResult> SolicitarVerificacaoEmail([FromBody] SolicitarVerificacaoEmailRequest request)
+        {
+            await _verificacaoEmail.SolicitarAsync(request);
+            return Ok(new MensagemResponse { Mensagem = "Se o e-mail for válido, enviamos um código de confirmação." });
+        }
+
+        [HttpPost("verificar-email/confirmar")]
+        [EnableRateLimiting("recuperacao")]
+        public async Task<IActionResult> ConfirmarVerificacaoEmail([FromBody] ConfirmarVerificacaoEmailRequest request)
+        {
+            var response = await _verificacaoEmail.ConfirmarAsync(request);
+            return Ok(response);
         }
 
         [HttpPost("solicitar")]

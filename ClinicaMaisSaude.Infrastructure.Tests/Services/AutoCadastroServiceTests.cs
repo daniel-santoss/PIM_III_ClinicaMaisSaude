@@ -41,12 +41,29 @@ namespace ClinicaMaisSaude.Infrastructure.Tests.Services
             _context.SaveChanges();
         }
 
+        private const string EmailValido = "fulano@teste.com";
+
+        // Cada solicitação exige um token de e-mail verificado (consumido no sucesso). Semeia uma linha
+        // VerificacaoEmail com o token já emitido — como se o passo de confirmação tivesse ocorrido.
+        private string SemearTokenEmailVerificado(string email)
+        {
+            var token = CodigoVerificacaoCripto.GerarResetToken();
+            var cod = CodigoVerificacao.ParaVerificacaoEmail(email.ToLowerInvariant(), "00", DateTime.UtcNow.AddMinutes(-1));
+            cod.MarcarUsado();
+            cod.DefinirResetToken(CodigoVerificacaoCripto.HashResetTokenHex(token), DateTime.UtcNow.AddMinutes(30));
+            _context.CodigosVerificacao.Add(cod);
+            _context.SaveChanges();
+            return token;
+        }
+
         private SolicitacaoCadastroRequest RequestValido() => new()
         {
             Nome = "Fulano de Tal",
             Cpf = CpfValido,
-            Email = "fulano@teste.com",
+            Email = EmailValido,
             Telefone = "11987654321",
+            AceiteTermos = true,
+            EmailVerificadoToken = SemearTokenEmailVerificado(EmailValido),
             ModeloId = _modelo.Id,
             Respostas = new List<RespostaDeclaracaoItem>
             {
@@ -79,6 +96,50 @@ namespace ClinicaMaisSaude.Infrastructure.Tests.Services
             var solicitacao = await _context.SolicitacoesCadastro.SingleAsync();
             Assert.Equal(StatusSolicitacao.EmAnalise, solicitacao.Status);
             Assert.Equal(2, await _context.RespostasDeclaracaoSaude.CountAsync());
+            // Consentimento LGPD gravado e token de e-mail consumido (uso único).
+            Assert.NotNull(solicitacao.TermosAceitosEm);
+            Assert.Equal("1.0", solicitacao.TermosVersao);
+            Assert.Equal(0, await _context.CodigosVerificacao.CountAsync(c => c.Tipo == TipoVerificacao.VerificacaoEmail));
+        }
+
+        [Fact]
+        public async Task Solicitar_SemAceiteTermos_Falha()
+        {
+            var req = RequestValido();
+            req.AceiteTermos = false;
+            var r = await _service.SolicitarAsync(req);
+            Assert.False(r.Sucesso);
+            Assert.Contains("termos", r.Mensagem);
+        }
+
+        [Fact]
+        public async Task Solicitar_SemTelefone_Falha()
+        {
+            var req = RequestValido();
+            req.Telefone = "";
+            var r = await _service.SolicitarAsync(req);
+            Assert.False(r.Sucesso);
+            Assert.Contains("telefone", r.Mensagem);
+        }
+
+        [Fact]
+        public async Task Solicitar_SemTokenEmailVerificado_Falha()
+        {
+            var req = RequestValido();
+            req.EmailVerificadoToken = "";
+            var r = await _service.SolicitarAsync(req);
+            Assert.False(r.Sucesso);
+            Assert.Contains("e-mail", r.Mensagem);
+        }
+
+        [Fact]
+        public async Task Solicitar_TokenDeOutroEmail_Falha()
+        {
+            var req = RequestValido();
+            // Token válido, mas emitido para OUTRO e-mail — não pode liberar este cadastro.
+            req.EmailVerificadoToken = SemearTokenEmailVerificado("outra@pessoa.com");
+            var r = await _service.SolicitarAsync(req);
+            Assert.False(r.Sucesso);
         }
 
         [Fact]

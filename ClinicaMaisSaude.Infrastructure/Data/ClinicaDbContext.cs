@@ -567,6 +567,7 @@ namespace ClinicaMaisSaude.Infrastructure.Data
                 entidade.ToTable("SolicitacoesCadastro");
                 entidade.HasKey(s => s.Id);
                 entidade.Property(s => s.MotivoRecusa).HasMaxLength(1000);
+                entidade.Property(s => s.TermosVersao).HasMaxLength(20);
                 entidade.Property(s => s.DtCriado).HasColumnName("Dt_Criado");
                 entidade.Property(s => s.UltAtualizacao).HasColumnName("ult_Atualizacao");
                 entidade.Property(s => s.Status).HasDefaultValue(StatusSolicitacao.EmAnalise);

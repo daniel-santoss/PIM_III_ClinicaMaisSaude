@@ -26,6 +26,9 @@ namespace ClinicaMaisSaude.Infrastructure.Services
         private readonly IConfiguration _configuration;
         private readonly IEmailService _emailService;
 
+        // Versão dos termos de uso aceitos (consentimento LGPD). Bump ao trocar o texto dos termos.
+        private const string TermosVersaoAtual = "1.0";
+
         public AutoCadastroService(ClinicaDbContext context, IConfiguration configuration, IEmailService emailService)
         {
             _context = context;
@@ -60,6 +63,10 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             if (string.IsNullOrWhiteSpace(nome))
                 return Falha("Informe o nome completo.");
 
+            // Consentimento LGPD: aceite dos termos é obrigatório para prosseguir.
+            if (!request.AceiteTermos)
+                return Falha("É necessário aceitar os termos de uso para continuar.");
+
             var email = (request.Email ?? string.Empty).Trim().ToLowerInvariant();
             if (string.IsNullOrWhiteSpace(email) || !email.Contains('@'))
                 return Falha("Informe um e-mail válido.");
@@ -68,13 +75,10 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             if (!Cpf.EhValido(cpf))
                 return Falha("O CPF informado não é matematicamente válido.");
 
-            string? telefone = null;
-            if (!string.IsNullOrWhiteSpace(request.Telefone))
-            {
-                telefone = new string(request.Telefone.Where(char.IsDigit).ToArray());
-                if (telefone.Length != 11)
-                    return Falha("Telefone inválido. Informe DDD + número (11 dígitos).");
-            }
+            // Telefone é OBRIGATÓRIO no wizard (DDD + número, 10 ou 11 dígitos).
+            var telefone = new string((request.Telefone ?? string.Empty).Where(char.IsDigit).ToArray());
+            if (telefone.Length != 10 && telefone.Length != 11)
+                return Falha("Informe um telefone válido com DDD (10 ou 11 dígitos).");
 
             // ---- Modelo de DS: precisa ser o vigente (padrão) ----
             var modelo = await _context.ModelosDeclaracaoSaude
@@ -99,6 +103,17 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                 if (r.Resposta && string.IsNullOrWhiteSpace(r.Detalhe))
                     return Falha("As respostas \"Sim\" exigem um detalhamento.");
             }
+
+            // ---- E-mail verificado: exige o token do passo de confirmação, amarrado a ESTE e-mail ----
+            if (string.IsNullOrWhiteSpace(request.EmailVerificadoToken))
+                return Falha("Confirme seu e-mail antes de enviar o cadastro.");
+            var agora = DateTime.UtcNow;
+            var tokenHash = CodigoVerificacaoCripto.HashResetTokenHex(request.EmailVerificadoToken);
+            var tokenEmail = await _context.CodigosVerificacao.FirstOrDefaultAsync(c =>
+                c.Tipo == TipoVerificacao.VerificacaoEmail && c.ResetTokenHash == tokenHash &&
+                c.Email == email && c.DtExpiracaoReset > agora);
+            if (tokenEmail == null)
+                return Falha("A confirmação do e-mail expirou. Confirme o e-mail novamente.");
 
             // ---- Anti-fraude / dedupe por pessoa (CPF) ----
             var pessoa = await _context.Pessoas.FirstOrDefaultAsync(p => p.Cpf == cpf);
@@ -147,6 +162,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             }
 
             var solicitacao = new SolicitacaoCadastro(pessoa.Id, modelo.Id);
+            solicitacao.RegistrarConsentimento(TermosVersaoAtual);
             _context.SolicitacoesCadastro.Add(solicitacao);
 
             foreach (var r in respostas)
@@ -154,6 +170,9 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                 _context.RespostasDeclaracaoSaude.Add(
                     new RespostaDeclaracaoSaude(solicitacao.Id, r.PerguntaId, r.Resposta, r.Detalhe));
             }
+
+            // Token de e-mail verificado é de uso único: consome ao concretizar a solicitação.
+            _context.CodigosVerificacao.Remove(tokenEmail);
 
             await _context.SaveChangesAsync();
 

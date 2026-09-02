@@ -19,6 +19,9 @@ namespace ClinicaMaisSaude.Domain.Entities
         public StatusSolicitacao Status { get; private set; }
         /// <summary>Preenchido quando a solicitação é recusada (vai no e-mail ao proponente).</summary>
         public string? MotivoRecusa { get; private set; }
+        /// <summary>Consentimento LGPD: quando o proponente aceitou os termos de uso, e qual versão.</summary>
+        public DateTime? TermosAceitosEm { get; private set; }
+        public string? TermosVersao { get; private set; }
         public DateTime DtCriado { get; private set; }
         public DateTime? UltAtualizacao { get; private set; }
         public void MarcarAtualizacao(DateTime quando) => UltAtualizacao = quando;
@@ -36,6 +39,15 @@ namespace ClinicaMaisSaude.Domain.Entities
             ModeloId = modeloId;
             Status = StatusSolicitacao.EmAnalise;
             DtCriado = DateTime.UtcNow;
+        }
+
+        /// <summary>Registra o aceite dos termos de uso (consentimento LGPD) no momento da solicitação.</summary>
+        public void RegistrarConsentimento(string versao)
+        {
+            if (string.IsNullOrWhiteSpace(versao))
+                throw new ArgumentException("A versão dos termos é obrigatória.", nameof(versao));
+            TermosAceitosEm = DateTime.UtcNow;
+            TermosVersao = versao;
         }
 
         public bool EstaEmAnalise => Status == StatusSolicitacao.EmAnalise;

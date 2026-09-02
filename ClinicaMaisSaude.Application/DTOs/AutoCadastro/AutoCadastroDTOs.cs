@@ -24,8 +24,13 @@ namespace ClinicaMaisSaude.Application.DTOs.AutoCadastro
         public string Nome { get; set; } = string.Empty;
         public string Cpf { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
+        /// <summary>Obrigatório no wizard (DDD + número).</summary>
         public string? Telefone { get; set; }
         public bool TemProblemaMemoria { get; set; }
+        /// <summary>Aceite dos termos de uso (consentimento LGPD) — obrigatório.</summary>
+        public bool AceiteTermos { get; set; }
+        /// <summary>Token de e-mail verificado (emitido no passo de confirmação) — amarra o e-mail.</summary>
+        public string EmailVerificadoToken { get; set; } = string.Empty;
         public Guid ModeloId { get; set; }
         public List<RespostaDeclaracaoItem> Respostas { get; set; } = new();
     }
