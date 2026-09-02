@@ -67,7 +67,11 @@ namespace ClinicaMaisSaude.Infrastructure.Data
         public DbSet<ProfissionalEspecialidade> ProfissionalEspecialidades { get; set; }
         public DbSet<UsoInadequadoIA> UsoInadequadoIA { get; set; } = null!;
         public DbSet<RefreshToken> RefreshTokens { get; set; } = null!;
-        public DbSet<CodigoRecuperacaoSenha> CodigosRecuperacaoSenha { get; set; } = null!;
+        // Código de e-mail de uso único UNIFICADO (recuperação de senha + primeiro acesso +
+        // verificação de e-mail): uma tabela com discriminador (TipoVerificacao), no lugar de uma
+        // tabela por fluxo. Ver CodigoVerificacao.
+        public DbSet<CodigoVerificacao> CodigosVerificacao { get; set; } = null!;
+        public DbSet<TipoVerificacaoLookup> TipoVerificacaoLookup { get; set; } = null!;
         public DbSet<Notificacao> Notificacoes { get; set; } = null!;
         public DbSet<UsuarioFoto> UsuarioFotos { get; set; } = null!;
 
@@ -77,7 +81,6 @@ namespace ClinicaMaisSaude.Infrastructure.Data
         public DbSet<SolicitacaoCadastro> SolicitacoesCadastro { get; set; } = null!;
         public DbSet<RespostaDeclaracaoSaude> RespostasDeclaracaoSaude { get; set; } = null!;
         public DbSet<StatusSolicitacaoLookup> StatusSolicitacaoLookup { get; set; } = null!;
-        public DbSet<CodigoPrimeiroAcesso> CodigosPrimeiroAcesso { get; set; } = null!;
 
         // Método que intercepta a criação das tabelas no SQL Server
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -263,23 +266,50 @@ namespace ClinicaMaisSaude.Infrastructure.Data
                     .OnDelete(DeleteBehavior.Cascade);
             });
 
-            modelBuilder.Entity<CodigoRecuperacaoSenha>(entidade =>
+            // Código de verificação UNIFICADO (recuperação de senha + primeiro acesso + verificação
+            // de e-mail): uma tabela, discriminada por Tipo. Cada fluxo preenche só o alvo que lhe cabe.
+            modelBuilder.Entity<CodigoVerificacao>(entidade =>
             {
-                entidade.ToTable("CodigosRecuperacaoSenha");
+                entidade.ToTable("CodigosVerificacao");
                 entidade.HasKey(c => c.Id);
+                entidade.Property(c => c.Email).IsRequired().HasMaxLength(150);
                 entidade.Property(c => c.CodigoHash).IsRequired().HasMaxLength(64);      // HMAC-SHA256 hex
                 entidade.Property(c => c.ResetTokenHash).HasMaxLength(64).IsRequired(false); // SHA-256 hex
                 entidade.Property(c => c.DtCriado).HasColumnName("Dt_Criado");
                 entidade.Property(c => c.DtExpiracao).HasColumnName("Dt_Expiracao");
                 entidade.Property(c => c.DtExpiracaoReset).HasColumnName("Dt_Expiracao_Reset");
-                // A redefinição faz WHERE ResetTokenHash = @hash; índice acelera e evita scan.
+
+                // O passo final busca por ResetTokenHash; a emissão/validação busca o código ativo do
+                // alvo. Índices por (Tipo, alvo) cobrem os três fluxos sem varredura.
                 entidade.HasIndex(c => c.ResetTokenHash);
-                // A validação busca o código ativo mais recente do usuário.
-                entidade.HasIndex(c => c.UsuarioId);
+                entidade.HasIndex(c => new { c.Tipo, c.UsuarioId });
+                entidade.HasIndex(c => new { c.Tipo, c.PessoaId });
+                entidade.HasIndex(c => new { c.Tipo, c.Email });
+
+                // Discriminador com integridade no banco (mesmo padrão dos demais enums).
+                entidade.HasOne<TipoVerificacaoLookup>()
+                    .WithMany()
+                    .HasForeignKey(c => c.Tipo)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                // Alvos OPCIONAIS. Restrict nos três para não criar múltiplos caminhos de cascade
+                // (a Pessoa é alcançável via Usuario e via Solicitacao); a limpeza dos códigos é feita
+                // em app-code — são efêmeros (consumidos no uso ou varridos por housekeeping).
                 entidade.HasOne(c => c.Usuario)
                     .WithMany()
                     .HasForeignKey(c => c.UsuarioId)
-                    .OnDelete(DeleteBehavior.Cascade);
+                    .IsRequired(false)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entidade.HasOne(c => c.Pessoa)
+                    .WithMany()
+                    .HasForeignKey(c => c.PessoaId)
+                    .IsRequired(false)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entidade.HasOne(c => c.Solicitacao)
+                    .WithMany()
+                    .HasForeignKey(c => c.SolicitacaoId)
+                    .IsRequired(false)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             modelBuilder.Entity<Notificacao>(entidade =>
@@ -494,6 +524,17 @@ namespace ClinicaMaisSaude.Infrastructure.Data
                     .Select(v => new StatusSolicitacaoLookup { Id = v, Nome = v.ToString(), DtCriado = dtSeedLookup }));
             });
 
+            // Lookup do discriminador da tabela unificada de códigos de verificação.
+            modelBuilder.Entity<TipoVerificacaoLookup>(entidade =>
+            {
+                entidade.HasKey(s => s.Id);
+                entidade.Property(s => s.Id).HasConversion<int>().ValueGeneratedNever();
+                entidade.Property(s => s.Nome).IsRequired().HasMaxLength(50);
+                entidade.Property(s => s.DtCriado).HasColumnName("Dt_Criado");
+                entidade.HasData(Enum.GetValues(typeof(TipoVerificacao)).Cast<TipoVerificacao>()
+                    .Select(v => new TipoVerificacaoLookup { Id = v, Nome = v.ToString(), DtCriado = dtSeedLookup }));
+            });
+
             modelBuilder.Entity<ModeloDeclaracaoSaude>(entidade =>
             {
                 entidade.ToTable("ModelosDeclaracaoSaude");
@@ -549,30 +590,6 @@ namespace ClinicaMaisSaude.Infrastructure.Data
 
                 entidade.HasIndex(s => s.PessoaId);
                 entidade.HasIndex(s => s.Status);
-            });
-
-            modelBuilder.Entity<CodigoPrimeiroAcesso>(entidade =>
-            {
-                entidade.ToTable("CodigosPrimeiroAcesso");
-                entidade.HasKey(c => c.Id);
-                entidade.Property(c => c.CodigoHash).IsRequired().HasMaxLength(64);      // HMAC-SHA256 hex
-                entidade.Property(c => c.ResetTokenHash).HasMaxLength(64).IsRequired(false); // SHA-256 hex
-                entidade.Property(c => c.DtCriado).HasColumnName("Dt_Criado");
-                entidade.Property(c => c.DtExpiracao).HasColumnName("Dt_Expiracao");
-                entidade.Property(c => c.DtExpiracaoReset).HasColumnName("Dt_Expiracao_Reset");
-                // A redefinição faz WHERE ResetTokenHash = @hash; índice acelera e evita scan.
-                entidade.HasIndex(c => c.ResetTokenHash);
-                // A validação busca o código ativo mais recente da pessoa.
-                entidade.HasIndex(c => c.PessoaId);
-                entidade.HasOne(c => c.Pessoa)
-                    .WithMany()
-                    .HasForeignKey(c => c.PessoaId)
-                    .OnDelete(DeleteBehavior.Cascade);
-                // Restrict p/ evitar múltiplos caminhos de cascade (Pessoa já cobre a limpeza).
-                entidade.HasOne(c => c.Solicitacao)
-                    .WithMany()
-                    .HasForeignKey(c => c.SolicitacaoId)
-                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             modelBuilder.Entity<RespostaDeclaracaoSaude>(entidade =>

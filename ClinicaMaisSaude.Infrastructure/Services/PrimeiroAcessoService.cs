@@ -13,6 +13,7 @@ using ClinicaMaisSaude.Domain.Enums;
 using ClinicaMaisSaude.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 
 namespace ClinicaMaisSaude.Infrastructure.Services
 {
@@ -30,6 +31,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
         private readonly ClinicaDbContext _context;
         private readonly IConfiguration _configuration;
         private readonly IEmailService _emailService;
+        private readonly ILogger<PrimeiroAcessoService> _logger;
 
         private const int ExpiracaoCodigoMin = 15;
         private const int ExpiracaoResetMin = 10;
@@ -37,11 +39,12 @@ namespace ClinicaMaisSaude.Infrastructure.Services
         private const int ThrottleSegundos = 60;
         private const int TamanhoMinimoSenha = 8;
 
-        public PrimeiroAcessoService(ClinicaDbContext context, IConfiguration configuration, IEmailService emailService)
+        public PrimeiroAcessoService(ClinicaDbContext context, IConfiguration configuration, IEmailService emailService, ILogger<PrimeiroAcessoService> logger)
         {
             _context = context;
             _configuration = configuration;
             _emailService = emailService;
+            _logger = logger;
         }
 
         public async Task SolicitarAsync(SolicitarPrimeiroAcessoRequest request)
@@ -60,8 +63,8 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             if (solicitacaoAprovada == null) return;
 
             var agora = DateTime.UtcNow;
-            var codigosDaPessoa = await _context.CodigosPrimeiroAcesso
-                .Where(c => c.PessoaId == pessoa.Id)
+            var codigosDaPessoa = await _context.CodigosVerificacao
+                .Where(c => c.Tipo == TipoVerificacao.PrimeiroAcesso && c.PessoaId == pessoa.Id)
                 .ToListAsync();
 
             // Throttle: se já foi emitido um código há menos de 60s, não reenvia (anti-spam).
@@ -75,14 +78,17 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             // Housekeeping: remove códigos velhos já expirados há mais de 1 dia.
             var velhos = codigosDaPessoa.Where(c => c.DtExpiracao < agora.AddDays(-1)).ToList();
             if (velhos.Count > 0)
-                _context.CodigosPrimeiroAcesso.RemoveRange(velhos);
+                _context.CodigosVerificacao.RemoveRange(velhos);
 
             var codigo = CodigoVerificacaoCripto.GerarCodigo();
-            _context.CodigosPrimeiroAcesso.Add(new CodigoPrimeiroAcesso(
-                pessoa.Id, solicitacaoAprovada.Id,
+            _context.CodigosVerificacao.Add(CodigoVerificacao.ParaPrimeiroAcesso(
+                pessoa.Id, solicitacaoAprovada.Id, pessoa.Email,
                 CodigoVerificacaoCripto.HashCodigoHex(codigo, Pepper()),
                 agora.AddMinutes(ExpiracaoCodigoMin)));
             await _context.SaveChangesAsync();
+
+            // Atalho de dev (só com a flag ligada): loga o código no console p/ testar sem e-mail.
+            CodigoDevLog.Emitir(_configuration, _logger, TipoVerificacao.PrimeiroAcesso, pessoa.Email, codigo, ExpiracaoCodigoMin);
 
             var logoSrc = _configuration[ConfigKeys.EmailLogoUrl];
             if (string.IsNullOrWhiteSpace(logoSrc)) logoSrc = "cid:logoclinica";
@@ -104,8 +110,8 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             if (pessoa == null) throw generico;
 
             var agora = DateTime.UtcNow;
-            var codigo = await _context.CodigosPrimeiroAcesso
-                .Where(c => c.PessoaId == pessoa.Id && !c.Usado && c.DtExpiracao > agora)
+            var codigo = await _context.CodigosVerificacao
+                .Where(c => c.Tipo == TipoVerificacao.PrimeiroAcesso && c.PessoaId == pessoa.Id && !c.Usado && c.DtExpiracao > agora)
                 .OrderByDescending(c => c.DtCriado)
                 .FirstOrDefaultAsync();
             if (codigo == null) throw generico;
@@ -145,16 +151,16 @@ namespace ClinicaMaisSaude.Infrastructure.Services
 
             var agora = DateTime.UtcNow;
             var tokenHash = CodigoVerificacaoCripto.HashResetTokenHex(request.ResetToken);
-            var codigo = await _context.CodigosPrimeiroAcesso
+            var codigo = await _context.CodigosVerificacao
                 .Include(c => c.Pessoa)
-                .FirstOrDefaultAsync(c => c.ResetTokenHash == tokenHash && c.DtExpiracaoReset > agora);
+                .FirstOrDefaultAsync(c => c.Tipo == TipoVerificacao.PrimeiroAcesso && c.ResetTokenHash == tokenHash && c.DtExpiracaoReset > agora);
             if (codigo == null) throw new ValidationException("Token inválido ou expirado.");
 
             // Corrida/reuso: se a conta já foi criada nesse meio tempo, aborta (idempotência defensiva).
             var jaTemConta = await _context.Usuarios.AnyAsync(u => u.PessoaId == codigo.PessoaId);
             if (jaTemConta)
             {
-                _context.CodigosPrimeiroAcesso.Remove(codigo);
+                _context.CodigosVerificacao.Remove(codigo);
                 await _context.SaveChangesAsync();
                 throw new ValidationException("Token inválido ou expirado.");
             }
@@ -163,12 +169,12 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             if (paciente == null) throw new ValidationException("Cadastro não encontrado.");
 
             // Cria a credencial e ativa o paciente (proponente → conta ativa).
-            var usuario = new Usuario(codigo.PessoaId, BCrypt.Net.BCrypt.HashPassword(request.NovaSenha), RoleUsuario.Paciente);
+            var usuario = new Usuario(codigo.PessoaId!.Value, BCrypt.Net.BCrypt.HashPassword(request.NovaSenha), RoleUsuario.Paciente);
             _context.Usuarios.Add(usuario);
             paciente.AtivarComConta(usuario.Id);
 
             // Reset token é de uso único: remove a linha para impedir reuso.
-            _context.CodigosPrimeiroAcesso.Remove(codigo);
+            _context.CodigosVerificacao.Remove(codigo);
             await _context.SaveChangesAsync();
         }
 

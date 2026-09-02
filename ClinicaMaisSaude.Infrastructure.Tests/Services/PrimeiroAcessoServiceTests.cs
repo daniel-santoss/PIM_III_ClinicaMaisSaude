@@ -10,6 +10,7 @@ using ClinicaMaisSaude.Infrastructure.Data;
 using ClinicaMaisSaude.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace ClinicaMaisSaude.Infrastructure.Tests.Services
 {
@@ -36,7 +37,7 @@ namespace ClinicaMaisSaude.Infrastructure.Tests.Services
                     ["Security:CodigoRecuperacaoPepper"] = "pepper-de-teste-com-entropia-suficiente=="
                 })
                 .Build();
-            _service = new PrimeiroAcessoService(_context, config, _email);
+            _service = new PrimeiroAcessoService(_context, config, _email, NullLogger<PrimeiroAcessoService>.Instance);
         }
 
         // Semeia um proponente (Pessoa + Paciente EmAnalise) e uma solicitação com o status dado.
@@ -89,7 +90,7 @@ namespace ClinicaMaisSaude.Infrastructure.Tests.Services
             Assert.Equal(usuario.Id, paciente.UsuarioId);
 
             // Código consumido (uso único).
-            Assert.Equal(0, await _context.CodigosPrimeiroAcesso.CountAsync());
+            Assert.Equal(0, await _context.CodigosVerificacao.CountAsync());
         }
 
         [Fact]
@@ -100,7 +101,7 @@ namespace ClinicaMaisSaude.Infrastructure.Tests.Services
             await _service.SolicitarAsync(new SolicitarPrimeiroAcessoRequest { Identificador = CpfProponente });
 
             Assert.Null(_email.UltimoCorpo);
-            Assert.Equal(0, await _context.CodigosPrimeiroAcesso.CountAsync());
+            Assert.Equal(0, await _context.CodigosVerificacao.CountAsync());
         }
 
         [Fact]
@@ -114,7 +115,7 @@ namespace ClinicaMaisSaude.Infrastructure.Tests.Services
             await _service.SolicitarAsync(new SolicitarPrimeiroAcessoRequest { Identificador = CpfProponente });
 
             Assert.Null(_email.UltimoCorpo);
-            Assert.Equal(0, await _context.CodigosPrimeiroAcesso.CountAsync());
+            Assert.Equal(0, await _context.CodigosVerificacao.CountAsync());
         }
 
         [Fact]
