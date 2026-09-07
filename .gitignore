@@ -44,6 +44,8 @@ bld/
 !clinica-context.md
 !requisitos_e_regras.md
 !DEPLOY.md
+# Artefatos versionados do PIM IV (banco, documentação técnica):
+!docs/**/*.md
 
 # Visual Studio 2015/2017 cache/options directory
 .vs/
