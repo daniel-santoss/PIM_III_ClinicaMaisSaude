@@ -279,10 +279,9 @@ using (var scope = app.Services.CreateScope())
         app.Environment.IsDevelopment(),
         services.GetRequiredService<ILogger<Program>>());
 
-    // Modelo de Declaração de Saúde de exemplo (Development, se não houver nenhum).
-    await DeclaracaoSaudeSeeder.SeedExemploAsync(
+    // Modelo vigente de Declaração de Saúde (as 30 perguntas), se ainda não houver nenhum.
+    await DeclaracaoSaudeSeeder.SeedAsync(
         services.GetRequiredService<ClinicaDbContext>(),
-        app.Environment.IsDevelopment(),
         services.GetRequiredService<ILogger<Program>>());
 }
 
