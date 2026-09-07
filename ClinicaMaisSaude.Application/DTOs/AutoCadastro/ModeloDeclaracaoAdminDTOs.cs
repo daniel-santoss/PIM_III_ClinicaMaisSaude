@@ -49,4 +49,10 @@ namespace ClinicaMaisSaude.Application.DTOs.AutoCadastro
         public string Pergunta { get; set; } = string.Empty;
         public int? Ordem { get; set; }
     }
+
+    /// <summary>Inclusão de várias perguntas de uma vez (uma por linha no editor). Anexadas ao fim, na ordem.</summary>
+    public class PerguntasLoteRequest
+    {
+        public List<string> Perguntas { get; set; } = new();
+    }
 }

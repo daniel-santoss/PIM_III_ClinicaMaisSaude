@@ -82,6 +82,14 @@ namespace ClinicaMaisSaude.API.Controllers
             return Created("", criada);
         }
 
+        [HttpPost("modelos/{id}/perguntas/lote")]
+        public async Task<IActionResult> AdicionarPerguntasEmLote(Guid id, [FromBody] PerguntasLoteRequest request)
+        {
+            ExigirAdmin();
+            var criadas = await _service.AdicionarPerguntasEmLoteAsync(id, request?.Perguntas ?? new List<string>());
+            return Created("", criadas);
+        }
+
         [HttpPut("perguntas/{perguntaId}")]
         public async Task<IActionResult> EditarPergunta(Guid perguntaId, [FromBody] PerguntaRequest request)
         {

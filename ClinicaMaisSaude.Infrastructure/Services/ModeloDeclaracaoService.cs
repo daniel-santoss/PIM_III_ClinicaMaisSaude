@@ -140,6 +140,32 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             return new PerguntaAdminResponse { Id = pergunta.Id, Pergunta = pergunta.Pergunta, Ordem = pergunta.Ordem };
         }
 
+        public async Task<List<PerguntaAdminResponse>> AdicionarPerguntasEmLoteAsync(Guid modeloId, List<string> perguntas)
+        {
+            await GarantirModeloEditavelAsync(modeloId);
+
+            var textos = (perguntas ?? new List<string>())
+                .Select(p => (p ?? string.Empty).Trim())
+                .Where(p => !string.IsNullOrWhiteSpace(p))
+                .ToList();
+            if (textos.Count == 0)
+                throw new ValidationException("Informe ao menos uma pergunta.");
+
+            var ordem = await _context.PerguntasDeclaracaoSaude
+                .Where(p => p.ModeloId == modeloId)
+                .Select(p => (int?)p.Ordem)
+                .MaxAsync() ?? 0;
+
+            var novas = new List<PerguntaDeclaracaoSaude>();
+            foreach (var texto in textos)
+                novas.Add(new PerguntaDeclaracaoSaude(modeloId, texto, ++ordem));
+
+            _context.PerguntasDeclaracaoSaude.AddRange(novas);
+            await _context.SaveChangesAsync();
+
+            return novas.Select(p => new PerguntaAdminResponse { Id = p.Id, Pergunta = p.Pergunta, Ordem = p.Ordem }).ToList();
+        }
+
         public async Task EditarPerguntaAsync(Guid perguntaId, PerguntaRequest request)
         {
             var pergunta = await _context.PerguntasDeclaracaoSaude.FirstOrDefaultAsync(p => p.Id == perguntaId)
