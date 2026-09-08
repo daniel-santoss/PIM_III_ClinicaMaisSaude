@@ -202,7 +202,8 @@ export default function AutoCadastroScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <View style={styles.topo}>
-        <Pressable onPress={() => router.back()} hitSlop={10} style={styles.voltarBtn}>
+        <Pressable onPress={() => router.back()} hitSlop={10} style={styles.voltarBtn}
+          accessibilityRole="button" accessibilityLabel="Voltar">
           <Ionicons name="chevron-back" size={24} color={cores.texto} />
         </Pressable>
         <Text style={styles.topoTitulo}>Criar cadastro</Text>
@@ -269,7 +270,9 @@ export default function AutoCadastroScreen() {
                     </Text>
                   </ScrollView>
 
-                  <Pressable onPress={() => setAceitouTermos((v) => !v)} style={styles.check} hitSlop={6}>
+                  <Pressable onPress={() => setAceitouTermos((v) => !v)} style={styles.check} hitSlop={6}
+                    accessibilityRole="checkbox" accessibilityState={{ checked: aceitouTermos }}
+                    accessibilityLabel="Li e aceito os termos de uso e autorizo o tratamento dos meus dados pessoais">
                     <View style={[styles.checkBox, aceitouTermos && styles.checkBoxOn]}>
                       {aceitouTermos && <Ionicons name="checkmark" size={14} color="#fff" />}
                     </View>
@@ -308,7 +311,9 @@ export default function AutoCadastroScreen() {
                     <Text style={styles.ajuda}>Enviaremos um código para confirmar este e-mail.</Text>
                   </Campo>
 
-                  <Pressable onPress={() => setTemProblemaMemoria((v) => !v)} style={styles.check} hitSlop={6} disabled={ocupado}>
+                  <Pressable onPress={() => setTemProblemaMemoria((v) => !v)} style={styles.check} hitSlop={6} disabled={ocupado}
+                    accessibilityRole="checkbox" accessibilityState={{ checked: temProblemaMemoria }}
+                    accessibilityLabel="Tenho dificuldade de memória e posso precisar de apoio">
                     <View style={[styles.checkBox, temProblemaMemoria && styles.checkBoxOn]}>
                       {temProblemaMemoria && <Ionicons name="checkmark" size={14} color="#fff" />}
                     </View>
@@ -394,11 +399,15 @@ export default function AutoCadastroScreen() {
                         <Text style={styles.perguntaTexto}>{i + 1}. {p.pergunta}</Text>
                         <View style={styles.simNaoRow}>
                           <Pressable onPress={() => setResposta(p.perguntaId, true)} disabled={ocupado}
-                            style={[styles.pill, sim && styles.pillSim]}>
+                            style={[styles.pill, sim && styles.pillSim]}
+                            accessibilityRole="radio" accessibilityState={{ selected: sim }}
+                            accessibilityLabel={`Sim para: ${p.pergunta}`}>
                             <Text style={[styles.pillTexto, sim && styles.pillTextoAtivo]}>Sim</Text>
                           </Pressable>
                           <Pressable onPress={() => setResposta(p.perguntaId, false)} disabled={ocupado}
-                            style={[styles.pill, nao && styles.pillNao]}>
+                            style={[styles.pill, nao && styles.pillNao]}
+                            accessibilityRole="radio" accessibilityState={{ selected: nao }}
+                            accessibilityLabel={`Não para: ${p.pergunta}`}>
                             <Text style={[styles.pillTexto, nao && styles.pillTextoAtivo]}>Não</Text>
                           </Pressable>
                         </View>

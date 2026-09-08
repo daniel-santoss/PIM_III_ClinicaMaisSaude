@@ -13,6 +13,22 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+
+    <!-- VLibras — tradutor de texto para Libras (widget oficial do Governo Federal / gov.br).
+         Acessibilidade para pessoas surdas: o avatar traduz o conteúdo da página selecionado. -->
+    <div vw class="enabled" aria-hidden="true">
+      <div vw-access-button class="active"></div>
+      <div vw-plugin-wrapper>
+        <div class="vw-plugin-top-wrapper"></div>
+      </div>
+    </div>
+    <script src="https://vlibras.gov.br/app/vlibras-plugin.js"></script>
+    <script>
+      // Inicializa o widget quando o plugin carrega (falha silenciosa se o serviço estiver indisponível).
+      window.addEventListener('load', function () {
+        try { new window.VLibras.Widget('https://vlibras.gov.br/app'); } catch (e) { /* VLibras indisponível */ }
+      });
+    </script>
   </body>
 </html>
 

@@ -274,6 +274,13 @@ export default function AppLayout({
 
   return (
     <div className="flex min-h-screen bg-canvas">
+      {/* Skip link — primeiro elemento focável: pula a navegação e vai ao conteúdo (WCAG 2.4.1). */}
+      <a
+        href="#conteudo-principal"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[3000] focus:px-4 focus:py-2 focus:rounded-lg focus:bg-brand-600 focus:text-white focus:font-semibold focus:shadow-lg"
+      >
+        Pular para o conteúdo
+      </a>
 
       {/* ── OVERLAY (Mobile/Tablet) ── */}
       {!isDesktop && isDrawerOpen && (
@@ -372,7 +379,7 @@ export default function AppLayout({
         className="flex-1 min-w-0 flex flex-col"
         style={{ marginLeft: isDesktop ? RAIL_W : 0, marginTop: isDesktop ? 0 : 60 }}
       >
-        <main className="flex-1 min-w-0 px-7 py-7">
+        <main id="conteudo-principal" className="flex-1 min-w-0 px-7 py-7">
           <div className="max-w-[1180px] mx-auto">
             {/* Título da página (a topbar desktop foi removida; título agora no conteúdo) */}
             {isDesktop && (
