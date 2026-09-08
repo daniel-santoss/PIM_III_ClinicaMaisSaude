@@ -46,7 +46,11 @@
         {
           "faceIDPermission": "O app usa o Face ID para desbloquear seu acesso."
         }
-      ]
+      ],
+      "expo-font",
+      "expo-image",
+      "expo-status-bar",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true
