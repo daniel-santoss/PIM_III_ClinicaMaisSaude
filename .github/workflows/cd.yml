@@ -1,0 +1,130 @@
+name: CD
+
+# Entrega Contínua. Só dispara MANUALMENTE (workflow_dispatch) ou ao publicar uma tag "v*"
+# — nunca a cada push, para não gastar minutos nem publicar sem intenção.
+#
+# O que já funciona sem escolher provedor:
+#   - build da imagem Docker da API + push para o GHCR (GitHub Container Registry);
+#   - build do frontend web (publica o dist/ como artifact).
+# Os passos de DEPLOY e MIGRATIONS ficam comentados: dependem do provedor e dos secrets
+# (ver docs/nuvem/ARQUITETURA_NUVEM.md §5 e §7).
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  imagem-api:
+    name: Imagem da API → GHCR
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Nome da imagem (owner em minúsculas)
+        id: img
+        run: echo "name=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/clinica-api" >> "$GITHUB_OUTPUT"
+
+      - name: Login no GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Metadados (tags da imagem)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ steps.img.outputs.name }}
+          tags: |
+            type=ref,event=tag
+            type=sha
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build e push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ClinicaMaisSaude.API/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+  web:
+    name: Build do frontend web
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: clinica-frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: clinica-frontend/package-lock.json
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Build (tsc + vite)
+        run: npm run build
+        env:
+          # Aponta o front para a API pública quando o secret existir (senão cai no default).
+          VITE_API_URL: ${{ secrets.VITE_API_URL }}
+
+      - name: Publicar dist como artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: clinica-frontend/dist
+
+      # --- Deploy do web (ative conforme o provedor) ---
+      # Netlify:   nwtgck/actions-netlify@v3  (secrets NETLIFY_AUTH_TOKEN / NETLIFY_SITE_ID)
+      # Azure SWA: Azure/static-web-apps-deploy@v1 (secret AZURE_STATIC_WEB_APPS_API_TOKEN)
+      # Vercel:    amondnet/vercel-action@v25
+
+  # ==========================================================================
+  # DEPLOY DA API + MIGRATIONS — ative quando houver provedor + secrets.
+  # Exige conta/credenciais/custo (executado pelo responsável do projeto).
+  # Ver docs/nuvem/ARQUITETURA_NUVEM.md §4 (migração) e §5 (provedor).
+  # ==========================================================================
+  #
+  # migrations:
+  #   name: Aplica migrations no banco gerenciado
+  #   needs: imagem-api
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: actions/setup-dotnet@v4
+  #       with: { dotnet-version: '10.0.x' }
+  #     - run: dotnet tool install --global dotnet-ef
+  #     - name: dotnet ef database update
+  #       run: |
+  #         dotnet ef database update \
+  #           --project ClinicaMaisSaude.Infrastructure \
+  #           --startup-project ClinicaMaisSaude.API \
+  #           --connection "${{ secrets.PROD_DB_CONNECTION }}"
+  #
+  # deploy-api:
+  #   name: Deploy da API no provedor
+  #   needs: [imagem-api, migrations]
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     # --- Azure Web App for Containers ---
+  #     # - uses: azure/webapps-deploy@v3
+  #     #   with:
+  #     #     app-name: clinica-api
+  #     #     publish-profile: ${{ secrets.AZURE_PUBLISH_PROFILE }}
+  #     #     images: ghcr.io/<owner>/clinica-api:latest
+  #     #
+  #     # --- Fly.io ---
+  #     # - uses: superfly/flyctl-actions/setup-flyctl@master
+  #     # - run: flyctl deploy --remote-only
+  #     #   env: { FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }} }
+  #     - run: echo "Configure o deploy do provedor escolhido (ver docs/nuvem)."
