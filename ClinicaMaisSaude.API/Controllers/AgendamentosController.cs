@@ -25,6 +25,17 @@ namespace ClinicaMaisSaude.API.Controllers
             _probabilidadeFaltaService = probabilidadeFaltaService;
         }
 
+        // Autorização de recurso: um paciente só pode agir sobre a própria consulta.
+        // Staff (médica/enfermeira/admin) passa direto. Carrega via service, que já lança 404
+        // se o agendamento não existir. Centraliza a checagem antes duplicada em AlterarStatus/Remarcar.
+        private async Task GarantirPacienteDonoAsync(Guid agendamentoId, string mensagem)
+        {
+            if (!EhPaciente) return;
+            var agendamento = await _agendamentoService.BuscarPorIdAsync(agendamentoId);
+            if (agendamento.PacienteId != PacienteIdToken)
+                throw new ForbiddenException(mensagem);
+        }
+
         [HttpPost]
         public async Task<IActionResult> CriarAgendamento([FromBody] AgendamentoRequest request)
         {
@@ -57,12 +68,7 @@ namespace ClinicaMaisSaude.API.Controllers
 
         [HttpGet("{id}")]
         public async Task<IActionResult> ObterPorId(Guid id)
-        {
-            var agendamento = await _agendamentoService.ObterPorIdAsync(id);
-            if (agendamento == null)
-                throw new NotFoundException("Agendamento não encontrado.");
-            return Ok(agendamento);
-        }
+            => Ok(await _agendamentoService.BuscarPorIdAsync(id));
 
         [HttpGet("horarios-disponiveis")]
         public async Task<IActionResult> ObterHorariosDisponiveis([FromQuery] DateTime data, [FromQuery] int tipoConsulta, [FromQuery] int? especialidadeId = null, [FromQuery] Guid? origemId = null)
@@ -83,18 +89,10 @@ namespace ClinicaMaisSaude.API.Controllers
         [HttpPatch("{id}/status")]
         public async Task<IActionResult> AlterarStatus(Guid id, [FromBody] int novoStatus)
         {
-            if (EhPaciente)
-            {
-                if (novoStatus != 6)
-                    throw new ForbiddenException("Pacientes só podem alterar o status para Cancelado.");
+            if (EhPaciente && novoStatus != 6)
+                throw new ForbiddenException("Pacientes só podem alterar o status para Cancelado.");
 
-                var agendamento = await _agendamentoService.ObterPorIdAsync(id);
-                if (agendamento == null)
-                    throw new NotFoundException("Agendamento não encontrado.");
-
-                if (agendamento.PacienteId != PacienteIdToken)
-                    throw new ForbiddenException("Você não pode cancelar consultas de outros pacientes.");
-            }
+            await GarantirPacienteDonoAsync(id, "Você não pode cancelar consultas de outros pacientes.");
 
             var resultado = await _agendamentoService.AlterarStatusAsync(id, novoStatus, UsuarioLogadoId);
             return Ok(resultado);
@@ -107,15 +105,7 @@ namespace ClinicaMaisSaude.API.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            if (!IsAdmin && EhPaciente)
-            {
-                var agendamento = await _agendamentoService.ObterPorIdAsync(id);
-                if (agendamento == null)
-                    throw new NotFoundException("Agendamento não encontrado.");
-
-                if (agendamento.PacienteId != PacienteIdToken)
-                    throw new ForbiddenException("Você não pode remarcar consultas de outros pacientes.");
-            }
+            await GarantirPacienteDonoAsync(id, "Você não pode remarcar consultas de outros pacientes.");
 
             var resultado = await _agendamentoService.RemarcarAsync(id, request, UsuarioLogadoId);
             return Ok(resultado);
@@ -163,9 +153,7 @@ namespace ClinicaMaisSaude.API.Controllers
         [HttpGet("{agendamentoId}/probabilidade-falta")]
         public async Task<IActionResult> ObterProbabilidadeFalta(Guid agendamentoId)
         {
-            var agendamento = await _agendamentoService.ObterPorIdAsync(agendamentoId);
-            if (agendamento == null)
-                throw new NotFoundException("Agendamento não encontrado.");
+            var agendamento = await _agendamentoService.BuscarPorIdAsync(agendamentoId);
 
             var (probabilidade, nivel) = await _probabilidadeFaltaService.CalcularProbabilidadeAsync(agendamento.PacienteId, agendamento.DataHoraConsulta);
 

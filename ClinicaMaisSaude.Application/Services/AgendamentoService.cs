@@ -379,7 +379,7 @@ namespace ClinicaMaisSaude.Application.Services
             });
         }
 
-        public async Task<AgendamentoResponse> ObterPorIdAsync(Guid id)
+        public async Task<AgendamentoResponse> BuscarPorIdAsync(Guid id)
         {
             var agendamento = await BuscarAgendamentoAsync(id);
 
