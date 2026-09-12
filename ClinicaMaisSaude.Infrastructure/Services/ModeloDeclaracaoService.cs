@@ -84,7 +84,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
 
         public async Task RenomearModeloAsync(Guid id, string nome)
         {
-            var modelo = await ObterOuFalharAsync(id);
+            var modelo = await BuscarModeloAsync(id);
             var limpo = (nome ?? string.Empty).Trim();
             if (string.IsNullOrWhiteSpace(limpo))
                 throw new ValidationException("Informe o nome do modelo.");
@@ -107,7 +107,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
 
         public async Task ExcluirModeloAsync(Guid id)
         {
-            var modelo = await ObterOuFalharAsync(id);
+            var modelo = await BuscarModeloAsync(id);
 
             if (await _context.SolicitacoesCadastro.AnyAsync(s => s.ModeloId == id))
                 throw new ValidationException("Este modelo já foi usado em solicitações e não pode ser excluído (crie um novo).");
@@ -168,8 +168,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
 
         public async Task EditarPerguntaAsync(Guid perguntaId, PerguntaRequest request)
         {
-            var pergunta = await _context.PerguntasDeclaracaoSaude.FirstOrDefaultAsync(p => p.Id == perguntaId)
-                ?? throw new NotFoundException("Pergunta não encontrada.");
+            var pergunta = await BuscarPerguntaAsync(perguntaId);
             await GarantirModeloEditavelAsync(pergunta.ModeloId);
 
             var texto = (request.Pergunta ?? string.Empty).Trim();
@@ -182,8 +181,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
 
         public async Task ExcluirPerguntaAsync(Guid perguntaId)
         {
-            var pergunta = await _context.PerguntasDeclaracaoSaude.FirstOrDefaultAsync(p => p.Id == perguntaId)
-                ?? throw new NotFoundException("Pergunta não encontrada.");
+            var pergunta = await BuscarPerguntaAsync(perguntaId);
             await GarantirModeloEditavelAsync(pergunta.ModeloId);
 
             _context.PerguntasDeclaracaoSaude.Remove(pergunta);
@@ -211,9 +209,15 @@ namespace ClinicaMaisSaude.Infrastructure.Services
 
         // ----------------- Helpers -----------------
 
-        private async Task<ModeloDeclaracaoSaude> ObterOuFalharAsync(Guid id) =>
+        // Carrega a entidade pelo id ou lança 404. Convenção do projeto: Buscar* garante
+        // que existe (senão NotFound); Obter* pode devolver nulo (o chamador trata).
+        private async Task<ModeloDeclaracaoSaude> BuscarModeloAsync(Guid id) =>
             await _context.ModelosDeclaracaoSaude.FirstOrDefaultAsync(m => m.Id == id)
                 ?? throw new NotFoundException("Modelo não encontrado.");
+
+        private async Task<PerguntaDeclaracaoSaude> BuscarPerguntaAsync(Guid perguntaId) =>
+            await _context.PerguntasDeclaracaoSaude.FirstOrDefaultAsync(p => p.Id == perguntaId)
+                ?? throw new NotFoundException("Pergunta não encontrada.");
 
         // Bloqueia mudança estrutural em modelo já usado (integridade histórica das respostas).
         private async Task GarantirModeloEditavelAsync(Guid modeloId)

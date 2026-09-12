@@ -52,6 +52,12 @@ namespace ClinicaMaisSaude.Application.Services
             _configuration = configuration;
         }
 
+        // Carrega a entidade pelo id ou lança 404. Convenção do projeto: Buscar* garante
+        // que existe (senão NotFound); Obter* pode devolver nulo (o chamador trata).
+        private async Task<Agendamento> BuscarAgendamentoAsync(Guid id) =>
+            await _repository.ObterPorIdAsync(id)
+                ?? throw new NotFoundException("Agendamento não encontrado.");
+
         public async Task<AgendamentoResponse> AdicionarAsync(AgendamentoRequest request, Guid usuarioLogadoId)
         {
             var tipoProfissional = (TipoProfissional)request.TipoProfissional;
@@ -239,9 +245,7 @@ namespace ClinicaMaisSaude.Application.Services
 
         public async Task<AgendamentoResponse> AtualizarAsync(Guid id, AgendamentoRequest request, Guid usuarioLogadoId)
         {
-            var agendamento = await _repository.ObterPorIdAsync(id);
-            if (agendamento == null)
-                throw new NotFoundException("Agendamento não encontrado.");
+            var agendamento = await BuscarAgendamentoAsync(id);
 
             if (request.DataHoraConsulta <= DateTime.UtcNow.AddHours(-3))
                 throw new BusinessRuleException("Não é permitido reagendar para datas/horários passados.");
@@ -284,9 +288,7 @@ namespace ClinicaMaisSaude.Application.Services
 
         public async Task<AgendamentoResponse> AlterarStatusAsync(Guid id, int novoStatusInt, Guid usuarioLogadoId)
         {
-            var agendamento = await _repository.ObterPorIdAsync(id);
-            if (agendamento == null)
-                throw new NotFoundException("Agendamento não encontrado.");
+            var agendamento = await BuscarAgendamentoAsync(id);
 
             var novoStatus = (StatusAgendamento)novoStatusInt;
             var validacao = MaquinaEstadosAgendamento.ValidarTransicao(agendamento, novoStatus, DateTime.UtcNow.AddHours(-3));
@@ -350,9 +352,7 @@ namespace ClinicaMaisSaude.Application.Services
 
         public async Task DeletarAsync(Guid id, Guid usuarioLogadoId)
         {
-            var agendamento = await _repository.ObterPorIdAsync(id);
-            if (agendamento == null)
-                throw new NotFoundException("Agendamento não encontrado.");
+            var agendamento = await BuscarAgendamentoAsync(id);
 
             // Soft-delete: em vez de remover fisicamente (o que apagaria a trilha de
             // auditoria via cascade), marca como Cancelado e registra o evento. O registro
@@ -381,9 +381,7 @@ namespace ClinicaMaisSaude.Application.Services
 
         public async Task<AgendamentoResponse> ObterPorIdAsync(Guid id)
         {
-            var agendamento = await _repository.ObterPorIdAsync(id);
-            if (agendamento == null)
-                throw new NotFoundException("Agendamento não encontrado.");
+            var agendamento = await BuscarAgendamentoAsync(id);
 
             var paciente = await _pacienteRepository.ObterPorIdAsync(agendamento.PacienteId);
             var pacienteNome = paciente?.Pessoa?.Nome ?? "N/A";
@@ -400,9 +398,7 @@ namespace ClinicaMaisSaude.Application.Services
 
         public async Task<AgendamentoResponse> RemarcarAsync(Guid id, RemarcarAgendamentoRequest request, Guid usuarioLogadoId)
         {
-            var agendamento = await _repository.ObterPorIdAsync(id);
-            if (agendamento == null)
-                throw new NotFoundException("Agendamento não encontrado.");
+            var agendamento = await BuscarAgendamentoAsync(id);
 
             if (agendamento.Status == StatusAgendamento.Cancelado || 
                 agendamento.Status == StatusAgendamento.Finalizado)
@@ -728,9 +724,7 @@ namespace ClinicaMaisSaude.Application.Services
 
         public async Task MarcarResultadoDisponivelAsync(Guid id)
         {
-            var agendamento = await _repository.ObterPorIdAsync(id);
-            if (agendamento == null)
-                throw new NotFoundException("Agendamento não encontrado.");
+            var agendamento = await BuscarAgendamentoAsync(id);
 
             if (agendamento.TipoConsulta != TipoConsulta.Exame)
                 throw new BusinessRuleException("Apenas agendamentos do tipo Exame podem ter resultado marcado.");
@@ -759,9 +753,7 @@ namespace ClinicaMaisSaude.Application.Services
 
         public async Task MarcarResultadoRetiradoAsync(Guid id)
         {
-            var agendamento = await _repository.ObterPorIdAsync(id);
-            if (agendamento == null)
-                throw new NotFoundException("Agendamento não encontrado.");
+            var agendamento = await BuscarAgendamentoAsync(id);
 
             if (!agendamento.ExigeResultadoPosterior)
                 throw new BusinessRuleException("Este exame não possui controle de resultado.");
@@ -775,9 +767,7 @@ namespace ClinicaMaisSaude.Application.Services
 
         public async Task ConcluirExameAsync(Guid id, bool exigeResultadoPosterior, Guid usuarioLogadoId)
         {
-            var agendamento = await _repository.ObterPorIdAsync(id);
-            if (agendamento == null)
-                throw new NotFoundException("Agendamento não encontrado.");
+            var agendamento = await BuscarAgendamentoAsync(id);
 
             if (agendamento.TipoConsulta != TipoConsulta.Exame)
                 throw new BusinessRuleException("Endpoint exclusivo para exames.");
