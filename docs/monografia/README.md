@@ -8,6 +8,7 @@ seção pronta para revisão e formatação ABNT.
 | [`CARACTERIZACAO_ORGANIZACAO.md`](CARACTERIZACAO_ORGANIZACAO.md) | Caracterização da organização e diagnóstico | 02 |
 | [`PLANEJAMENTO_EMPREENDEDORISMO.md`](PLANEJAMENTO_EMPREENDEDORISMO.md) | Problema, objetivos, público-alvo, proposta de valor, diferenciais | 03 |
 | [`ARQUITETURA.md`](ARQUITETURA.md) | Arquitetura do sistema (Clean Architecture, stack, segurança, IA, tempo real) | 05 / 06 / 08 |
+| [`ANALISE_CRITICA_ARQUITETURA.md`](ANALISE_CRITICA_ARQUITETURA.md) | Análise crítica (Clean Arch/SOLID/patterns), refatorações aplicadas e trabalhos futuros | 05 / 06 / 08 |
 
 ## Esqueleto da monografia (ABNT) × artefatos
 
@@ -22,6 +23,7 @@ Estrutura sugerida (20–30 páginas de desenvolvimento) e de onde vem cada cont
 | 4. Metodologia (gestão ágil) | [`../agil/`](../agil/) (Product/Sprint Backlog, Kanban, Cronograma) |
 | 5. Requisitos e regras de negócio | `../../requisitos_e_regras.md` |
 | 6. Arquitetura da solução (web + mobile) | [`ARQUITETURA.md`](ARQUITETURA.md) |
+| 6.x Análise crítica da arquitetura e trabalhos futuros | [`ANALISE_CRITICA_ARQUITETURA.md`](ANALISE_CRITICA_ARQUITETURA.md) |
 | 7. Banco de dados | [`../banco/`](../banco/) (MER, DDL, procedures/triggers) |
 | 8. Segurança e conformidade (LGPD) | `ARQUITETURA.md` §7 + `../acessibilidade/RESPONSABILIDADE_SOCIAL.md` |
 | 9. Responsabilidade social e acessibilidade | [`../acessibilidade/`](../acessibilidade/) |
