@@ -13,7 +13,7 @@ namespace ClinicaMaisSaude.API.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
-    public class ConsultasController : ControllerBase
+    public class ConsultasController : ClinicaControllerBase
     {
         private readonly IConsultaService _consultaService;
 
@@ -25,26 +25,14 @@ namespace ClinicaMaisSaude.API.Controllers
         [HttpPost("sugerir-tipo")]
         public async Task<IActionResult> SugerirTipo([FromBody] SugerirTipoRequest request)
         {
-            var pacienteIdClaim = User.FindFirst(ClinicaClaims.PacienteId)?.Value;
-            var tipoUsuario = User.FindFirst(ClinicaClaims.TipoUsuario)?.Value;
-            var isAdmin = User.IsInRole(PerfisUsuario.Admin);
-
-            Guid? pId = null;
-            if (!string.IsNullOrEmpty(pacienteIdClaim) && Guid.TryParse(pacienteIdClaim, out var parsedId))
-            {
-                pId = parsedId;
-            }
-
-            var usuarioLogadoId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-
-            var result = await _consultaService.SugerirTipoAsync(request.Sintomas, pId, tipoUsuario, isAdmin, usuarioLogadoId);
+            var result = await _consultaService.SugerirTipoAsync(request.Sintomas, PacienteIdToken, TipoUsuario, IsAdmin, UsuarioLogadoId);
             return Ok(result);
         }
 
         [HttpGet("violacoes")]
         public async Task<IActionResult> GetViolacoes()
         {
-            if (!User.IsInRole(PerfisUsuario.Admin))
+            if (!IsAdmin)
                 throw new ForbiddenException("Apenas administradores podem ver as violações.");
 
             var violacoes = await _consultaService.ObterViolacoesAsync();
@@ -54,7 +42,7 @@ namespace ClinicaMaisSaude.API.Controllers
         [HttpDelete("violacoes/{pacienteId}/penalidade")]
         public async Task<IActionResult> RemoverPenalidade(Guid pacienteId)
         {
-            if (!User.IsInRole(PerfisUsuario.Admin))
+            if (!IsAdmin)
                 throw new ForbiddenException("Apenas administradores podem remover penalidades.");
 
             await _consultaService.RemoverPenalidadeAsync(pacienteId);
@@ -64,7 +52,7 @@ namespace ClinicaMaisSaude.API.Controllers
         [HttpGet("violacoes-debug")]
         public async Task<IActionResult> GetViolacoesDebug()
         {
-            if (!User.IsInRole(PerfisUsuario.Admin))
+            if (!IsAdmin)
                 throw new ForbiddenException("Apenas administradores podem ver as violações.");
 
             var violacoes = await _consultaService.ObterViolacoesDebugAsync();

@@ -11,7 +11,7 @@ namespace ClinicaMaisSaude.API.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
-    public class NotificacoesController : ControllerBase
+    public class NotificacoesController : ClinicaControllerBase
     {
         private readonly INotificacaoService _notificacaoService;
 
@@ -20,34 +20,24 @@ namespace ClinicaMaisSaude.API.Controllers
             _notificacaoService = notificacaoService;
         }
 
-        private Guid ObterUsuarioLogadoId()
-        {
-            var claim = User.FindFirst(ClaimTypes.NameIdentifier);
-            if (claim == null) throw new UnauthorizedException("Usuário não autenticado.");
-            return Guid.Parse(claim.Value);
-        }
-
         [HttpGet]
         public async Task<IActionResult> ObterTodas()
         {
-            var usuarioId = ObterUsuarioLogadoId();
-            var notificacoes = await _notificacaoService.ObterNotificacoesAsync(usuarioId);
+            var notificacoes = await _notificacaoService.ObterNotificacoesAsync(UsuarioLogadoId);
             return Ok(notificacoes);
         }
 
         [HttpPatch("{id}/lida")]
         public async Task<IActionResult> MarcarComoLida(Guid id)
         {
-            var usuarioId = ObterUsuarioLogadoId();
-            await _notificacaoService.MarcarComoLidaAsync(id, usuarioId);
+            await _notificacaoService.MarcarComoLidaAsync(id, UsuarioLogadoId);
             return NoContent();
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> Remover(Guid id)
         {
-            var usuarioId = ObterUsuarioLogadoId();
-            await _notificacaoService.RemoverAsync(id, usuarioId);
+            await _notificacaoService.RemoverAsync(id, UsuarioLogadoId);
             return NoContent();
         }
     }

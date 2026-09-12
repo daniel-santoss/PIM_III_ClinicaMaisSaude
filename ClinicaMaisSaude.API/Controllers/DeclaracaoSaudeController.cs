@@ -17,7 +17,7 @@ namespace ClinicaMaisSaude.API.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
-    public class DeclaracaoSaudeController : ControllerBase
+    public class DeclaracaoSaudeController : ClinicaControllerBase
     {
         private readonly IModeloDeclaracaoService _service;
 
@@ -116,7 +116,7 @@ namespace ClinicaMaisSaude.API.Controllers
 
         private void ExigirAdmin()
         {
-            if (!User.IsInRole(PerfisUsuario.Admin))
+            if (!IsAdmin)
                 throw new ForbiddenException("Apenas administradores podem gerenciar a Declaração de Saúde.");
         }
     }
