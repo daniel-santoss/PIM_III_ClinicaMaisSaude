@@ -1,6 +1,7 @@
 using ClinicaMaisSaude.Application.Interfaces;
 using ClinicaMaisSaude.Application.Services;
 using ClinicaMaisSaude.Infrastructure.Services;
+using ClinicaMaisSaude.Infrastructure.Gateways;
 using ClinicaMaisSaude.Application.Validators;
 using ClinicaMaisSaude.Domain.Constants;
 using ClinicaMaisSaude.Domain.Interfaces;
@@ -205,6 +206,7 @@ builder.Services.AddScoped<INotificacaoRepository, NotificacaoRepository>();
 builder.Services.AddScoped<INotificacaoService, NotificacaoService>();
 builder.Services.AddScoped<INotificadorTempoReal, NotificadorTempoRealSignalR>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
+builder.Services.AddScoped<ITriagemIaGateway, GeminiTriagemGateway>();
 builder.Services.AddScoped<IConsultaService, ConsultaService>();
 
 builder.Services.AddHostedService<NotificacaoBackgroundService>();
