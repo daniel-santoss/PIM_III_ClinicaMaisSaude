@@ -53,10 +53,12 @@ uniforme em toda a base.
 
 ### 🔴 Alta
 
-1. **God classes (violação de SRP).** Três serviços acumulam responsabilidades demais:
+1. **God classes (violação de SRP).** Três serviços acumulavam responsabilidades demais:
    - `DashboardService` — consulta a dados **+** estatística **+** geração de Excel **+** geração de PDF.
+     _(saldada — ver §4)_
    - `ConsultaService` — *rate-limit* **+** chamada HTTP externa (Gemini) **+** moderação/punição por IA
-     **+** cancelamento em cascata **+** notificação **+** auditoria.
+     **+** cancelamento em cascata **+** notificação **+** auditoria. _(parcialmente saldada — *gateway* de IA
+     isolado e punição unificada; ver §4)_
    - `AutoCadastroService` — validação **+** anti-fraude **+** persistência **+** *templates* de e-mail.
 2. **Entidade central anêmica.** `Agendamento` tem *setters* privados, mas `AlterarStatus` apenas atribui
    o novo status **sem validar a transição** — a máquina de estados vive fora da entidade, deixando a
@@ -85,7 +87,7 @@ uniforme em toda a base.
 ## 4. Refatorações de qualidade aplicadas (*sprint* de arquitetura)
 
 Como resposta direta a esta análise, foi executada uma sequência de refatorações **sem alterar o contrato
-HTTP** (build e 109 testes verdes a cada passo, verificado):
+HTTP** (build e testes verdes a cada passo — a suíte cresceu de 109 para 112 com a cobertura da moderação por IA):
 
 | Refatoração | Efeito | Princípio |
 |-------------|--------|-----------|
@@ -93,6 +95,8 @@ HTTP** (build e 109 testes verdes a cada passo, verificado):
 | **Helpers `Buscar*`** | Elimina a repetição do "carrega-ou-lança-404" em 12 pontos | DRY |
 | **Posse centralizada** (`GarantirPacienteDonoAsync`) | Unifica a autorização de recurso (paciente só age no próprio registro), mantida na borda | SRP na borda |
 | **Divisão do `DashboardService`** | Extrai `DashboardExcelReport` e `DashboardPdfReport` (formatadores puros); serviço cai de 548 → 339 linhas | SRP |
+| **Isolamento do *gateway* de IA** | Extrai `ITriagemIaGateway`/`GeminiTriagemGateway` (prompt, HTTP, *parse*, detecção de segurança); `ConsultaService` passa a interpretar só o desfecho normalizado e cai de 503 → ~430 linhas | DIP + SRP |
+| **Unificação da punição por IA** | Deduplica os dois blocos idênticos de banimento por injeção em `PunirInjecaoAsync` e separa a moderação em `PenalizarSintomasInvalidosAsync` | DRY + SRP |
 
 ### Convenção de nomenclatura adotada
 
@@ -117,15 +121,17 @@ Uma decisão consciente do *sprint* foi **não criar abstrações para tarefas s
 
 ## 5. Trabalhos futuros (priorizados)
 
-1. **Isolar o *gateway* Gemini** do `ConsultaService` atrás de uma interface (fronteira externa real —
-   habilita teste sem rede e troca de provedor) e separar a lógica de moderação/punição.
-2. **Extrair *templates* de e-mail** dos serviços transacionais para um componente dedicado.
-3. **Uniformizar as exceções**: eliminar os lançamentos de exceções de *framework* (`KeyNotFoundException`)
+1. **Extrair *templates* de e-mail** dos serviços transacionais para um componente dedicado.
+2. **Uniformizar as exceções**: eliminar os lançamentos de exceções de *framework* (`KeyNotFoundException`)
    em favor das exceções tipadas da Application.
-4. **Documentar/normalizar a estratégia de acesso a dados** (Repository em casos complexos; `DbContext`
+3. **Documentar/normalizar a estratégia de acesso a dados** (Repository em casos complexos; `DbContext`
    direto nos simples — como decisão explícita).
-5. **Reforço de DDD tático** (opcional): mover a validação de transição para dentro de `Agendamento`;
+4. **Reforço de DDD tático** (opcional): mover a validação de transição para dentro de `Agendamento`;
    introduzir *Value Objects* (`Cpf`, `Email`) caso a evolução exija.
+
+> **Já concluído:** o *gateway* Gemini foi isolado atrás de `ITriagemIaGateway` (fronteira externa real —
+> habilita teste sem rede e troca de provedor) e a lógica de moderação/punição por IA foi separada e
+> deduplicada — ver §4.
 
 ---
 
@@ -134,6 +140,6 @@ Uma decisão consciente do *sprint* foi **não criar abstrações para tarefas s
 A arquitetura cumpre os objetivos de manutenibilidade e testabilidade propostos, com uma base de Clean
 Architecture correta e padrões de projeto bem aplicados. As dívidas identificadas são típicas de um
 sistema que cresceu por incrementos e — criticamente — **foram diagnosticadas com evidência e parcialmente
-saldadas** dentro do próprio ciclo de desenvolvimento, sem regressão (109 testes automatizados verdes). O
+saldadas** dentro do próprio ciclo de desenvolvimento, sem regressão (112 testes automatizados verdes). O
 equilíbrio buscado — **separar responsabilidades sem inflar a abstração** — é, em si, uma decisão
 arquitetural: privilegia a clareza e o custo de manutenção real sobre a pureza teórica.
