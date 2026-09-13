@@ -87,7 +87,7 @@ uniforme em toda a base.
 ## 4. Refatorações de qualidade aplicadas (*sprint* de arquitetura)
 
 Como resposta direta a esta análise, foi executada uma sequência de refatorações **sem alterar o contrato
-HTTP** (build e testes verdes a cada passo — a suíte cresceu de 109 para 112 com a cobertura da moderação por IA):
+HTTP** (build e testes verdes a cada passo — a suíte cresceu de 109 para 113 com a cobertura da moderação por IA):
 
 | Refatoração | Efeito | Princípio |
 |-------------|--------|-----------|
@@ -97,6 +97,7 @@ HTTP** (build e testes verdes a cada passo — a suíte cresceu de 109 para 112 
 | **Divisão do `DashboardService`** | Extrai `DashboardExcelReport` e `DashboardPdfReport` (formatadores puros); serviço cai de 548 → 339 linhas | SRP |
 | **Isolamento do *gateway* de IA** | Extrai `ITriagemIaGateway`/`GeminiTriagemGateway` (prompt, HTTP, *parse*, detecção de segurança); `ConsultaService` passa a interpretar só o desfecho normalizado e cai de 503 → ~430 linhas | DIP + SRP |
 | **Unificação da punição por IA** | Deduplica os dois blocos idênticos de banimento por injeção em `PunirInjecaoAsync` e separa a moderação em `PenalizarSintomasInvalidosAsync` | DRY + SRP |
+| **Correção de segurança da triagem** | Distingue *injeção confirmada* (a IA emite o marcador → pune) de *recusa do provedor* (filtro de conteúdo → acolhe, sem punir); blinda o *parse* contra respostas atípicas (evita 500 que deixava a intenção impune) | Segurança + robustez |
 
 ### Convenção de nomenclatura adotada
 
@@ -140,6 +141,6 @@ Uma decisão consciente do *sprint* foi **não criar abstrações para tarefas s
 A arquitetura cumpre os objetivos de manutenibilidade e testabilidade propostos, com uma base de Clean
 Architecture correta e padrões de projeto bem aplicados. As dívidas identificadas são típicas de um
 sistema que cresceu por incrementos e — criticamente — **foram diagnosticadas com evidência e parcialmente
-saldadas** dentro do próprio ciclo de desenvolvimento, sem regressão (112 testes automatizados verdes). O
+saldadas** dentro do próprio ciclo de desenvolvimento, sem regressão (113 testes automatizados verdes). O
 equilíbrio buscado — **separar responsabilidades sem inflar a abstração** — é, em si, uma decisão
 arquitetural: privilegia a clareza e o custo de manutenção real sobre a pureza teórica.
