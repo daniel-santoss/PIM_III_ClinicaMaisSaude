@@ -60,6 +60,7 @@ uniforme em toda a base.
      **+** cancelamento em cascata **+** notificação **+** auditoria. _(parcialmente saldada — *gateway* de IA
      isolado e punição unificada; ver §4)_
    - `AutoCadastroService` — validação **+** anti-fraude **+** persistência **+** *templates* de e-mail.
+     _(parcialmente saldada — *templates* de e-mail extraídos para `EmailTemplates`; ver §4)_
 2. **Entidade central anêmica.** `Agendamento` tem *setters* privados, mas `AlterarStatus` apenas atribui
    o novo status **sem validar a transição** — a máquina de estados vive fora da entidade, deixando a
    invariante exposta a quem chamar o método diretamente.
@@ -72,8 +73,8 @@ uniforme em toda a base.
 4. **Repositório com efeito colateral.** `NotificacaoRepository.AdicionarAsync` grava **e** dispara push
    em tempo real (SignalR) — dupla responsabilidade num componente de acesso a dados.
 5. **Vazamentos pontuais de camada:** atributo de persistência (`[NotMapped]`/`DataAnnotations`) dentro do
-   Domain (`LoginPortal`); `BCrypt`/`IConfiguration` como dependências da Application; *middleware* da API
-   consultando o `DbContext` diretamente.
+   Domain (`LoginPortal`) _(saldado — movido para Fluent API `Ignore`; ver §4)_; `BCrypt`/`IConfiguration`
+   como dependências da Application; *middleware* da API consultando o `DbContext` diretamente.
 6. **Ausência de *Value Objects*.** CPF, e-mail e telefone trafegam como `string` crua; o `Cpf` é uma
    classe utilitária estática, não um tipo com invariante garantida.
 
@@ -87,7 +88,7 @@ uniforme em toda a base.
 ## 4. Refatorações de qualidade aplicadas (*sprint* de arquitetura)
 
 Como resposta direta a esta análise, foi executada uma sequência de refatorações **sem alterar o contrato
-HTTP** (build e testes verdes a cada passo — a suíte cresceu de 109 para 113 com a cobertura da moderação por IA):
+HTTP** (build e testes verdes a cada passo — a suíte cresceu de 109 para 114 com a cobertura da moderação por IA):
 
 | Refatoração | Efeito | Princípio |
 |-------------|--------|-----------|
@@ -98,6 +99,8 @@ HTTP** (build e testes verdes a cada passo — a suíte cresceu de 109 para 113 
 | **Isolamento do *gateway* de IA** | Extrai `ITriagemIaGateway`/`GeminiTriagemGateway` (prompt, HTTP, *parse*, detecção de segurança); `ConsultaService` passa a interpretar só o desfecho normalizado e cai de 503 → ~430 linhas | DIP + SRP |
 | **Unificação da punição por IA** | Deduplica os dois blocos idênticos de banimento por injeção em `PunirInjecaoAsync` e separa a moderação em `PenalizarSintomasInvalidosAsync` | DRY + SRP |
 | **Correção de segurança da triagem** | Distingue *injeção confirmada* (a IA emite o marcador → pune) de *recusa do provedor* (filtro de conteúdo → acolhe, sem punir); blinda o *parse* contra respostas atípicas (evita 500 que deixava a intenção impune) | Segurança + robustez |
+| **Centralização dos *templates* de e-mail** | Extrai a moldura navy e os formatos de corpo para `EmailTemplates`; os quatro serviços transacionais deixam de carregar HTML (−123 linhas), com uma única fonte para a marca | DRY + SRP |
+| **`[NotMapped]` → Fluent API** | Move a única anotação de persistência do Domain (`Usuario.FotoBase64`) para `Ignore` no `ClinicaDbContext`; o Domain volta a ser puro | Clean Architecture |
 
 ### Convenção de nomenclatura adotada
 
@@ -122,17 +125,17 @@ Uma decisão consciente do *sprint* foi **não criar abstrações para tarefas s
 
 ## 5. Trabalhos futuros (priorizados)
 
-1. **Extrair *templates* de e-mail** dos serviços transacionais para um componente dedicado.
-2. **Uniformizar as exceções**: eliminar os lançamentos de exceções de *framework* (`KeyNotFoundException`)
-   em favor das exceções tipadas da Application.
-3. **Documentar/normalizar a estratégia de acesso a dados** (Repository em casos complexos; `DbContext`
+1. **Documentar/normalizar a estratégia de acesso a dados** (Repository em casos complexos; `DbContext`
    direto nos simples — como decisão explícita).
-4. **Reforço de DDD tático** (opcional): mover a validação de transição para dentro de `Agendamento`;
+2. **Reforço de DDD tático** (opcional): mover a validação de transição para dentro de `Agendamento`;
    introduzir *Value Objects* (`Cpf`, `Email`) caso a evolução exija.
 
-> **Já concluído:** o *gateway* Gemini foi isolado atrás de `ITriagemIaGateway` (fronteira externa real —
-> habilita teste sem rede e troca de provedor) e a lógica de moderação/punição por IA foi separada e
-> deduplicada — ver §4.
+> **Já concluído:** além dos itens de §4, o *gateway* Gemini foi isolado atrás de `ITriagemIaGateway`
+> (fronteira externa real — habilita teste sem rede e troca de provedor), a moderação/punição por IA foi
+> separada e deduplicada, os *templates* de e-mail foram centralizados em `EmailTemplates` e a última
+> anotação de persistência saiu do Domain (`[NotMapped]` → Fluent API). A pretendida "uniformização de
+> exceções" mostrou-se desnecessária: não há lançamento de `KeyNotFoundException` no código de negócio —
+> existe apenas o mapeamento defensivo no `GlobalExceptionHandler`.
 
 ---
 
@@ -141,6 +144,6 @@ Uma decisão consciente do *sprint* foi **não criar abstrações para tarefas s
 A arquitetura cumpre os objetivos de manutenibilidade e testabilidade propostos, com uma base de Clean
 Architecture correta e padrões de projeto bem aplicados. As dívidas identificadas são típicas de um
 sistema que cresceu por incrementos e — criticamente — **foram diagnosticadas com evidência e parcialmente
-saldadas** dentro do próprio ciclo de desenvolvimento, sem regressão (113 testes automatizados verdes). O
+saldadas** dentro do próprio ciclo de desenvolvimento, sem regressão (114 testes automatizados verdes). O
 equilíbrio buscado — **separar responsabilidades sem inflar a abstração** — é, em si, uma decisão
 arquitetural: privilegia a clareza e o custo de manutenção real sobre a pureza teórica.
