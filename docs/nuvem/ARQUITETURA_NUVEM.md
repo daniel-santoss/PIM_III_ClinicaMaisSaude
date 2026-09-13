@@ -1,8 +1,13 @@
 # Arquitetura em Nuvem, CI/CD e DevOps — Clínica Mais Saúde
 
-Artefato do PIM IV (rubrica 08 — Nuvem e DevOps). Descreve como o sistema é publicado em nuvem e como a
-esteira de **CI/CD** leva o código do *commit* ao ambiente. O desenho é **agnóstico de provedor**: cada
-componente indica os alvos possíveis; a escolha final (§5) é um passo posterior.
+Artefato do PIM IV (rubrica 08 — Nuvem e DevOps). Descreve o **plano de execução da infraestrutura**
+para implantação da solução e como a esteira de **CI/CD** leva o código do *commit* ao ambiente. O desenho
+é **agnóstico de provedor**: cada componente indica os alvos possíveis; a escolha final (§5) é um passo
+posterior.
+
+> **Cobertura dos itens exigidos na Etapa 8:** arquitetura em nuvem (§1), serviços utilizados (§2),
+> containers (§2 + `Dockerfile`/`docker-compose.yml`), pipeline CI/CD (§3), estratégia de migração (§4),
+> **escalabilidade (§7)**, **monitoramento (§8)** e **segurança (§6 + `ARQUITETURA.md` §7)**.
 
 ---
 
@@ -142,7 +147,54 @@ no cofre do provedor.
 
 ---
 
-## 7. O que falta para publicar de fato
+## 7. Escalabilidade
+
+A solução foi desenhada para escalar **horizontalmente** (mais instâncias), não só verticalmente:
+
+- **API sem estado (*stateless*).** A autenticação é por **JWT** — nenhuma sessão fica na memória do
+  servidor. Qualquer réplica atende qualquer requisição, então basta colocar N instâncias atrás de um
+  *load balancer* (nativo no App Service / Container Apps / Fly) e habilitar *autoscaling* por CPU ou
+  número de requisições.
+- **Rate-limit pronto para múltiplas instâncias.** Os contadores usam `IDistributedCache`: com
+  `ConnectionStrings:Redis` configurado, o estado é **compartilhado** entre todas as réplicas (limite
+  global correto mesmo com N instâncias); sem Redis, cai no cache em memória (instância única, para
+  dev/banca). A troca é só configuração — o código do serviço não muda.
+- **Tempo real (SignalR).** Para escalar o *push* de notificações além de uma instância, adiciona-se um
+  ***backplane*** Redis, que propaga as mensagens entre os nós (mesma dependência Redis já prevista).
+- **Banco.** **Azure SQL serverless** ajusta o *compute* automaticamente conforme a carga (com *auto-pause*
+  quando ocioso, economizando); *tiers* superiores absorvem picos. Os **índices filtrados** já reduzem o
+  custo das consultas quentes (agenda, fila de aprovação).
+- **Frontend web.** Como é estático (`dist/` em CDN), escala praticamente sem limite e sem servidor.
+- **Assíncrono.** Tarefas recorrentes (ex.: lembretes) rodam num *background service*, desacopladas do
+  ciclo de requisição, o que evita segurar *threads* de API sob carga.
+
+---
+
+## 8. Monitoramento
+
+O plano de observabilidade combina o que já existe no código com os recursos do provedor:
+
+- **Logs estruturados.** Toda a aplicação usa `ILogger` (Microsoft.Extensions.Logging). O
+  `GlobalExceptionHandler` registra cada falha com um **`TraceId`** e devolve esse mesmo id ao cliente
+  (RFC 7807 / *ProblemDetails*) — o erro que o usuário vê é correlacionável 1:1 com a linha de log no
+  agregador do provedor.
+- **Health checks.** O `docker-compose` já verifica a saúde de **SQL Server** e **Redis**, e a API só
+  sobe quando as dependências estão `healthy`. Passo previsto: expor um endpoint **`/health`** na API
+  (ASP.NET Core HealthChecks) para o *probe* de *liveness/readiness* do PaaS reiniciar instâncias
+  travadas automaticamente.
+- **Métricas de negócio (funcional).** O **Dashboard** já expõe indicadores do produto — total de
+  agendamentos, **taxa de absenteísmo**, especialidades mais procuradas, fluxo de exames e **auditoria de
+  IA** — que funcionam como monitoramento funcional, com exportação em PDF/Excel.
+- **Métricas de infraestrutura.** CPU, memória, latência, taxa de erro e volume de requisições vêm do
+  painel do provedor (**Application Insights** no Azure; métricas nativas no Fly/Railway), com **alertas**
+  configuráveis (ex.: erro 5xx acima de um limiar, banco próximo do limite de DTU).
+- **Trilha de auditoria.** Eventos sensíveis já são persistidos: **violações de IA** (`UsoInadequadoIA`)
+  e o **histórico de status** de agendamento (via *trigger* → `AgendamentoHistorico`), dando rastro para
+  investigação e conformidade (LGPD).
+
+---
+
+## 9. O que falta para publicar de fato
 
 - [ ] Escolher o provedor (§5) e criar a conta.
 - [ ] Provisionar o banco gerenciado e obter a *connection string*.
