@@ -65,7 +65,7 @@ namespace ClinicaMaisSaude.Infrastructure.Tests.Services
         {
             var (usuarioId, pacienteId) = SemearPacienteAtivo();
             SemearAdmin();
-            var gateway = new TriagemIaGatewayFake(new TriagemIaResposta(ResultadoTriagem.BloqueadoPorSeguranca, null));
+            var gateway = new TriagemIaGatewayFake(new TriagemIaResposta(ResultadoTriagem.InjecaoDetectada, null));
             var service = CriarService(gateway);
 
             var resultado = await service.SugerirTipoAsync(
@@ -84,6 +84,25 @@ namespace ClinicaMaisSaude.Infrastructure.Tests.Services
 
             // Admin foi alertado (e o push em tempo real foi disparado best-effort).
             Assert.Contains(_notificador.Enviadas, n => n.Titulo == "Violação Grave de IA");
+        }
+
+        [Fact]
+        public async Task Recusa_de_seguranca_acolhe_sem_banir_nem_registrar_violacao()
+        {
+            // Conteúdo sensível de saúde (ex.: automutilação) que o provedor recusa processar: é ambíguo,
+            // NÃO pode ser tratado como injeção. Deve acolher (mensagem de ajuda) sem punir.
+            var (usuarioId, pacienteId) = SemearPacienteAtivo();
+            var gateway = new TriagemIaGatewayFake(new TriagemIaResposta(ResultadoTriagem.RecusadoPorSeguranca, null));
+            var service = CriarService(gateway);
+
+            var ex = await Assert.ThrowsAsync<ValidationException>(() => service.SugerirTipoAsync(
+                "estou me cortando e não aguento mais",
+                pacienteId, tipoUsuario: null, isAdmin: false, usuarioLogadoId: usuarioId));
+
+            Assert.Contains("188", ex.Message); // orienta para o CVV
+            var paciente = await _context.Pacientes.FindAsync(pacienteId);
+            Assert.Equal(Situacao.Ativo, paciente!.Situacao);        // NÃO baniu
+            Assert.False(await _context.UsoInadequadoIA.AnyAsync()); // NÃO registrou violação
         }
 
         [Fact]

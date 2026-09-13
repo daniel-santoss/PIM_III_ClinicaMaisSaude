@@ -76,10 +76,14 @@ Formato:
                 contents = new[] { new { parts = new[] { new { text = userPrompt } } } },
                 safetySettings = new[]
                 {
-                    new { category = "HARM_CATEGORY_HARASSMENT", threshold = "BLOCK_LOW_AND_ABOVE" },
-                    new { category = "HARM_CATEGORY_HATE_SPEECH", threshold = "BLOCK_LOW_AND_ABOVE" },
-                    new { category = "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold = "BLOCK_LOW_AND_ABOVE" },
-                    new { category = "HARM_CATEGORY_DANGEROUS_CONTENT", threshold = "BLOCK_LOW_AND_ABOVE" }
+                    new { category = "HARM_CATEGORY_HARASSMENT", threshold = "BLOCK_ONLY_HIGH" },
+                    new { category = "HARM_CATEGORY_HATE_SPEECH", threshold = "BLOCK_ONLY_HIGH" },
+                    new { category = "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold = "BLOCK_ONLY_HIGH" },
+                    // Numa triagem médica, conteúdo "perigoso/angustiante" (ex.: automutilação, ideação
+                    // suicida) é matéria-prima legítima e PRECISA chegar à IA para ser roteado ao cuidado
+                    // (Psiquiatria) — não pode ser bloqueado pelo filtro. Injeção verdadeira é pega pelo
+                    // marcador da REGRA CRÍTICA 2, não por este filtro.
+                    new { category = "HARM_CATEGORY_DANGEROUS_CONTENT", threshold = "BLOCK_NONE" }
                 },
                 generationConfig = new
                 {
@@ -92,8 +96,21 @@ Formato:
             var json = JsonSerializer.Serialize(body);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            var response = await client.PostAsync(url, content);
-            var responseBody = await response.Content.ReadAsStringAsync();
+            HttpResponseMessage response;
+            string responseBody;
+            try
+            {
+                response = await client.PostAsync(url, content);
+                responseBody = await response.Content.ReadAsStringAsync();
+            }
+            catch (TaskCanceledException) // timeout (client.Timeout) ou cancelamento
+            {
+                throw new ServiceUnavailableException("A triagem inteligente demorou para responder. Tente novamente em instantes.");
+            }
+            catch (HttpRequestException) // falha de rede/DNS/conexão
+            {
+                throw new ServiceUnavailableException("Não foi possível conectar com a Inteligência Artificial no momento.");
+            }
 
             if (!response.IsSuccessStatusCode)
             {
@@ -111,30 +128,62 @@ Formato:
 
             _logger.LogDebug("Gemini raw response: {ResponseBody}", responseBody);
 
-            using var doc = JsonDocument.Parse(responseBody);
-            var candidate = doc.RootElement.GetProperty("candidates")[0];
-
-            if (!candidate.TryGetProperty("content", out var contentElement) ||
-                !contentElement.TryGetProperty("parts", out var partsElement) ||
-                partsElement.GetArrayLength() == 0)
+            JsonDocument doc;
+            try
             {
-                var finishReason = candidate.TryGetProperty("finishReason", out var fr) ? fr.GetString() : "Desconhecido";
-
-                // Recusa por segurança do próprio provedor: não há texto. O serviço decide a punição.
-                if (finishReason == "SAFETY")
-                    return new TriagemIaResposta(ResultadoTriagem.BloqueadoPorSeguranca, null);
-
-                throw new ServiceUnavailableException($"A IA não retornou texto válido. Motivo: {finishReason}");
+                doc = JsonDocument.Parse(responseBody);
+            }
+            catch (JsonException)
+            {
+                throw new ServiceUnavailableException("A IA retornou uma resposta ilegível. Tente novamente em instantes.");
             }
 
-            var textoResposta = partsElement[0].GetProperty("text").GetString();
-            textoResposta = LimparCercasJson(textoResposta);
+            using (doc)
+            {
+                var root = doc.RootElement;
 
-            // Injeção detectada pela própria IA (REGRA CRÍTICA 2): trata como bloqueio de segurança.
-            if (textoResposta != null && textoResposta.Contains(MarcadorInjecao))
-                return new TriagemIaResposta(ResultadoTriagem.BloqueadoPorSeguranca, textoResposta);
+                // O provedor pode recusar o PRÓPRIO PROMPT antes de gerar: nesse caso não há "candidates",
+                // só promptFeedback.blockReason. Antes isso estourava (KeyNotFound/IndexOutOfRange) e virava
+                // erro genérico. É AMBÍGUO (mais provável sofrimento real que ataque) → recusa, não injeção.
+                if (root.TryGetProperty("promptFeedback", out var pf) &&
+                    pf.TryGetProperty("blockReason", out var br) &&
+                    !string.IsNullOrEmpty(br.GetString()))
+                {
+                    return new TriagemIaResposta(ResultadoTriagem.RecusadoPorSeguranca, null);
+                }
 
-            return new TriagemIaResposta(ResultadoTriagem.Sucesso, textoResposta);
+                if (!root.TryGetProperty("candidates", out var candidates) ||
+                    candidates.ValueKind != JsonValueKind.Array ||
+                    candidates.GetArrayLength() == 0)
+                {
+                    // Sem candidato e sem blockReason explícito: resposta inesperada/vazia → transitório.
+                    throw new ServiceUnavailableException("A IA não retornou uma resposta válida. Tente novamente em instantes.");
+                }
+
+                var candidate = candidates[0];
+
+                if (!candidate.TryGetProperty("content", out var contentElement) ||
+                    !contentElement.TryGetProperty("parts", out var partsElement) ||
+                    partsElement.ValueKind != JsonValueKind.Array ||
+                    partsElement.GetArrayLength() == 0)
+                {
+                    var finishReason = candidate.TryGetProperty("finishReason", out var fr) ? fr.GetString() : "Desconhecido";
+
+                    // Recusa por segurança do próprio provedor (sem texto): ambíguo → NÃO é injeção.
+                    if (finishReason == "SAFETY")
+                        return new TriagemIaResposta(ResultadoTriagem.RecusadoPorSeguranca, null);
+
+                    throw new ServiceUnavailableException($"A IA não retornou texto válido. Motivo: {finishReason}");
+                }
+
+                var textoResposta = LimparCercasJson(partsElement[0].GetProperty("text").GetString());
+
+                // Injeção detectada pela PRÓPRIA IA (REGRA CRÍTICA 2): sinal confiável → punição.
+                if (textoResposta != null && textoResposta.Contains(MarcadorInjecao))
+                    return new TriagemIaResposta(ResultadoTriagem.InjecaoDetectada, textoResposta);
+
+                return new TriagemIaResposta(ResultadoTriagem.Sucesso, textoResposta);
+            }
         }
 
         // Remove as cercas de bloco de código (```json ... ``` ou ``` ... ```) que a IA às vezes

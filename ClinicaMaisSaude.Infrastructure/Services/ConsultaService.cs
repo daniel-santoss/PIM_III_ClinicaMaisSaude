@@ -29,6 +29,10 @@ namespace ClinicaMaisSaude.Infrastructure.Services
         // não traz texto, este é o texto canônico da resposta em ambos os caminhos.
         private const string MensagemInjecao = "Detectamos uma tentativa deliberada de obtenção de credenciais privadas e ativos de domínio por meio da Inteligência Artificial do sistema. Esta conduta configura Invasão de Dispositivo Informático, conforme o Art. 154-A do Código Penal (Lei 12.737/2012) e violação dos princípios de segurança e confidencialidade da Lei Geral de Proteção de Dados (Lei 13.709/2018 - LGPD).";
 
+        // Mensagem de ACOLHIMENTO quando o provedor recusa processar o conteúdo (ambíguo — pode ser
+        // sofrimento real). NÃO há punição neste caminho: orienta e oferece ajuda.
+        private const string MensagemRecusaSeguranca = "Não consegui analisar sua descrição com segurança. Se você estiver passando por um momento difícil ou pensando em se machucar, procure ajuda agora: ligue 188 (CVV, gratuito, 24h) ou vá ao pronto-socorro mais próximo. Você também pode reformular os sintomas e tentar novamente.";
+
         public ConsultaService(
             ClinicaDbContext context,
             IDistributedCache cache,
@@ -129,9 +133,14 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             // Fronteira externa: o gateway fala com a IA e devolve um desfecho normalizado.
             var resultado = await _triagemIa.ClassificarSintomasAsync(sintomas);
 
-            // Injeção/recusa de segurança: pune (banir/bloquear + auditar + notificar) e responde o texto legal.
-            if (resultado.Tipo == ResultadoTriagem.BloqueadoPorSeguranca)
+            // Injeção CONFIRMADA pela IA (marcador): pune (banir/bloquear + auditar + notificar) e responde o texto legal.
+            if (resultado.Tipo == ResultadoTriagem.InjecaoDetectada)
                 return await PunirInjecaoAsync(usuarioLogadoId, sintomas);
+
+            // Recusa do provedor por conteúdo sensível: AMBÍGUO (mais provável sofrimento real que ataque).
+            // NÃO pune — acolhe e orienta. A injeção verdadeira já foi tratada acima pelo marcador.
+            if (resultado.Tipo == ResultadoTriagem.RecusadoPorSeguranca)
+                throw new ValidationException(MensagemRecusaSeguranca);
 
             var textoResposta = resultado.TextoJson;
 
