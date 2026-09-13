@@ -2,7 +2,7 @@ import { API_URL, ADMIN_EMAIL, MAX_PROMPT_LENGTH, CLINIC_PHONE } from "../consta
 import { useEffect, useState } from "react";
 
 import { ESPECIALIDADES } from "../constants/especialidades";
-import { AlertCircle, Calendar, Zap, Check, AlertTriangle, Sliders, CheckCircle, Search, User, MessageSquare } from 'lucide-react';
+import { AlertCircle, Calendar, Zap, Check, AlertTriangle, Sliders, CheckCircle, Search, User, MessageSquare, HeartHandshake, Phone } from 'lucide-react';
 import { getRealDate, obterMinDate } from '../utils/dates';
 import { useScrollBlock } from "../hooks/useScrollBlock";
 import ModalPortal from "../components/ui/ModalPortal";
@@ -33,8 +33,9 @@ export default function AgendamentoPaciente({
   const [analisandoIA, setAnalisandoIA] = useState(false);
   const [modoIA, setModoIA] = useState(false);
   const [modalMensagem, setModalMensagem] = useState<string | null>(null);
+  const [modalCrise, setModalCrise] = useState<{ mensagem: string; sugestao: any } | null>(null);
 
-  useScrollBlock(!!(modalMensagem || analisandoIA));
+  useScrollBlock(!!(modalMensagem || modalCrise || analisandoIA));
 
   const [tipoProfissional, setTipoProfissional] = useState<number | null>(1); // 0: Enfermeira, 1: Medico
   const [tipoConsulta, setTipoConsulta] = useState<number>(3); // Default 3: Consulta Médica
@@ -75,6 +76,11 @@ export default function AgendamentoPaciente({
           window.dispatchEvent(new CustomEvent("segurancaViolada"));
           return;
         }
+        // Crise emocional: acolhe e pergunta se deseja agendar Psiquiatria (não preenche sozinho).
+        if (dados.crise) {
+          setModalCrise({ mensagem: dados.mensagem, sugestao: dados });
+          return;
+        }
         setSugestaoIA(dados);
       } else {
         const raw = await response.text();
@@ -89,23 +95,25 @@ export default function AgendamentoPaciente({
     }
   };
 
+  // Converte a sugestão da IA (textos) para os Enums do front e avança para a seleção de Data/Hora.
+  const aplicarSugestao = (s: any) => {
+    let profInt = 1; // Médico
+    if (s.tipoProfissional === "Enfermeira") profInt = 0;
+
+    let consInt = 3; // Consulta Médica
+    if (s.tipoConsulta === "Triagem") consInt = 0;
+    else if (s.tipoConsulta === "Exame") consInt = 1;
+    else if (s.tipoConsulta === "Vacina") consInt = 2;
+    else if (s.tipoConsulta === "Retorno") consInt = 4;
+
+    setTipoProfissional(profInt);
+    setTipoConsulta(consInt);
+    setEspecialidade(s.especialidade);
+    setPasso(3); // Pula direto para a seleção de Data/Hora
+  };
+
   const usarSugestao = () => {
-    if (sugestaoIA) {
-      // Converte os textos da IA para os Enums inteiros do front-end
-      let profInt = 1; // Médico
-      if (sugestaoIA.tipoProfissional === "Enfermeira") profInt = 0;
-
-      let consInt = 3; // Consulta Médica
-      if (sugestaoIA.tipoConsulta === "Triagem") consInt = 0;
-      else if (sugestaoIA.tipoConsulta === "Exame") consInt = 1;
-      else if (sugestaoIA.tipoConsulta === "Vacina") consInt = 2;
-      else if (sugestaoIA.tipoConsulta === "Retorno") consInt = 4;
-
-      setTipoProfissional(profInt);
-      setTipoConsulta(consInt);
-      setEspecialidade(sugestaoIA.especialidade);
-      setPasso(3); // Pula direto para a seleção de Data/Hora
-    }
+    if (sugestaoIA) aplicarSugestao(sugestaoIA);
   };
 
   useEffect(() => {
@@ -300,6 +308,42 @@ export default function AgendamentoPaciente({
           </ModalPortal>
         );
       })()}
+
+      {/* Modal: Apoio em crise emocional (acolhe + oferece agendar Psiquiatria, sem punir) */}
+      {modalCrise && (
+        <ModalPortal>
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-ink/45 backdrop-blur-[2px] p-4">
+            <div className="bg-white rounded-xl shadow-modal w-full max-w-md p-7 text-center border border-line">
+              <div className="w-12 h-12 bg-brand-50 text-brand-600 rounded-lg grid place-items-center mx-auto mb-4">
+                <HeartHandshake className="w-6 h-6" />
+              </div>
+              <h3 className="text-lg font-semibold text-ink mb-2">Você não está sozinho</h3>
+              <p className="text-body text-[13px] mb-4 leading-relaxed">{modalCrise.mensagem}</p>
+              <a
+                href="tel:188"
+                className="inline-flex items-center justify-center gap-2 w-full h-11 mb-5 bg-brand-50 text-brand-700 border border-brand-100 rounded-md font-semibold text-sm hover:bg-brand-100 transition-colors"
+              >
+                <Phone className="w-4 h-4" /> Ligar para o CVV — 188
+              </a>
+              <p className="text-[13px] text-body mb-3 font-medium">Deseja agendar uma consulta com Psiquiatria?</p>
+              <div className="flex flex-col gap-2.5">
+                <button
+                  className="w-full h-11 bg-brand-600 text-white font-semibold text-sm rounded-md border border-brand-600 hover:bg-brand-800 transition-colors"
+                  onClick={() => { const s = modalCrise.sugestao; setModalCrise(null); aplicarSugestao(s); }}
+                >
+                  Sim, agendar Psiquiatria
+                </button>
+                <button
+                  className="w-full h-11 bg-white text-body border border-line font-semibold text-sm rounded-md hover:bg-canvas transition-colors"
+                  onClick={() => setModalCrise(null)}
+                >
+                  Agora não
+                </button>
+              </div>
+            </div>
+          </div>
+        </ModalPortal>
+      )}
       </div>
 
       <div className="bg-white rounded-xl p-8 border border-line">

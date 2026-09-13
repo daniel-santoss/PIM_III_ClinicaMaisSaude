@@ -33,6 +33,14 @@ namespace ClinicaMaisSaude.Infrastructure.Services
         // sofrimento real). NÃO há punição neste caminho: orienta e oferece ajuda.
         private const string MensagemRecusaSeguranca = "Não consegui analisar sua descrição com segurança. Se você estiver passando por um momento difícil ou pensando em se machucar, procure ajuda agora: ligue 188 (CVV, gratuito, 24h) ou vá ao pronto-socorro mais próximo. Você também pode reformular os sintomas e tentar novamente.";
 
+        // Marcador que a IA emite (REGRA CRÍTICA 4) ao identificar crise emocional/automutilação/ideação
+        // suicida. Não é punição nem erro: aciona o fluxo de acolhimento no front (mensagem + oferta de
+        // agendar Psiquiatria).
+        private const string MarcadorCrise = "APOIO_CRISE";
+
+        // Mensagem de acolhimento exibida no caso de crise emocional. Tom humano, com canal de ajuda imediato.
+        private const string MensagemApoioCrise = "Sentimos muito que você esteja passando por isso. Você não está sozinho, e procurar ajuda é um passo corajoso. Se estiver em risco ou precisar conversar agora, ligue 188 (CVV, gratuito e sigiloso, 24h) ou vá ao pronto-socorro mais próximo. Se quiser, podemos ajudar você a agendar uma consulta com um psiquiatra.";
+
         public ConsultaService(
             ClinicaDbContext context,
             IDistributedCache cache,
@@ -143,6 +151,19 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                 throw new ValidationException(MensagemRecusaSeguranca);
 
             var textoResposta = resultado.TextoJson;
+
+            // Crise emocional / automutilação / ideação suicida: acolhe, sem punir. Devolve a mensagem de
+            // apoio e a sugestão de Psiquiatria (o front decide se pergunta e encaminha ao agendamento).
+            if (textoResposta != null && textoResposta.Contains(MarcadorCrise))
+                return new
+                {
+                    crise = true,
+                    mensagem = MensagemApoioCrise,
+                    tipoProfissional = "Medico",
+                    especialidade = "Psiquiatria",
+                    tipoConsulta = "Consulta Médica",
+                    tipo = "Consulta Médica"
+                };
 
             // Sintomas irrelevantes à saúde: penalidade progressiva (só para paciente) e recusa.
             if (paciente != null && textoResposta != null && textoResposta.Contains("Sintomas inválidos"))

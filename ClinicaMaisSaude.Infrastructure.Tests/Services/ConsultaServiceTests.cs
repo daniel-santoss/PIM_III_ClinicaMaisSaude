@@ -124,6 +124,30 @@ namespace ClinicaMaisSaude.Infrastructure.Tests.Services
         }
 
         [Fact]
+        public async Task Crise_emocional_acolhe_com_apoio_sem_punir()
+        {
+            // A IA sinaliza crise (marcador APOIO_CRISE). Deve devolver crise=true + mensagem de apoio +
+            // sugestão de Psiquiatria, SEM banir e SEM registrar violação.
+            var (usuarioId, pacienteId) = SemearPacienteAtivo();
+            var gateway = new TriagemIaGatewayFake(new TriagemIaResposta(
+                ResultadoTriagem.Sucesso, "{\"especialidade\":\"Psiquiatria\",\"justificativa\":\"APOIO_CRISE\"}"));
+            var service = CriarService(gateway);
+
+            var resultado = await service.SugerirTipoAsync(
+                "estou me mutilando e quero parar com isso",
+                pacienteId, tipoUsuario: null, isAdmin: false, usuarioLogadoId: usuarioId);
+
+            var json = System.Text.Json.JsonSerializer.Serialize(resultado);
+            Assert.Contains("\"crise\":true", json);
+            Assert.Contains("Psiquiatria", json);
+            Assert.Contains("188", json); // canal de ajuda (CVV) na mensagem de apoio
+
+            var paciente = await _context.Pacientes.FindAsync(pacienteId);
+            Assert.Equal(Situacao.Ativo, paciente!.Situacao);        // NÃO baniu
+            Assert.False(await _context.UsoInadequadoIA.AnyAsync()); // NÃO registrou violação
+        }
+
+        [Fact]
         public async Task Sintomas_validos_devolvem_a_sugestao_da_ia()
         {
             var (usuarioId, pacienteId) = SemearPacienteAtivo();

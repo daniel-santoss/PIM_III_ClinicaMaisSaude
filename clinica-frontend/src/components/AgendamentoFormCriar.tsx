@@ -278,6 +278,11 @@ export default function AgendamentoFormCriar({
                           window.dispatchEvent(new CustomEvent("segurancaViolada"));
                           return;
                         }
+                        // Crise emocional: orienta o atendente e ajusta a justificativa (não vaza o marcador cru).
+                        if (dados.crise) {
+                          toast("Sinais de crise emocional. Sugerido Psiquiatria — oriente o paciente ao CVV (188).", { duration: 6000, icon: "💙" });
+                          dados.justificativa = "Sinais de crise emocional identificados. Sugerido acompanhamento em Psiquiatria; oriente o paciente ao CVV (188).";
+                        }
                         setSugestaoIA(dados);
                         // Auto-preencher
                         if (dados.tipoProfissional === perfis.medico) { setTipoProfissional(1); }
