@@ -291,30 +291,26 @@ export default function Login({ onLogado }: { onLogado: () => void }) {
         </div>
       )}
 
-      {/* Modal: Violação de Segurança */}
+      {/* Modal: Conta bloqueada (violação dos Termos de Serviço) */}
       {violacaoDetectada && (
-        <div className="fixed inset-0 z-[299] flex items-center justify-center bg-red-900/95 backdrop-blur-md p-4 animate-in fade-in duration-300">
-          <div className="bg-white rounded-[2.5rem] shadow-2xl shadow-red-900/50 w-full max-w-xl p-10 text-center border-4 border-red-500 max-h-[92dvh] sm:max-h-[90vh] overflow-y-auto custom-scrollbar">
-            <div className="w-24 h-24 bg-red-100 text-red-600 rounded-[2rem] flex items-center justify-center mx-auto mb-8">
-              <ShieldAlert className="w-14 h-14" />
+        <div className="fixed inset-0 z-[299] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-modal w-full max-w-sm p-8 text-center border border-line max-h-[90dvh] overflow-y-auto custom-scrollbar">
+            <div className="w-12 h-12 bg-danger-tint text-danger rounded-full flex items-center justify-center mx-auto mb-5">
+              <ShieldAlert className="w-6 h-6" />
             </div>
-            <h3 className="text-3xl font-black text-red-700 mb-4 uppercase tracking-tight">Violação de Segurança</h3>
-            <div className="text-red-900 text-xs sm:text-sm mb-10 font-bold leading-relaxed text-left space-y-4">
-              <p>
-                Detectamos uma tentativa deliberada de obtenção de credenciais privadas e ativos de domínio por meio da Inteligência Artificial do sistema. Esta conduta configura Invasão de Dispositivo Informático, conforme o Art. 154-A do Código Penal (Lei 12.737/2012) e violação dos princípios de segurança e confidencialidade da Lei Geral de Proteção de Dados (Lei 13.709/2018 - LGPD).
-              </p>
-              <p className="text-red-800 uppercase tracking-widest text-[10px] sm:text-xs">Informamos que:</p>
-              <ul className="list-disc pl-6 space-y-2">
-                <li>Sua conta foi permanentemente bloqueada.</li>
-                <li>O log completo desta interação e evidências técnicas de acesso foram encaminhados ao Administrador do Sistema.</li>
-                <li>O incidente foi formalmente registrado para medidas judiciais e administrativas cabíveis.</li>
-              </ul>
-            </div>
-            <button 
-              className="w-full bg-red-600 hover:bg-red-700 text-white font-black py-5 rounded-2xl uppercase tracking-widest text-xs shadow-lg shadow-red-200 transition-colors cursor-pointer" 
-              onClick={() => { 
-                localStorage.removeItem(storageKeys.violacaoDetectada); 
-                setViolacaoDetectada(false); 
+            <h3 className="text-lg font-semibold text-ink mb-2">Conta bloqueada</h3>
+            <p className="text-sm text-body leading-relaxed mb-4">
+              Sua conta foi bloqueada por infringir os <strong className="text-ink">Termos de Serviço</strong> da
+              clínica. Identificamos uma tentativa de uso indevido do assistente de triagem.
+            </p>
+            <p className="text-xs text-muted mb-6">
+              O incidente foi registrado. Para contestar, procure a administração da clínica.
+            </p>
+            <button
+              className="w-full bg-brand-600 hover:bg-brand-800 text-white font-semibold py-3 rounded-xl text-sm transition-colors cursor-pointer"
+              onClick={() => {
+                localStorage.removeItem(storageKeys.violacaoDetectada);
+                setViolacaoDetectada(false);
               }}
             >
               Entendido
