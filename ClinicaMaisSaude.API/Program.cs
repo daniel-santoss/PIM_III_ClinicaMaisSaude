@@ -1,6 +1,7 @@
 using ClinicaMaisSaude.Application.Interfaces;
 using ClinicaMaisSaude.Application.Services;
 using ClinicaMaisSaude.Infrastructure.Services;
+using ClinicaMaisSaude.Infrastructure.Gateways;
 using ClinicaMaisSaude.Application.Validators;
 using ClinicaMaisSaude.Domain.Constants;
 using ClinicaMaisSaude.Domain.Interfaces;
@@ -205,6 +206,7 @@ builder.Services.AddScoped<INotificacaoRepository, NotificacaoRepository>();
 builder.Services.AddScoped<INotificacaoService, NotificacaoService>();
 builder.Services.AddScoped<INotificadorTempoReal, NotificadorTempoRealSignalR>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
+builder.Services.AddScoped<ITriagemIaGateway, GeminiTriagemGateway>();
 builder.Services.AddScoped<IConsultaService, ConsultaService>();
 
 builder.Services.AddHostedService<NotificacaoBackgroundService>();
@@ -279,10 +281,9 @@ using (var scope = app.Services.CreateScope())
         app.Environment.IsDevelopment(),
         services.GetRequiredService<ILogger<Program>>());
 
-    // Modelo de Declaração de Saúde de exemplo (Development, se não houver nenhum).
-    await DeclaracaoSaudeSeeder.SeedExemploAsync(
+    // Modelo vigente de Declaração de Saúde (as 30 perguntas), se ainda não houver nenhum.
+    await DeclaracaoSaudeSeeder.SeedAsync(
         services.GetRequiredService<ClinicaDbContext>(),
-        app.Environment.IsDevelopment(),
         services.GetRequiredService<ILogger<Program>>());
 }
 

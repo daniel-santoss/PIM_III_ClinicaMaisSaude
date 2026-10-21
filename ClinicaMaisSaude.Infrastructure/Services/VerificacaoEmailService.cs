@@ -9,6 +9,7 @@ using ClinicaMaisSaude.Domain.Constants;
 using ClinicaMaisSaude.Domain.Entities;
 using ClinicaMaisSaude.Domain.Enums;
 using ClinicaMaisSaude.Infrastructure.Data;
+using ClinicaMaisSaude.Infrastructure.Email;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -76,11 +77,21 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             // Atalho de dev (só com a flag ligada): loga o código no console p/ testar sem e-mail.
             CodigoDevLog.Emitir(_configuration, _logger, TipoVerificacao.VerificacaoEmail, email, codigo, ExpiracaoCodigoMin);
 
-            var logoSrc = _configuration[ConfigKeys.EmailLogoUrl];
-            if (string.IsNullOrWhiteSpace(logoSrc)) logoSrc = "cid:logoclinica";
-
+            var logoSrc = EmailTemplates.LogoSrc(_configuration);
             await _emailService.EnviarAsync(email, "Confirme seu e-mail — Clínica Mais Saúde",
-                MontarCorpoEmail(codigo, logoSrc), MontarCorpoTexto(codigo));
+                EmailTemplates.CodigoHtml(logoSrc,
+                    titulo: "Confirme seu e-mail",
+                    intro: "Estamos criando o seu cadastro na Clínica Mais Saúde. Use o código abaixo para confirmar que este e-mail é seu e continuar o cadastro:",
+                    codigo: codigo, expiracaoMin: ExpiracaoCodigoMin,
+                    nota: "Se você não iniciou um cadastro, ignore este e-mail."),
+                EmailTemplates.Texto("Confirmação de e-mail",
+$@"Estamos criando o seu cadastro na Clínica Mais Saúde.
+Seu código de confirmação é:
+
+    {codigo}
+
+O código expira em {ExpiracaoCodigoMin} minutos e só pode ser usado uma vez.
+Se você não iniciou um cadastro, ignore este e-mail."));
         }
 
         public async Task<VerificacaoEmailTokenResponse> ConfirmarAsync(ConfirmarVerificacaoEmailRequest request)
@@ -140,62 +151,5 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             _configuration[ConfigKeys.CodigoRecuperacaoPepper]
                 ?? throw new InvalidOperationException($"{ConfigKeys.CodigoRecuperacaoPepper} não configurado.");
 
-        private static string MontarCorpoEmail(string codigo, string logoSrc) => $@"
-<table role=""presentation"" width=""100%"" cellpadding=""0"" cellspacing=""0""
-       style=""background:#F1F5F9;margin:0;padding:24px 12px;font-family:Arial,Helvetica,sans-serif"">
-  <tr><td align=""center"">
-    <table role=""presentation"" width=""480"" cellpadding=""0"" cellspacing=""0""
-           style=""width:480px;max-width:100%;background:#ffffff;border:1px solid #E2E8F0;border-radius:16px;overflow:hidden"">
-      <tr>
-        <td align=""center"" style=""background:#2C5282;padding:16px 24px"">
-          <img src=""{logoSrc}"" alt=""Clínica Mais Saúde"" width=""44""
-               style=""display:block;width:44px;height:auto;margin:0 auto 4px;border:0"" />
-          <div style=""color:#ffffff;font-size:15px;font-weight:bold;letter-spacing:0.3px"">Clínica Mais Saúde</div>
-        </td>
-      </tr>
-      <tr>
-        <td style=""padding:30px 32px 8px;color:#0F172A"">
-          <p style=""font-size:16px;font-weight:bold;margin:0 0 6px"">Confirme seu e-mail</p>
-          <p style=""font-size:14px;color:#475569;line-height:21px;margin:0 0 22px"">
-            Estamos criando o seu cadastro na Clínica Mais Saúde. Use o código abaixo para confirmar
-            que este e-mail é seu e continuar o cadastro:
-          </p>
-          <div style=""font-size:34px;font-weight:bold;letter-spacing:10px;color:#2C5282;background:#EBF8FF;
-                      border:1px solid #BEE3F8;border-radius:12px;padding:18px 12px;text-align:center;margin:0 0 22px"">
-            {codigo}
-          </div>
-          <p style=""font-size:13px;color:#475569;line-height:20px;margin:0 0 6px"">
-            O código expira em <strong style=""color:#0F172A"">{ExpiracaoCodigoMin} minutos</strong> e só pode ser usado uma vez.
-          </p>
-          <p style=""font-size:13px;color:#475569;line-height:20px;margin:0 0 24px"">
-            Se você não iniciou um cadastro, ignore este e-mail.
-          </p>
-        </td>
-      </tr>
-      <tr>
-        <td style=""background:#F8FAFC;border-top:1px solid #E2E8F0;padding:16px 32px"">
-          <p style=""font-size:11px;color:#94A3B8;text-align:center;margin:0;line-height:16px"">
-            Este é um e-mail automático da Clínica Mais Saúde. Por favor, não responda.
-          </p>
-        </td>
-      </tr>
-    </table>
-  </td></tr>
-</table>";
-
-        private static string MontarCorpoTexto(string codigo) =>
-$@"CLÍNICA MAIS SAÚDE
-Confirmação de e-mail
-
-Estamos criando o seu cadastro na Clínica Mais Saúde.
-Seu código de confirmação é:
-
-    {codigo}
-
-O código expira em {ExpiracaoCodigoMin} minutos e só pode ser usado uma vez.
-Se você não iniciou um cadastro, ignore este e-mail.
-
-—
-Clínica Mais Saúde • e-mail automático, não responda.";
     }
 }

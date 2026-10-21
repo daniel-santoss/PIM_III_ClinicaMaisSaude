@@ -150,7 +150,7 @@ export default function TelaBloqueio() {
 
 const styles = StyleSheet.create({
   // Cobre toda a tela por cima da navegação (que segue montada por baixo).
-  safe: { ...StyleSheet.absoluteFillObject, backgroundColor: '#fff', zIndex: 10 },
+  safe: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#fff', zIndex: 10 },
   flex: { flex: 1 },
   corpo: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, paddingHorizontal: 32 },
   icone: {

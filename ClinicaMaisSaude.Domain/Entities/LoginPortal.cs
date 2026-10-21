@@ -1,5 +1,4 @@
 using System;
-using System.ComponentModel.DataAnnotations.Schema;
 using ClinicaMaisSaude.Domain.Common;
 using ClinicaMaisSaude.Domain.Enums;
 
@@ -36,8 +35,9 @@ namespace ClinicaMaisSaude.Domain.Entities
 
         // Conveniência de leitura: mantém o contrato antigo (usuario.FotoBase64) para o
         // código que já materializou a entidade. Não é mapeada para coluna (a fonte é a
-        // tabela UsuarioFotos via a navegação Foto). Retorna null se a foto não foi carregada.
-        [NotMapped]
+        // tabela UsuarioFotos via a navegação Foto); o EF a ignora via Fluent API no
+        // ClinicaDbContext (entidade.Ignore), para o Domain não depender de persistência.
+        // Retorna null se a foto não foi carregada.
         public string? FotoBase64 => Foto?.FotoBase64;
 
         public virtual ICollection<UsoInadequadoIA> Violacoes { get; private set; } = new List<UsoInadequadoIA>();

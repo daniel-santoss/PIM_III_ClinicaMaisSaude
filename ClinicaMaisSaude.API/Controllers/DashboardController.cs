@@ -14,7 +14,7 @@ namespace ClinicaMaisSaude.API.Controllers
     [Authorize(Roles = PerfisUsuario.Medico + "," + PerfisUsuario.Enfermeira + "," + PerfisUsuario.Admin)]
     [ApiController]
     [Route("api/[controller]")]
-    public class DashboardController : ControllerBase
+    public class DashboardController : ClinicaControllerBase
     {
         private readonly IDashboardService _dashboardService;
 
@@ -24,17 +24,7 @@ namespace ClinicaMaisSaude.API.Controllers
         }
 
         private (bool isAdmin, Guid? profissionalId) ObterContextoUsuario()
-        {
-            var isAdmin = User.IsInRole(PerfisUsuario.Admin);
-            Guid? profId = null;
-            if (!isAdmin)
-            {
-                var profIdStr = User.FindFirstValue(ClinicaClaims.ProfissionalId);
-                if (Guid.TryParse(profIdStr, out var parsed))
-                    profId = parsed;
-            }
-            return (isAdmin, profId);
-        }
+            => (IsAdmin, IsAdmin ? null : ProfissionalIdToken);
 
         [HttpGet("estatisticas")]
         public async Task<IActionResult> ObterEstatisticas(

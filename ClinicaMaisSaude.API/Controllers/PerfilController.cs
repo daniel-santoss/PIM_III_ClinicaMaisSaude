@@ -10,7 +10,7 @@ namespace ClinicaMaisSaude.API.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
-    public class PerfilController : ControllerBase
+    public class PerfilController : ClinicaControllerBase
     {
         private readonly IPerfilService _perfilService;
 
@@ -25,7 +25,7 @@ namespace ClinicaMaisSaude.API.Controllers
             var usuarioId = ObterUsuarioId();
             if (usuarioId == null) return Unauthorized();
 
-            var tipoUsuario = User.FindFirstValue(ClinicaClaims.TipoUsuario) ?? User.FindFirstValue(ClaimTypes.Role);
+            var tipoUsuario = TipoUsuario;
             var resultado = await _perfilService.ObterPerfilAsync(usuarioId.Value, tipoUsuario ?? "");
             if (resultado == null) return NotFound("Perfil não encontrado.");
             return Ok(resultado);
@@ -37,7 +37,7 @@ namespace ClinicaMaisSaude.API.Controllers
             var usuarioId = ObterUsuarioId();
             if (usuarioId == null) return Unauthorized();
 
-            var tipoUsuario = User.FindFirstValue(ClinicaClaims.TipoUsuario) ?? User.FindFirstValue(ClaimTypes.Role);
+            var tipoUsuario = TipoUsuario;
             var erro = await _perfilService.AtualizarPerfilAsync(usuarioId.Value, tipoUsuario ?? "", request.Nome, request.Email, request.Telefone);
             if (erro != null) return BadRequest(erro);
             return Ok(new { Mensagem = "Perfil atualizado com sucesso." });
@@ -81,13 +81,25 @@ namespace ClinicaMaisSaude.API.Controllers
             return Ok(new { Mensagem = "Foto atualizada com sucesso.", FotoBase64 = base64 });
         }
 
+        [HttpDelete("foto")]
+        public async Task<IActionResult> RemoverFoto()
+        {
+            var usuarioId = ObterUsuarioId();
+            if (usuarioId == null) return Unauthorized();
+
+            var erro = await _perfilService.RemoverFotoAsync(usuarioId.Value);
+            if (erro != null) return BadRequest(new { Mensagem = erro });
+
+            return Ok(new { Mensagem = "Foto removida com sucesso." });
+        }
+
         [HttpDelete]
         public async Task<IActionResult> ExcluirConta([FromBody] ExcluirContaRequest request)
         {
             var usuarioId = ObterUsuarioId();
             if (usuarioId == null) return Unauthorized();
 
-            var tipoUsuario = User.FindFirstValue(ClinicaClaims.TipoUsuario) ?? User.FindFirstValue(ClaimTypes.Role);
+            var tipoUsuario = TipoUsuario;
             var erro = await _perfilService.ExcluirContaAsync(usuarioId.Value, tipoUsuario ?? "", request.Senha);
             if (erro != null) return BadRequest(new { Mensagem = erro });
 

@@ -160,6 +160,10 @@ export default function PerfilPaciente() {
             setFotoBase64(base64);
             window.dispatchEvent(new CustomEvent("fotoPerfilAtualizada", { detail: base64 }));
           }}
+          onFotoRemovida={() => {
+            setFotoBase64(null);
+            window.dispatchEvent(new CustomEvent("fotoPerfilAtualizada", { detail: null }));
+          }}
         />
         <div className="flex flex-col gap-1 flex-1 min-w-0">
           <h1 className="text-2xl font-semibold text-ink leading-none">Meu Perfil</h1>

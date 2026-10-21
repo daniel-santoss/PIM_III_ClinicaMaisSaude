@@ -20,6 +20,8 @@ namespace ClinicaMaisSaude.Application.Interfaces
         Task ExcluirModeloAsync(Guid id);
 
         Task<PerguntaAdminResponse> AdicionarPerguntaAsync(Guid modeloId, PerguntaRequest request);
+        /// <summary>Adiciona várias perguntas de uma vez (uma por item), anexadas ao fim na ordem informada.</summary>
+        Task<List<PerguntaAdminResponse>> AdicionarPerguntasEmLoteAsync(Guid modeloId, List<string> perguntas);
         Task EditarPerguntaAsync(Guid perguntaId, PerguntaRequest request);
         Task ExcluirPerguntaAsync(Guid perguntaId);
         /// <summary>Reordena as perguntas do modelo conforme a ordem dos ids informados.</summary>

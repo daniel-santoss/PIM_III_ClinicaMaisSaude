@@ -6,11 +6,30 @@ Objetivo: consolidar identidade, unificar papéis, fechar furos de integridade r
 
 ---
 
-## ⚠️ v2 EM ANDAMENTO (2026-08-30) — este doc descreve o refactor de 8 fases (concluído); um SEGUNDO refactor está em curso
+## ✅ ESTADO ATUAL (2026-09-07) — schema consolidado; artefatos de banco do PIM IV gerados
+
+Este documento nasceu como spec do refactor de 8 fases (§0 em diante) e depois recebeu o **user-model v2**
+(abaixo). **Ambos concluídos.** O schema vigente da branch `teste` tem **26 tabelas** (16 de entidade +
+10 de lookup) através de **22 migrations** (`InitialCreate` → `Fase1` … `Fase21`).
+
+**📦 Artefatos de banco para o PIM IV (rubrica 07) em [`docs/banco/`](docs/banco/):**
+- [`MODELO_DADOS.md`](docs/banco/MODELO_DADOS.md) — MER (diagrama ER em Mermaid), modelo lógico/físico e dicionário das tabelas.
+- [`01_schema.sql`](docs/banco/01_schema.sql) — script DDL completo (tabelas, PKs, FKs, índices, seeds dos lookups).
+- [`02_procedures_triggers.sql`](docs/banco/02_procedures_triggers.sql) — procedures e triggers (auditoria de status, aprovação de solicitação, relatório de faltas).
+
+**⚠️ Correções sobre o texto histórico abaixo:** as decisões §1 "Sem tabela `Pessoa`" e "Login por email apenas"
+**foram revertidas** no v2 — hoje existe a tabela **`Pessoa`** (identidade única) e o login segue por
+`Email || Cpf`. As tabelas `CodigosRecuperacaoSenha` e `CodigosPrimeiroAcesso` **foram unificadas** (Fase20)
+numa única **`CodigosVerificacao`** com discriminador `Tipo` (→ `TipoVerificacaoLookup`: RecuperacaoSenha,
+PrimeiroAcesso, VerificacaoEmail) — ver `docs/banco/`.
+
+---
+
+## v2 (2026-08-30, concluído) — segundo refactor sobre as 8 fases
 
 O **user-model v2** (incremental, branch `teste`) revisa parte do que está abaixo. Detalhe
 executável completo no plano `~/.claude/plans/peppy-weaving-truffle.md` e na memória
-`refactor-modelo-usuario-v2`. **Migrations Fase10..Fase18.** Estado (2026-08-30, topo `74edfe2`):
+`refactor-modelo-usuario-v2`. **Migrations Fase10..Fase21.**
 
 **✅ Papéis (Thread A):**
 - **`TipoUsuario` REMOVIDO** → enum unificado **`RoleUsuario`** {Paciente=1, Admin=2, Medico=3,
@@ -40,6 +59,12 @@ listar/aprovar/recusar as solicitações (state machine Aprovar/Recusar) — sem
 chaveada por `PessoaId` + `SolicitacaoId` — o proponente ainda não tem conta; código HMAC+pepper,
 reset token SHA-256, uso único/15 min/trava de 5 tentativas). Fluxo: solicitar código → confirmar
 (código + CPF) → definir senha → **cria `Usuario` + `Paciente.AtivarComConta`**. Migração Fase19.
+
+> **⚠️ Superado (Fase20/Fase21):** `CodigosPrimeiroAcesso` + `CodigosRecuperacaoSenha` + o novo código de
+> **verificação de e-mail** do wizard foram **unificados numa única tabela `CodigosVerificacao`** com
+> discriminador `Tipo` (FK → `TipoVerificacaoLookup`) e colunas-alvo nuláveis (`UsuarioId` / `PessoaId`+`SolicitacaoId` / `Email`),
+> índices compostos `(Tipo, …)` + `ResetTokenHash`. `SolicitacaoCadastro` ganhou `TermosAceitosEm`/`TermosVersao`
+> (consentimento LGPD do wizard). Detalhe no dicionário em `docs/banco/MODELO_DADOS.md`.
 
 **Fase 0 (pré-Thread A):** `Agendamento` ganhou navegações `Profissional`/`AgendamentoOrigem`; enum
 `TipoViolacao` movido p/ `Domain/Enums`; `SituacaoProfissional` Ativo/Inativo (depois unificado em Situacao).

@@ -9,7 +9,7 @@ namespace ClinicaMaisSaude.API.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
-    public class EspecialidadesController : ControllerBase
+    public class EspecialidadesController : ClinicaControllerBase
     {
         private readonly IEspecialidadeService _especialidadeService;
 
@@ -35,7 +35,7 @@ namespace ClinicaMaisSaude.API.Controllers
         [HttpGet("minhas")]
         public async Task<IActionResult> ObterMinhas()
         {
-            var profissionalId = ObterProfissionalId();
+            var profissionalId = ProfissionalIdToken;
             if (profissionalId == null)
                 throw new ForbiddenException("Apenas profissionais podem acessar especialidades.");
 
@@ -47,19 +47,13 @@ namespace ClinicaMaisSaude.API.Controllers
         [HttpPut("minhas")]
         public async Task<IActionResult> AtualizarMinhas([FromBody] List<int> especialidadeIds)
         {
-            var profissionalId = ObterProfissionalId();
+            var profissionalId = ProfissionalIdToken;
             if (profissionalId == null)
                 throw new ForbiddenException("Apenas profissionais podem acessar especialidades.");
 
             var resultado = await _especialidadeService.AtualizarMinhasAsync(profissionalId.Value, especialidadeIds);
             if (resultado == null) throw new NotFoundException("Especialidades não encontradas.");
             return Ok(resultado);
-        }
-
-        private Guid? ObterProfissionalId()
-        {
-            var claim = User.FindFirst("ProfissionalId")?.Value;
-            return Guid.TryParse(claim, out var id) ? id : null;
         }
     }
 }

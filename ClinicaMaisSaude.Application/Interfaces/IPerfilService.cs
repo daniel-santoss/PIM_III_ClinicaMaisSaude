@@ -6,6 +6,7 @@ namespace ClinicaMaisSaude.Application.Interfaces
         Task<string?> AtualizarPerfilAsync(Guid usuarioId, string tipoUsuario, string? nome, string? email, string? telefone);
         Task<string?> AlterarSenhaAsync(Guid usuarioId, string senhaAtual, string novaSenha);
         Task<string?> AtualizarFotoAsync(Guid usuarioId, string base64);
+        Task<string?> RemoverFotoAsync(Guid usuarioId);
         Task<string?> ExcluirContaAsync(Guid usuarioId, string tipoUsuario, string senha);
     }
 }

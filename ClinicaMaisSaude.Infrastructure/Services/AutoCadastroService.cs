@@ -5,10 +5,10 @@ using System.Threading.Tasks;
 using ClinicaMaisSaude.Application.DTOs.AutoCadastro;
 using ClinicaMaisSaude.Application.Interfaces;
 using ClinicaMaisSaude.Domain.Common;
-using ClinicaMaisSaude.Domain.Constants;
 using ClinicaMaisSaude.Domain.Entities;
 using ClinicaMaisSaude.Domain.Enums;
 using ClinicaMaisSaude.Infrastructure.Data;
+using ClinicaMaisSaude.Infrastructure.Email;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 
@@ -286,27 +286,12 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             };
         }
 
-        // ----------------- E-mail (identidade navy, ver RecuperacaoSenhaService) -----------------
+        // ----------------- E-mail (identidade navy compartilhada em EmailTemplates) -----------------
 
         private Task EnviarEmailAsync(Pessoa pessoa, string assunto, string html, string texto) =>
             _emailService.EnviarAsync(pessoa.Email, assunto, html, texto);
 
-        private static string PrimeiroNome(string nome) =>
-            string.IsNullOrWhiteSpace(nome) ? "" : nome.Trim().Split(' ')[0];
-
-        private static string Saudacao(string nome)
-        {
-            var pn = PrimeiroNome(nome);
-            return string.IsNullOrEmpty(pn) ? "Olá" : $"Olá, {pn}";
-        }
-
-        private string LogoSrc()
-        {
-            var logo = _configuration[ConfigKeys.EmailLogoUrl];
-            return string.IsNullOrWhiteSpace(logo) ? "cid:logoclinica" : logo;
-        }
-
-        private string CorpoConfirmacao(string nome) => Layout(Saudacao(nome), $@"
+        private string CorpoConfirmacao(string nome) => EmailTemplates.ProsaHtml(EmailTemplates.LogoSrc(_configuration), EmailTemplates.Saudacao(nome), $@"
             <p style=""font-size:14px;color:#475569;line-height:21px;margin:0 0 18px"">
               Recebemos a sua solicitação de cadastro na <strong style=""color:#0F172A"">Clínica Mais Saúde</strong>
               e o seu e-mail foi confirmado.
@@ -320,21 +305,16 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             </p>");
 
         private static string TextoConfirmacao(string nome) =>
-$@"CLÍNICA MAIS SAÚDE
-Solicitação de cadastro recebida
-
-{Saudacao(nome)}.
+            EmailTemplates.Texto("Solicitação de cadastro recebida",
+$@"{EmailTemplates.Saudacao(nome)}.
 
 Recebemos a sua solicitação de cadastro e o seu e-mail foi confirmado.
 O próximo passo é a avaliação presencial na clínica. Após ela, avisaremos
 por este e-mail se o cadastro foi aprovado.
 
-Qualquer dúvida, fale com a recepção da clínica.
+Qualquer dúvida, fale com a recepção da clínica.");
 
-—
-Clínica Mais Saúde • e-mail automático, não responda.";
-
-        private string CorpoAprovacao(string nome) => Layout(Saudacao(nome), $@"
+        private string CorpoAprovacao(string nome) => EmailTemplates.ProsaHtml(EmailTemplates.LogoSrc(_configuration), EmailTemplates.Saudacao(nome), $@"
             <p style=""font-size:14px;color:#475569;line-height:21px;margin:0 0 18px"">
               Boas notícias! Sua solicitação de cadastro na <strong style=""color:#0F172A"">Clínica Mais Saúde</strong>
               foi <strong style=""color:#2C5282"">aprovada</strong>.
@@ -348,21 +328,16 @@ Clínica Mais Saúde • e-mail automático, não responda.";
             </p>");
 
         private static string TextoAprovacao(string nome) =>
-$@"CLÍNICA MAIS SAÚDE
-Cadastro aprovado
-
-{Saudacao(nome)}.
+            EmailTemplates.Texto("Cadastro aprovado",
+$@"{EmailTemplates.Saudacao(nome)}.
 
 Sua solicitação de cadastro foi aprovada.
 Para concluir, abra o aplicativo e inicie o primeiro acesso: enviaremos um
 código de verificação para este e-mail e você definirá a sua senha.
 
-Qualquer dúvida, fale com a recepção da clínica.
+Qualquer dúvida, fale com a recepção da clínica.");
 
-—
-Clínica Mais Saúde • e-mail automático, não responda.";
-
-        private string CorpoRecusa(string nome, string motivo) => Layout(Saudacao(nome), $@"
+        private string CorpoRecusa(string nome, string motivo) => EmailTemplates.ProsaHtml(EmailTemplates.LogoSrc(_configuration), EmailTemplates.Saudacao(nome), $@"
             <p style=""font-size:14px;color:#475569;line-height:21px;margin:0 0 18px"">
               Agradecemos o seu interesse. Após a avaliação, não foi possível concluir a sua
               solicitação de cadastro na <strong style=""color:#0F172A"">Clínica Mais Saúde</strong> neste momento.
@@ -376,50 +351,14 @@ Clínica Mais Saúde • e-mail automático, não responda.";
             </p>");
 
         private static string TextoRecusa(string nome, string motivo) =>
-$@"CLÍNICA MAIS SAÚDE
-Sobre a sua solicitação de cadastro
-
-{Saudacao(nome)}.
+            EmailTemplates.Texto("Sobre a sua solicitação de cadastro",
+$@"{EmailTemplates.Saudacao(nome)}.
 
 Após a avaliação, não foi possível concluir a sua solicitação de cadastro neste momento.
 
 Motivo: {motivo}
 
-Se achar que houve um engano, procure a recepção da clínica — você pode solicitar novamente.
-
-—
-Clínica Mais Saúde • e-mail automático, não responda.";
-
-        // Moldura navy comum aos e-mails deste fluxo (cabeçalho com logo + rodapé).
-        private string Layout(string saudacao, string miolo) => $@"
-<table role=""presentation"" width=""100%"" cellpadding=""0"" cellspacing=""0""
-       style=""background:#F1F5F9;margin:0;padding:24px 12px;font-family:Arial,Helvetica,sans-serif"">
-  <tr><td align=""center"">
-    <table role=""presentation"" width=""480"" cellpadding=""0"" cellspacing=""0""
-           style=""width:480px;max-width:100%;background:#ffffff;border:1px solid #E2E8F0;border-radius:16px;overflow:hidden"">
-      <tr>
-        <td align=""center"" style=""background:#2C5282;padding:16px 24px"">
-          <img src=""{LogoSrc()}"" alt=""Clínica Mais Saúde"" width=""44""
-               style=""display:block;width:44px;height:auto;margin:0 auto 4px;border:0"" />
-          <div style=""color:#ffffff;font-size:15px;font-weight:bold;letter-spacing:0.3px"">Clínica Mais Saúde</div>
-        </td>
-      </tr>
-      <tr>
-        <td style=""padding:30px 32px 8px;color:#0F172A"">
-          <p style=""font-size:16px;font-weight:bold;margin:0 0 12px"">{saudacao}.</p>
-          {miolo}
-        </td>
-      </tr>
-      <tr>
-        <td style=""background:#F8FAFC;border-top:1px solid #E2E8F0;padding:16px 32px"">
-          <p style=""font-size:11px;color:#94A3B8;text-align:center;margin:0;line-height:16px"">
-            Este é um e-mail automático da Clínica Mais Saúde. Por favor, não responda.
-          </p>
-        </td>
-      </tr>
-    </table>
-  </td></tr>
-</table>";
+Se achar que houve um engano, procure a recepção da clínica — você pode solicitar novamente.");
 
         private static CadastroResult Falha(string mensagem) =>
             new CadastroResult { Sucesso = false, Mensagem = mensagem };

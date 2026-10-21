@@ -119,6 +119,18 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             return null;
         }
 
+        public async Task<string?> RemoverFotoAsync(Guid usuarioId)
+        {
+            // Carrega a navegação Foto para que a linha órfã em UsuarioFotos seja
+            // deletada no SaveChanges ao definir Foto = null (ver LoginPortal.AtualizarFoto).
+            var usuario = await _context.Usuarios.Include(u => u.Foto).FirstOrDefaultAsync(u => u.Id == usuarioId);
+            if (usuario == null) return "Usuário não encontrado.";
+
+            usuario.AtualizarFoto(null);
+            await _context.SaveChangesAsync();
+            return null;
+        }
+
         // Exclusão de conta pelo próprio paciente (self-service). Soft-delete coerente
         // com §1.6 (marca o paciente inativo) + revoga os refresh tokens para encerrar
         // sessões existentes. A senha atual é exigida como prova de identidade.

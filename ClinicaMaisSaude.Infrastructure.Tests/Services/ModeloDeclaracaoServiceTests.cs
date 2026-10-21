@@ -60,6 +60,31 @@ namespace ClinicaMaisSaude.Infrastructure.Tests.Services
         }
 
         [Fact]
+        public async Task AdicionarEmLote_AnexaNaOrdem_IgnorandoVazias()
+        {
+            var modelo = await _service.CriarModeloAsync(new CriarModeloRequest { Nome = "M" });
+            await _service.AdicionarPerguntaAsync(modelo.Id, new PerguntaRequest { Pergunta = "Existente" });
+
+            var criadas = await _service.AdicionarPerguntasEmLoteAsync(
+                modelo.Id, new List<string> { "  Primeira  ", "", "  ", "Segunda" });
+
+            Assert.Equal(2, criadas.Count);
+            Assert.Equal(new[] { "Primeira", "Segunda" }, criadas.Select(p => p.Pergunta).ToArray());
+            Assert.Equal(new[] { 2, 3 }, criadas.Select(p => p.Ordem).ToArray());
+
+            var det = await _service.ObterModeloAsync(modelo.Id);
+            Assert.Equal(3, det!.Perguntas.Count);
+        }
+
+        [Fact]
+        public async Task AdicionarEmLote_TudoVazio_Falha()
+        {
+            var modelo = await _service.CriarModeloAsync(new CriarModeloRequest { Nome = "M" });
+            await Assert.ThrowsAsync<ValidationException>(() =>
+                _service.AdicionarPerguntasEmLoteAsync(modelo.Id, new List<string> { "", "   " }));
+        }
+
+        [Fact]
         public async Task Reordenar_AtualizaOrdem()
         {
             var modelo = await _service.CriarModeloAsync(new CriarModeloRequest { Nome = "M" });

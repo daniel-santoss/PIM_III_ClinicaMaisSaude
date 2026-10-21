@@ -8,6 +8,7 @@ using ClinicaMaisSaude.Application.Interfaces;
 using ClinicaMaisSaude.Domain.Constants;
 using ClinicaMaisSaude.Domain.Entities;
 using ClinicaMaisSaude.Domain.Enums;
+using ClinicaMaisSaude.Infrastructure.Email;
 using ClinicaMaisSaude.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -77,14 +78,26 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             // Atalho de dev (só com a flag ligada): loga o código no console p/ testar sem e-mail.
             CodigoDevLog.Emitir(_configuration, _logger, TipoVerificacao.RecuperacaoSenha, usuario.Pessoa!.Email, codigo, ExpiracaoCodigoMin);
 
-            // Logo: URL pública se configurada (sem anexo); senão, cai na logo embutida (cid).
-            var logoSrc = _configuration[ConfigKeys.EmailLogoUrl];
-            if (string.IsNullOrWhiteSpace(logoSrc)) logoSrc = "cid:logoclinica";
-
             // Identidade (Thread B): destinatário e nome vêm da Pessoa (fonte única).
+            var nome = usuario.Pessoa!.Nome;
+            var logoSrc = EmailTemplates.LogoSrc(_configuration);
             await _emailService.EnviarAsync(usuario.Pessoa!.Email, "Código de recuperação de senha",
-                MontarCorpoEmail(usuario.Pessoa!.Nome, codigo, logoSrc),
-                MontarCorpoTexto(usuario.Pessoa!.Nome, codigo));
+                EmailTemplates.CodigoHtml(logoSrc,
+                    titulo: $"{EmailTemplates.Saudacao(nome)}.",
+                    intro: "Recebemos um pedido para redefinir a senha da sua conta. Use o código abaixo para continuar:",
+                    codigo: codigo, expiracaoMin: ExpiracaoCodigoMin,
+                    nota: "Se você não solicitou a recuperação, ignore este e-mail — sua senha continua a mesma.",
+                    preheader: "Recebemos um pedido para redefinir a senha da sua conta. Abra para ver seu código de verificação."),
+                EmailTemplates.Texto("Recuperação de senha",
+$@"{EmailTemplates.Saudacao(nome)}.
+
+Recebemos um pedido para redefinir a senha da sua conta.
+Seu código de verificação é:
+
+    {codigo}
+
+O código expira em {ExpiracaoCodigoMin} minutos e só pode ser usado uma vez.
+Se você não solicitou a recuperação, ignore este e-mail — sua senha continua a mesma."));
         }
 
         public async Task<ValidarCodigoResponse> ValidarCodigoAsync(ValidarCodigoRequest request)
@@ -175,82 +188,5 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                 throw new ValidationException($"A senha deve ter ao menos {TamanhoMinimoSenha} caracteres.");
         }
 
-        // Layout à prova de clientes de e-mail (tabelas + estilos inline), na identidade navy do
-        // site. A logo vai inline via Content-ID (cid:logoclinica) — precisa casar com
-        // SmtpEmailService.LogoContentId; se o arquivo não existir, o alt text aparece no lugar.
-        private static string MontarCorpoEmail(string nome, string codigo, string logoSrc)
-        {
-            var primeiroNome = string.IsNullOrWhiteSpace(nome) ? "" : nome.Trim().Split(' ')[0];
-            var saudacao = string.IsNullOrEmpty(primeiroNome) ? "Olá" : $"Olá, {primeiroNome}";
-            return $@"
-<div style=""display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;height:0;width:0"">
-  Recebemos um pedido para redefinir a senha da sua conta. Abra para ver seu código de verificação.
-  &zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;
-</div>
-<table role=""presentation"" width=""100%"" cellpadding=""0"" cellspacing=""0""
-       style=""background:#F1F5F9;margin:0;padding:24px 12px;font-family:Arial,Helvetica,sans-serif"">
-  <tr><td align=""center"">
-    <table role=""presentation"" width=""480"" cellpadding=""0"" cellspacing=""0""
-           style=""width:480px;max-width:100%;background:#ffffff;border:1px solid #E2E8F0;border-radius:16px;overflow:hidden"">
-      <tr>
-        <td align=""center"" style=""background:#2C5282;padding:16px 24px"">
-          <img src=""{logoSrc}"" alt=""Clínica Mais Saúde"" width=""44""
-               style=""display:block;width:44px;height:auto;margin:0 auto 4px;border:0"" />
-          <div style=""color:#ffffff;font-size:15px;font-weight:bold;letter-spacing:0.3px"">Clínica Mais Saúde</div>
-        </td>
-      </tr>
-      <tr>
-        <td style=""padding:30px 32px 8px;color:#0F172A"">
-          <p style=""font-size:16px;font-weight:bold;margin:0 0 6px"">{saudacao}.</p>
-          <p style=""font-size:14px;color:#475569;line-height:21px;margin:0 0 22px"">
-            Recebemos um pedido para redefinir a senha da sua conta. Use o código abaixo para continuar:
-          </p>
-          <div style=""font-size:34px;font-weight:bold;letter-spacing:10px;color:#2C5282;background:#EBF8FF;
-                      border:1px solid #BEE3F8;border-radius:12px;padding:18px 12px;text-align:center;margin:0 0 22px"">
-            {codigo}
-          </div>
-          <p style=""font-size:13px;color:#475569;line-height:20px;margin:0 0 6px"">
-            O código expira em <strong style=""color:#0F172A"">{ExpiracaoCodigoMin} minutos</strong> e só pode ser usado uma vez.
-          </p>
-          <p style=""font-size:13px;color:#475569;line-height:20px;margin:0 0 24px"">
-            Se você não solicitou a recuperação, ignore este e-mail — sua senha continua a mesma.
-          </p>
-        </td>
-      </tr>
-      <tr>
-        <td style=""background:#F8FAFC;border-top:1px solid #E2E8F0;padding:16px 32px"">
-          <p style=""font-size:11px;color:#94A3B8;text-align:center;margin:0;line-height:16px"">
-            Este é um e-mail automático da Clínica Mais Saúde. Por favor, não responda.
-          </p>
-        </td>
-      </tr>
-    </table>
-  </td></tr>
-</table>";
-        }
-
-        // Versão texto puro (com quebras de linha) — usada no preview de notificações e como
-        // fallback em clientes sem HTML. Evita o texto "tudo junto" gerado ao esconder as tags.
-        private static string MontarCorpoTexto(string nome, string codigo)
-        {
-            var primeiroNome = string.IsNullOrWhiteSpace(nome) ? "" : nome.Trim().Split(' ')[0];
-            var saudacao = string.IsNullOrEmpty(primeiroNome) ? "Olá" : $"Olá, {primeiroNome}";
-            return
-$@"CLÍNICA MAIS SAÚDE
-Recuperação de senha
-
-{saudacao}.
-
-Recebemos um pedido para redefinir a senha da sua conta.
-Seu código de verificação é:
-
-    {codigo}
-
-O código expira em {ExpiracaoCodigoMin} minutos e só pode ser usado uma vez.
-Se você não solicitou a recuperação, ignore este e-mail — sua senha continua a mesma.
-
-—
-Clínica Mais Saúde • e-mail automático, não responda.";
-        }
     }
 }

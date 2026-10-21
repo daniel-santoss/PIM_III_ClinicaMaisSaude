@@ -13,7 +13,7 @@ namespace ClinicaMaisSaude.API.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
-    public class PacientesController : ControllerBase
+    public class PacientesController : ClinicaControllerBase
     {
         private readonly IPacienteService _pacienteService;
 
@@ -41,8 +41,7 @@ namespace ClinicaMaisSaude.API.Controllers
         [HttpGet]
         public async Task<IActionResult> ObterTodos([FromQuery] string? nome, [FromQuery] string? cpf, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
         {
-            var isAdmin = User.IsInRole(PerfisUsuario.Admin);
-            var result = await _pacienteService.ObterTodosPaginadoAsync(nome, cpf, isAdmin, page, pageSize);
+            var result = await _pacienteService.ObterTodosPaginadoAsync(nome, cpf, IsAdmin, page, pageSize);
 
             return Ok(result);
         }

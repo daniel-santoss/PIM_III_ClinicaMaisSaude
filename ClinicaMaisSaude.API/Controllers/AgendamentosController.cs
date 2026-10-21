@@ -14,7 +14,7 @@ namespace ClinicaMaisSaude.API.Controllers
     [Authorize] // Bloqueia todo o controle
     [ApiController]
     [Route("api/[controller]")]
-    public class AgendamentosController : ControllerBase
+    public class AgendamentosController : ClinicaControllerBase
     {
         private readonly IAgendamentoService _agendamentoService;
         private readonly IProbabilidadeFaltaService _probabilidadeFaltaService;
@@ -25,49 +25,41 @@ namespace ClinicaMaisSaude.API.Controllers
             _probabilidadeFaltaService = probabilidadeFaltaService;
         }
 
+        // Autorização de recurso: um paciente só pode agir sobre a própria consulta.
+        // Staff (médica/enfermeira/admin) passa direto. Carrega via service, que já lança 404
+        // se o agendamento não existir. Centraliza a checagem antes duplicada em AlterarStatus/Remarcar.
+        private async Task GarantirPacienteDonoAsync(Guid agendamentoId, string mensagem)
+        {
+            if (!EhPaciente) return;
+            var agendamento = await _agendamentoService.BuscarPorIdAsync(agendamentoId);
+            if (agendamento.PacienteId != PacienteIdToken)
+                throw new ForbiddenException(mensagem);
+        }
+
         [HttpPost]
         public async Task<IActionResult> CriarAgendamento([FromBody] AgendamentoRequest request)
         {
-            var tipoUsuario = User.FindFirstValue(ClinicaClaims.TipoUsuario) ?? User.FindFirstValue(ClaimTypes.Role);
-            var isAdmin = User.IsInRole(PerfisUsuario.Admin);
-
             // Bloqueia a criação por médicos, exceto o Admin ou se for um agendamento de Retorno
-            if (tipoUsuario == PerfisUsuario.Medico && !isAdmin && request.TipoConsulta != (int)ClinicaMaisSaude.Domain.Enums.TipoConsulta.Retorno)
+            if (EhMedico && !IsAdmin && request.TipoConsulta != (int)ClinicaMaisSaude.Domain.Enums.TipoConsulta.Retorno)
                 throw new ForbiddenException("Médicos não têm permissão para agendar consultas. Apenas Enfermeiras e Pacientes.");
 
-            if (tipoUsuario == PerfisUsuario.Paciente)
-            {
-                var pacienteIdToken = User.FindFirstValue(ClinicaClaims.PacienteId);
-                if (request.PacienteId != Guid.Parse(pacienteIdToken!))
-                    throw new ForbiddenException("Você não pode agendar consultas para outros pacientes.");
-            }
+            if (EhPaciente && request.PacienteId != PacienteIdToken)
+                throw new ForbiddenException("Você não pode agendar consultas para outros pacientes.");
 
-            var usuarioLogadoId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-            var resultado = await _agendamentoService.AdicionarAsync(request, usuarioLogadoId);
+            var resultado = await _agendamentoService.AdicionarAsync(request, UsuarioLogadoId);
             return Created("", resultado);
         }
 
         [HttpGet]
         public async Task<IActionResult> ObterTodos([FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] string? busca = null, [FromQuery] string? data = null, [FromQuery] string? status = null, [FromQuery] bool riscoAltoApenas = false, [FromQuery] string ordem = "asc")
         {
-            var tipoUsuario = User.FindFirstValue(ClinicaClaims.TipoUsuario) ?? User.FindFirstValue(ClaimTypes.Role);
-            var isAdmin = User.IsInRole(PerfisUsuario.Admin);
-
             Guid? filtroProf = null;
             Guid? filtroPac = null;
 
-            if (!isAdmin && tipoUsuario == PerfisUsuario.Paciente)
-            {
-                var pacienteIdStr = User.FindFirstValue(ClinicaClaims.PacienteId);
-                if (Guid.TryParse(pacienteIdStr, out var pacienteId))
-                    filtroPac = pacienteId;
-            }
-            else if (!isAdmin && tipoUsuario == PerfisUsuario.Medico)
-            {
-                var profissionalIdStr = User.FindFirstValue(ClinicaClaims.ProfissionalId);
-                if (Guid.TryParse(profissionalIdStr, out var profissionalId))
-                    filtroProf = profissionalId;
-            }
+            if (!IsAdmin && EhPaciente)
+                filtroPac = PacienteIdToken;
+            else if (!IsAdmin && EhMedico)
+                filtroProf = ProfissionalIdToken;
             // Enfermeira e Admin: sem filtro de ID, veem tudo (sujeito aos parâmetros de busca)
 
             var result = await _agendamentoService.ObterTodosPaginadoAsync(page, pageSize, filtroProf, filtroPac, busca, data, status, riscoAltoApenas, ordem);
@@ -76,12 +68,7 @@ namespace ClinicaMaisSaude.API.Controllers
 
         [HttpGet("{id}")]
         public async Task<IActionResult> ObterPorId(Guid id)
-        {
-            var agendamento = await _agendamentoService.ObterPorIdAsync(id);
-            if (agendamento == null)
-                throw new NotFoundException("Agendamento não encontrado.");
-            return Ok(agendamento);
-        }
+            => Ok(await _agendamentoService.BuscarPorIdAsync(id));
 
         [HttpGet("horarios-disponiveis")]
         public async Task<IActionResult> ObterHorariosDisponiveis([FromQuery] DateTime data, [FromQuery] int tipoConsulta, [FromQuery] int? especialidadeId = null, [FromQuery] Guid? origemId = null)
@@ -94,8 +81,7 @@ namespace ClinicaMaisSaude.API.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> AtualizarAgendamento(Guid id, [FromBody] AgendamentoRequest request)
         {
-            var usuarioLogadoId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-            var resultado = await _agendamentoService.AtualizarAsync(id, request, usuarioLogadoId);
+            var resultado = await _agendamentoService.AtualizarAsync(id, request, UsuarioLogadoId);
             return Ok(resultado);
         }
 
@@ -103,23 +89,12 @@ namespace ClinicaMaisSaude.API.Controllers
         [HttpPatch("{id}/status")]
         public async Task<IActionResult> AlterarStatus(Guid id, [FromBody] int novoStatus)
         {
-            var tipoUsuario = User.FindFirstValue(ClinicaClaims.TipoUsuario) ?? User.FindFirstValue(ClaimTypes.Role);
-            if (tipoUsuario == PerfisUsuario.Paciente)
-            {
-                if (novoStatus != 6)
-                    throw new ForbiddenException("Pacientes só podem alterar o status para Cancelado.");
+            if (EhPaciente && novoStatus != 6)
+                throw new ForbiddenException("Pacientes só podem alterar o status para Cancelado.");
 
-                var agendamento = await _agendamentoService.ObterPorIdAsync(id);
-                if (agendamento == null)
-                    throw new NotFoundException("Agendamento não encontrado.");
+            await GarantirPacienteDonoAsync(id, "Você não pode cancelar consultas de outros pacientes.");
 
-                var pacienteIdToken = User.FindFirstValue(ClinicaClaims.PacienteId);
-                if (agendamento.PacienteId != Guid.Parse(pacienteIdToken!))
-                    throw new ForbiddenException("Você não pode cancelar consultas de outros pacientes.");
-            }
-
-            var usuarioLogadoId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-            var resultado = await _agendamentoService.AlterarStatusAsync(id, novoStatus, usuarioLogadoId);
+            var resultado = await _agendamentoService.AlterarStatusAsync(id, novoStatus, UsuarioLogadoId);
             return Ok(resultado);
         }
 
@@ -130,22 +105,9 @@ namespace ClinicaMaisSaude.API.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var isAdmin = User.IsInRole(PerfisUsuario.Admin);
-            var tipoUsuario = User.FindFirstValue(ClinicaClaims.TipoUsuario) ?? User.FindFirstValue(ClaimTypes.Role);
+            await GarantirPacienteDonoAsync(id, "Você não pode remarcar consultas de outros pacientes.");
 
-            if (!isAdmin && tipoUsuario == PerfisUsuario.Paciente)
-            {
-                var agendamento = await _agendamentoService.ObterPorIdAsync(id);
-                if (agendamento == null)
-                    throw new NotFoundException("Agendamento não encontrado.");
-
-                var pacienteIdToken = User.FindFirstValue(ClinicaClaims.PacienteId);
-                if (agendamento.PacienteId != Guid.Parse(pacienteIdToken!))
-                    throw new ForbiddenException("Você não pode remarcar consultas de outros pacientes.");
-            }
-
-            var usuarioLogadoId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-            var resultado = await _agendamentoService.RemarcarAsync(id, request, usuarioLogadoId);
+            var resultado = await _agendamentoService.RemarcarAsync(id, request, UsuarioLogadoId);
             return Ok(resultado);
         }
 
@@ -153,8 +115,7 @@ namespace ClinicaMaisSaude.API.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeletarAgendamento(Guid id)
         {
-            var usuarioLogadoId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-            await _agendamentoService.DeletarAsync(id, usuarioLogadoId);
+            await _agendamentoService.DeletarAsync(id, UsuarioLogadoId);
             return NoContent();
         }
 
@@ -169,8 +130,7 @@ namespace ClinicaMaisSaude.API.Controllers
         [HttpPatch("{id}/concluir-exame")]
         public async Task<IActionResult> ConcluirExame(Guid id, [FromBody] bool exigeResultadoPosterior)
         {
-            var usuarioLogadoId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-            await _agendamentoService.ConcluirExameAsync(id, exigeResultadoPosterior, usuarioLogadoId);
+            await _agendamentoService.ConcluirExameAsync(id, exigeResultadoPosterior, UsuarioLogadoId);
             return Ok(new { Mensagem = "Exame concluído." });
         }
 
@@ -193,9 +153,7 @@ namespace ClinicaMaisSaude.API.Controllers
         [HttpGet("{agendamentoId}/probabilidade-falta")]
         public async Task<IActionResult> ObterProbabilidadeFalta(Guid agendamentoId)
         {
-            var agendamento = await _agendamentoService.ObterPorIdAsync(agendamentoId);
-            if (agendamento == null)
-                throw new NotFoundException("Agendamento não encontrado.");
+            var agendamento = await _agendamentoService.BuscarPorIdAsync(agendamentoId);
 
             var (probabilidade, nivel) = await _probabilidadeFaltaService.CalcularProbabilidadeAsync(agendamento.PacienteId, agendamento.DataHoraConsulta);
 

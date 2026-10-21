@@ -17,7 +17,7 @@ namespace ClinicaMaisSaude.API.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
-    public class DeclaracaoSaudeController : ControllerBase
+    public class DeclaracaoSaudeController : ClinicaControllerBase
     {
         private readonly IModeloDeclaracaoService _service;
 
@@ -82,6 +82,14 @@ namespace ClinicaMaisSaude.API.Controllers
             return Created("", criada);
         }
 
+        [HttpPost("modelos/{id}/perguntas/lote")]
+        public async Task<IActionResult> AdicionarPerguntasEmLote(Guid id, [FromBody] PerguntasLoteRequest request)
+        {
+            ExigirAdmin();
+            var criadas = await _service.AdicionarPerguntasEmLoteAsync(id, request?.Perguntas ?? new List<string>());
+            return Created("", criadas);
+        }
+
         [HttpPut("perguntas/{perguntaId}")]
         public async Task<IActionResult> EditarPergunta(Guid perguntaId, [FromBody] PerguntaRequest request)
         {
@@ -108,7 +116,7 @@ namespace ClinicaMaisSaude.API.Controllers
 
         private void ExigirAdmin()
         {
-            if (!User.IsInRole(PerfisUsuario.Admin))
+            if (!IsAdmin)
                 throw new ForbiddenException("Apenas administradores podem gerenciar a Declaração de Saúde.");
         }
     }

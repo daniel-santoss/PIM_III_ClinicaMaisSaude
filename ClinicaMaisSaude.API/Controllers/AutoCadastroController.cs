@@ -19,7 +19,7 @@ namespace ClinicaMaisSaude.API.Controllers
     /// </summary>
     [ApiController]
     [Route("api/[controller]")]
-    public class AutoCadastroController : ControllerBase
+    public class AutoCadastroController : ClinicaControllerBase
     {
         private readonly IAutoCadastroService _service;
         private readonly IPrimeiroAcessoService _primeiroAcesso;
@@ -105,7 +105,7 @@ namespace ClinicaMaisSaude.API.Controllers
 
         private void ExigirAdmin()
         {
-            if (!User.IsInRole(PerfisUsuario.Admin))
+            if (!IsAdmin)
                 throw new ForbiddenException("Apenas administradores podem gerenciar solicitações de cadastro.");
         }
 

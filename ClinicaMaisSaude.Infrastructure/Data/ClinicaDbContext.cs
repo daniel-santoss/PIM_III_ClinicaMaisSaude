@@ -360,6 +360,11 @@ namespace ClinicaMaisSaude.Infrastructure.Data
                 entidade.Property(u => u.DtCriado).HasColumnName("Dt_Criado");
                 entidade.Property(u => u.UltAtualizacao).HasColumnName("ult_Atualizacao");
 
+                // Atalho de leitura (usuario.FotoBase64 => Foto?.FotoBase64): não é coluna, a fonte é
+                // a navegação Foto (tabela UsuarioFotos). A decisão de não persistir fica aqui, na
+                // Infrastructure, para o Domain não depender de anotações de persistência.
+                entidade.Ignore(u => u.FotoBase64);
+
                 // Papel unificado (Fase A). Fonte única do papel após remover TipoUsuario.
                 entidade.HasOne<RoleUsuarioLookup>()
                     .WithMany()

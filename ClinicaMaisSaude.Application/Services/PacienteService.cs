@@ -24,6 +24,12 @@ namespace ClinicaMaisSaude.Application.Services
             _agendamentoRepository = agendamentoRepository;
         }
 
+        // Carrega a entidade pelo id ou lança 404. Convenção do projeto: Buscar* garante
+        // que existe (senão NotFound); Obter* pode devolver nulo (o chamador trata).
+        private async Task<Paciente> BuscarPacienteAsync(Guid id) =>
+            await _repository.ObterPorIdAsync(id)
+                ?? throw new NotFoundException("Paciente não encontrado.");
+
         public Task<PacienteResponse> AdicionarAsync(PacienteRequest request)
         {
             // A identidade (Nome/Cpf/Email/Telefone) vive na Pessoa e todo paciente
@@ -178,10 +184,7 @@ namespace ClinicaMaisSaude.Application.Services
 
         public async Task<PacienteResponse> AtualizarAsync(Guid id, PacienteRequest request)
         {
-            var paciente = await _repository.ObterPorIdAsync(id);
-
-            if (paciente == null)
-                throw new NotFoundException("Paciente não encontrado.");
+            var paciente = await BuscarPacienteAsync(id);
 
             // Identidade (Nome/Email/Telefone) é atualizada na Pessoa (fonte única — Thread B);
             // o perfil de paciente só guarda o dado clínico.
@@ -213,10 +216,7 @@ namespace ClinicaMaisSaude.Application.Services
 
         public async Task DesativarAsync(Guid id)
         {
-            var paciente = await _repository.ObterPorIdAsync(id);
-
-            if (paciente == null)
-                throw new NotFoundException("Paciente não encontrado.");
+            var paciente = await BuscarPacienteAsync(id);
 
             paciente.Desativar();
             await _repository.AtualizarAsync(paciente);

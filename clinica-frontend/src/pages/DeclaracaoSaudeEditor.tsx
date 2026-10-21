@@ -53,6 +53,10 @@ export default function DeclaracaoSaudeEditor() {
   const [perguntaEdit, setPerguntaEdit] = useState("");
   const [salvando, setSalvando] = useState(false);
 
+  // inclusão em massa (uma pergunta por linha)
+  const [modoLote, setModoLote] = useState(false);
+  const [perguntasLote, setPerguntasLote] = useState("");
+
   // confirmações
   const [confirmExcluirModelo, setConfirmExcluirModelo] = useState(false);
   const [confirmExcluirPergunta, setConfirmExcluirPergunta] = useState<PerguntaAdmin | null>(null);
@@ -170,6 +174,25 @@ export default function DeclaracaoSaudeEditor() {
       setDetalhe({ ...detalhe, perguntas: [...detalhe.perguntas, criada] });
       setModelos(prev => prev.map(m => m.id === detalhe.id ? { ...m, qtdPerguntas: m.qtdPerguntas + 1 } : m));
       setNovaPergunta("");
+    } catch { toast.error("Erro de conexão."); }
+    finally { setSalvando(false); }
+  };
+
+  const adicionarVarias = async () => {
+    if (!detalhe) return;
+    const perguntas = perguntasLote.split("\n").map(l => l.trim()).filter(Boolean);
+    if (perguntas.length === 0) { toast.error("Cole ao menos uma pergunta (uma por linha)."); return; }
+    setSalvando(true);
+    try {
+      const res = await fetch(`${API_URL}/api/DeclaracaoSaude/modelos/${detalhe.id}/perguntas/lote`, {
+        method: "POST", headers: authHeaders(), body: JSON.stringify({ perguntas }),
+      });
+      if (!res.ok) { toast.error(await res.text()); return; }
+      const criadas: PerguntaAdmin[] = await res.json();
+      setDetalhe({ ...detalhe, perguntas: [...detalhe.perguntas, ...criadas] });
+      setModelos(prev => prev.map(m => m.id === detalhe.id ? { ...m, qtdPerguntas: m.qtdPerguntas + criadas.length } : m));
+      setPerguntasLote(""); setModoLote(false);
+      toast.success(`${criadas.length} pergunta${criadas.length === 1 ? "" : "s"} adicionada${criadas.length === 1 ? "" : "s"}.`);
     } catch { toast.error("Erro de conexão."); }
     finally { setSalvando(false); }
   };
@@ -393,17 +416,47 @@ export default function DeclaracaoSaudeEditor() {
                   ))}
 
                   {/* Adicionar pergunta */}
-                  {!travado && (
-                    <div className="flex items-center gap-2 mt-1.5">
-                      <input
-                        value={novaPergunta} onChange={e => setNovaPergunta(e.target.value)}
-                        onKeyDown={e => { if (e.key === "Enter") adicionarPergunta(); }}
-                        placeholder="Nova pergunta…"
-                        className="flex-1 min-w-0 h-10 px-3 text-sm text-ink bg-white border border-line rounded-md outline-none focus:border-brand-600 focus:shadow-focus placeholder:text-muted"
+                  {!travado && !modoLote && (
+                    <div className="flex flex-col gap-1.5 mt-1.5">
+                      <div className="flex items-center gap-2">
+                        <input
+                          value={novaPergunta} onChange={e => setNovaPergunta(e.target.value)}
+                          onKeyDown={e => { if (e.key === "Enter") adicionarPergunta(); }}
+                          placeholder="Nova pergunta…"
+                          className="flex-1 min-w-0 h-10 px-3 text-sm text-ink bg-white border border-line rounded-md outline-none focus:border-brand-600 focus:shadow-focus placeholder:text-muted"
+                        />
+                        <Button size="sm" icon={<Plus size={15} />} onClick={adicionarPergunta} disabled={salvando || !novaPergunta.trim()}>
+                          Adicionar
+                        </Button>
+                      </div>
+                      <button
+                        onClick={() => { setModoLote(true); setPerguntasLote(""); }}
+                        className="self-start inline-flex items-center gap-1.5 text-[13px] font-medium text-brand-600 hover:text-brand-800 mt-0.5"
+                      >
+                        <ListChecks className="w-3.5 h-3.5" /> Colar várias perguntas de uma vez
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Adicionar em lote (uma por linha) */}
+                  {!travado && modoLote && (
+                    <div className="flex flex-col gap-2 mt-1.5 bg-canvas border border-line rounded-md p-3">
+                      <label className="text-[12px] font-semibold text-body">Uma pergunta por linha</label>
+                      <textarea
+                        autoFocus value={perguntasLote} onChange={e => setPerguntasLote(e.target.value)}
+                        rows={8}
+                        placeholder={"Possui alguma doença crônica?\nFaz uso contínuo de algum medicamento?\nPossui alguma alergia conhecida?"}
+                        className="w-full px-3 py-2 text-sm text-ink bg-white border border-line rounded-md outline-none focus:border-brand-600 focus:shadow-focus resize-y placeholder:text-muted leading-relaxed"
                       />
-                      <Button size="sm" icon={<Plus size={15} />} onClick={adicionarPergunta} disabled={salvando || !novaPergunta.trim()}>
-                        Adicionar
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Button size="sm" icon={<Plus size={15} />} onClick={adicionarVarias}
+                          disabled={salvando || !perguntasLote.split("\n").map(l => l.trim()).filter(Boolean).length}>
+                          Adicionar {perguntasLote.split("\n").map(l => l.trim()).filter(Boolean).length || ""}
+                        </Button>
+                        <Button size="sm" variant="secondary" onClick={() => { setModoLote(false); setPerguntasLote(""); }}>
+                          Cancelar
+                        </Button>
+                      </div>
                     </div>
                   )}
                 </div>

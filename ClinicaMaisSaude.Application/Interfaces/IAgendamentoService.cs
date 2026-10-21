@@ -14,7 +14,8 @@ namespace ClinicaMaisSaude.Application.Interfaces
         Task<IEnumerable<AgendamentoResponse>> ObterTodosAsync();
         Task<DTOs.PagedResult<AgendamentoResponse>> ObterTodosPaginadoAsync(int page, int pageSize, Guid? profissionalId = null, Guid? pacienteId = null, string? buscaPaciente = null, string? dataConsulta = null, string? status = null, bool riscoAltoApenas = false, string ordem = "asc");
         Task<List<string>> ObterHorariosDisponiveisAsync(DateTime data, int tipoConsultaInt, int? especialidadeId = null, Guid? origemId = null);
-        Task<AgendamentoResponse> ObterPorIdAsync(Guid id);
+        // Convenção do projeto: Buscar* garante que existe (senão 404); Obter* pode devolver nulo.
+        Task<AgendamentoResponse> BuscarPorIdAsync(Guid id);
         Task<AgendamentoResponse> RemarcarAsync(Guid id, RemarcarAgendamentoRequest request, Guid usuarioLogadoId);
         Task DeletarAsync(Guid id, Guid usuarioLogadoId);
         Task MarcarResultadoDisponivelAsync(Guid id);
