@@ -55,6 +55,9 @@ export default function PacienteList({
   };
 
   const [editandoId, setEditandoId] = useState<string | null>(null);
+  // Guarda o tipo da linha em edição: a lista do admin mistura pacientes e
+  // profissionais, e cada um tem seu próprio endpoint de atualização.
+  const [editandoTipo, setEditandoTipo] = useState<string | null>(null);
   const [form, setForm] = useState<PacienteEdicao>({ nome: "", cpf: "", telefone: "", email: "" });
   const [salvando, setSalvando] = useState(false);
 
@@ -137,11 +140,13 @@ export default function PacienteList({
 
   const abrirEdicao = (p: PacienteResponse) => {
     setEditandoId(p.id);
+    setEditandoTipo(p.tipo ?? perfis.paciente);
     setForm({ nome: p.nome, cpf: p.cpf, telefone: p.telefone, email: p.email });
   };
 
   const fecharModal = () => {
     setEditandoId(null);
+    setEditandoTipo(null);
     if (onFinalizouEdicaoExterno) onFinalizouEdicaoExterno();
   };
 
@@ -150,7 +155,10 @@ export default function PacienteList({
     setSalvando(true);
     try {
       const token = localStorage.getItem(storageKeys.authToken);
-      const response = await fetch(`${API_URL}/api/Pacientes/${editandoId}`, {
+      // Pacientes e profissionais (médico/enfermeira) têm endpoints distintos; a
+      // identidade é a mesma (Pessoa), mas o id da linha pertence a tabelas diferentes.
+      const recurso = editandoTipo === perfis.paciente ? "Pacientes" : "Profissionais";
+      const response = await fetch(`${API_URL}/api/${recurso}/${editandoId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify(form),
@@ -581,7 +589,7 @@ export default function PacienteList({
           >
             <div className="px-6 py-5 border-b border-line shrink-0 flex items-start justify-between gap-4">
               <div>
-                <h3 className="font-semibold text-base text-ink">Editar Paciente</h3>
+                <h3 className="font-semibold text-base text-ink">{editandoTipo === perfis.paciente ? "Editar Paciente" : "Editar Profissional"}</h3>
                 <p className="text-[13px] text-muted mt-1">Atualize as informações cadastrais.</p>
               </div>
               <button type="button" onClick={fecharModal} className="text-muted hover:text-body p-1 -mr-1 shrink-0" aria-label="Fechar">
