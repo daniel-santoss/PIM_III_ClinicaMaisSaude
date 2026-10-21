@@ -81,6 +81,18 @@ namespace ClinicaMaisSaude.API.Controllers
             return Ok(new { Mensagem = "Foto atualizada com sucesso.", FotoBase64 = base64 });
         }
 
+        [HttpDelete("foto")]
+        public async Task<IActionResult> RemoverFoto()
+        {
+            var usuarioId = ObterUsuarioId();
+            if (usuarioId == null) return Unauthorized();
+
+            var erro = await _perfilService.RemoverFotoAsync(usuarioId.Value);
+            if (erro != null) return BadRequest(new { Mensagem = erro });
+
+            return Ok(new { Mensagem = "Foto removida com sucesso." });
+        }
+
         [HttpDelete]
         public async Task<IActionResult> ExcluirConta([FromBody] ExcluirContaRequest request)
         {
