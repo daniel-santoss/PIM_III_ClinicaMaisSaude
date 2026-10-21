@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { API_URL, CLINIC_NAME } from "../constants/api";
 import logoPng from "../assets/logo_clinica.png";
 import bgImage from "../assets/itens_medicos_background.png";
@@ -15,6 +15,13 @@ type Etapa = "termos" | "dados" | "codigo" | "ds" | "sucesso";
 
 const soDigitos = (v: string) => v.replace(/\D/g, "");
 const TERMOS_VERSAO = "1.0";
+
+// Rascunho do wizard (resiliente a recarregar a página): guarda termos + dados +
+// o token de e-mail JÁ confirmado, para o usuário não repetir a verificação de e-mail
+// se precisar voltar depois. NÃO guardamos as respostas da declaração de saúde (dado sensível).
+const RASCUNHO_KEY = "clinica.autocadastro.rascunho";
+const RASCUNHO_TTL_MS = 6 * 60 * 60 * 1000;   // descarta o rascunho após 6h (limita dado antigo em máquina compartilhada)
+const TOKEN_EMAIL_TTL_MS = 30 * 60 * 1000;    // casa com ExpiracaoTokenMin (30 min) do VerificacaoEmailService
 
 // A API responde erros como ProblemDetails ({ message/detail, ... }). Nunca mostrar o JSON cru:
 // extrai a mensagem amigável e cai num texto padrão se não houver.
@@ -44,6 +51,8 @@ export default function AutoCadastro({ onVoltar }: { onVoltar: () => void }) {
   // Confirmação de e-mail
   const [codigo, setCodigo] = useState("");
   const [tokenEmail, setTokenEmail] = useState<string | null>(null);
+  // Quando o token de e-mail expira (epoch ms). Usado para decidir se dá para retomar na DS.
+  const [tokenEmailExpiraEm, setTokenEmailExpiraEm] = useState<number | null>(null);
 
   // Declaração de saúde
   const [respostas, setRespostas] = useState<Record<string, RespostaState>>({});
@@ -52,22 +61,89 @@ export default function AutoCadastro({ onVoltar }: { onVoltar: () => void }) {
   const [ocupado, setOcupado] = useState(false);
   const [sucesso, setSucesso] = useState<string | null>(null);
 
+  // Só persistimos o rascunho depois de tentar restaurar — evita sobrescrever o
+  // salvo com o estado inicial vazio no primeiro render.
+  const hidratadoRef = useRef(false);
+
+  const limparRascunho = () => {
+    try { localStorage.removeItem(RASCUNHO_KEY); } catch { /* storage indisponível */ }
+  };
+
+  // Restaura o rascunho ao abrir. `modeloOk` indica se a DS está disponível (sem ela
+  // não dá para retomar na etapa de saúde). O token de e-mail só é reaproveitado se
+  // ainda estiver dentro da validade (30 min).
+  const restaurarRascunho = (modeloOk: boolean) => {
+    let raw: string | null = null;
+    try { raw = localStorage.getItem(RASCUNHO_KEY); } catch { return; }
+    if (!raw) return;
+    try {
+      const d = JSON.parse(raw);
+      if (!d || typeof d !== "object") return;
+      if (!d.savedAt || Date.now() - d.savedAt > RASCUNHO_TTL_MS) { limparRascunho(); return; }
+
+      setNome(d.nome ?? "");
+      setCpf(d.cpf ?? "");
+      setEmail(d.email ?? "");
+      setTelefone(d.telefone ?? "");
+      setTemProblemaMemoria(!!d.temProblemaMemoria);
+      setAceitouTermos(!!d.aceitouTermos);
+
+      let etapaAlvo: Etapa = d.etapa ?? "termos";
+
+      const tokenValido = d.tokenEmail && d.tokenEmailExpiraEm && Date.now() < d.tokenEmailExpiraEm;
+      if (tokenValido) {
+        setTokenEmail(d.tokenEmail);
+        setTokenEmailExpiraEm(d.tokenEmailExpiraEm);
+      } else if (etapaAlvo === "ds") {
+        // A confirmação de e-mail expirou: não dá para retomar na DS; volta aos dados.
+        etapaAlvo = "dados";
+        toast.error("Sua confirmação de e-mail expirou. Confirme o e-mail novamente.");
+      }
+
+      if (etapaAlvo === "ds" && !modeloOk) etapaAlvo = "dados";
+      if (etapaAlvo === "sucesso") { limparRascunho(); return; }
+      setEtapa(etapaAlvo);
+    } catch {
+      /* rascunho corrompido: ignora */
+    }
+  };
+
   useEffect(() => {
     (async () => {
+      let modeloOk = false;
       try {
         const res = await fetch(`${API_URL}/api/AutoCadastro/declaracao`);
-        if (res.status === 404) { setModelo(null); return; }
-        if (!res.ok) { setFalha(true); return; }
-        const data: Modelo = await res.json();
-        setModelo(data);
-        setRespostas(Object.fromEntries(data.perguntas.map(p => [p.perguntaId, { resposta: null, detalhe: "" }])));
+        if (res.status === 404) {
+          setModelo(null);
+        } else if (!res.ok) {
+          setFalha(true);
+        } else {
+          const data: Modelo = await res.json();
+          setModelo(data);
+          setRespostas(Object.fromEntries(data.perguntas.map(p => [p.perguntaId, { resposta: null, detalhe: "" }])));
+          modeloOk = true;
+        }
       } catch {
         setFalha(true);
       } finally {
         setCarregando(false);
       }
+      restaurarRascunho(modeloOk);
+      hidratadoRef.current = true;
     })();
   }, []);
+
+  // Salva o rascunho a cada mudança relevante (depois de hidratar).
+  useEffect(() => {
+    if (!hidratadoRef.current) return;
+    if (etapa === "sucesso") return; // no sucesso, o rascunho é limpo
+    try {
+      localStorage.setItem(RASCUNHO_KEY, JSON.stringify({
+        etapa, nome, cpf, email, telefone, temProblemaMemoria, aceitouTermos,
+        tokenEmail, tokenEmailExpiraEm, savedAt: Date.now(),
+      }));
+    } catch { /* storage cheio/indisponível: ignora */ }
+  }, [etapa, nome, cpf, email, telefone, temProblemaMemoria, aceitouTermos, tokenEmail, tokenEmailExpiraEm]);
 
   const perguntas = useMemo(() => (modelo ? [...modelo.perguntas].sort((a, b) => a.ordem - b.ordem) : []), [modelo]);
 
@@ -101,6 +177,7 @@ export default function AutoCadastro({ onVoltar }: { onVoltar: () => void }) {
       if (!res.ok) { const t = await lerErro(res, "Não foi possível enviar o código."); setErro(t); toast.error(t); return; }
       setCodigo("");
       setTokenEmail(null);
+      setTokenEmailExpiraEm(null);
       setEtapa("codigo");
       toast.success("Enviamos um código para o seu e-mail.");
     } catch {
@@ -124,6 +201,7 @@ export default function AutoCadastro({ onVoltar }: { onVoltar: () => void }) {
       if (!res.ok) { const t = await lerErro(res, "Código inválido ou expirado."); setErro(t); toast.error(t); return; }
       const data = await res.json();
       setTokenEmail(data.token);
+      setTokenEmailExpiraEm(Date.now() + TOKEN_EMAIL_TTL_MS);
       setEtapa("ds");
       toast.success("E-mail confirmado!");
     } catch {
@@ -169,6 +247,7 @@ export default function AutoCadastro({ onVoltar }: { onVoltar: () => void }) {
       });
       if (!res.ok) { const t = await lerErro(res, "Não foi possível enviar a solicitação."); setErro(t); toast.error(t); return; }
       const data = await res.json().catch(() => null);
+      limparRascunho(); // cadastro concluído: descarta o rascunho
       setSucesso(data?.mensagem ?? "Solicitação enviada!");
       setEtapa("sucesso");
     } catch {
@@ -412,11 +491,11 @@ export default function AutoCadastro({ onVoltar }: { onVoltar: () => void }) {
                           <div className="flex gap-2">
                             <button type="button" onClick={() => setResposta(p.perguntaId, true)} disabled={ocupado}
                               className={`flex-1 h-9 rounded-md text-sm font-semibold border transition-colors ${
-                                sim ? "bg-warning-tint border-warning-border text-warning-text" : "bg-white border-line text-muted hover:bg-white"
+                                sim ? "bg-brand-50 border-brand-200 text-brand-700" : "bg-white border-line text-muted hover:bg-white"
                               }`}>Sim</button>
                             <button type="button" onClick={() => setResposta(p.perguntaId, false)} disabled={ocupado}
                               className={`flex-1 h-9 rounded-md text-sm font-semibold border transition-colors ${
-                                nao ? "bg-success-tint border-success-border text-success" : "bg-white border-line text-muted hover:bg-white"
+                                nao ? "bg-brand-50 border-brand-200 text-brand-700" : "bg-white border-line text-muted hover:bg-white"
                               }`}>Não</button>
                           </div>
                           {sim && (
