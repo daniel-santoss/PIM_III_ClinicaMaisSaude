@@ -183,11 +183,15 @@ export default function PerfilMedico() {
       <div className="flex items-center gap-4">
         <AvatarUpload
           fotoBase64={fotoBase64}
-          iniciais={isEnfermeira ? "ENF" : "MD"}
+          iniciais={medico?.nome?.charAt(0).toUpperCase() ?? "?"}
           size={80}
           onFotoAtualizada={(base64) => {
             setFotoBase64(base64);
             window.dispatchEvent(new CustomEvent("fotoPerfilAtualizada", { detail: base64 }));
+          }}
+          onFotoRemovida={() => {
+            setFotoBase64(null);
+            window.dispatchEvent(new CustomEvent("fotoPerfilAtualizada", { detail: null }));
           }}
         />
         <div className="flex-1 min-w-0">
