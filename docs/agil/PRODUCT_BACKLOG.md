@@ -24,9 +24,21 @@ Cada história tem critérios de aceite e situação atual. Derivado do históri
 | E1-05 | Como paciente, quero **login biométrico e app-lock** no celular para acesso rápido e seguro. | Should | ✅ |
 | E1-06 | Como sistema, quero **bloquear conta após tentativas** de login (anti-brute-force). | Should | ✅ |
 | E1-07 | Como sistema, quero **identidade única (`Pessoa`)** separada da credencial para consistência de dados. | Should | ✅ |
+| E1-08 | Como equipe, quero **eliminar o caminho duplicado entre as tabelas de identidade** (paciente e profissional ligam à `Pessoa` pelo login *e* diretamente) para que o banco garanta a consistência. | Could | 📦 |
 
 **Critérios de aceite (ex. E1-03):** o código expira em 15 min, é de uso único, trava após 5 tentativas;
 o e-mail é enviado com identidade visual da clínica; resposta genérica (anti-enumeração de contas).
+
+**Nota (E1-08):** a identidade (nome, CPF, e-mail, telefone) vive só em `Pessoas` — não há colunas repetidas, e
+excluir `Pessoas` foi descartado (quebraria o auto-cadastro, cujo proponente ainda não tem login, e espalharia
+CPF/e-mail em mais de uma tabela). O que se repete são as **ligações**: `Pacientes` e `Profissionais` chegam à
+`Pessoa` via `LoginPortal` (`UsuarioId`) e também por `PessoaId`. Hoje os dados estão consistentes, mas quem
+garante é o código. Caminhos possíveis:
+- **Ideal (padrão *Party*):** `LoginPortal`, `Pacientes` e `Profissionais` apontam só para `Pessoas`; saem os
+  `UsuarioId` de paciente e profissional. Custo alto (~70 pontos do código: token, checagem de dono, notificações).
+- **Pragmático:** sai só o `PessoaId` do profissional (que sempre tem login); o paciente mantém as duas ligações
+  (necessárias pelo auto-cadastro) com uma regra de consistência; `PessoaId` vira obrigatório onde cabe.
+  Custo médio-baixo.
 
 ---
 
@@ -133,4 +145,5 @@ motivo e notifica o proponente por e-mail; um modelo já usado em solicitações
 | 📦 Could | Push nativo FCM (background) | E5-03 |
 | 📦 Could | Deploy em nuvem + pipeline de CD + diagrama de arquitetura | E8-05 |
 | 📦 Could | Painel administrativo com indicadores | E7-04 |
+| 📦 Could | Eliminar o caminho duplicado entre as tabelas de identidade | E1-08 |
 | 🚫 Won't (agora) | Multi-tenant (múltiplas unidades) · 2º fator no 1º acesso · planos de saúde na home | — |
