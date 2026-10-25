@@ -59,6 +59,14 @@ export async function enviarFoto(uri: string, mimeType?: string): Promise<string
   return data.fotoBase64 ?? null;
 }
 
+// Remove a foto de perfil (volta ao avatar de inicial). DELETE /api/Perfil/foto.
+export async function removerFoto(): Promise<void> {
+  const res = await apiFetch('/api/Perfil/foto', { method: 'DELETE' });
+  if (!res.ok) {
+    throw new Error(await mensagemErro(res, 'Não foi possível remover a foto.'));
+  }
+}
+
 // Exclui a conta do próprio paciente (soft-delete no backend). Exige a senha
 // atual como confirmação. Após o sucesso, a sessão deve ser encerrada.
 export async function excluirConta(senha: string): Promise<void> {
