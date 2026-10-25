@@ -5,7 +5,7 @@
 .DESCRIPTION
   Etapas (todas por padrão; escolha com os switches):
     -Banco  aplica as migrations no Azure SQL (abre o firewall só para o seu IP e fecha ao final)
-    -Api    builda a imagem da API (Docker local), envia ao Container Registry e troca o container
+    -Api    aponta a API para a imagem do commit atual no GHCR (gerada pelo GitHub Actions) e reinicia
     -Web    builda o portal (Vite) apontando para a API pública e publica no Static Web Apps
     -App    exporta o app mobile para web (Expo) e publica no Static Web Apps
 
@@ -15,6 +15,8 @@
 #>
 param(
     [string]$Sufixo = "dvs",
+    # Dono do repositório no GitHub (a imagem fica em ghcr.io/<dono>/clinica-api).
+    [string]$GitHubOwner = "daniel-santoss",
     [switch]$Banco,
     [switch]$Api,
     [switch]$Web,
@@ -67,38 +69,14 @@ if ($Banco) {
 }
 
 if ($Api) {
-    Write-Etapa "Imagem da API (build local + push no Container Registry)"
-    $sha = (& git -C $raiz rev-parse --short HEAD).Trim()
-    # O build é local porque a assinatura de estudante não permite ACR Tasks (az acr build).
-    # Contexto = só os projetos do backend no commit atual (git archive): a imagem tem
-    # exatamente o código da tag $sha, sem node_modules nem arquivos não commitados.
-    $contexto = Join-Path ([IO.Path]::GetTempPath()) "clinica-api-build"
-    $tar = "$contexto.tar"
-    Remove-Item $contexto -Recurse -Force -ErrorAction SilentlyContinue
-    New-Item -ItemType Directory $contexto | Out-Null
-    & git -C $raiz archive --format=tar -o $tar HEAD .dockerignore ClinicaMaisSaude.Domain `
-        ClinicaMaisSaude.Application ClinicaMaisSaude.Infrastructure ClinicaMaisSaude.API
-    & tar -xf $tar -C $contexto
-    if ($LASTEXITCODE -ne 0) { throw "Falhou ao montar o contexto do build." }
-    $repo = "$($n.Registro).azurecr.io/clinica-api"
-    try {
-        & docker build --platform linux/amd64 -t "${repo}:$sha" -t "${repo}:latest" `
-            -f "$contexto/ClinicaMaisSaude.API/Dockerfile" $contexto
-        if ($LASTEXITCODE -ne 0) { throw "Falhou o docker build (o Docker Desktop está aberto?)." }
-        Invoke-Az acr login -n $n.Registro -o none
-        foreach ($tag in @($sha, "latest")) {
-            & docker push "${repo}:$tag"
-            if ($LASTEXITCODE -ne 0) { throw "Falhou o docker push." }
-        }
-    }
-    finally {
-        Remove-Item $contexto, $tar -Recurse -Force -ErrorAction SilentlyContinue
-    }
-
-    Write-Etapa "Trocando o container da API"
+    # A imagem é gerada pelo GitHub Actions (.github/workflows/cd.yml, "Run workflow") e publicada
+    # no GHCR: a assinatura de estudante bloqueia o build no Azure (ACR Tasks). Aqui só se aponta
+    # a API para a imagem do commit atual (tag "sha-<7 caracteres>") e reinicia.
+    $sha = (& git -C $raiz rev-parse --short=7 HEAD).Trim()
+    $imagem = "ghcr.io/$($GitHubOwner.ToLower())/clinica-api:sha-$sha"
+    Write-Etapa "Trocando o container da API para $imagem"
     Invoke-Az webapp config container set -g $n.Grupo -n $n.Api `
-        --container-image-name "$($n.Registro).azurecr.io/clinica-api:$sha" `
-        --container-registry-url "https://$($n.Registro).azurecr.io" -o none
+        --container-image-name $imagem --container-registry-url "https://ghcr.io" -o none
     Invoke-Az webapp restart -g $n.Grupo -n $n.Api -o none
 }
 

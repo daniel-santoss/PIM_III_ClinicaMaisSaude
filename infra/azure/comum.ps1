@@ -12,7 +12,6 @@ function Get-NomesRecursos([string]$Sufixo) {
         SqlServidor = "sql-clinica-$Sufixo"
         SqlUsuario  = "clinicaadmin"
         Banco       = "ClinicaMaisSaudeDb"
-        Registro    = "acrclinica$Sufixo"
         Plano       = "plan-clinicamaissaude"
         Api         = "clinicamaissaude-api-$Sufixo"
         Web         = "clinicamaissaude-web-$Sufixo"

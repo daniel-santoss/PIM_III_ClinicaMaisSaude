@@ -7,8 +7,7 @@
   Recursos (ver docs/nuvem/ARQUITETURA_NUVEM.md):
     - Grupo de recursos            rg-clinicamaissaude
     - Azure SQL (oferta gratuita)  sql-clinica-<sufixo> / ClinicaMaisSaudeDb
-    - Container Registry (Basic)   acrclinica<sufixo>          (imagem da API, build na nuvem)
-    - App Service Linux B1         clinicamaissaude-api-<sufixo> (container da API, Always On)
+    - App Service Linux B1         clinicamaissaude-api-<sufixo> (container da API vindo do GHCR, Always On)
     - Static Web Apps (Free) x2    clinicamaissaude-web-<sufixo> (portal) e -app-<sufixo> (mobile web)
 
   Segredos gerados aqui (JWT, pepper, senha do SQL) vão direto para as configurações do
@@ -36,7 +35,7 @@ $n = Get-NomesRecursos -Sufixo $Sufixo
 
 Write-Etapa "Provedores de recursos"
 # Assinaturas novas precisam registrar cada serviço antes do primeiro uso (é gratuito).
-foreach ($provedor in @("Microsoft.Sql", "Microsoft.Web", "Microsoft.ContainerRegistry")) {
+foreach ($provedor in @("Microsoft.Sql", "Microsoft.Web")) {
     $estado = Invoke-Az provider show -n $provedor --query registrationState -o tsv
     if ($estado -ne "Registered") { Invoke-Az provider register -n $provedor --wait -o none }
 }
@@ -65,38 +64,20 @@ if (-not (Test-Az sql db show -g $n.Grupo -s $n.SqlServidor -n $n.Banco)) {
         --use-free-limit --free-limit-exhaustion-behavior BillOverUsage -o none
 }
 
-# ---------------------------------------------------------------- Registro de imagens
-Write-Etapa "Container Registry"
-if (-not (Test-Az acr show -g $n.Grupo -n $n.Registro)) {
-    Invoke-Az acr create -g $n.Grupo -n $n.Registro --sku Basic -l $Regiao --admin-enabled false -o none
-}
-
 # ---------------------------------------------------------------- API
 Write-Etapa "App Service (plano B1 Linux + API)"
 if (-not (Test-Az appservice plan show -g $n.Grupo -n $n.Plano)) {
     Invoke-Az appservice plan create -g $n.Grupo -n $n.Plano --is-linux --sku B1 -l $Regiao -o none
 }
 
-$imagem = "$($n.Registro).azurecr.io/clinica-api:latest"
 if (-not (Test-Az webapp show -g $n.Grupo -n $n.Api)) {
     # Nasce com uma imagem pública qualquer; a da API entra no publicar.ps1 (após o 1º build).
     Invoke-Az webapp create -g $n.Grupo -p $n.Plano -n $n.Api `
         --container-image-name "mcr.microsoft.com/dotnet/samples:aspnetapp" -o none
 }
 
-# Identidade gerenciada com permissão de leitura no registro (sem senha de registro).
-$principal = Invoke-Az webapp identity assign -g $n.Grupo -n $n.Api --query principalId -o tsv
-$idRegistro = Invoke-Az acr show -g $n.Grupo -n $n.Registro --query id -o tsv
-# (consultas JMESPath com @, | ou aspas quebram no az.cmd do Windows: filtra-se no PowerShell)
-$papeis = Invoke-AzJson role assignment list --assignee $principal --scope $idRegistro --role AcrPull
-if (@($papeis).Count -eq 0) {
-    Invoke-Az role assignment create --assignee-object-id $principal --assignee-principal-type ServicePrincipal `
-        --role AcrPull --scope $idRegistro -o none
-}
 Invoke-Az webapp config set -g $n.Grupo -n $n.Api --always-on true --web-sockets-enabled true `
     --http20-enabled true --min-tls-version 1.2 -o none
-$idApi = Invoke-Az webapp show -g $n.Grupo -n $n.Api --query id -o tsv
-Invoke-Az resource update --ids "$idApi/config/web" --set properties.acrUseManagedIdentityCreds=true -o none
 Invoke-Az webapp update -g $n.Grupo -n $n.Api --https-only true -o none
 
 # ---------------------------------------------------------------- Front-ends
