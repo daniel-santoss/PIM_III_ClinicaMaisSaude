@@ -5,7 +5,11 @@ export interface SugestaoIA {
   tipoProfissional: string; // "Médico" | "Enfermeira"
   especialidade: string; // nome do enum, ex.: "Cardiologia"
   tipoConsulta: string; // "Triagem" | "Exame" | "Vacina" | "ConsultaMedica" | "Retorno"
-  justificativa: string;
+  justificativa?: string;
+  // Presentes apenas quando a IA detecta crise emocional (acolhe, sem punir):
+  // o backend devolve crise=true + mensagem de apoio e sugere Psiquiatria.
+  crise?: boolean;
+  mensagem?: string;
 }
 
 // Frase-marcador que o backend devolve quando detecta injeção de prompt (conta é banida).
@@ -45,9 +49,11 @@ export async function horariosDisponiveis(
   data: string,
   tipoConsulta: number,
   especialidadeId?: number,
+  origemId?: string,
 ): Promise<string[]> {
   let q = `?data=${data}&tipoConsulta=${tipoConsulta}`;
   if (tipoConsulta === 3 && especialidadeId) q += `&especialidadeId=${especialidadeId}`;
+  else if (tipoConsulta === 4 && origemId) q += `&origemId=${origemId}`;
   const res = await apiFetch(`/api/Agendamentos/horarios-disponiveis${q}`);
   if (!res.ok) return [];
   return (await res.json()) as string[];
@@ -60,17 +66,32 @@ export interface CriarAgendamentoInput {
   tipoConsulta: number;
   especialidadeId: number | null;
   observacao: string;
+  agendamentoOrigemId?: string | null; // obrigatório para Retorno (tipoConsulta 4)
 }
 
-export async function criarAgendamento(input: CriarAgendamentoInput): Promise<void> {
+// O backend delega o profissional na criação e devolve nome + foto dele.
+export interface AgendamentoCriado {
+  nomeProfissional: string;
+  profissionalFotoBase64: string | null;
+}
+
+export async function criarAgendamento(input: CriarAgendamentoInput): Promise<AgendamentoCriado> {
   const res = await apiFetch('/api/Agendamentos', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ...input, agendamentoOrigemId: null }),
+    body: JSON.stringify({ agendamentoOrigemId: null, ...input }),
   });
   if (!res.ok) {
     throw new Error(await mensagemErro(res, 'Não foi possível concluir o agendamento.'));
   }
+  const data = (await res.json().catch(() => ({}))) as {
+    nomeProfissional?: string;
+    profissionalFotoBase64?: string | null;
+  };
+  return {
+    nomeProfissional: data.nomeProfissional ?? '',
+    profissionalFotoBase64: data.profissionalFotoBase64 ?? null,
+  };
 }
 
 // Conversão dos textos da IA para os inteiros do enum do backend (espelha o web).
