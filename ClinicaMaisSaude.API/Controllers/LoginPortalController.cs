@@ -1,4 +1,6 @@
+using ClinicaMaisSaude.API.Authorization;
 using ClinicaMaisSaude.Application.DTOs.Auth;
+using ClinicaMaisSaude.Application.Exceptions;
 using ClinicaMaisSaude.Application.Interfaces;
 using ClinicaMaisSaude.Domain.Constants;
 using Microsoft.AspNetCore.Authorization;
@@ -13,21 +15,20 @@ namespace ClinicaMaisSaude.API.Controllers
     public class LoginPortalController : ClinicaControllerBase
     {
         private readonly ICadastroService _cadastroService;
+        private readonly IAuthorizationService _authorizationService;
+        private readonly IWebHostEnvironment _ambiente;
 
-        public LoginPortalController(ICadastroService cadastroService)
+        public LoginPortalController(ICadastroService cadastroService, IAuthorizationService authorizationService, IWebHostEnvironment ambiente)
         {
             _cadastroService = cadastroService;
+            _authorizationService = authorizationService;
+            _ambiente = ambiente;
         }
 
         [HttpPost("cadastro")]
-        [Authorize]
+        [Authorize(Roles = PerfisUsuario.Enfermeira)]
         public async Task<IActionResult> CadastroAdmin([FromBody] CadastroRequest request)
         {
-            if (!IsAdmin && TipoUsuario != PerfisUsuario.Enfermeira)
-            {
-                return Forbid();
-            }
-
             if (!IsAdmin && request.TipoUsuario != PerfisUsuario.Paciente)
             {
                 return BadRequest("Enfermeiras só podem cadastrar novos Pacientes.");
@@ -44,26 +45,23 @@ namespace ClinicaMaisSaude.API.Controllers
         }
 
         [HttpGet("usuarios")]
-        [Authorize]
+        [Authorize(Roles = PerfisUsuario.Enfermeira)]
         public async Task<IActionResult> ListarUsuarios()
         {
-            if (!IsAdmin && TipoUsuario != PerfisUsuario.Enfermeira)
-            {
-                return Forbid();
-            }
-
             var usuarios = await _cadastroService.ListarUsuariosAsync();
             return Ok(usuarios);
         }
 
+        // A enfermeira só redefine senha de contas de paciente (regra no ContaAuthorizationHandler);
+        // conta inexistente ou fora do alcance responde 404, sem revelar que existe.
         [HttpPatch("{id}/reset-senha")]
-        [Authorize]
+        [Authorize(Roles = PerfisUsuario.Enfermeira)]
         public async Task<IActionResult> ResetarSenha(Guid id, [FromBody] ResetSenhaRequest request)
         {
-            if (!IsAdmin && TipoUsuario != PerfisUsuario.Enfermeira)
-            {
-                return Forbid();
-            }
+            var role = await _cadastroService.ObterRoleAsync(id);
+            if (role == null
+                || !(await _authorizationService.AuthorizeAsync(User, new ContaUsuario(id, role.Value), OperacoesConta.RedefinirSenha)).Succeeded)
+                throw new NotFoundException("Usuário não encontrado.");
 
             if (string.IsNullOrWhiteSpace(request.NovaSenha))
             {
@@ -80,24 +78,18 @@ namespace ClinicaMaisSaude.API.Controllers
             return Ok(new { Mensagem = resultado.Mensagem });
         }
 
+        // Limpeza dos dados criados pela homologação E2E. Só existe em desenvolvimento:
+        // em qualquer outro ambiente a rota responde 404. Erros seguem para o GlobalExceptionHandler
+        // (que não expõe a mensagem interna da exceção).
         [HttpDelete("purge-tests")]
-        [Authorize]
+        [Authorize(Roles = PerfisUsuario.Admin)]
         public async Task<IActionResult> PurgeTests()
         {
-            if (!IsAdmin)
-            {
-                return Forbid("Apenas administradores de sistemas podem purgar dados de homologação.");
-            }
+            if (!_ambiente.IsDevelopment())
+                return NotFound();
 
-            try
-            {
-                await _cadastroService.PurgeTestsAsync();
-                return Ok(new { Mensagem = "Restauração completa de banco de dados (Pristine Purge) executada com sucesso!" });
-            }
-            catch (Exception ex)
-            {
-                return BadRequest($"Erro ao purgar dados: {ex.Message}");
-            }
+            await _cadastroService.PurgeTestsAsync();
+            return Ok(new { Mensagem = "Restauração completa de banco de dados (Pristine Purge) executada com sucesso!" });
         }
 
     }

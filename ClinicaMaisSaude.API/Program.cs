@@ -180,6 +180,8 @@ builder.Services.AddSignalR();
 builder.Services.AddSingleton<Microsoft.AspNetCore.Authorization.IAuthorizationHandler, ClinicaMaisSaude.API.Authorization.AdminSuperusuarioHandler>();
 // Autorização por recurso: quem pode agir sobre qual agendamento (dono / profissional delegado).
 builder.Services.AddSingleton<Microsoft.AspNetCore.Authorization.IAuthorizationHandler, ClinicaMaisSaude.API.Authorization.AgendamentoAuthorizationHandler>();
+builder.Services.AddSingleton<Microsoft.AspNetCore.Authorization.IAuthorizationHandler, ClinicaMaisSaude.API.Authorization.PacienteAuthorizationHandler>();
+builder.Services.AddSingleton<Microsoft.AspNetCore.Authorization.IAuthorizationHandler, ClinicaMaisSaude.API.Authorization.ContaAuthorizationHandler>();
 
 // Injeção de Dependências
 builder.Services.AddSingleton<IDataHoraService, DataHoraService>();
