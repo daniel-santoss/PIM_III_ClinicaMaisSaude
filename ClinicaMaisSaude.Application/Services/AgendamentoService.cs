@@ -295,6 +295,8 @@ namespace ClinicaMaisSaude.Application.Services
         {
             var agendamento = await BuscarAgendamentoAsync(id);
 
+            if (!Enum.IsDefined(typeof(StatusAgendamento), novoStatusInt))
+                throw new ValidationException("Status inválido.");
             var novoStatus = (StatusAgendamento)novoStatusInt;
             var validacao = MaquinaEstadosAgendamento.ValidarTransicao(agendamento, novoStatus, DateTime.UtcNow.AddHours(-3));
             if (!validacao.EhValida)
@@ -582,6 +584,8 @@ namespace ClinicaMaisSaude.Application.Services
 
         private async Task<List<string>> CalcularHorariosAsync(DateTime data, int tipoConsultaInt, int? especialidadeId, Guid? origemId, bool apenasPrimeiro)
         {
+            if (!Enum.IsDefined(typeof(TipoConsulta), tipoConsultaInt))
+                throw new ValidationException("Tipo de consulta inválido.");
             var tipoConsulta = (TipoConsulta)tipoConsultaInt;
             var duracao = TipoConsultaDuracao.ObterDuracao(tipoConsulta);
             var horarios = new List<string>();
