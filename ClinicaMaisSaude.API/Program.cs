@@ -178,6 +178,8 @@ builder.Services.AddSignalR();
 
 // Autorização: admin é superusuário — satisfaz qualquer [Authorize] (regra central).
 builder.Services.AddSingleton<Microsoft.AspNetCore.Authorization.IAuthorizationHandler, ClinicaMaisSaude.API.Authorization.AdminSuperusuarioHandler>();
+// Autorização por recurso: quem pode agir sobre qual agendamento (dono / profissional delegado).
+builder.Services.AddSingleton<Microsoft.AspNetCore.Authorization.IAuthorizationHandler, ClinicaMaisSaude.API.Authorization.AgendamentoAuthorizationHandler>();
 
 // Injeção de Dependências
 builder.Services.AddSingleton<IDataHoraService, DataHoraService>();

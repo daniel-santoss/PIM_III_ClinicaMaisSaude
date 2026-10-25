@@ -1,8 +1,10 @@
+using ClinicaMaisSaude.API.Authorization;
 using ClinicaMaisSaude.Application.DTOs.Agendamento;
 using ClinicaMaisSaude.Application.Exceptions;
 using ClinicaMaisSaude.Application.Interfaces;
 using ClinicaMaisSaude.Domain.Constants;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization.Infrastructure;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Linq;
@@ -18,22 +20,25 @@ namespace ClinicaMaisSaude.API.Controllers
     {
         private readonly IAgendamentoService _agendamentoService;
         private readonly IProbabilidadeFaltaService _probabilidadeFaltaService;
+        private readonly IAuthorizationService _authorizationService;
 
-        public AgendamentosController(IAgendamentoService agendamentoService, IProbabilidadeFaltaService probabilidadeFaltaService)
+        public AgendamentosController(IAgendamentoService agendamentoService, IProbabilidadeFaltaService probabilidadeFaltaService, IAuthorizationService authorizationService)
         {
             _agendamentoService = agendamentoService;
             _probabilidadeFaltaService = probabilidadeFaltaService;
+            _authorizationService = authorizationService;
         }
 
-        // Autorização de recurso: um paciente só pode agir sobre a própria consulta.
-        // Staff (médica/enfermeira/admin) passa direto. Carrega via service, que já lança 404
-        // se o agendamento não existir. Centraliza a checagem antes duplicada em AlterarStatus/Remarcar.
-        private async Task GarantirPacienteDonoAsync(Guid agendamentoId, string mensagem)
+        // Autorização de recurso: carrega o agendamento (404 se não existe) e pergunta ao
+        // AgendamentoAuthorizationHandler se o usuário pode executar a operação sobre ele.
+        // Sem permissão também responde 404 (e não 403), para não revelar que o agendamento existe.
+        private async Task<AgendamentoResponse> BuscarAutorizadoAsync(Guid id, OperationAuthorizationRequirement operacao)
         {
-            if (!EhPaciente) return;
-            var agendamento = await _agendamentoService.BuscarPorIdAsync(agendamentoId);
-            if (agendamento.PacienteId != PacienteIdToken)
-                throw new ForbiddenException(mensagem);
+            var agendamento = await _agendamentoService.BuscarPorIdAsync(id);
+            var autorizacao = await _authorizationService.AuthorizeAsync(User, agendamento, operacao);
+            if (!autorizacao.Succeeded)
+                throw new NotFoundException("Agendamento não encontrado.");
+            return agendamento;
         }
 
         [HttpPost]
@@ -71,21 +76,8 @@ namespace ClinicaMaisSaude.API.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> ObterPorId(Guid id)
         {
-            var agendamento = await _agendamentoService.BuscarPorIdAsync(id); // 404 se não existe
-            // Autorização de recurso: só o dono vê o detalhe. Responde 404 (e não 403) para
-            // terceiros, para não revelar que o agendamento existe.
-            if (!PodeVerAgendamento(agendamento))
-                throw new NotFoundException("Agendamento não encontrado.");
+            var agendamento = await BuscarAutorizadoAsync(id, OperacoesAgendamento.Ler);
             return Ok(agendamento);
-        }
-
-        // Admin vê qualquer um; paciente só os próprios; profissional (médico/enfermeira) só os
-        // delegados a ele. Espelha o escopo da listagem (ObterTodos).
-        private bool PodeVerAgendamento(AgendamentoResponse a)
-        {
-            if (IsAdmin) return true;
-            if (EhPaciente) return a.PacienteId == PacienteIdToken;
-            return ProfissionalIdToken is not null && a.ProfissionalId == ProfissionalIdToken;
         }
 
         [HttpGet("horarios-disponiveis")]
@@ -99,6 +91,7 @@ namespace ClinicaMaisSaude.API.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> AtualizarAgendamento(Guid id, [FromBody] AgendamentoRequest request)
         {
+            await BuscarAutorizadoAsync(id, OperacoesAgendamento.Gerenciar);
             var resultado = await _agendamentoService.AtualizarAsync(id, request, UsuarioLogadoId);
             return Ok(resultado);
         }
@@ -110,7 +103,7 @@ namespace ClinicaMaisSaude.API.Controllers
             if (EhPaciente && novoStatus != 6)
                 throw new ForbiddenException("Pacientes só podem alterar o status para Cancelado.");
 
-            await GarantirPacienteDonoAsync(id, "Você não pode cancelar consultas de outros pacientes.");
+            await BuscarAutorizadoAsync(id, OperacoesAgendamento.AlterarStatus);
 
             var resultado = await _agendamentoService.AlterarStatusAsync(id, novoStatus, UsuarioLogadoId);
             return Ok(resultado);
@@ -123,7 +116,7 @@ namespace ClinicaMaisSaude.API.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            await GarantirPacienteDonoAsync(id, "Você não pode remarcar consultas de outros pacientes.");
+            await BuscarAutorizadoAsync(id, OperacoesAgendamento.Remarcar);
 
             var resultado = await _agendamentoService.RemarcarAsync(id, request, UsuarioLogadoId);
             return Ok(resultado);
@@ -133,6 +126,7 @@ namespace ClinicaMaisSaude.API.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeletarAgendamento(Guid id)
         {
+            await BuscarAutorizadoAsync(id, OperacoesAgendamento.Gerenciar);
             await _agendamentoService.DeletarAsync(id, UsuarioLogadoId);
             return NoContent();
         }
@@ -140,6 +134,7 @@ namespace ClinicaMaisSaude.API.Controllers
         [HttpGet("{id}/historico")]
         public async Task<IActionResult> ObterHistorico(Guid id)
         {
+            await BuscarAutorizadoAsync(id, OperacoesAgendamento.Ler);
             var historico = await _agendamentoService.ObterHistoricoAsync(id);
             return Ok(historico);
         }
@@ -148,6 +143,7 @@ namespace ClinicaMaisSaude.API.Controllers
         [HttpPatch("{id}/concluir-exame")]
         public async Task<IActionResult> ConcluirExame(Guid id, [FromBody] bool exigeResultadoPosterior)
         {
+            await BuscarAutorizadoAsync(id, OperacoesAgendamento.Gerenciar);
             await _agendamentoService.ConcluirExameAsync(id, exigeResultadoPosterior, UsuarioLogadoId);
             return Ok(new { Mensagem = "Exame concluído." });
         }
@@ -156,6 +152,7 @@ namespace ClinicaMaisSaude.API.Controllers
         [HttpPatch("{id}/resultado-disponivel")]
         public async Task<IActionResult> MarcarResultadoDisponivel(Guid id)
         {
+            await BuscarAutorizadoAsync(id, OperacoesAgendamento.Gerenciar);
             await _agendamentoService.MarcarResultadoDisponivelAsync(id);
             return Ok(new { Mensagem = "Resultado marcado como disponível." });
         }
@@ -164,6 +161,7 @@ namespace ClinicaMaisSaude.API.Controllers
         [HttpPatch("{id}/resultado-retirado")]
         public async Task<IActionResult> MarcarResultadoRetirado(Guid id)
         {
+            await BuscarAutorizadoAsync(id, OperacoesAgendamento.Gerenciar);
             await _agendamentoService.MarcarResultadoRetiradoAsync(id);
             return Ok(new { Mensagem = "Resultado marcado como retirado." });
         }
@@ -171,7 +169,7 @@ namespace ClinicaMaisSaude.API.Controllers
         [HttpGet("{agendamentoId}/probabilidade-falta")]
         public async Task<IActionResult> ObterProbabilidadeFalta(Guid agendamentoId)
         {
-            var agendamento = await _agendamentoService.BuscarPorIdAsync(agendamentoId);
+            var agendamento = await BuscarAutorizadoAsync(agendamentoId, OperacoesAgendamento.VerRisco);
 
             var (probabilidade, nivel) = await _probabilidadeFaltaService.CalcularProbabilidadeAsync(agendamento.PacienteId, agendamento.DataHoraConsulta);
 
