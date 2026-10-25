@@ -7,4 +7,8 @@ export interface Agendamento {
   nomeProfissional: string;
   especialidade?: string;
   agendamentoOrigemId?: string;
+  // Acompanhamento de resultado de exame (informativo para o paciente).
+  exigeResultadoPosterior?: boolean;
+  resultadoDisponivel?: boolean;
+  resultadoRetirado?: boolean;
 }
