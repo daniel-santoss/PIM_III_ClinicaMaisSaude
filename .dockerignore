@@ -11,7 +11,11 @@
 clinica-frontend/
 clinica-mobile/
 
-# Docs e locais
+# Docs, scripts de infra/homologação e arquivos locais
+docs/
+infra/
+*.docx
+homologar-*.js
 *.md
 !DEPLOY.md
 .env
