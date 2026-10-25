@@ -28,5 +28,3 @@ documentação. Para regenerar o script canônico direto do modelo:
 dotnet ef migrations script --idempotent \
   --project ClinicaMaisSaude.Infrastructure --startup-project ClinicaMaisSaude.API
 ```
-
-A especificação de modelagem (histórico do refactor) está em [`../../ESPEC_MODELAGEM_BANCO.md`](../../ESPEC_MODELAGEM_BANCO.md).

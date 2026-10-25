@@ -66,7 +66,7 @@ detalhes de framework e infraestrutura.
 | Backend | C# / **.NET 10** (ASP.NET Core), Clean Architecture, EF Core 10, FluentValidation |
 | Banco | **SQL Server** (LocalDB em dev) via EF Core Migrations |
 | Frontend web | **React 19** + TypeScript, **Vite**, **Tailwind CSS**, design system "navy", `lucide-react`, `recharts` |
-| Mobile | **React Native / Expo (SDK 54)**, expo-router, expo-secure-store, biometria |
+| Mobile | **React Native / Expo (SDK 58)**, expo-router, expo-secure-store, biometria |
 | IA | **Google Gemini** (triagem de sintomas) |
 | Tempo real | **SignalR** (WebSocket) para notificações; `HostedService` para geração periódica |
 | Autenticação | **JWT** (HMAC-SHA256): acesso 3h / refresh 7 dias; **BCrypt** para senhas |

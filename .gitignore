@@ -36,14 +36,11 @@ bld/
 # Arquivos de documentação
 *.md
 # Exceto os docs do projeto (versionados de propósito):
-!ANALISE_PROJETO.md
-!ESPEC_MODELAGEM_BANCO.md
-!MELHORIAS_TECNICAS.md
-!PLANO_MOBILE.md
 !README.md
 !clinica-context.md
 !requisitos_e_regras.md
 !DEPLOY.md
+!clinica-frontend/DESIGN_SYSTEM.md
 # Artefatos versionados do PIM IV (banco, documentação técnica):
 !docs/**/*.md
 
@@ -391,4 +388,4 @@ appsettings.Development.json
 .Spotlight-V100
 .Trashes
 ehthumbs.db
-Thumbs.dbgit add README.md
+Thumbs.db

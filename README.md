@@ -1,8 +1,9 @@
 # 🏥 Clínica Mais Saúde — Sistema de Gestão Inteligente
 
-![Status](https://img.shields.io/badge/STATUS-EM%20DESENVOLVIMENTO-7C3AED?style=for-the-badge&labelColor=4C1D95)<br>
+![Status](https://img.shields.io/badge/STATUS-EM%20DESENVOLVIMENTO-2C5282?style=for-the-badge&labelColor=152D5C)<br>
 ![.NET](https://img.shields.io/badge/.NET-10-512BD4?style=for-the-badge&logo=dotnet&logoColor=white&labelColor=31108F)
 ![React](https://img.shields.io/badge/REACT-19-149ECA?style=for-the-badge&logo=react&logoColor=white&labelColor=0B4F6C)
+![Expo](https://img.shields.io/badge/EXPO-SDK%2058-000020?style=for-the-badge&logo=expo&logoColor=white&labelColor=1F2937)
 ![Google Gemini](https://img.shields.io/badge/AI-GEMINI%202.5%20FLASH-F15A24?style=for-the-badge&logo=google-gemini&logoColor=white&labelColor=9A2E08)
 ![Architecture](https://img.shields.io/badge/ARCHITECTURE-CLEAN%20ARCHITECTURE-A4C639?style=for-the-badge&labelColor=657B20)
 
@@ -15,7 +16,7 @@ O **Clínica Mais Saúde** é uma solução corporativa de gestão clínica inte
 ### 🧠 Triagem Clínica Inteligente com Inteligência Artificial
 Permite que o paciente descreva livremente seus sintomas durante a marcação da consulta. A IA integrada processa a descrição textual e recomenda automaticamente a especialidade médica mais indicada para o caso.
 
-Para garantir a estabilidade do sistema, o módulo conta com filtros avançados contra abusos: mensagens fora do contexto de saúde ou tentativas de burlar as regras de segurança disparam bloqueio automático da conta e cancelamento dos agendamentos vinculados, notificando imediatamente a administração. Um limite diário de uso por usuário garante o controle dos recursos computacionais.
+Para garantir a estabilidade do sistema, o módulo conta com filtros contra abusos: tentativas de burlar as regras de segurança disparam o banimento da conta e o cancelamento dos agendamentos vinculados, e mensagens fora do contexto de saúde bloqueiam a IA temporariamente — sempre notificando a administração. Relatos de sofrimento emocional grave nunca são punidos: o paciente é acolhido com o contato do CVV (188) e pode agendar com Psiquiatria. Um limite diário de uso por usuário garante o controle dos recursos computacionais.
 
 ---
 
@@ -40,7 +41,17 @@ Visão em tempo real sobre a saúde operacional da clínica: volume de atendimen
 ---
 
 ### 🔔 Central de Notificações e Acompanhamento de Exames
-Rastreia consultas que necessitam de emissão ou avaliação de exames clínicos. Gera alertas automáticos ao paciente quando o resultado estiver disponível, direcionando-o diretamente para o registro em destaque no histórico.
+Notificações em tempo real (SignalR) para agendamentos, cancelamentos, remarcações e lembretes de consulta. Rastreia consultas que necessitam de emissão ou avaliação de exames clínicos e avisa o paciente quando o resultado estiver disponível, direcionando-o para o registro no histórico.
+
+---
+
+### 📝 Auto-cadastro Moderado
+O paciente solicita o próprio cadastro (web ou celular): aceite dos termos, verificação do e-mail por código e Declaração de Saúde. A clínica avalia presencialmente e aprova ou recusa; o aprovado faz o primeiro acesso e define a senha. A recuperação de senha também é feita por código de e-mail, sem depender da recepção.
+
+---
+
+### 📱 Aplicativo do Paciente
+App mobile (Expo / React Native) com todo o fluxo do paciente: cadastro, login com biometria, triagem por IA, agendamento, consultas, notificações, perfil e exclusão de conta. Médicos, enfermeiras e administradores usam a versão web.
 
 ---
 
@@ -78,12 +89,50 @@ graph TD
 | Camada | Tecnologia |
 |---|---|
 | Back-end | C# / .NET 10, Clean Architecture, Entity Framework Core, FluentValidation |
-| Front-end | React 19, TypeScript, Vite, TailwindCSS v3 |
+| Front-end web | React 19, TypeScript, Vite, TailwindCSS v3 |
+| Mobile | Expo SDK 58 (React Native), expo-router |
 | Banco de Dados | SQL Server, EF Core Migrations |
 | Inteligência Artificial | Google Gemini 2.5 Flash |
 | Autenticação | JWT com Refresh Token, BCrypt |
+| Tempo real | SignalR |
+| E-mail | SMTP (Brevo) |
 | Cache / Rate-Limit | `IDistributedCache` — Redis (produção) com fallback em memória (dev) |
 | Exportação | QuestPDF (PDF), ClosedXML (Excel) |
+| Testes / CI | xUnit, GitHub Actions |
+
+---
+
+## 📂 Estrutura do Repositório e Documentação
+
+| Caminho | Conteúdo |
+|---|---|
+| `ClinicaMaisSaude.*` | Back-end em camadas (Domain, Application, Infrastructure, API) e projetos de teste |
+| [`clinica-frontend/`](clinica-frontend/README.md) | Sistema web |
+| [`clinica-mobile/`](clinica-mobile/README.md) | App do paciente |
+| [`requisitos_e_regras.md`](requisitos_e_regras.md) | Requisitos funcionais/não funcionais e regras de negócio |
+| [`clinica-context.md`](clinica-context.md) | Convenções de código e de trabalho |
+| [`DEPLOY.md`](DEPLOY.md) | Variáveis de ambiente, Docker e checklist de publicação |
+| [`docs/`](docs/) | Artefatos do PIM IV: banco de dados, gestão ágil, acessibilidade, nuvem e monografia |
+
+---
+
+## ▶️ Como Rodar (desenvolvimento)
+
+Pré-requisitos: .NET 10 SDK, Node.js e SQL Server (LocalDB serve). Em desenvolvimento, a chave do Gemini e os dados de SMTP ficam em User Secrets (`dotnet user-secrets set ... --project ClinicaMaisSaude.API`); os nomes das chaves estão no [`DEPLOY.md`](DEPLOY.md).
+
+```bash
+# Back-end (raiz) — cria o banco e sobe a API em http://localhost:5045
+dotnet ef database update --project ClinicaMaisSaude.Infrastructure --startup-project ClinicaMaisSaude.API
+dotnet run --project ClinicaMaisSaude.API
+
+# Front-end web — http://localhost:5173
+cd clinica-frontend && npm install && npm run dev
+
+# Testes automatizados
+dotnet test ClinicaMaisSaude.slnx
+```
+
+Para o app mobile, siga o [`clinica-mobile/README.md`](clinica-mobile/README.md).
 
 ---
 
@@ -147,12 +196,12 @@ Se esses conceitos são novos, esta é uma ordem razoável para estudar (do mais
 5. **`IDistributedCache` (ASP.NET Core / .NET)** — a interface abstrata que o código usa; documentação oficial da Microsoft sobre "Distributed caching in ASP.NET Core".
 6. **`IMemoryCache` vs `IDistributedCache`** — comparar os dois lado a lado ajuda a entender por que a troca foi só de dependência, sem mudar a lógica de negócio.
 7. **Connection strings e configuração em .NET** (`appsettings.json`, variáveis de ambiente, User Secrets) — para entender por que a Redis connection string nunca deve ir para o `appsettings.json` de produção com valor real.
-8. **Condição de corrida em "ler → modificar → salvar"** (read-modify-write race) — o padrão usado aqui (ler a lista, alterar, salvar de volta) não é atômico; pesquisar isso ajuda a entender a limitação documentada no `MELHORIAS_TECNICAS.md`.
+8. **Condição de corrida em "ler → modificar → salvar"** (read-modify-write race) — o padrão usado aqui (ler a lista, alterar, salvar de volta) não é atômico; pesquisar isso ajuda a entender a limitação desse contador sob muitas requisições simultâneas.
 
 ---
 
 ## 🧪 Suíte de Homologação (E2E)
-O projeto conta com um script que executa **25 validações automáticas de ponta a ponta** — fluxos normais e tentativas de uso incorreto — contra o servidor em menos de 3 segundos, exibindo um relatório interativo no terminal.
+Além dos testes unitários (xUnit, executados no CI a cada push), o projeto conta com um script de **validações automáticas de ponta a ponta** — fluxos normais e tentativas de uso incorreto — contra a API em execução, exibindo um relatório no terminal.
 
 ```bash
 homologar.bat

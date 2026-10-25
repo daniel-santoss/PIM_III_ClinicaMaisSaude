@@ -34,7 +34,6 @@ Estrutura sugerida (20–30 páginas de desenvolvimento) e de onde vem cada cont
 ## Observações
 
 - Os textos refletem o **estado atual** do sistema (design *navy*, SignalR, modelo de identidade pós-refactor,
-  auto-cadastro moderado). Documentos de análise mais antigos na raiz (`ANALISE_PROJETO.md`) podem conter
-  pontos superados — priorizar estas seções.
+  auto-cadastro moderado, app mobile do paciente).
 - Dados institucionais concretos (razão social, porte, localização) devem ser preenchidos a partir do
   relatório do **PIM III** (marcados como `[…]` em `CARACTERIZACAO_ORGANIZACAO.md`).
