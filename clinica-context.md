@@ -83,6 +83,7 @@ Dependências apontam para dentro: `API → Application → Domain` e `Infrastru
 - Rotas por arquivo com **expo-router** (`src/app/(auth)` e `src/app/(app)`). **Não instalar `@react-navigation/*` diretamente** — é incompatível com o expo-router no SDK atual.
 - Chamadas à API sempre por `apiFetch` (`src/lib/api.ts`); uma lib por domínio em `src/lib/`; erros via `mensagemErro` (`src/lib/erros.ts`).
 - Cores em `src/constants/tema.ts` (mesmo navy do web). Bottom-sheets com `Modal` do React Native.
+- Telas secundárias vão no Stack raiz (`src/app/*.tsx`, abertas com `router.push`), nunca como aba escondida com `href: null` (no expo-router 58 ela redireciona para o Início).
 - Detalhes de execução e problemas comuns: [`clinica-mobile/README.md`](clinica-mobile/README.md).
 
 ---

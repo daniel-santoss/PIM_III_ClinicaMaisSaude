@@ -13,10 +13,10 @@ Médicos, enfermeiras e administradores usam apenas a versão web.
 |---|---|
 | Acesso | Login (e-mail ou CPF), "lembrar usuário", bloqueio por biometria, recuperação de senha por código, auto-cadastro moderado e primeiro acesso |
 | Início | Saudação, próxima consulta em destaque e atalhos |
-| Agendar | Triagem por IA (com acolhimento em crise — CVV 188) ou escolha manual; retorno vinculado à consulta de origem; tela de sucesso com o profissional delegado |
+| Agendar | Triagem por IA (com acolhimento em crise — CVV 188) ou escolha manual (tipo e especialidade em selects); retorno vinculado à consulta de origem; **calendário mensal** com os dias que têm horário livre em azul (endpoint `dias-disponiveis`); tela de sucesso com o profissional delegado |
 | Consultas | Lista com Próximas/Histórico, status e resultado de exame (pendente/pronto/retirado); remarcar e cancelar |
 | Avisos | Notificações com badge de não lidas; marcar como lida e excluir |
-| Perfil | Editar dados, foto (câmera/galeria) ou remover foto, trocar senha, biometria, excluir conta |
+| Perfil | Foto (câmera/galeria ou remover) e nome; **Dados pessoais** (leitura, lápis para editar nome/e-mail/telefone, alterar senha); **Configurações** (biometria, sair, excluir conta) |
 
 ### Decisões de escopo
 - **`temProblemaMemoria` é somente leitura** no app: alimenta o cálculo de risco de falta e é gerido pela clínica. Por isso o app edita o perfil via `PATCH /api/Perfil`, que não expõe esse campo.
@@ -72,6 +72,8 @@ Abra pelo Expo Go (o celular precisa estar na **mesma rede Wi-Fi** da API). O `-
 | `npm install` falha com `ERESOLVE` | O `.npmrc` já fixa `legacy-peer-deps`; rodar dentro de `clinica-mobile` |
 
 Não instale `@react-navigation/*` diretamente: é incompatível com o expo-router no SDK atual.
+
+Telas secundárias (Configurações, Dados pessoais) ficam no **Stack raiz** (`src/app/*.tsx`), abertas com `router.push`. Não use aba escondida com `href: null`: desde o expo-router 58, ela é redirecionada para a aba inicial ao receber foco.
 
 ---
 

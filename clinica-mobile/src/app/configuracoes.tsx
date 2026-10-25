@@ -6,16 +6,17 @@ import { useRouter } from 'expo-router';
 
 import { useAuth } from '@/auth/AuthContext';
 import ExcluirContaModal from '@/components/ExcluirContaModal';
-import TrocarSenhaModal from '@/components/TrocarSenhaModal';
 import { biometriaDisponivel } from '@/lib/biometria';
 
 const AZUL = '#2C5282';
 
+// Fica no Stack raiz (empilhada sobre as abas), e não como aba escondida: desde o
+// expo-router 58, uma aba com `href: null` que recebe foco é redirecionada para a aba inicial.
+// O guard do _layout raiz continua protegendo a rota (sem sessão → login).
 export default function ConfiguracoesScreen() {
   const router = useRouter();
   const { logout, biometriaAtiva, definirBiometria } = useAuth();
 
-  const [senhaAberta, setSenhaAberta] = useState(false);
   const [excluirAberto, setExcluirAberto] = useState(false);
 
   // Biometria: só oferecemos o toggle se o aparelho tem hardware + cadastro.
@@ -55,36 +56,30 @@ export default function ConfiguracoesScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll}>
-        {/* Segurança */}
-        <Text style={styles.secaoTitulo}>Segurança</Text>
-        <View style={styles.card}>
-          <Pressable onPress={() => setSenhaAberta(true)} style={styles.linha}>
-            <View style={styles.iconeWrap}>
-              <Ionicons name="lock-closed-outline" size={20} color={AZUL} />
-            </View>
-            <Text style={styles.linhaTexto}>Trocar senha</Text>
-            <Ionicons name="chevron-forward" size={18} color="#9CA3AF" />
-          </Pressable>
-
-          {biometriaOfertavel && (
-            <View style={[styles.linha, styles.linhaBorda]}>
-              <View style={styles.iconeWrap}>
-                <Ionicons name="finger-print-outline" size={20} color={AZUL} />
+        {/* Segurança (a troca de senha fica em Dados pessoais) */}
+        {biometriaOfertavel && (
+          <>
+            <Text style={styles.secaoTitulo}>Segurança</Text>
+            <View style={styles.card}>
+              <View style={styles.linha}>
+                <View style={styles.iconeWrap}>
+                  <Ionicons name="finger-print-outline" size={20} color={AZUL} />
+                </View>
+                <View style={styles.linhaTextoWrap}>
+                  <Text style={styles.linhaTexto}>Desbloqueio por biometria</Text>
+                  <Text style={styles.linhaSub}>Exigir biometria ao abrir o app</Text>
+                </View>
+                <Switch
+                  value={biometriaAtiva}
+                  onValueChange={aoAlternarBiometria}
+                  disabled={alterandoBiometria}
+                  trackColor={{ true: AZUL, false: '#E5E7EB' }}
+                  thumbColor="#fff"
+                />
               </View>
-              <View style={styles.linhaTextoWrap}>
-                <Text style={styles.linhaTexto}>Desbloqueio por biometria</Text>
-                <Text style={styles.linhaSub}>Exigir biometria ao abrir o app</Text>
-              </View>
-              <Switch
-                value={biometriaAtiva}
-                onValueChange={aoAlternarBiometria}
-                disabled={alterandoBiometria}
-                trackColor={{ true: AZUL, false: '#E5E7EB' }}
-                thumbColor="#fff"
-              />
             </View>
-          )}
-        </View>
+          </>
+        )}
 
         {/* Conta */}
         <Text style={styles.secaoTitulo}>Conta</Text>
@@ -108,15 +103,6 @@ export default function ConfiguracoesScreen() {
 
         <Text style={styles.rodape}>Clínica Mais Saúde</Text>
       </ScrollView>
-
-      <TrocarSenhaModal
-        visivel={senhaAberta}
-        onClose={() => setSenhaAberta(false)}
-        onSuccess={() => {
-          setSenhaAberta(false);
-          Alert.alert('Pronto', 'Sua senha foi alterada.');
-        }}
-      />
 
       <ExcluirContaModal
         visivel={excluirAberto}

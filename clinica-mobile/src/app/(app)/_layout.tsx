@@ -65,8 +65,6 @@ function AbasPaciente() {
           tabBarIcon: ({ color, size }) => <Ionicons name="person" color={color as string} size={size} />,
         }}
       />
-      {/* Rota acessível pelo Perfil, escondida da barra de abas. */}
-      <Tabs.Screen name="configuracoes" options={{ href: null }} />
     </Tabs>
   );
 }

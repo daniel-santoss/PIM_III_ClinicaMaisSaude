@@ -59,6 +59,22 @@ export async function horariosDisponiveis(
   return (await res.json()) as string[];
 }
 
+// Dias do mês (yyyy-MM-dd), a partir de hoje, com ao menos um horário livre — pinta o calendário.
+export async function diasDisponiveis(
+  ano: number,
+  mes: number, // 1..12
+  tipoConsulta: number,
+  especialidadeId?: number,
+  origemId?: string,
+): Promise<string[]> {
+  let q = `?ano=${ano}&mes=${mes}&tipoConsulta=${tipoConsulta}`;
+  if (tipoConsulta === 3 && especialidadeId != null) q += `&especialidadeId=${especialidadeId}`;
+  else if (tipoConsulta === 4 && origemId) q += `&origemId=${origemId}`;
+  const res = await apiFetch(`/api/Agendamentos/dias-disponiveis${q}`);
+  if (!res.ok) return [];
+  return (await res.json()) as string[];
+}
+
 export interface CriarAgendamentoInput {
   pacienteId: string;
   dataHoraConsulta: string; // "YYYY-MM-DDTHH:mm:00"

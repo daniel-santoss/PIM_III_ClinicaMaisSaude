@@ -87,6 +87,14 @@ namespace ClinicaMaisSaude.API.Controllers
             return Ok(horarios);
         }
 
+        // Calendário do app: dias do mês com ao menos um horário livre (mesma regra de horarios-disponiveis).
+        [HttpGet("dias-disponiveis")]
+        public async Task<IActionResult> ObterDiasDisponiveis([FromQuery] int ano, [FromQuery] int mes, [FromQuery] int tipoConsulta, [FromQuery] int? especialidadeId = null, [FromQuery] Guid? origemId = null)
+        {
+            var dias = await _agendamentoService.ObterDiasDisponiveisAsync(ano, mes, tipoConsulta, especialidadeId, origemId);
+            return Ok(dias);
+        }
+
         [Authorize(Roles = PerfisUsuario.Medico + "," + PerfisUsuario.Enfermeira)]
         [HttpPut("{id}")]
         public async Task<IActionResult> AtualizarAgendamento(Guid id, [FromBody] AgendamentoRequest request)
