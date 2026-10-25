@@ -206,6 +206,11 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             var perfilProfissional = await _context.Profissionais.AsNoTracking().FirstOrDefaultAsync(p => p.UsuarioId == usuario.Id);
             var perfilPaciente = await _context.Pacientes.AsNoTracking().FirstOrDefaultAsync(p => p.UsuarioId == usuario.Id);
 
+            // A sessão só se renova enquanto a conta do paciente estiver ativa (mesma regra do
+            // login). Assim um banimento ou desativação tira o acesso em até um JWT (15 min).
+            if (perfilPaciente != null && perfilPaciente.Situacao != Situacao.Ativo)
+                throw new UnauthorizedException("Esta conta foi encerrada.");
+
             return await EmitirSessaoAsync(usuario, perfilPaciente, perfilProfissional);
         }
     }
