@@ -553,7 +553,34 @@ namespace ClinicaMaisSaude.Application.Services
             };
         }
 
-        public async Task<List<string>> ObterHorariosDisponiveisAsync(DateTime data, int tipoConsultaInt, int? especialidadeId = null, Guid? origemId = null)
+        public Task<List<string>> ObterHorariosDisponiveisAsync(DateTime data, int tipoConsultaInt, int? especialidadeId = null, Guid? origemId = null)
+            => CalcularHorariosAsync(data, tipoConsultaInt, especialidadeId, origemId, apenasPrimeiro: false);
+
+        // Dias do mês (a partir de hoje) com pelo menos um horário livre — alimenta o calendário
+        // do app. Usa a mesma regra dos horários, parando no primeiro slot livre de cada dia.
+        public async Task<List<string>> ObterDiasDisponiveisAsync(int ano, int mes, int tipoConsultaInt, int? especialidadeId = null, Guid? origemId = null)
+        {
+            var dias = new List<string>();
+            if (mes < 1 || mes > 12) return dias;
+
+            var hoje = DateTime.UtcNow.AddHours(-3).Date; // fuso de Brasília, como no cálculo dos slots
+            var primeiro = new DateTime(ano, mes, 1);
+            var ultimo = primeiro.AddMonths(1).AddDays(-1);
+
+            for (var dia = primeiro < hoje ? hoje : primeiro; dia <= ultimo; dia = dia.AddDays(1))
+            {
+                if (dia.DayOfWeek == DayOfWeek.Saturday || dia.DayOfWeek == DayOfWeek.Sunday)
+                    continue;
+
+                var horarios = await CalcularHorariosAsync(dia, tipoConsultaInt, especialidadeId, origemId, apenasPrimeiro: true);
+                if (horarios.Count > 0)
+                    dias.Add(dia.ToString("yyyy-MM-dd"));
+            }
+
+            return dias;
+        }
+
+        private async Task<List<string>> CalcularHorariosAsync(DateTime data, int tipoConsultaInt, int? especialidadeId, Guid? origemId, bool apenasPrimeiro)
         {
             var tipoConsulta = (TipoConsulta)tipoConsultaInt;
             var duracao = TipoConsultaDuracao.ObterDuracao(tipoConsulta);
@@ -631,6 +658,7 @@ namespace ClinicaMaisSaude.Application.Services
                 if (algumDisponivel)
                 {
                     horarios.Add(horarioAtual.ToString(@"hh\:mm"));
+                    if (apenasPrimeiro) break;
                 }
 
                 horarioAtual = horarioAtual.Add(TimeSpan.FromMinutes(duracao));
