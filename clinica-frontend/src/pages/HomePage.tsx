@@ -3,13 +3,19 @@ import { Menu, X, Plus, Heart, Calendar, Shield, Activity, Stethoscope, Droplet,
 import ModalTermosPolitica from "../components/ModalTermosPolitica";
 import ModalEspecialidades from "../components/ModalEspecialidades";
 import { CLINIC_NAME, CLINIC_PHONE, CLINIC_EMAIL, CLINIC_ADDRESS } from "../constants/clinic";
+// Importadas (não por caminho em texto): o Vite só inclui no build os arquivos importados.
+import logoPadrao from "../assets/logo_clinica.png";
+import logoBrancaPadrao from "../assets/logo_clinica_branca.png";
+import bannerPadrao from "../assets/banner.jpeg";
+import banner2Padrao from "../assets/banner2.jpeg";
+import banner3Padrao from "../assets/banner3.jpeg";
 
 export default function HomePage({
-  logo = "/src/assets/logo_clinica.png",
-  logoBranca = "/src/assets/logo_clinica_branca.png",
-  banner = "/src/assets/banner.jpeg",
-  banner2 = "/src/assets/banner2.jpeg",
-  banner3 = "/src/assets/banner3.jpeg"
+  logo = logoPadrao,
+  logoBranca = logoBrancaPadrao,
+  banner = bannerPadrao,
+  banner2 = banner2Padrao,
+  banner3 = banner3Padrao
 }: {
   logo?: string;
   logoBranca?: string;
