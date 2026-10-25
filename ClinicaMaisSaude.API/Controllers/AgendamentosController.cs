@@ -70,7 +70,23 @@ namespace ClinicaMaisSaude.API.Controllers
 
         [HttpGet("{id}")]
         public async Task<IActionResult> ObterPorId(Guid id)
-            => Ok(await _agendamentoService.BuscarPorIdAsync(id));
+        {
+            var agendamento = await _agendamentoService.BuscarPorIdAsync(id); // 404 se não existe
+            // Autorização de recurso: só o dono vê o detalhe. Responde 404 (e não 403) para
+            // terceiros, para não revelar que o agendamento existe.
+            if (!PodeVerAgendamento(agendamento))
+                throw new NotFoundException("Agendamento não encontrado.");
+            return Ok(agendamento);
+        }
+
+        // Admin vê qualquer um; paciente só os próprios; profissional (médico/enfermeira) só os
+        // delegados a ele. Espelha o escopo da listagem (ObterTodos).
+        private bool PodeVerAgendamento(AgendamentoResponse a)
+        {
+            if (IsAdmin) return true;
+            if (EhPaciente) return a.PacienteId == PacienteIdToken;
+            return ProfissionalIdToken is not null && a.ProfissionalId == ProfissionalIdToken;
+        }
 
         [HttpGet("horarios-disponiveis")]
         public async Task<IActionResult> ObterHorariosDisponiveis([FromQuery] DateTime data, [FromQuery] int tipoConsulta, [FromQuery] int? especialidadeId = null, [FromQuery] Guid? origemId = null)
