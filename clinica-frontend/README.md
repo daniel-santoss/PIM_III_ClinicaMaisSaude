@@ -1,73 +1,34 @@
-# React + TypeScript + Vite
+# Clínica Mais Saúde — Frontend Web
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+SPA em **React 19 + TypeScript + Vite + Tailwind CSS v3**. Atende os quatro perfis (administrador, médico, enfermeira e paciente) e consome a API `ClinicaMaisSaude.API`. O layout é voltado a desktop; o paciente no celular usa o app [`clinica-mobile`](../clinica-mobile/README.md).
 
-Currently, two official plugins are available:
+## Rodando
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Abre em `http://localhost:5173`. A API precisa estar no ar (por padrão em `http://localhost:5045`).
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+Variáveis (opcionais em dev, definidas no build em produção): `VITE_API_URL`, `VITE_ADMIN_EMAIL`, `VITE_MAX_PROMPT_LENGTH`.
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Verificação
+
+```bash
+npm run build
 ```
+
+Roda `tsc -b && vite build` — o mesmo que o CI executa. Não use `tsc --noEmit` na raiz do projeto: o `tsconfig` raiz só tem *project references* e não acusa erros.
+
+## Onde está cada coisa
+
+| Pasta | Conteúdo |
+|---|---|
+| `src/pages/` | Telas completas (login, auto-cadastro, agendamentos, usuários, relatórios, violações da IA, solicitações de cadastro, editor da Declaração de Saúde) |
+| `src/components/` | Componentes reutilizáveis (modais, formulários, perfil, layout) |
+| `src/components/ui/` | Primitivos do design system (`Card`, `StatCard`, `Badge`, `Button`, `ModalPortal`) |
+| `src/hooks/`, `src/constants/`, `src/utils/` | Hooks, constantes (rotas da API, perfis, status) e utilitários |
+| `src/fetchInterceptor.ts` | Refresh automático do token e tratamento global de erros |
+
+Padrões visuais: [`DESIGN_SYSTEM.md`](DESIGN_SYSTEM.md). Convenções de código: [`../clinica-context.md`](../clinica-context.md).
