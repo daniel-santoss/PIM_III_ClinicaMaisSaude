@@ -64,7 +64,7 @@ Os Requisitos Não Funcionais definem as premissas técnicas, restrições arqui
     *   **Prompt Injection:** Tentativas deliberadas de burlar as regras de segurança causam o banimento permanente da conta (situação `Banido`), o cancelamento automático das consultas futuras ativas e o disparo de notificação aos administradores.
     *   **Uso Indevido:** Sintomas sem relação com saúde são registrados como violação e notificados aos administradores. Na 2ª violação a IA fica bloqueada por 1 dia; da 3ª em diante, por 7 dias.
     *   **Crise Emocional:** Relatos de sofrimento emocional grave nunca são punidos — o sistema acolhe (RF16). Recusas de processamento do provedor de IA por segurança também não punem.
-*   **RN04 - Visibilidade de Agendamentos:** O paciente vê apenas os próprios agendamentos; o médico e a enfermeira veem apenas os agendamentos delegados a eles; o administrador vê todos. Consultar o agendamento de outra pessoa retorna "não encontrado".
+*   **RN04 - Acesso a Agendamentos:** O paciente vê apenas os próprios agendamentos e só pode cancelá-los ou remarcá-los; o médico e a enfermeira veem e operam (status, remarcação, edição, exame, histórico) apenas os agendamentos delegados a eles; o administrador acessa todos. A probabilidade de falta nunca é exibida ao paciente. Qualquer acesso ao agendamento de outra pessoa retorna "não encontrado".
 *   **RN05 - Auto-cadastro:** Só pode existir uma solicitação de cadastro em análise por CPF; o CPF é validado pelo dígito verificador e não pode pertencer a uma conta já existente. O e-mail precisa ser verificado por código antes do envio da solicitação.
 
 ---
