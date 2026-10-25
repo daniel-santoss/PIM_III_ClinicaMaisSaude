@@ -23,6 +23,7 @@ import { ESPECIALIDADE_LABEL, TIPO_CONSULTA_LABEL } from '@/constants/agendament
 import { listarMinhasConsultas } from '@/lib/agendamentos';
 import {
   criarAgendamento,
+  diasDisponiveis,
   especialidadesDisponiveis,
   horariosDisponiveis,
   listarEspecialidades,
@@ -33,7 +34,8 @@ import {
   type Especialidade,
   type SugestaoIA,
 } from '@/lib/consultas';
-import { formatarDataHora, proximosDiasUteis, type DiaUtil } from '@/lib/datas';
+import CalendarioMes from '@/components/CalendarioMes';
+import { formatarDataHora } from '@/lib/datas';
 import type { Agendamento } from '@/types/agendamento';
 
 const AZUL = '#2C5282';
@@ -88,7 +90,13 @@ export default function AgendarScreen() {
   const [horarioSel, setHorarioSel] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
 
-  const dias = useMemo(() => proximosDiasUteis(10), []);
+  // Calendário: mês visível (atual até +2) e dias com horário livre nele.
+  const hoje = new Date();
+  const [mesCal, setMesCal] = useState({ ano: hoje.getFullYear(), mes: hoje.getMonth() });
+  const [diasLivres, setDiasLivres] = useState<string[]>([]);
+  const [carregandoDias, setCarregandoDias] = useState(false);
+  const indiceMes = (m: { ano: number; mes: number }) => m.ano * 12 + m.mes;
+  const indiceHoje = hoje.getFullYear() * 12 + hoje.getMonth();
 
   useEffect(() => {
     listarEspecialidades().then(setEspecialidades).catch(() => {});
@@ -123,6 +131,34 @@ export default function AgendarScreen() {
     : sugestao
       ? tipoProfissionalParaInt(sugestao.tipoProfissional)
       : 1;
+
+  const noPassoDia = (modo === 'ia' && passo === 3) || (modo === 'manual' && manualPasso === 2);
+
+  // Recarrega os dias livres ao entrar no passo de dia, trocar de mês ou mudar tipo/especialidade/origem.
+  useEffect(() => {
+    if (!noPassoDia) return;
+    let ativo = true;
+    setCarregandoDias(true);
+    diasDisponiveis(mesCal.ano, mesCal.mes + 1, tipoConsultaInt, especialidadeId ?? undefined, origemSel ?? undefined)
+      .catch(() => [] as string[])
+      .then((dias) => {
+        if (ativo) setDiasLivres(dias);
+      })
+      .finally(() => {
+        if (ativo) setCarregandoDias(false);
+      });
+    return () => {
+      ativo = false;
+    };
+  }, [noPassoDia, mesCal, tipoConsultaInt, especialidadeId, origemSel]);
+
+  function mudarMes(delta: 1 | -1) {
+    limparHorarios();
+    setMesCal((m) => {
+      const d = new Date(m.ano, m.mes + delta, 1);
+      return { ano: d.getFullYear(), mes: d.getMonth() };
+    });
+  }
 
   const sintomasValido = sintomas.trim().length >= MIN_SINTOMAS && sintomas.trim().length <= MAX_SINTOMAS;
   const detalhesManualValido =
@@ -162,13 +198,13 @@ export default function AgendarScreen() {
     setHorarioSel(null);
   }
 
-  async function selecionarDia(dia: DiaUtil) {
-    setDiaSel(dia.iso);
+  async function selecionarDia(dia: string) {
+    setDiaSel(dia);
     setHorarioSel(null);
     setCarregandoHorarios(true);
     try {
       setHorarios(
-        await horariosDisponiveis(dia.iso, tipoConsultaInt, especialidadeId ?? undefined, origemSel ?? undefined),
+        await horariosDisponiveis(dia, tipoConsultaInt, especialidadeId ?? undefined, origemSel ?? undefined),
       );
     } catch {
       setHorarios([]);
@@ -433,21 +469,20 @@ export default function AgendarScreen() {
           )}
 
           {/* ─── Passo de dia/horário (IA passo 3 e manual passo 2) ─── */}
-          {((modo === 'ia' && passo === 3) || (modo === 'manual' && manualPasso === 2)) && (
+          {noPassoDia && (
             <View style={styles.bloco}>
               <Text style={styles.label}>Escolha o dia</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.diasRow}>
-                {dias.map((d) => {
-                  const ativo = diaSel === d.iso;
-                  return (
-                    <Pressable key={d.iso} onPress={() => selecionarDia(d)} style={[styles.dia, ativo && styles.diaAtivo]}>
-                      <Text style={[styles.diaSemana, ativo && styles.diaTextoAtivo]}>{d.diaSemana}</Text>
-                      <Text style={[styles.diaNum, ativo && styles.diaTextoAtivo]}>{d.dia}</Text>
-                      <Text style={[styles.diaMes, ativo && styles.diaTextoAtivo]}>{d.mes}</Text>
-                    </Pressable>
-                  );
-                })}
-              </ScrollView>
+              <CalendarioMes
+                ano={mesCal.ano}
+                mes={mesCal.mes}
+                disponiveis={diasLivres}
+                selecionado={diaSel}
+                carregando={carregandoDias}
+                podeVoltar={indiceMes(mesCal) > indiceHoje}
+                podeAvancar={indiceMes(mesCal) < indiceHoje + 2}
+                onSelecionar={selecionarDia}
+                onMudarMes={mudarMes}
+              />
 
               {diaSel && (
                 <>
@@ -760,19 +795,6 @@ const styles = StyleSheet.create({
   linhaValor: { fontSize: 15, fontWeight: '800', color: '#111827' },
   justificativa: { backgroundColor: '#EEF2F7', borderRadius: 12, padding: 12, marginTop: 4 },
   justificativaTexto: { fontSize: 13, color: '#2C5282', lineHeight: 19 },
-  diasRow: { gap: 8, paddingVertical: 4 },
-  dia: {
-    width: 60,
-    paddingVertical: 12,
-    borderRadius: 16,
-    backgroundColor: '#F3F4F6',
-    alignItems: 'center',
-    gap: 2,
-  },
-  diaAtivo: { backgroundColor: AZUL },
-  diaSemana: { fontSize: 11, fontWeight: '700', color: '#6B7280' },
-  diaNum: { fontSize: 18, fontWeight: '800', color: '#111827' },
-  diaMes: { fontSize: 10, fontWeight: '600', color: '#9CA3AF' },
   diaTextoAtivo: { color: '#fff' },
   semHorario: { fontSize: 14, color: '#9CA3AF', paddingVertical: 12 },
   horariosWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
