@@ -4,6 +4,7 @@ import {
   ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
+  Linking,
   Modal,
   Platform,
   Pressable,
@@ -13,11 +14,13 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/auth/AuthContext';
 import { ESPECIALIDADE_LABEL, TIPO_CONSULTA_LABEL } from '@/constants/agendamento';
+import { listarMinhasConsultas } from '@/lib/agendamentos';
 import {
   criarAgendamento,
   especialidadesDisponiveis,
@@ -30,7 +33,8 @@ import {
   type Especialidade,
   type SugestaoIA,
 } from '@/lib/consultas';
-import { proximosDiasUteis, type DiaUtil } from '@/lib/datas';
+import { formatarDataHora, proximosDiasUteis, type DiaUtil } from '@/lib/datas';
+import type { Agendamento } from '@/types/agendamento';
 
 const AZUL = '#2C5282';
 const MIN_SINTOMAS = 10;
@@ -39,12 +43,13 @@ const MAX_SINTOMAS = 300;
 type Modo = 'escolha' | 'ia' | 'manual';
 
 // Tipos de consulta que o paciente pode escolher no modo manual.
-// Retorno (4) exige selecionar uma consulta anterior aguardando retorno — fica de fora do v1.
+// Retorno (4) exige selecionar uma consulta anterior aguardando retorno (origem).
 const TIPOS_MANUAIS: { valor: number; label: string }[] = [
   { valor: 3, label: 'Consulta Médica' },
   { valor: 0, label: 'Triagem' },
   { valor: 1, label: 'Exame' },
   { valor: 2, label: 'Vacina' },
+  { valor: 4, label: 'Retorno' },
 ];
 
 export default function AgendarScreen() {
@@ -65,6 +70,14 @@ export default function AgendarScreen() {
   const [especialidadeManual, setEspecialidadeManual] = useState<string>('');
   const [tipoSelectAberto, setTipoSelectAberto] = useState(false);
 
+  // Retorno (tipo 4): escolha da consulta de origem (status AguardandoRetorno).
+  const [retornos, setRetornos] = useState<Agendamento[]>([]);
+  const [origemSel, setOrigemSel] = useState<string | null>(null);
+
+  // Acolhimento em crise emocional (IA) + confirmação de sucesso com o profissional.
+  const [crise, setCrise] = useState<{ mensagem: string; sugestao: SugestaoIA } | null>(null);
+  const [sucesso, setSucesso] = useState<{ nome: string; foto: string | null } | null>(null);
+
   // Compartilhado
   const [especialidades, setEspecialidades] = useState<Especialidade[]>([]);
   const [dispIds, setDispIds] = useState<number[]>([]);
@@ -79,6 +92,9 @@ export default function AgendarScreen() {
   useEffect(() => {
     listarEspecialidades().then(setEspecialidades).catch(() => {});
     especialidadesDisponiveis().then(setDispIds).catch(() => {});
+    listarMinhasConsultas()
+      .then((cs) => setRetornos(cs.filter((c) => c.status === 'AguardandoRetorno')))
+      .catch(() => {});
   }, []);
 
   const tipoManualLabel = TIPOS_MANUAIS.find((t) => t.valor === tipoConsultaManual)?.label ?? 'Selecione';
@@ -108,7 +124,12 @@ export default function AgendarScreen() {
       : 1;
 
   const sintomasValido = sintomas.trim().length >= MIN_SINTOMAS && sintomas.trim().length <= MAX_SINTOMAS;
-  const detalhesManualValido = tipoConsultaManual !== 3 || !!especialidadeManual;
+  const detalhesManualValido =
+    tipoConsultaManual === 3
+      ? !!especialidadeManual
+      : tipoConsultaManual === 4
+        ? !!origemSel
+        : true;
 
   async function analisar() {
     if (!sintomasValido || analisando) return;
@@ -118,6 +139,11 @@ export default function AgendarScreen() {
       if (s.justificativa?.includes(MARCADOR_INJECAO)) {
         // Banido no servidor: apaga tudo (sem re-login biométrico — o JWT ainda vale ~3h).
         Alert.alert('Acesso bloqueado', s.justificativa, [{ text: 'Entendi', onPress: () => logout(true) }]);
+        return;
+      }
+      // Crise emocional: acolhe (CVV 188) e pergunta se deseja agendar Psiquiatria — nunca pune.
+      if (s.crise) {
+        setCrise({ mensagem: s.mensagem ?? '', sugestao: s });
         return;
       }
       setSugestao(s);
@@ -140,7 +166,9 @@ export default function AgendarScreen() {
     setHorarioSel(null);
     setCarregandoHorarios(true);
     try {
-      setHorarios(await horariosDisponiveis(dia.iso, tipoConsultaInt, especialidadeId ?? undefined));
+      setHorarios(
+        await horariosDisponiveis(dia.iso, tipoConsultaInt, especialidadeId ?? undefined, origemSel ?? undefined),
+      );
     } catch {
       setHorarios([]);
     } finally {
@@ -152,15 +180,17 @@ export default function AgendarScreen() {
     if (!session?.pacienteId || !diaSel || !horarioSel || salvando) return;
     setSalvando(true);
     try {
-      await criarAgendamento({
+      const criado = await criarAgendamento({
         pacienteId: session.pacienteId,
         dataHoraConsulta: `${diaSel}T${horarioSel}:00`,
         tipoProfissional: tipoProfissionalInt,
         tipoConsulta: tipoConsultaInt,
         especialidadeId: tipoConsultaInt === 3 ? especialidadeId : null,
         observacao: ehManual ? '' : sintomas.trim(),
+        agendamentoOrigemId: tipoConsultaInt === 4 ? origemSel : null,
       });
-      Alert.alert('Pronto!', 'Sua consulta foi agendada.', [{ text: 'Ver minhas consultas', onPress: irParaConsultas }]);
+      // Tela de sucesso (sem auto-sumiço): mostra o profissional delegado (nome + foto).
+      setSucesso({ nome: criado.nomeProfissional, foto: criado.profissionalFotoBase64 });
     } catch (e) {
       Alert.alert('Não foi possível agendar', e instanceof Error ? e.message : 'Tente novamente.');
     } finally {
@@ -169,6 +199,7 @@ export default function AgendarScreen() {
   }
 
   function irParaConsultas() {
+    setSucesso(null);
     reiniciar();
     router.navigate('/(app)/consultas');
   }
@@ -181,6 +212,7 @@ export default function AgendarScreen() {
     setManualPasso(1);
     setTipoConsultaManual(3);
     setEspecialidadeManual('');
+    setOrigemSel(null);
     limparHorarios();
   }
 
@@ -373,6 +405,45 @@ export default function AgendarScreen() {
                 </>
               )}
 
+              {tipoConsultaManual === 4 && (
+                <>
+                  <Text style={[styles.label, { marginTop: 8 }]}>Consulta de origem</Text>
+                  {retornos.length === 0 ? (
+                    <Text style={styles.legenda}>
+                      Você não tem consultas aguardando retorno. O retorno é liberado pela equipe ao finalizar um
+                      atendimento.
+                    </Text>
+                  ) : (
+                    <View style={{ gap: 8 }}>
+                      {retornos.map((r) => {
+                        const ativo = origemSel === r.id;
+                        return (
+                          <Pressable
+                            key={r.id}
+                            onPress={() => {
+                              setOrigemSel(r.id);
+                              limparHorarios();
+                            }}
+                            style={[styles.origemCard, ativo && styles.origemCardAtivo]}
+                          >
+                            <View style={styles.flex}>
+                              <Text style={[styles.origemNome, ativo && styles.origemTextoAtivo]}>
+                                {r.nomeProfissional}
+                              </Text>
+                              <Text style={[styles.origemSub, ativo && styles.origemSubAtivo]}>
+                                {(TIPO_CONSULTA_LABEL[r.tipoConsulta] ?? r.tipoConsulta)} ·{' '}
+                                {formatarDataHora(r.dataHoraConsulta)}
+                              </Text>
+                            </View>
+                            {ativo && <Ionicons name="checkmark-circle" size={20} color="#fff" />}
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                  )}
+                </>
+              )}
+
               <Pressable
                 onPress={() => setManualPasso(2)}
                 disabled={!detalhesManualValido}
@@ -464,6 +535,7 @@ export default function AgendarScreen() {
                   onPress={() => {
                     setTipoConsultaManual(t.valor);
                     if (t.valor !== 3) setEspecialidadeManual('');
+                    setOrigemSel(null);
                     limparHorarios();
                     setTipoSelectAberto(false);
                   }}
@@ -476,6 +548,90 @@ export default function AgendarScreen() {
             })}
           </Pressable>
         </Pressable>
+      </Modal>
+
+      {/* Acolhimento em crise emocional (CVV 188 + oferta de Psiquiatria) */}
+      <Modal visible={!!crise} transparent animationType="fade" onRequestClose={() => setCrise(null)}>
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <View style={styles.criseIcone}>
+              <Ionicons name="heart" size={26} color="#fff" />
+            </View>
+            <Text style={styles.modalTitulo}>Você não está sozinho</Text>
+            <Text style={styles.modalTexto}>{crise?.mensagem}</Text>
+
+            <Pressable onPress={() => Linking.openURL('tel:188')} style={styles.botaoCvv}>
+              <Ionicons name="call" size={18} color={AZUL} />
+              <Text style={styles.botaoCvvTexto}>Ligar para o CVV — 188</Text>
+            </Pressable>
+
+            <Text style={styles.modalPergunta}>Deseja agendar uma consulta com Psiquiatria?</Text>
+            <Pressable
+              onPress={() => {
+                if (!crise) return;
+                const s = crise.sugestao;
+                setCrise(null);
+                setSugestao(s);
+                limparHorarios();
+                setModo('ia');
+                setPasso(2);
+              }}
+              style={({ pressed }) => [styles.botao, styles.botaoStretch, pressed && { opacity: 0.85 }]}
+            >
+              <Text style={styles.botaoTexto}>Sim, agendar Psiquiatria</Text>
+            </Pressable>
+            <Pressable onPress={() => setCrise(null)} style={styles.botaoSec}>
+              <Text style={styles.botaoSecTexto}>Agora não</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Sucesso: confirma e mostra o profissional responsável (fica até o usuário escolher) */}
+      <Modal visible={!!sucesso} transparent animationType="fade" onRequestClose={irParaConsultas}>
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <View style={styles.sucessoIcone}>
+              <Ionicons name="checkmark" size={30} color="#fff" />
+            </View>
+            <Text style={styles.modalTitulo}>Consulta agendada!</Text>
+            <Text style={styles.modalTexto}>Tudo certo — sua consulta foi registrada.</Text>
+
+            {!!sucesso?.nome && (
+              <View style={styles.profCard}>
+                {sucesso.foto ? (
+                  <Image source={{ uri: sucesso.foto }} style={styles.profAvatarImg} contentFit="cover" />
+                ) : (
+                  <View style={styles.profAvatar}>
+                    <Text style={styles.profAvatarTexto}>{sucesso.nome.charAt(0).toUpperCase()}</Text>
+                  </View>
+                )}
+                <View style={styles.flex}>
+                  <Text style={styles.profRotulo}>Profissional responsável</Text>
+                  <Text style={styles.profNome} numberOfLines={1}>
+                    {sucesso.nome}
+                  </Text>
+                </View>
+              </View>
+            )}
+
+            <Pressable
+              onPress={irParaConsultas}
+              style={({ pressed }) => [styles.botao, styles.botaoStretch, pressed && { opacity: 0.85 }]}
+            >
+              <Text style={styles.botaoTexto}>Ver minhas consultas</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => {
+                setSucesso(null);
+                reiniciar();
+              }}
+              style={styles.botaoSec}
+            >
+              <Text style={styles.botaoSecTexto}>Novo agendamento</Text>
+            </Pressable>
+          </View>
+        </View>
       </Modal>
     </SafeAreaView>
   );
@@ -612,4 +768,65 @@ const styles = StyleSheet.create({
   hora: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12, backgroundColor: '#F3F4F6' },
   horaAtiva: { backgroundColor: AZUL },
   horaTexto: { fontSize: 14, fontWeight: '700', color: '#374151' },
+  // Consulta de origem (Retorno)
+  origemCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 14,
+    padding: 14,
+    backgroundColor: '#F9FAFB',
+  },
+  origemCardAtivo: { backgroundColor: AZUL, borderColor: AZUL },
+  origemNome: { fontSize: 15, fontWeight: '800', color: '#111827' },
+  origemSub: { fontSize: 13, fontWeight: '500', color: '#6B7280', marginTop: 2 },
+  origemTextoAtivo: { color: '#fff' },
+  origemSubAtivo: { color: 'rgba(255,255,255,0.85)' },
+  // Modais centrais (crise / sucesso)
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(17,24,39,0.45)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  modalCard: { width: '100%', maxWidth: 420, backgroundColor: '#fff', borderRadius: 24, padding: 24, alignItems: 'center', gap: 10 },
+  modalTitulo: { fontSize: 19, fontWeight: '800', color: '#111827', textAlign: 'center' },
+  modalTexto: { fontSize: 14, color: '#4B5563', textAlign: 'center', lineHeight: 20 },
+  modalPergunta: { fontSize: 14, fontWeight: '700', color: '#111827', textAlign: 'center', marginTop: 8 },
+  botaoStretch: { alignSelf: 'stretch' },
+  criseIcone: { width: 56, height: 56, borderRadius: 28, backgroundColor: AZUL, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
+  sucessoIcone: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#047857', alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
+  botaoCvv: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    alignSelf: 'stretch',
+    backgroundColor: '#EEF2F7',
+    borderRadius: 14,
+    paddingVertical: 14,
+    marginTop: 4,
+  },
+  botaoCvvTexto: { color: AZUL, fontSize: 15, fontWeight: '800' },
+  // Card do profissional (tela de sucesso)
+  profCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    alignSelf: 'stretch',
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+    borderRadius: 16,
+    padding: 12,
+    marginTop: 6,
+  },
+  profAvatarImg: { width: 52, height: 52, borderRadius: 14, backgroundColor: '#EEF2F7' },
+  profAvatar: { width: 52, height: 52, borderRadius: 14, backgroundColor: AZUL, alignItems: 'center', justifyContent: 'center' },
+  profAvatarTexto: { fontSize: 22, fontWeight: '800', color: '#fff' },
+  profRotulo: { fontSize: 11, fontWeight: '800', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 0.4 },
+  profNome: { fontSize: 16, fontWeight: '800', color: '#111827', marginTop: 2 },
 });
