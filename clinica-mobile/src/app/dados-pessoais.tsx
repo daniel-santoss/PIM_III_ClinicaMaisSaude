@@ -173,6 +173,12 @@ export default function DadosPessoaisScreen() {
                         editable={!salvando}
                       />
 
+                      {/* Somente leitura também no modo edição: são geridos pela clínica. */}
+                      <View style={styles.somenteLeitura}>
+                        <Linha rotulo="CPF" valor={mascaraCpf(perfil.cpf)} />
+                        <Linha rotulo="Acompanhamento de memória" valor={perfil.temProblemaMemoria ? 'Ativo' : 'Não'} ultima />
+                      </View>
+
                       <View style={styles.acoes}>
                         <Pressable onPress={cancelar} disabled={salvando} style={[styles.botao, styles.botaoSecundario]}>
                           <Text style={styles.botaoSecundarioTexto}>Cancelar</Text>
@@ -194,9 +200,17 @@ export default function DadosPessoaisScreen() {
                     <>
                       <Linha rotulo="Nome" valor={perfil.nome} />
                       <Linha rotulo="E-mail" valor={perfil.email} />
-                      <Linha rotulo="Telefone" valor={mascaraTelefone(perfil.telefone) || '—'} ultima />
+                      <Linha rotulo="Telefone" valor={mascaraTelefone(perfil.telefone) || '—'} />
+                      <Linha rotulo="CPF" valor={mascaraCpf(perfil.cpf)} />
+                      <Linha rotulo="Acompanhamento de memória" valor={perfil.temProblemaMemoria ? 'Ativo' : 'Não'} ultima />
                     </>
                   )}
+                </View>
+                <View style={styles.notaWrap}>
+                  <Ionicons name="information-circle-outline" size={14} color="#9CA3AF" />
+                  <Text style={styles.nota}>
+                    Para alterar o CPF ou o acompanhamento de memória, entre em contato com a clínica.
+                  </Text>
                 </View>
 
                 {!editando && (
@@ -214,19 +228,6 @@ export default function DadosPessoaisScreen() {
                     <Ionicons name="chevron-forward" size={18} color="#9CA3AF" />
                   </Pressable>
                 )}
-
-                <View style={styles.card}>
-                  <Linha rotulo="CPF" valor={mascaraCpf(perfil.cpf)} />
-                  <Linha
-                    rotulo="Acompanhamento de memória"
-                    valor={perfil.temProblemaMemoria ? 'Ativo' : 'Não'}
-                    ultima
-                  />
-                </View>
-                <View style={styles.notaWrap}>
-                  <Ionicons name="lock-closed-outline" size={13} color="#9CA3AF" />
-                  <Text style={styles.nota}>CPF e acompanhamento de memória são geridos pela equipe da clínica.</Text>
-                </View>
               </>
             )}
           </ScrollView>
@@ -289,7 +290,8 @@ const styles = StyleSheet.create({
     color: '#111827',
     backgroundColor: '#F9FAFB',
   },
-  acoes: { flexDirection: 'row', gap: 10, marginTop: 18, marginBottom: 12 },
+  somenteLeitura: { marginTop: 14, borderTopWidth: 1, borderTopColor: '#F3F4F6' },
+  acoes: { flexDirection: 'row', gap: 10, marginTop: 8, marginBottom: 12 },
   botao: { flex: 1, paddingVertical: 14, alignItems: 'center', borderRadius: 14 },
   botaoPrimario: { backgroundColor: AZUL },
   botaoPrimarioTexto: { color: '#fff', fontWeight: '800', fontSize: 15 },
