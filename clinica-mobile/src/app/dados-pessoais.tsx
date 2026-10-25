@@ -16,6 +16,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { useAuth } from '@/auth/AuthContext';
+import TrocarSenhaModal from '@/components/TrocarSenhaModal';
 import { atualizarDados, obterPerfil } from '@/lib/perfil';
 import { isEmailValido, isTelefoneValido, mascaraCpf, mascaraTelefone, soDigitos } from '@/lib/validadores';
 import type { PacientePerfil } from '@/types/perfil';
@@ -37,6 +38,7 @@ export default function DadosPessoaisScreen() {
   const [email, setEmail] = useState('');
   const [telefone, setTelefone] = useState('');
   const [salvando, setSalvando] = useState(false);
+  const [senhaAberta, setSenhaAberta] = useState(false);
 
   const preencherCampos = useCallback((p: PacientePerfil) => {
     setNome(p.nome ?? '');
@@ -197,6 +199,22 @@ export default function DadosPessoaisScreen() {
                   )}
                 </View>
 
+                {!editando && (
+                  <Pressable
+                    onPress={() => setSenhaAberta(true)}
+                    style={({ pressed }) => [styles.card, styles.senha, pressed && styles.senhaPressionada]}
+                  >
+                    <View style={styles.senhaIcone}>
+                      <Ionicons name="key-outline" size={20} color={AZUL} />
+                    </View>
+                    <View style={styles.flex}>
+                      <Text style={styles.senhaTitulo}>Alterar senha</Text>
+                      <Text style={styles.senhaSub}>Pede a senha atual para confirmar</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={18} color="#9CA3AF" />
+                  </Pressable>
+                )}
+
                 <View style={styles.card}>
                   <Linha rotulo="CPF" valor={mascaraCpf(perfil.cpf)} />
                   <Linha
@@ -214,6 +232,15 @@ export default function DadosPessoaisScreen() {
           </ScrollView>
         </KeyboardAvoidingView>
       )}
+
+      <TrocarSenhaModal
+        visivel={senhaAberta}
+        onClose={() => setSenhaAberta(false)}
+        onSuccess={() => {
+          setSenhaAberta(false);
+          Alert.alert('Pronto', 'Sua senha foi alterada.');
+        }}
+      />
     </SafeAreaView>
   );
 }
@@ -269,6 +296,12 @@ const styles = StyleSheet.create({
   botaoSecundario: { backgroundColor: '#F3F4F6' },
   botaoSecundarioTexto: { color: '#374151', fontWeight: '800', fontSize: 15 },
   botaoOff: { opacity: 0.5 },
+
+  senha: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14 },
+  senhaPressionada: { backgroundColor: '#F9FAFB' },
+  senhaIcone: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#EEF2F7', alignItems: 'center', justifyContent: 'center' },
+  senhaTitulo: { fontSize: 15, fontWeight: '800', color: '#111827' },
+  senhaSub: { fontSize: 12, fontWeight: '500', color: '#9CA3AF', marginTop: 2 },
 
   notaWrap: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 4 },
   nota: { flex: 1, fontSize: 12, fontWeight: '500', color: '#9CA3AF' },

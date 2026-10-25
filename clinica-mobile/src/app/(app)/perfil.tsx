@@ -116,8 +116,8 @@ export default function PerfilScreen() {
   const inicial = nome.charAt(0).toUpperCase();
 
   const itens: { icone: keyof typeof Ionicons.glyphMap; titulo: string; sub: string; rota: Href }[] = [
-    { icone: 'person-outline', titulo: 'Dados pessoais', sub: 'Nome, e-mail, telefone e CPF', rota: '/dados-pessoais' },
-    { icone: 'settings-outline', titulo: 'Configurações', sub: 'Segurança, biometria, conta', rota: '/configuracoes' },
+    { icone: 'person-outline', titulo: 'Dados pessoais', sub: 'Nome, e-mail, telefone e senha', rota: '/dados-pessoais' },
+    { icone: 'settings-outline', titulo: 'Configurações', sub: 'Biometria, sair e excluir conta', rota: '/configuracoes' },
   ];
 
   if (carregando) {
