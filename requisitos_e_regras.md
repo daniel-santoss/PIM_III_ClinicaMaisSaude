@@ -66,6 +66,7 @@ Os Requisitos Não Funcionais definem as premissas técnicas, restrições arqui
     *   **Crise Emocional:** Relatos de sofrimento emocional grave nunca são punidos — o sistema acolhe (RF16). Recusas de processamento do provedor de IA por segurança também não punem.
 *   **RN04 - Acesso a Agendamentos:** O paciente vê apenas os próprios agendamentos e só pode cancelá-los ou remarcá-los; o médico e a enfermeira veem e operam (status, remarcação, edição, exame, histórico) apenas os agendamentos delegados a eles; o administrador acessa todos. A probabilidade de falta nunca é exibida ao paciente. Qualquer acesso ao agendamento de outra pessoa retorna "não encontrado".
 *   **RN05 - Auto-cadastro:** Só pode existir uma solicitação de cadastro em análise por CPF; o CPF é validado pelo dígito verificador e não pode pertencer a uma conta já existente. O e-mail precisa ser verificado por código antes do envio da solicitação.
+*   **RN06 - Gestão de Pacientes e Contas:** O paciente lê apenas a própria ficha e edita os próprios dados pelo perfil — o indicador de dificuldade de memória é gerido só pela clínica. A enfermeira (recepção) lista, consulta e edita os dados cadastrais de pacientes, cadastra novos pacientes e redefine senha **apenas de contas de paciente**. Desativar contas é exclusivo do administrador.
 
 ---
 
@@ -134,7 +135,7 @@ Cada tipo de consulta tem uma duração padronizada em minutos:
 *   **Carência de 60 Dias:** Se um paciente tiver realizado e finalizado uma consulta de uma determinada especialidade médica nos últimos 60 dias, ele fica proibido de marcar um novo agendamento autônomo pelo portal para esta especialidade (novos agendamentos neste intervalo devem ser marcados presencialmente/pela recepção).
 *   **Remarcação pelo Paciente:** O paciente pode remarcar a própria consulta, informando o motivo, sujeito aos limites diários, à especialidade ativa única e aos conflitos de horário.
 *   **Vínculo do Profissional em Retornos:**
-    *   Um agendamento do tipo "Retorno" só pode ser criado se houver uma consulta inicial anterior concluída com status de `AguardandoRetorno`.
+    *   Um agendamento do tipo "Retorno" só pode ser criado se houver uma consulta inicial anterior concluída com status de `AguardandoRetorno`. A consulta de origem informada precisa ser **do próprio paciente** e estar `AguardandoRetorno`.
     *   O agendamento de retorno é travado obrigatoriamente ao mesmo profissional que atendeu a consulta inicial de origem, herdando o `ProfissionalId` e ignorando a regra de balanceamento de carga.
 
 ### 4.7 Máquina de Estados e Transições de Status
