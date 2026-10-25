@@ -70,7 +70,8 @@ export default function PerfilMedico() {
         toast.warning("Médicos podem ter no máximo 2 especialidades.");
         return;
       }
-      setEspecialidades([...especialidades, { id: idx, nome: esp }]);
+      // ESPECIALIDADES segue a ordem do enum da API, cujos ids começam em 1.
+      setEspecialidades([...especialidades, { id: idx + 1, nome: esp }]);
     }
     setBusca("");
   };

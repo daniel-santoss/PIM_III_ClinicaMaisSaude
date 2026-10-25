@@ -124,7 +124,7 @@ GO
 
 /* ------------------------------------------------------------------ */
 /* PROCEDURE 2 — Relatório de faltas (no-show) por profissional        */
-/*   Agrega, no período, total de consultas, faltas (Status = 5) e a   */
+/*   Agrega, no período, total de consultas, faltas (Status = 6) e a   */
 /*   taxa de faltas por profissional. Insumo para gestão de agenda.    */
 /* ------------------------------------------------------------------ */
 IF OBJECT_ID('SP_RelatorioFaltasPorProfissional', 'P') IS NOT NULL
@@ -141,8 +141,8 @@ BEGIN
         pr.Id                                   AS ProfissionalId,
         pe.Nome                                 AS Profissional,
         COUNT(*)                                AS TotalAgendamentos,
-        SUM(CASE WHEN a.Status = 5 THEN 1 ELSE 0 END) AS Faltas,
-        CAST(100.0 * SUM(CASE WHEN a.Status = 5 THEN 1 ELSE 0 END) / COUNT(*)
+        SUM(CASE WHEN a.Status = 6 THEN 1 ELSE 0 END) AS Faltas,
+        CAST(100.0 * SUM(CASE WHEN a.Status = 6 THEN 1 ELSE 0 END) / COUNT(*)
              AS DECIMAL(5,2))                   AS TaxaFaltasPct
     FROM Agendamentos a
     INNER JOIN Profissionais pr ON pr.Id = a.ProfissionalId

@@ -35,6 +35,7 @@ import {
   type SugestaoIA,
 } from '@/lib/consultas';
 import CalendarioMes from '@/components/CalendarioMes';
+import { TIPO_CONSULTA, TIPO_PROFISSIONAL } from '@/constants/agendamento';
 import { formatarDataHora } from '@/lib/datas';
 import type { Agendamento } from '@/types/agendamento';
 
@@ -45,13 +46,13 @@ const MAX_SINTOMAS = 300;
 type Modo = 'escolha' | 'ia' | 'manual';
 
 // Tipos de consulta que o paciente pode escolher no modo manual.
-// Retorno (4) exige selecionar uma consulta anterior aguardando retorno (origem).
+// Retorno exige selecionar uma consulta anterior aguardando retorno (origem).
 const TIPOS_MANUAIS: { valor: number; label: string }[] = [
-  { valor: 3, label: 'Consulta Médica' },
-  { valor: 0, label: 'Triagem' },
-  { valor: 1, label: 'Exame' },
-  { valor: 2, label: 'Vacina' },
-  { valor: 4, label: 'Retorno' },
+  { valor: TIPO_CONSULTA.consultaMedica, label: 'Consulta Médica' },
+  { valor: TIPO_CONSULTA.triagem, label: 'Triagem' },
+  { valor: TIPO_CONSULTA.exame, label: 'Exame' },
+  { valor: TIPO_CONSULTA.vacina, label: 'Vacina' },
+  { valor: TIPO_CONSULTA.retorno, label: 'Retorno' },
 ];
 
 export default function AgendarScreen() {
@@ -68,7 +69,7 @@ export default function AgendarScreen() {
 
   // Fluxo manual
   const [manualPasso, setManualPasso] = useState<1 | 2>(1);
-  const [tipoConsultaManual, setTipoConsultaManual] = useState<number>(3);
+  const [tipoConsultaManual, setTipoConsultaManual] = useState<number>(TIPO_CONSULTA.consultaMedica);
   const [especialidadeManual, setEspecialidadeManual] = useState<string>('');
   const [tipoSelectAberto, setTipoSelectAberto] = useState(false);
   const [espSelectAberto, setEspSelectAberto] = useState(false);
@@ -115,7 +116,7 @@ export default function AgendarScreen() {
     ? tipoConsultaManual
     : sugestao
       ? tipoConsultaParaInt(sugestao.tipoConsulta)
-      : 3;
+      : TIPO_CONSULTA.consultaMedica;
 
   const especialidadeId = useMemo(() => {
     const nome = ehManual ? especialidadeManual : sugestao?.especialidade;
@@ -125,12 +126,12 @@ export default function AgendarScreen() {
   }, [ehManual, especialidadeManual, sugestao, especialidades]);
 
   const tipoProfissionalInt = ehManual
-    ? tipoConsultaManual >= 3
-      ? 1
-      : 0 // Consulta Médica/Retorno = Médico; Triagem/Exame/Vacina = Enfermeira
+    ? tipoConsultaManual === TIPO_CONSULTA.consultaMedica || tipoConsultaManual === TIPO_CONSULTA.retorno
+      ? TIPO_PROFISSIONAL.medico
+      : TIPO_PROFISSIONAL.enfermeira // Consulta Médica/Retorno = Médico; Triagem/Exame/Vacina = Enfermeira
     : sugestao
       ? tipoProfissionalParaInt(sugestao.tipoProfissional)
-      : 1;
+      : TIPO_PROFISSIONAL.medico;
 
   const noPassoDia = (modo === 'ia' && passo === 3) || (modo === 'manual' && manualPasso === 2);
 
@@ -162,9 +163,9 @@ export default function AgendarScreen() {
 
   const sintomasValido = sintomas.trim().length >= MIN_SINTOMAS && sintomas.trim().length <= MAX_SINTOMAS;
   const detalhesManualValido =
-    tipoConsultaManual === 3
+    tipoConsultaManual === TIPO_CONSULTA.consultaMedica
       ? !!especialidadeManual
-      : tipoConsultaManual === 4
+      : tipoConsultaManual === TIPO_CONSULTA.retorno
         ? !!origemSel
         : true;
 
@@ -222,9 +223,9 @@ export default function AgendarScreen() {
         dataHoraConsulta: `${diaSel}T${horarioSel}:00`,
         tipoProfissional: tipoProfissionalInt,
         tipoConsulta: tipoConsultaInt,
-        especialidadeId: tipoConsultaInt === 3 ? especialidadeId : null,
+        especialidadeId: tipoConsultaInt === TIPO_CONSULTA.consultaMedica ? especialidadeId : null,
         observacao: ehManual ? '' : sintomas.trim(),
-        agendamentoOrigemId: tipoConsultaInt === 4 ? origemSel : null,
+        agendamentoOrigemId: tipoConsultaInt === TIPO_CONSULTA.retorno ? origemSel : null,
       });
       // Tela de sucesso (sem auto-sumiço): mostra o profissional delegado (nome + foto).
       setSucesso({ nome: criado.nomeProfissional, foto: criado.profissionalFotoBase64 });
@@ -394,7 +395,7 @@ export default function AgendarScreen() {
                 <Ionicons name="chevron-down" size={18} color="#6B7280" />
               </Pressable>
 
-              {tipoConsultaManual === 3 && (
+              {tipoConsultaManual === TIPO_CONSULTA.consultaMedica && (
                 <>
                   <Text style={[styles.label, { marginTop: 8 }]}>Especialidade</Text>
                   {especialidades.length === 0 ? (
@@ -412,7 +413,7 @@ export default function AgendarScreen() {
                 </>
               )}
 
-              {tipoConsultaManual === 4 && (
+              {tipoConsultaManual === TIPO_CONSULTA.retorno && (
                 <>
                   <Text style={[styles.label, { marginTop: 8 }]}>Consulta de origem</Text>
                   {retornos.length === 0 ? (
@@ -584,7 +585,7 @@ export default function AgendarScreen() {
                   key={t.valor}
                   onPress={() => {
                     setTipoConsultaManual(t.valor);
-                    if (t.valor !== 3) setEspecialidadeManual('');
+                    if (t.valor !== TIPO_CONSULTA.consultaMedica) setEspecialidadeManual('');
                     setOrigemSel(null);
                     limparHorarios();
                     setTipoSelectAberto(false);

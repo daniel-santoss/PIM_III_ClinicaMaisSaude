@@ -2,6 +2,7 @@ import { API_URL, ADMIN_EMAIL, MAX_PROMPT_LENGTH, CLINIC_PHONE } from "../consta
 import { useEffect, useState } from "react";
 
 import { ESPECIALIDADES } from "../constants/especialidades";
+import { tipoConsultaCod as TC, tipoProfissionalCod as TP } from "../constants/codigos";
 import { AlertCircle, Calendar, Zap, Check, AlertTriangle, Sliders, CheckCircle, Search, User, MessageSquare, HeartHandshake, Phone } from 'lucide-react';
 import { getRealDate, obterMinDate } from '../utils/dates';
 import { useScrollBlock } from "../hooks/useScrollBlock";
@@ -38,8 +39,8 @@ export default function AgendamentoPaciente({
 
   useScrollBlock(!!(modalMensagem || modalCrise || analisandoIA));
 
-  const [tipoProfissional, setTipoProfissional] = useState<number | null>(1); // 0: Enfermeira, 1: Medico
-  const [tipoConsulta, setTipoConsulta] = useState<number>(3); // Default 3: Consulta Médica
+  const [tipoProfissional, setTipoProfissional] = useState<number | null>(TP.medico);
+  const [tipoConsulta, setTipoConsulta] = useState<number>(TC.consultaMedica);
   const [especialidade, setEspecialidade] = useState("");
   const [buscaEspecialidade, setBuscaEspecialidade] = useState("");
   const [listaEspecialidades, setListaEspecialidades] = useState<{id: number, nome: string}[]>([]);
@@ -98,14 +99,14 @@ export default function AgendamentoPaciente({
 
   // Converte a sugestão da IA (textos) para os Enums do front e avança para a seleção de Data/Hora.
   const aplicarSugestao = (s: any) => {
-    let profInt = 1; // Médico
-    if (s.tipoProfissional === "Enfermeira") profInt = 0;
+    let profInt: number = TP.medico;
+    if (s.tipoProfissional === "Enfermeira") profInt = TP.enfermeira;
 
-    let consInt = 3; // Consulta Médica
-    if (s.tipoConsulta === "Triagem") consInt = 0;
-    else if (s.tipoConsulta === "Exame") consInt = 1;
-    else if (s.tipoConsulta === "Vacina") consInt = 2;
-    else if (s.tipoConsulta === "Retorno") consInt = 4;
+    let consInt: number = TC.consultaMedica;
+    if (s.tipoConsulta === "Triagem") consInt = TC.triagem;
+    else if (s.tipoConsulta === "Exame") consInt = TC.exame;
+    else if (s.tipoConsulta === "Vacina") consInt = TC.vacina;
+    else if (s.tipoConsulta === "Retorno") consInt = TC.retorno;
 
     setTipoProfissional(profInt);
     setTipoConsulta(consInt);
@@ -151,10 +152,10 @@ export default function AgendamentoPaciente({
       try {
         let queryParams = `?data=${dataSelecionada}&tipoConsulta=${tipoConsulta}`;
         
-        if (tipoConsulta === 3 && especialidade) {
+        if (tipoConsulta === TC.consultaMedica && especialidade) {
            const esp = listaEspecialidades.find(e => e.nome.toLowerCase() === especialidade.toLowerCase());
            if (esp) queryParams += `&especialidadeId=${esp.id}`;
-        } else if (tipoConsulta === 4 && origemId) {
+        } else if (tipoConsulta === TC.retorno && origemId) {
            queryParams += `&origemId=${origemId}`;
         }
         
@@ -176,7 +177,7 @@ export default function AgendamentoPaciente({
     setErro(null);
     try {
       let espId = null;
-      if (tipoConsulta === 3 && especialidade) {
+      if (tipoConsulta === TC.consultaMedica && especialidade) {
         const esp = listaEspecialidades.find(e => e.nome.toLowerCase() === especialidade.toLowerCase());
         if (esp) espId = esp.id;
       }
@@ -187,7 +188,7 @@ export default function AgendamentoPaciente({
         body: JSON.stringify({
           pacienteId,
           dataHoraConsulta: `${dataSelecionada}T${horarioSelecionado}:00`,
-          tipoProfissional: tipoProfissional ?? 1,
+          tipoProfissional: tipoProfissional ?? TP.medico,
           tipoConsulta,
           agendamentoOrigemId: origemId || null,
           especialidadeId: espId,
@@ -495,21 +496,22 @@ export default function AgendamentoPaciente({
                   onChange={(e) => {
                     const val = Number(e.target.value);
                     setTipoConsulta(val);
-                    setTipoProfissional(val >= 3 ? 1 : 0);
-                    if (val < 3) {
+                    const medico = val === TC.consultaMedica || val === TC.retorno;
+                    setTipoProfissional(medico ? TP.medico : TP.enfermeira);
+                    if (!medico) {
                       setEspecialidade("");
                     }
                   }}
                   className="w-full h-11 px-3 text-sm text-ink bg-white border border-line rounded-md outline-none focus:border-brand-600 focus:shadow-focus transition-shadow cursor-pointer"
                 >
-                  <option value={1}>Exame</option>
-                  <option value={2}>Vacina</option>
-                  <option value={3}>Consulta Médica</option>
-                  <option value={4}>Retorno</option>
+                  <option value={TC.exame}>Exame</option>
+                  <option value={TC.vacina}>Vacina</option>
+                  <option value={TC.consultaMedica}>Consulta Médica</option>
+                  <option value={TC.retorno}>Retorno</option>
                 </select>
               </div>
 
-              {tipoConsulta === 3 && (() => {
+              {tipoConsulta === TC.consultaMedica && (() => {
                 const filtradas = ESPECIALIDADES.filter(e => e.toLowerCase().includes(buscaEspecialidade.toLowerCase()));
                 const temIndisponivel = filtradas.some(e => {
                   const espObj = listaEspecialidades.find(le => le.nome.toLowerCase() === e.toLowerCase());
@@ -565,7 +567,7 @@ export default function AgendamentoPaciente({
                 );
               })()}
 
-              {tipoConsulta === 4 && (
+              {tipoConsulta === TC.retorno && (
                 <div className="space-y-4 animate-in fade-in duration-500">
                   <label className="block text-[13px] font-medium text-body mb-1">Consulta de Origem</label>
                   <select
@@ -593,7 +595,7 @@ export default function AgendamentoPaciente({
             <div className="flex flex-col-reverse sm:flex-row justify-between gap-3 pt-4">
               <button onClick={() => setPasso(1)} className="h-10 px-4 inline-flex items-center justify-center rounded-md text-sm font-semibold text-body bg-white border border-line hover:bg-canvas transition-colors">Voltar</button>
               <button
-                disabled={(tipoConsulta === 3 && !especialidade) || (tipoConsulta === 4 && !origemId)}
+                disabled={(tipoConsulta === TC.consultaMedica && !especialidade) || (tipoConsulta === TC.retorno && !origemId)}
                 onClick={() => setPasso(3)}
                 className="h-10 px-[18px] inline-flex items-center justify-center rounded-md text-sm font-semibold text-white bg-brand-600 border border-brand-600 hover:bg-brand-800 transition-colors disabled:opacity-50"
               >
@@ -708,10 +710,10 @@ export default function AgendamentoPaciente({
                     <div>
                       <p className="text-[11px] font-semibold text-muted uppercase tracking-wide mb-1">Especialidade e Profissional</p>
                       <h4 className="text-[15px] font-semibold text-ink leading-tight">
-                        {especialidade || (tipoConsulta === 1 ? 'Exame' : tipoConsulta === 2 ? 'Vacina' : 'Consulta')}
+                        {especialidade || (tipoConsulta === TC.exame ? 'Exame' : tipoConsulta === TC.vacina ? 'Vacina' : 'Consulta')}
                       </h4>
                       <p className="text-xs font-medium text-brand-600 mt-1">
-                        {tipoProfissional === 1 ? 'Médico Especialista' : 'Atendimento de Enfermaria'}
+                        {tipoProfissional === TP.medico ? 'Médico Especialista' : 'Atendimento de Enfermaria'}
                       </p>
                     </div>
                   </div>

@@ -8,6 +8,7 @@ import { useScrollBlock } from "../hooks/useScrollBlock";
 import { useToast } from "../hooks/useToast";
 import { perfis } from "../constants/perfis";
 import { statusAgendamento } from "../constants/status";
+import { tipoConsultaCod as TC, tipoProfissionalCod as TP } from "../constants/codigos";
 import { storageKeys } from "../constants/storage";
 import ModalPortal from "./ui/ModalPortal";
 
@@ -39,8 +40,8 @@ export default function AgendamentoFormCriar({
   const [horarioSelecionado, setHorarioSelecionado] = useState("");
   const [horariosDisponiveis, setHorariosDisponiveis] = useState<string[]>([]);
   const [carregandoHorarios, setCarregandoHorarios] = useState(false);
-  const [tipoProfissional, setTipoProfissional] = useState(dadosRetorno ? 1 : 0);
-  const [tipoConsulta, setTipoConsulta] = useState(dadosRetorno ? 4 : 0);
+  const [tipoProfissional, setTipoProfissional] = useState<number>(dadosRetorno ? TP.medico : TP.enfermeira);
+  const [tipoConsulta, setTipoConsulta] = useState<number>(dadosRetorno ? TC.retorno : TC.triagem);
   const [origemId, setOrigemId] = useState(dadosRetorno?.origemId || "");
   const [especialidadeId, setEspecialidadeId] = useState<number | null>(null);
   const [listaEspecialidades, setListaEspecialidades] = useState<{id: number, nome: string}[]>([]);
@@ -53,14 +54,14 @@ export default function AgendamentoFormCriar({
 
   useEffect(() => {
     if (dadosRetorno) return;
-    setTipoConsulta(tipoProfissional === 0 ? 0 : 3);
+    setTipoConsulta(tipoProfissional === TP.enfermeira ? TC.triagem : TC.consultaMedica);
     setEspecialidadeId(null);
   }, [tipoProfissional, dadosRetorno]);
 
   useScrollBlock(true);
 
   useEffect(() => {
-    if (tipoProfissional === 1 && listaEspecialidades.length === 0) {
+    if (tipoProfissional === TP.medico && listaEspecialidades.length === 0) {
       const token = localStorage.getItem(storageKeys.authToken);
       fetch(`${API_URL}/api/Especialidades/lista`, { headers: { Authorization: `Bearer ${token}` } })
         .then(r => r.ok ? r.json() : [])
@@ -85,9 +86,9 @@ export default function AgendamentoFormCriar({
       try {
         const token = localStorage.getItem(storageKeys.authToken);
         let queryParams = `?data=${dataSelecionada}&tipoConsulta=${tipoConsulta}`;
-        if (tipoConsulta === 3 && especialidadeId) {
+        if (tipoConsulta === TC.consultaMedica && especialidadeId != null) {
           queryParams += `&especialidadeId=${especialidadeId}`;
-        } else if (tipoConsulta === 4 && origemId) {
+        } else if (tipoConsulta === TC.retorno && origemId) {
           queryParams += `&origemId=${origemId}`;
         }
 
@@ -108,7 +109,7 @@ export default function AgendamentoFormCriar({
 
   // Buscar agendamentos pendentes de retorno do paciente selecionado
   useEffect(() => {
-    if (!pacienteSelecionado || tipoConsulta !== 4) return;
+    if (!pacienteSelecionado || tipoConsulta !== TC.retorno) return;
     const fetchRetornos = async () => {
       try {
         const token = localStorage.getItem(storageKeys.authToken);
@@ -154,12 +155,12 @@ export default function AgendamentoFormCriar({
       return;
     }
 
-    if (tipoProfissional === 1 && tipoConsulta === 3 && !especialidadeId) {
+    if (tipoProfissional === TP.medico && tipoConsulta === TC.consultaMedica && especialidadeId == null) {
       toast.error("Selecione uma especialidade médica para prosseguir.");
       return;
     }
 
-    if (tipoConsulta === 4 && !origemId) {
+    if (tipoConsulta === TC.retorno && !origemId) {
       toast.error("Para agendar retorno, você precisa selecionar a consulta de origem.");
       return;
     }
@@ -178,7 +179,7 @@ export default function AgendamentoFormCriar({
           tipoProfissional: tipoProfissional,
           tipoConsulta: tipoConsulta,
           agendamentoOrigemId: origemId || null,
-          especialidadeId: tipoProfissional === 1 ? especialidadeId : null
+          especialidadeId: tipoProfissional === TP.medico ? especialidadeId : null
         })
       });
 
@@ -285,13 +286,13 @@ export default function AgendamentoFormCriar({
                         }
                         setSugestaoIA(dados);
                         // Auto-preencher
-                        if (dados.tipoProfissional === perfis.medico) { setTipoProfissional(1); }
-                        else { setTipoProfissional(0); }
-                        if (dados.tipoConsulta === "Triagem") setTipoConsulta(0);
-                        else if (dados.tipoConsulta === "Exame") setTipoConsulta(1);
-                        else if (dados.tipoConsulta === "Vacina") setTipoConsulta(2);
-                        else if (dados.tipoConsulta === "Consulta Médica") setTipoConsulta(3);
-                        else if (dados.tipoConsulta === "Retorno") setTipoConsulta(4);
+                        if (dados.tipoProfissional === perfis.medico) { setTipoProfissional(TP.medico); }
+                        else { setTipoProfissional(TP.enfermeira); }
+                        if (dados.tipoConsulta === "Triagem") setTipoConsulta(TC.triagem);
+                        else if (dados.tipoConsulta === "Exame") setTipoConsulta(TC.exame);
+                        else if (dados.tipoConsulta === "Vacina") setTipoConsulta(TC.vacina);
+                        else if (dados.tipoConsulta === "Consulta Médica") setTipoConsulta(TC.consultaMedica);
+                        else if (dados.tipoConsulta === "Retorno") setTipoConsulta(TC.retorno);
                         // Auto-preencher especialidade
                         if (dados.especialidade && listaEspecialidades.length > 0) {
                           const match = listaEspecialidades.find(e => e.nome === dados.especialidade);
@@ -389,8 +390,8 @@ export default function AgendamentoFormCriar({
                   value={tipoProfissional}
                   onChange={(e) => setTipoProfissional(Number(e.target.value))}
                 >
-                  <option value={0}>Enfermeira</option>
-                  <option value={1}>Médico</option>
+                  <option value={TP.enfermeira}>Enfermeira</option>
+                  <option value={TP.medico}>Médico</option>
                 </select>
               </div>
               <div>
@@ -400,23 +401,23 @@ export default function AgendamentoFormCriar({
                   value={tipoConsulta}
                   onChange={(e) => setTipoConsulta(Number(e.target.value))}
                 >
-                  {tipoProfissional === 0 ? (
+                  {tipoProfissional === TP.enfermeira ? (
                     <>
-                      <option value={0}>Triagem</option>
-                      <option value={1}>Exame</option>
-                      <option value={2}>Vacina</option>
+                      <option value={TC.triagem}>Triagem</option>
+                      <option value={TC.exame}>Exame</option>
+                      <option value={TC.vacina}>Vacina</option>
                     </>
                   ) : (
                     <>
-                      <option value={3}>Consulta Médica</option>
-                      <option value={4}>Retorno</option>
+                      <option value={TC.consultaMedica}>Consulta Médica</option>
+                      <option value={TC.retorno}>Retorno</option>
                     </>
                   )}
                 </select>
               </div>
             </div>
 
-            {tipoProfissional === 1 && tipoConsulta !== 4 && (
+            {tipoProfissional === TP.medico && tipoConsulta !== TC.retorno && (
               <div className="animate-in fade-in slide-in-from-top-2 duration-300">
                 <label className="block text-[13px] font-medium text-body mb-1">Especialidade Médica</label>
                 {listaEspecialidades.some(e => !especialidadesDisponiveis.includes(e.id)) && (
@@ -452,7 +453,7 @@ export default function AgendamentoFormCriar({
               </div>
             )}
 
-            {tipoConsulta === 4 && (
+            {tipoConsulta === TC.retorno && (
               <div className="animate-in fade-in slide-in-from-top-2 duration-300">
                 <label className="block text-[13px] font-medium text-body mb-1">Consulta de Origem</label>
                 <select

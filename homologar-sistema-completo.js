@@ -11,6 +11,12 @@
 
 const API_URL = "http://localhost:5045";
 
+// Códigos numéricos dos enums da API (chaves das tabelas lookup, começam em 1).
+const TP = { enfermeira: 1, medico: 2 };
+const TC = { triagem: 1, exame: 2, vacina: 3, consultaMedica: 4, retorno: 5 };
+const ST = { agendado: 1, emAtendimento: 2, aguardandoRetorno: 3, retornoAgendado: 4, finalizado: 5, faltou: 6, cancelado: 7 };
+const ESP = { clinicaGeral: 1, cardiologia: 5 };
+
 // Códigos de formatação de cores do console ANSI
 const CORES = {
   reset: "\x1b[0m",
@@ -372,8 +378,8 @@ async function rodarHomologacao() {
     body: JSON.stringify({
       pacienteId: "00000000-0000-0000-0000-000000000000", // Outro Guid qualquer
       dataHoraConsulta: new Date(Date.now() + 2 * 3600 * 1000).toISOString(),
-      tipoProfissional: 1,
-      tipoConsulta: 3
+      tipoProfissional: TP.medico,
+      tipoConsulta: TC.consultaMedica
     })
   });
   if (rbacAgendarOutro.status === 403) {
@@ -464,7 +470,7 @@ async function rodarHomologacao() {
   const dataConsultaStr = dataConsulta.toISOString().slice(0, 10);
 
   // T6.1: Consultar horários de expediente disponíveis
-  const consultarHorarios = await request(`/api/Agendamentos/horarios-disponiveis?data=${dataConsultaStr}&tipoConsulta=3&especialidadeId=4`, {
+  const consultarHorarios = await request(`/api/Agendamentos/horarios-disponiveis?data=${dataConsultaStr}&tipoConsulta=${TC.consultaMedica}&especialidadeId=${ESP.cardiologia}`, {
     method: "GET",
     headers: { "Authorization": `Bearer ${adminToken}` }
   });
@@ -481,9 +487,9 @@ async function rodarHomologacao() {
     body: JSON.stringify({
       pacienteId: testPatientId,
       dataHoraConsulta: "2020-01-01T10:00:00",
-      tipoProfissional: 1,
-      tipoConsulta: 3,
-      especialidadeId: 4
+      tipoProfissional: TP.medico,
+      tipoConsulta: TC.consultaMedica,
+      especialidadeId: ESP.cardiologia
     })
   });
   if (pastBooking.status === 400) {
@@ -500,9 +506,9 @@ async function rodarHomologacao() {
     body: JSON.stringify({
       pacienteId: testPatientId,
       dataHoraConsulta: dataHoraCerta,
-      tipoProfissional: 1, // Médico
-      tipoConsulta: 3, // Consulta Médica
-      especialidadeId: 4 // Cardiologia
+      tipoProfissional: TP.medico, // Médico
+      tipoConsulta: TC.consultaMedica, // Consulta Médica
+      especialidadeId: ESP.cardiologia // Cardiologia
     })
   });
   if (criarAgendamento.ok && criarAgendamento.data.id) {
@@ -532,9 +538,9 @@ async function rodarHomologacao() {
     body: JSON.stringify({
       pacienteId: testPatientId,
       dataHoraConsulta: `${dataConsultaStr}T11:00:00`,
-      tipoProfissional: 1,
-      tipoConsulta: 3,
-      especialidadeId: 4 // Mesma especialidade (Cardiologia)
+      tipoProfissional: TP.medico,
+      tipoConsulta: TC.consultaMedica,
+      especialidadeId: ESP.cardiologia // Mesma especialidade (Cardiologia)
     })
   });
   if (duplicadoEspecialidade.status === 400) {
@@ -609,26 +615,26 @@ async function rodarHomologacao() {
     })
   });
 
-  // T7.1: Transição 1: Agendado ➔ Em Atendimento (Status: 1)
+  // T7.1: Transição 1: Agendado ➔ Em Atendimento
   const statusEmAtendimento = await request(`/api/Agendamentos/${testAppointmentId}/status`, {
     method: "PATCH",
     headers: { "Authorization": `Bearer ${adminToken}` },
-    body: JSON.stringify(1) // 1 = EmAtendimento
+    body: JSON.stringify(ST.emAtendimento)
   });
   if (statusEmAtendimento.ok) {
-    console.log(`  🟢 [OK] Transição: Consulta Inicial marcada como "Em Atendimento" (Status: 1) (${statusEmAtendimento.latency}ms)`);
+    console.log(`  🟢 [OK] Transição: Consulta Inicial marcada como "Em Atendimento" (${statusEmAtendimento.latency}ms)`);
   } else {
     console.log(`  ⚠️ [AVISO] Falha ao iniciar atendimento. Status: ${statusEmAtendimento.status}. Retorno: ${JSON.stringify(statusEmAtendimento.data)}`);
   }
 
-  // T7.2: Transição 2: Em Atendimento ➔ Aguardando Retorno (Status: 2)
+  // T7.2: Transição 2: Em Atendimento ➔ Aguardando Retorno
   const statusAguardandoRetorno = await request(`/api/Agendamentos/${testAppointmentId}/status`, {
     method: "PATCH",
     headers: { "Authorization": `Bearer ${adminToken}` },
-    body: JSON.stringify(2) // 2 = AguardandoRetorno
+    body: JSON.stringify(ST.aguardandoRetorno)
   });
   if (statusAguardandoRetorno.ok) {
-    console.log(`  🟢 [OK] Transição: Consulta progredida para "Aguardando Retorno" (Status: 2) (${statusAguardandoRetorno.latency}ms)`);
+    console.log(`  🟢 [OK] Transição: Consulta progredida para "Aguardando Retorno" (${statusAguardandoRetorno.latency}ms)`);
   } else {
     console.log(`  ⚠️ [AVISO] Falha ao progredir para aguardando retorno. Status: ${statusAguardandoRetorno.status}`);
   }
@@ -644,14 +650,14 @@ async function rodarHomologacao() {
     body: JSON.stringify({
       pacienteId: testPatientId,
       dataHoraConsulta: dataRetornoCerta,
-      tipoProfissional: 1, // Médico
-      tipoConsulta: 4, // Retorno
+      tipoProfissional: TP.medico, // Médico
+      tipoConsulta: TC.retorno, // Retorno
       agendamentoOrigemId: testAppointmentId // Vinculado ao inicial
     })
   });
   if (criarRetorno.ok && criarRetorno.data.id) {
     testReturnAppointmentId = criarRetorno.data.id;
-    console.log(`  🟢 [OK] Vinculado com sucesso agendamento de Retorno. Origem alterada para "Retorno Agendado" (Status: 3) (${criarRetorno.latency}ms)`);
+    console.log(`  🟢 [OK] Vinculado com sucesso agendamento de Retorno. Origem alterada para "Retorno Agendado" (${criarRetorno.latency}ms)`);
   } else {
     console.log(`  ⚠️ [AVISO] Falha ao criar agendamento de retorno. Status: ${criarRetorno.status}. Retorno: ${JSON.stringify(criarRetorno.data)}`);
   }
@@ -664,8 +670,8 @@ async function rodarHomologacao() {
     body: JSON.stringify({
       pacienteId: testPatientId,
       dataHoraConsulta: new Date(Date.now() + 3600 * 2000).toISOString(),
-      tipoProfissional: 0, // Enfermeira
-      tipoConsulta: 1 // Exame
+      tipoProfissional: TP.enfermeira, // Enfermeira
+      tipoConsulta: TC.exame // Exame
     })
   });
   if (agendarExame.ok && agendarExame.data.id) {
@@ -695,7 +701,7 @@ async function rodarHomologacao() {
     if (retirExame.ok) console.log(`  🟢 [OK] Fluxo de Guichê: Registro de assinatura física/retirada de laudo homologado (${retirExame.latency}ms)`);
   }
 
-  // T7.5: Transição 4: Retorno Agendado ➔ Finalizado (Status: 4)
+  // T7.5: Transição 4: Retorno Agendado ➔ Finalizado
   // Vamos finalizar a consulta de retorno criada!
   if (testReturnAppointmentId) {
     // Para fins de teste, movemos a data do retorno para hoje temporariamente
@@ -712,17 +718,17 @@ async function rodarHomologacao() {
     await request(`/api/Agendamentos/${testReturnAppointmentId}/status`, {
       method: "PATCH",
       headers: { "Authorization": `Bearer ${adminToken}` },
-      body: JSON.stringify(1)
+      body: JSON.stringify(ST.emAtendimento)
     });
     
     // Finaliza
     const finalizarConsulta = await request(`/api/Agendamentos/${testReturnAppointmentId}/status`, {
       method: "PATCH",
       headers: { "Authorization": `Bearer ${adminToken}` },
-      body: JSON.stringify(4) // 4 = Finalizado
+      body: JSON.stringify(ST.finalizado)
     });
     if (finalizarConsulta.ok) {
-      console.log(`  🟢 [OK] Transição: Consulta Médica concluída e arquivada como "Finalizado" (Status: 4) (${finalizarConsulta.latency}ms)`);
+      console.log(`  🟢 [OK] Transição: Consulta Médica concluída e arquivada como "Finalizado" (${finalizarConsulta.latency}ms)`);
     } else {
       console.log(`  ⚠️ [AVISO] Falha ao finalizar consulta de retorno. Status: ${finalizarConsulta.status}`);
     }
@@ -746,8 +752,8 @@ async function rodarHomologacao() {
     body: JSON.stringify({
       pacienteId: testPatientId,
       dataHoraConsulta: new Date(Date.now() + 3600 * 5000).toISOString(),
-      tipoProfissional: 1,
-      tipoConsulta: 3
+      tipoProfissional: TP.medico,
+      tipoConsulta: TC.consultaMedica
     })
   });
   if (agendamentoParaCancelar.ok && agendamentoParaCancelar.data.id) {
@@ -756,7 +762,7 @@ async function rodarHomologacao() {
     const cancelStatus = await request(`/api/Agendamentos/${cancelId}/status`, {
       method: "PATCH",
       headers: { "Authorization": `Bearer ${adminToken}` },
-      body: JSON.stringify(6) // 6 = Cancelado
+      body: JSON.stringify(ST.cancelado)
     });
     if (cancelStatus.ok) console.log(`  🟢 [OK] Fluxo de Cancelamento: Agendamento cancelado com sucesso no banco (${cancelStatus.latency}ms)`);
   }
