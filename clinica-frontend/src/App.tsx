@@ -5,6 +5,7 @@ import * as signalR from "@microsoft/signalr";
 import { API_URL } from "./constants/api";
 import { perfis } from "./constants/perfis";
 import { storageKeys } from "./constants/storage";
+import { obterTokenValido } from "./fetchInterceptor";
 import { useState, useEffect } from "react";
 import AppLayout from "./components/AppLayout";
 import PacienteList from "./pages/PacienteList";
@@ -179,7 +180,7 @@ export default function App() {
 
     connection = new signalR.HubConnectionBuilder()
       .withUrl(`${API_URL}/hubs/notificacoes`, {
-        accessTokenFactory: () => localStorage.getItem(storageKeys.authToken) || ""
+        accessTokenFactory: obterTokenValido
       })
       .withAutomaticReconnect()
       .build();
