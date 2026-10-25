@@ -11,6 +11,9 @@ import { biometriaDisponivel } from '@/lib/biometria';
 
 const AZUL = '#2C5282';
 
+// Fica no Stack raiz (empilhada sobre as abas), e não como aba escondida: desde o
+// expo-router 58, uma aba com `href: null` que recebe foco é redirecionada para a aba inicial.
+// O guard do _layout raiz continua protegendo a rota (sem sessão → login).
 export default function ConfiguracoesScreen() {
   const router = useRouter();
   const { logout, biometriaAtiva, definirBiometria } = useAuth();

@@ -185,7 +185,7 @@ export default function PerfilScreen() {
       {/* Cabeçalho: título + atalho de configurações */}
       <View style={styles.header}>
         <Text style={styles.titulo}>Perfil</Text>
-        <Pressable onPress={() => router.navigate('/(app)/configuracoes')} hitSlop={10} style={styles.gear}>
+        <Pressable onPress={() => router.push('/configuracoes')} hitSlop={10} style={styles.gear}>
           <Ionicons name="settings-outline" size={22} color="#374151" />
         </Pressable>
       </View>
@@ -282,7 +282,7 @@ export default function PerfilScreen() {
           </View>
 
           {/* Configurações */}
-          <Pressable onPress={() => router.navigate('/(app)/configuracoes')} style={styles.configBtn}>
+          <Pressable onPress={() => router.push('/configuracoes')} style={styles.configBtn}>
             <View style={styles.configIcone}>
               <Ionicons name="settings-outline" size={20} color={AZUL} />
             </View>
