@@ -58,9 +58,11 @@ namespace ClinicaMaisSaude.API.Controllers
 
             if (!IsAdmin && EhPaciente)
                 filtroPac = PacienteIdToken;
-            else if (!IsAdmin && EhMedico)
+            else if (!IsAdmin && ProfissionalIdToken is not null)
+                // Profissional não-admin (médico OU enfermeira) vê apenas os agendamentos
+                // delegados a ele — a enfermeira antes caía no "vê tudo" por não ter ramo próprio.
                 filtroProf = ProfissionalIdToken;
-            // Enfermeira e Admin: sem filtro de ID, veem tudo (sujeito aos parâmetros de busca)
+            // Admin: sem filtro de ID, vê tudo (sujeito aos parâmetros de busca)
 
             var result = await _agendamentoService.ObterTodosPaginadoAsync(page, pageSize, filtroProf, filtroPac, busca, data, status, riscoAltoApenas, ordem);
             return Ok(result);
