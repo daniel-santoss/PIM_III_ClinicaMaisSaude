@@ -94,6 +94,17 @@ export default function MinhasConsultasScreen() {
     const esp = item.especialidade ? ESPECIALIDADE_LABEL[item.especialidade] ?? item.especialidade : null;
     const temAcoes = STATUS_CANCELAVEIS.includes(item.status);
 
+    // Acompanhamento informativo do resultado de exame (espelha a web; sem ação do paciente).
+    const resultado = item.exigeResultadoPosterior
+      ? item.resultadoRetirado
+        ? { label: 'Resultado retirado', icon: 'checkmark-done-outline' as const, cor: '#6B7280', fundo: '#F3F4F6' }
+        : item.resultadoDisponivel
+          ? { label: 'Resultado pronto', icon: 'document-text-outline' as const, cor: '#047857', fundo: '#D1FAE5' }
+          : item.status === 'Finalizado'
+            ? { label: 'Resultado pendente', icon: 'hourglass-outline' as const, cor: '#B45309', fundo: '#FEF3C7' }
+            : null
+      : null;
+
     return (
       <View style={styles.card}>
         <View style={styles.cardTopo}>
@@ -113,6 +124,12 @@ export default function MinhasConsultasScreen() {
           {esp ? ` · ${esp}` : ''}
         </Text>
         <Text style={styles.data}>{formatarDataHora(item.dataHoraConsulta)}</Text>
+        {resultado && (
+          <View style={[styles.resChip, { backgroundColor: resultado.fundo }]}>
+            <Ionicons name={resultado.icon} size={13} color={resultado.cor} />
+            <Text style={[styles.resChipTexto, { color: resultado.cor }]}>{resultado.label}</Text>
+          </View>
+        )}
       </View>
     );
   }
@@ -214,6 +231,8 @@ const styles = StyleSheet.create({
   badgeTexto: { fontSize: 11, fontWeight: '800' },
   tipo: { fontSize: 14, fontWeight: '600', color: '#4B5563' },
   data: { fontSize: 13, fontWeight: '500', color: '#9CA3AF' },
+  resChip: { flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, marginTop: 4 },
+  resChipTexto: { fontSize: 11, fontWeight: '800' },
   kebab: { padding: 4, marginLeft: 2 },
   vazio: { padding: 40, alignItems: 'center' },
   vazioTexto: { color: '#9CA3AF', fontSize: 14, fontWeight: '500', textAlign: 'center' },

@@ -188,7 +188,7 @@ export default function AgendamentoVisualizador({
                     <th className="px-5 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted">
                       {tipoUsuario === perfis.paciente ? "Profissional" : "Paciente"}
                     </th>
-                    {(tipoUsuario !== perfis.paciente && tipoUsuario !== perfis.medico || isAdmin) && (
+                    {isAdmin && (
                       <th className="px-5 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted">Profissional</th>
                     )}
                     <th className="px-5 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted">Tipo / especialidade</th>
@@ -249,7 +249,7 @@ export default function AgendamentoVisualizador({
                             </div>
                           </div>
                         </td>
-                        {(tipoUsuario !== perfis.paciente && tipoUsuario !== perfis.medico || isAdmin) && (
+                        {isAdmin && (
                           <td className="px-5 py-3.5 whitespace-nowrap">
                             <div className="flex items-center gap-3">
                               <div className="w-9 h-9 rounded-lg bg-brand-50 text-brand-600 flex items-center justify-center overflow-hidden shrink-0">
@@ -520,8 +520,8 @@ export default function AgendamentoVisualizador({
                     </div>
                   </div>
 
-                  {/* Separador e Profissional Secundário (Apenas para Enfermeira / Admin) */}
-                  {(tipoUsuario !== perfis.paciente && tipoUsuario !== perfis.medico || isAdmin) && (
+                  {/* Separador e Profissional Secundário (apenas Admin — o próprio profissional não precisa se ver; o paciente vê no bloco principal) */}
+                  {isAdmin && (
                     <div className="px-5 sm:px-6 py-3.5 border-t border-gray-50 flex items-center gap-4 bg-purple-50/10">
                       <div className="w-9 h-9 rounded-lg bg-brand-50 text-brand-600 flex items-center justify-center overflow-hidden shrink-0">
                         {agenda.profissionalFotoBase64 ? (

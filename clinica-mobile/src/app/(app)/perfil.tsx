@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  type AlertButton,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -18,7 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 
 import { useAuth } from '@/auth/AuthContext';
-import { atualizarDados, enviarFoto, obterPerfil } from '@/lib/perfil';
+import { atualizarDados, enviarFoto, obterPerfil, removerFoto } from '@/lib/perfil';
 import { isEmailValido, isTelefoneValido, mascaraCpf, mascaraTelefone, soDigitos } from '@/lib/validadores';
 import type { PacientePerfil } from '@/types/perfil';
 
@@ -97,11 +98,39 @@ export default function PerfilScreen() {
   }
 
   function escolherFoto() {
-    Alert.alert('Foto de perfil', 'De onde você quer escolher?', [
+    const opcoes: AlertButton[] = [
       { text: 'Câmera', onPress: () => pegarFoto('camera') },
       { text: 'Galeria', onPress: () => pegarFoto('galeria') },
-      { text: 'Cancelar', style: 'cancel' },
-    ]);
+    ];
+    // Só oferece remover quando já existe uma foto.
+    if (perfil?.fotoBase64) {
+      opcoes.push({ text: 'Remover foto atual', style: 'destructive', onPress: confirmarRemocaoFoto });
+    }
+    opcoes.push({ text: 'Cancelar', style: 'cancel' });
+    Alert.alert('Foto de perfil', 'O que você quer fazer?', opcoes);
+  }
+
+  function confirmarRemocaoFoto() {
+    Alert.alert(
+      'Remover foto',
+      'Sua foto será removida e voltaremos a exibir a inicial do seu nome.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Remover', style: 'destructive', onPress: removerFotoAtual },
+      ],
+    );
+  }
+
+  async function removerFotoAtual() {
+    try {
+      setEnviandoFoto(true);
+      await removerFoto();
+      setPerfil((prev) => (prev ? { ...prev, fotoBase64: null } : prev));
+    } catch (e) {
+      Alert.alert('Erro', e instanceof Error ? e.message : 'Não foi possível remover a foto.');
+    } finally {
+      setEnviandoFoto(false);
+    }
   }
 
   async function pegarFoto(origem: 'camera' | 'galeria') {

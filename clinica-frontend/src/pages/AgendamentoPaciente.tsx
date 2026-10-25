@@ -26,6 +26,7 @@ export default function AgendamentoPaciente({
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [sucesso, setSucesso] = useState(false);
+  const [profConfirmado, setProfConfirmado] = useState<{ nome: string; foto: string | null } | null>(null);
 
   // Estados do Agendamento
   const [sintomas, setSintomas] = useState("");
@@ -200,9 +201,15 @@ export default function AgendamentoPaciente({
         try { const j = JSON.parse(raw); msg = j.message || j.detail || j.title || raw; } catch { /* corpo não-JSON: usa texto puro */ }
         throw new Error(msg);
       }
+      // O backend já delega e retorna o profissional responsável (nome + foto).
+      const dados = await response.json().catch(() => null);
+      if (dados?.nomeProfissional && dados.nomeProfissional !== "N/A") {
+        setProfConfirmado({ nome: dados.nomeProfissional, foto: dados.profissionalFotoBase64 ?? null });
+      }
       setSucesso(true);
       onLimparPrePreenchidos?.();
-      if (onSucesso) setTimeout(onSucesso, 2000);
+      // Sem auto-redirect: a tela de sucesso permanece até o usuário escolher
+      // "Novo agendamento" ou "Meus agendamentos".
     } catch (err: any) {
       if (err.message.includes("60 dias") || err.message.includes("recente") || err.message.includes("Recente")) {
         setModalMensagem(err.message);
@@ -227,9 +234,32 @@ export default function AgendamentoPaciente({
       <h2 className="text-xl font-semibold text-ink mb-1">Tudo certo!</h2>
       <p className="text-muted text-center text-sm mb-8">Consulta agendada com sucesso.</p>
 
+      {profConfirmado && (
+        <div className="w-full max-w-md mb-8 p-4 bg-white border border-line rounded-xl flex items-center gap-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
+          {profConfirmado.foto ? (
+            <img
+              src={profConfirmado.foto}
+              alt={profConfirmado.nome}
+              className="w-14 h-14 rounded-xl object-cover shrink-0"
+            />
+          ) : (
+            <div
+              className="w-14 h-14 rounded-xl grid place-items-center text-white font-black text-xl shrink-0 select-none"
+              style={{ background: "linear-gradient(135deg, #3C6FA0, #2C5282)" }}
+            >
+              {profConfirmado.nome.charAt(0).toUpperCase()}
+            </div>
+          )}
+          <div className="text-left min-w-0">
+            <p className="text-[11px] font-semibold text-muted uppercase tracking-wide mb-0.5">Profissional responsável</p>
+            <h3 className="text-[15px] font-semibold text-ink leading-tight truncate">{profConfirmado.nome}</h3>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col sm:flex-row gap-3 w-full max-w-md">
         <button
-          onClick={() => { setSucesso(false); setPasso(1); setSintomas(""); setHorarioSelecionado(""); setModoIA(false); onLimparPrePreenchidos?.(); }}
+          onClick={() => { setSucesso(false); setProfConfirmado(null); setPasso(1); setSintomas(""); setHorarioSelecionado(""); setModoIA(false); onLimparPrePreenchidos?.(); }}
           className="flex-1 h-11 inline-flex items-center justify-center rounded-md text-sm font-semibold text-body bg-white border border-line hover:bg-canvas transition-colors"
         >
           Novo agendamento

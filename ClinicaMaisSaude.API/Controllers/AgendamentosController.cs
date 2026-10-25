@@ -58,9 +58,11 @@ namespace ClinicaMaisSaude.API.Controllers
 
             if (!IsAdmin && EhPaciente)
                 filtroPac = PacienteIdToken;
-            else if (!IsAdmin && EhMedico)
+            else if (!IsAdmin && ProfissionalIdToken is not null)
+                // Profissional não-admin (médico OU enfermeira) vê apenas os agendamentos
+                // delegados a ele — a enfermeira antes caía no "vê tudo" por não ter ramo próprio.
                 filtroProf = ProfissionalIdToken;
-            // Enfermeira e Admin: sem filtro de ID, veem tudo (sujeito aos parâmetros de busca)
+            // Admin: sem filtro de ID, vê tudo (sujeito aos parâmetros de busca)
 
             var result = await _agendamentoService.ObterTodosPaginadoAsync(page, pageSize, filtroProf, filtroPac, busca, data, status, riscoAltoApenas, ordem);
             return Ok(result);
@@ -68,7 +70,23 @@ namespace ClinicaMaisSaude.API.Controllers
 
         [HttpGet("{id}")]
         public async Task<IActionResult> ObterPorId(Guid id)
-            => Ok(await _agendamentoService.BuscarPorIdAsync(id));
+        {
+            var agendamento = await _agendamentoService.BuscarPorIdAsync(id); // 404 se não existe
+            // Autorização de recurso: só o dono vê o detalhe. Responde 404 (e não 403) para
+            // terceiros, para não revelar que o agendamento existe.
+            if (!PodeVerAgendamento(agendamento))
+                throw new NotFoundException("Agendamento não encontrado.");
+            return Ok(agendamento);
+        }
+
+        // Admin vê qualquer um; paciente só os próprios; profissional (médico/enfermeira) só os
+        // delegados a ele. Espelha o escopo da listagem (ObterTodos).
+        private bool PodeVerAgendamento(AgendamentoResponse a)
+        {
+            if (IsAdmin) return true;
+            if (EhPaciente) return a.PacienteId == PacienteIdToken;
+            return ProfissionalIdToken is not null && a.ProfissionalId == ProfissionalIdToken;
+        }
 
         [HttpGet("horarios-disponiveis")]
         public async Task<IActionResult> ObterHorariosDisponiveis([FromQuery] DateTime data, [FromQuery] int tipoConsulta, [FromQuery] int? especialidadeId = null, [FromQuery] Guid? origemId = null)
