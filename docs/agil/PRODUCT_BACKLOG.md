@@ -25,6 +25,8 @@ Cada história tem critérios de aceite e situação atual. Derivado do históri
 | E1-06 | Como sistema, quero **bloquear conta após tentativas** de login (anti-brute-force). | Should | ✅ |
 | E1-07 | Como sistema, quero **identidade única (`Pessoa`)** separada da credencial para consistência de dados. | Should | ✅ |
 | E1-08 | Como equipe, quero **eliminar o caminho duplicado entre as tabelas de identidade** (paciente e profissional ligam à `Pessoa` pelo login *e* diretamente) para que o banco garanta a consistência. | Could | 📦 |
+| E1-09 | Como administrador, quero **escolher quais enfermeiras gerenciam pacientes** (cadastrar, editar, redefinir senha) em vez de todas terem esse acesso. | Should | 📦 |
+| E1-10 | Como sistema, quero **autorização por recurso** (cada um só vê e altera os próprios agendamentos/fichas; enfermeira só redefine senha de paciente). | Must | ✅ |
 
 **Critérios de aceite (ex. E1-03):** o código expira em 15 min, é de uso único, trava após 5 tentativas;
 o e-mail é enviado com identidade visual da clínica; resposta genérica (anti-enumeração de contas).
@@ -39,6 +41,12 @@ garante é o código. Caminhos possíveis:
 - **Pragmático:** sai só o `PessoaId` do profissional (que sempre tem login); o paciente mantém as duas ligações
   (necessárias pelo auto-cadastro) com uma regra de consistência; `PessoaId` vira obrigatório onde cabe.
   Custo médio-baixo.
+
+**Nota (E1-09):** desenho decidido — como hoje só existe **uma** permissão extra, ela vira um campo
+`GerenciaPacientes` (sim/não) no `LoginPortal`, marcado pelo administrador na edição da enfermeira (as atuais
+nascem marcadas). Os endpoints pedem a permissão **pelo nome** (policy `GerenciarPacientes`), então, se surgirem
+outras permissões, basta trocar o campo por tabelas (`Permissao` + `UsuarioPermissao`) sem alterar os controllers.
+Declaração de Saúde, moderação da IA, aprovação de cadastros e gestão da equipe seguem exclusivas do administrador.
 
 ---
 
@@ -110,6 +118,8 @@ motivo e notifica o proponente por e-mail; um modelo já usado em solicitações
 | E6-03 | Como paciente, quero **editar meu perfil e foto** e trocar a senha. | Should | ✅ |
 | E6-04 | Como paciente, quero **excluir minha conta** pelo app (exigência das lojas). | Must | ✅ |
 | E6-05 | Como paciente, quero **agendar pela IA ou manualmente** (modo avançado). | Should | ✅ |
+| E6-06 | Como paciente, quero **escolher o dia num calendário** que destaca os dias com horário livre. | Should | ✅ |
+| E6-07 | Como paciente, quero um **perfil enxuto** (foto e nome) com telas de *Dados pessoais* e *Configurações*. | Could | ✅ |
 
 ---
 
@@ -145,5 +155,6 @@ motivo e notifica o proponente por e-mail; um modelo já usado em solicitações
 | 📦 Could | Push nativo FCM (background) | E5-03 |
 | 📦 Could | Deploy em nuvem + pipeline de CD + diagrama de arquitetura | E8-05 |
 | 📦 Could | Painel administrativo com indicadores | E7-04 |
+| 📦 Should | Permissão "Gerenciar pacientes" por enfermeira | E1-09 |
 | 📦 Could | Eliminar o caminho duplicado entre as tabelas de identidade | E1-08 |
 | 🚫 Won't (agora) | Multi-tenant (múltiplas unidades) · 2º fator no 1º acesso · planos de saúde na home | — |
