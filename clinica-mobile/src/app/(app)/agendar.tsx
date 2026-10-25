@@ -493,7 +493,7 @@ export default function AgendarScreen() {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Select de especialidade (bottom-sheet). Disponíveis primeiro; sem médico ficam no fim, desabilitadas. */}
+      {/* Select de especialidade (bottom-sheet). Disponíveis primeiro; sem agenda ficam no fim, desabilitadas. */}
       <Modal visible={espSelectAberto} transparent animationType="fade" onRequestClose={() => setEspSelectAberto(false)}>
         <Pressable style={styles.selectBackdrop} onPress={() => setEspSelectAberto(false)}>
           <Pressable style={[styles.selectSheet, styles.selectSheetAlto]} onPress={(e) => e.stopPropagation()}>
@@ -527,7 +527,7 @@ export default function AgendarScreen() {
                       {ativo ? (
                         <Ionicons name="checkmark" size={20} color={AZUL} />
                       ) : (
-                        !disponivel && <Text style={styles.selectOpcaoTag}>Sem médico</Text>
+                        !disponivel && <Text style={styles.selectOpcaoTag}>Sem agenda</Text>
                       )}
                     </Pressable>
                   );
