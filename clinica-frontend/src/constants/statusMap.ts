@@ -10,6 +10,13 @@ export const MapNomesStatus: Record<string, string> = {
   [statusAgendamento.cancelado]: "Cancelado"
 };
 
+export const MapNomesTipoEvento: Record<string, string> = {
+  "Criacao": "Criação",
+  "MudancaStatus": "Mudança de status",
+  "Remarcacao": "Remarcação",
+  "Cancelamento": "Cancelamento",
+};
+
 export const MapNomesTipoConsulta: Record<string, string> = {
   "Triagem": "Triagem",
   "Exame": "Exame",

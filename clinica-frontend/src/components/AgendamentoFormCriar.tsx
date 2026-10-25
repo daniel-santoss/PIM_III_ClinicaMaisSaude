@@ -8,6 +8,7 @@ import { useScrollBlock } from "../hooks/useScrollBlock";
 import { useToast } from "../hooks/useToast";
 import { perfis } from "../constants/perfis";
 import { statusAgendamento } from "../constants/status";
+import { MapNomesTipoConsulta } from "../constants/statusMap";
 import { tipoConsultaCod as TC, tipoProfissionalCod as TP } from "../constants/codigos";
 import { storageKeys } from "../constants/storage";
 import ModalPortal from "./ui/ModalPortal";
@@ -466,7 +467,7 @@ export default function AgendamentoFormCriar({
                     .filter(a => a.pacienteId === pacienteSelecionado && a.status === statusAgendamento.aguardandoRetorno)
                     .map(a => (
                       <option key={a.id} value={a.id}>
-                        {getRealDate(a.dataHoraConsulta)!.toLocaleDateString('pt-BR')} - {a.tipoConsulta} ({a.nomeProfissional})
+                        {getRealDate(a.dataHoraConsulta)!.toLocaleDateString('pt-BR')} - {MapNomesTipoConsulta[a.tipoConsulta] || a.tipoConsulta} ({a.nomeProfissional})
                       </option>
                     ))
                   }

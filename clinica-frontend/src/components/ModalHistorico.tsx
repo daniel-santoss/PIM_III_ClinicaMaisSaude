@@ -1,5 +1,5 @@
 import type { AgendamentoHistoricoResponse } from "../pages/AgendamentoList";
-import { MapNomesStatus } from "../constants/statusMap";
+import { MapNomesStatus, MapNomesTipoEvento } from "../constants/statusMap";
 import { X, User } from 'lucide-react';
 import { getRealDate } from '../utils/dates';
 import { useScrollBlock } from "../hooks/useScrollBlock";
@@ -55,7 +55,7 @@ export default function ModalHistorico({ historico, loading, onFechar }: ModalHi
                       {getRealDate(h.dtCriado, true)!.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}
                     </span>
                     <h4 className="text-base font-bold text-ink">
-                      {h.tipoEvento}
+                      {MapNomesTipoEvento[h.tipoEvento] || h.tipoEvento}
                     </h4>
 
                     {h.tipoEvento === "MudancaStatus" && (

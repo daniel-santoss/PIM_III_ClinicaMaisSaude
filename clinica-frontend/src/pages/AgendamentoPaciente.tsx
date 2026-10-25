@@ -2,6 +2,7 @@ import { API_URL, ADMIN_EMAIL, MAX_PROMPT_LENGTH, CLINIC_PHONE } from "../consta
 import { useEffect, useState } from "react";
 
 import { ESPECIALIDADES } from "../constants/especialidades";
+import { MapNomesTipoConsulta } from "../constants/statusMap";
 import { tipoConsultaCod as TC, tipoProfissionalCod as TP } from "../constants/codigos";
 import { AlertCircle, Calendar, Zap, Check, AlertTriangle, Sliders, CheckCircle, Search, User, MessageSquare, HeartHandshake, Phone } from 'lucide-react';
 import { getRealDate, obterMinDate } from '../utils/dates';
@@ -580,7 +581,7 @@ export default function AgendamentoPaciente({
                       .filter(a => a.status === "AguardandoRetorno")
                       .map(a => (
                         <option key={a.id} value={a.id}>
-                          {getRealDate(a.dataHoraConsulta)!.toLocaleDateString('pt-BR')} - {a.tipoConsulta} ({a.nomeProfissional})
+                          {getRealDate(a.dataHoraConsulta)!.toLocaleDateString('pt-BR')} - {MapNomesTipoConsulta[a.tipoConsulta] || a.tipoConsulta} ({a.nomeProfissional})
                         </option>
                       ))
                     }

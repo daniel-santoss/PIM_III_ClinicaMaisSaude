@@ -1,5 +1,6 @@
 import { API_URL } from "../constants/api";
 import { tipoConsultaCod as TC } from "../constants/codigos";
+import { MapNomesTipoConsulta } from "../constants/statusMap";
 import { useEffect, useState } from "react";
 import { obterMinDate, getRealDate } from "../utils/dates";
 import { Calendar, Clock, AlertCircle, X } from 'lucide-react';
@@ -138,7 +139,7 @@ export default function ModalRemarcar({ agenda, onFechar, onSucesso }: ModalRema
           <p className="text-[11px] font-semibold text-brand-600 uppercase tracking-wide mb-1.5">Reagendar consulta</p>
           <h3 className="text-xl font-semibold text-ink leading-tight">{agenda.pacienteNome}</h3>
           <span className="inline-block mt-2 text-xs font-medium text-body bg-line-soft px-2.5 py-1 rounded-md">
-            {agenda.tipoConsulta}
+            {MapNomesTipoConsulta[agenda.tipoConsulta] || agenda.tipoConsulta}
           </span>
         </div>
 
