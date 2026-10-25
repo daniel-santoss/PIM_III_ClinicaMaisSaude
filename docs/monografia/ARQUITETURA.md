@@ -69,7 +69,7 @@ detalhes de framework e infraestrutura.
 | Mobile | **React Native / Expo (SDK 58)**, expo-router, expo-secure-store, biometria |
 | IA | **Google Gemini** (triagem de sintomas) |
 | Tempo real | **SignalR** (WebSocket) para notificações; `HostedService` para geração periódica |
-| Autenticação | **JWT** (HMAC-SHA256): acesso 3h / refresh 7 dias; **BCrypt** para senhas |
+| Autenticação | **JWT** (HMAC-SHA256): acesso 15 min / refresh 7 dias; **BCrypt** para senhas |
 | E-mail | **SMTP (Brevo)** via `IEmailService` (recuperação de senha, códigos, confirmações) |
 | Exportação | **QuestPDF** (PDF), **ClosedXML** (Excel) |
 | Acessibilidade | **VLibras** (Libras) no web — ver [`../acessibilidade/`](../acessibilidade/) |
@@ -130,7 +130,7 @@ especialidade. A integração é **defensiva**:
 
 ## 7. Segurança
 
-- **JWT** HMAC-SHA256 (acesso 3h / refresh 7 dias) com **rotação** de refresh token.
+- **JWT** HMAC-SHA256 (acesso 15 min / refresh 7 dias) com **rotação** de refresh token.
 - **BCrypt** para senhas; **HMAC-SHA256 + pepper** para códigos de e-mail; **SHA-256** para tokens de reset.
 - **Anti-brute-force**: 5 tentativas → bloqueio temporário de login.
 - **RBAC** por papel (`[Authorize(Roles=…)]`) + *superusuário* admin.

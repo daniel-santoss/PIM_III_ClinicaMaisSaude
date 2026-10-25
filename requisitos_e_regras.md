@@ -38,7 +38,7 @@ Os Requisitos Não Funcionais definem as premissas técnicas, restrições arqui
 *   **RNF04 - Mobile:** Desenvolvido em **React Native com Expo** (expo-router), consumindo a mesma API REST do web.
 
 ### 2.2 Segurança
-*   **RNF05 - Autenticação JWT:** Tokens de acesso assinados digitalmente com HMAC-SHA256. Janela de expiração de **3 horas** para sessões ativas e **7 dias** para tokens de renovação (Refresh Tokens), com rotação.
+*   **RNF05 - Autenticação JWT:** Tokens de acesso assinados digitalmente com HMAC-SHA256. Token de acesso válido por **15 minutos** e token de renovação (Refresh Token) por **7 dias**, de uso único e com rotação: os clientes renovam o acesso sozinhos, sem deslogar o usuário, e a janela de 7 dias se renova a cada uso. Durações configuráveis (`JwtConfig:AccessTokenMinutos` e `JwtConfig:RefreshTokenDias`).
 *   **RNF06 - Chaves Primárias:** Uso do tipo **`Guid` (UUID)** gerado pela aplicação para chaves primárias. É proibido expor IDs numéricos sequenciais (exceção: tabelas de *lookup* de enums).
 *   **RNF07 - Criptografia de Senhas:** Senhas devem ser salvas usando o algoritmo hash **BCrypt**. Códigos enviados por e-mail são guardados como HMAC-SHA256 com *pepper* (nunca em texto puro).
 *   **RNF08 - Segredos fora do código:** Chaves (JWT, Gemini, SMTP, *pepper*) vêm de configuração por ambiente (User Secrets em desenvolvimento, variáveis de ambiente em produção).
