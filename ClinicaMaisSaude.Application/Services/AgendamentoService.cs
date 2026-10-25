@@ -153,8 +153,13 @@ namespace ClinicaMaisSaude.Application.Services
             if (tipoConsulta == TipoConsulta.Retorno && request.AgendamentoOrigemId.HasValue)
             {
                 origem = await _repository.ObterPorIdAsync(request.AgendamentoOrigemId.Value);
-                if (origem == null) throw new NotFoundException("Agendamento de origem inválido.");
-                
+                // A origem precisa ser do mesmo paciente: sem isso, um paciente poderia vincular o
+                // retorno à consulta de outra pessoa e "consumir" o retorno dela.
+                if (origem == null || origem.PacienteId != request.PacienteId)
+                    throw new NotFoundException("Agendamento de origem inválido.");
+                if (origem.Status != StatusAgendamento.AguardandoRetorno)
+                    throw new BusinessRuleException("A consulta de origem não está aguardando retorno.");
+
                 bool temConflito = await _conflitoService.ExisteConflitoProfissionalAsync(origem.ProfissionalId, request.DataHoraConsulta, tipoConsulta, null);
                 if (temConflito) {
                     throw new BusinessRuleException("O profissional responsável pela sua consulta de origem não tem disponibilidade neste horário.");
