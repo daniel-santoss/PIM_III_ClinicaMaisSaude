@@ -5,7 +5,7 @@
 .DESCRIPTION
   Etapas (todas por padrão; escolha com os switches):
     -Banco  aplica as migrations no Azure SQL (abre o firewall só para o seu IP e fecha ao final)
-    -Api    builda a imagem da API na nuvem (az acr build, sem Docker local) e troca o container
+    -Api    builda a imagem da API (Docker local), envia ao Container Registry e troca o container
     -Web    builda o portal (Vite) apontando para a API pública e publica no Static Web Apps
     -App    exporta o app mobile para web (Expo) e publica no Static Web Apps
 
@@ -67,14 +67,33 @@ if ($Banco) {
 }
 
 if ($Api) {
-    Write-Etapa "Imagem da API (build no Azure Container Registry)"
+    Write-Etapa "Imagem da API (build local + push no Container Registry)"
     $sha = (& git -C $raiz rev-parse --short HEAD).Trim()
-    Push-Location $raiz
+    # O build é local porque a assinatura de estudante não permite ACR Tasks (az acr build).
+    # Contexto = só os projetos do backend no commit atual (git archive): a imagem tem
+    # exatamente o código da tag $sha, sem node_modules nem arquivos não commitados.
+    $contexto = Join-Path ([IO.Path]::GetTempPath()) "clinica-api-build"
+    $tar = "$contexto.tar"
+    Remove-Item $contexto -Recurse -Force -ErrorAction SilentlyContinue
+    New-Item -ItemType Directory $contexto | Out-Null
+    & git -C $raiz archive --format=tar -o $tar HEAD .dockerignore ClinicaMaisSaude.Domain `
+        ClinicaMaisSaude.Application ClinicaMaisSaude.Infrastructure ClinicaMaisSaude.API
+    & tar -xf $tar -C $contexto
+    if ($LASTEXITCODE -ne 0) { throw "Falhou ao montar o contexto do build." }
+    $repo = "$($n.Registro).azurecr.io/clinica-api"
     try {
-        Invoke-Az acr build -r $n.Registro -t "clinica-api:latest" -t "clinica-api:$sha" `
-            -f ClinicaMaisSaude.API/Dockerfile . -o none
+        & docker build --platform linux/amd64 -t "${repo}:$sha" -t "${repo}:latest" `
+            -f "$contexto/ClinicaMaisSaude.API/Dockerfile" $contexto
+        if ($LASTEXITCODE -ne 0) { throw "Falhou o docker build (o Docker Desktop está aberto?)." }
+        Invoke-Az acr login -n $n.Registro -o none
+        foreach ($tag in @($sha, "latest")) {
+            & docker push "${repo}:$tag"
+            if ($LASTEXITCODE -ne 0) { throw "Falhou o docker push." }
+        }
     }
-    finally { Pop-Location }
+    finally {
+        Remove-Item $contexto, $tar -Recurse -Force -ErrorAction SilentlyContinue
+    }
 
     Write-Etapa "Trocando o container da API"
     Invoke-Az webapp config container set -g $n.Grupo -n $n.Api `

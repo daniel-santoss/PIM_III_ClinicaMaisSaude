@@ -10,7 +10,11 @@
 .EXAMPLE
   ./infra/azure/definir-segredos.ps1 -Sufixo dvs
 #>
-param([string]$Sufixo = "dvs")
+param(
+    [string]$Sufixo = "dvs",
+    # Só recopia Gemini/SMTP do user-secrets, sem pedir (nem alterar) a senha do admin.
+    [switch]$ApenasChaves
+)
 
 $ErrorActionPreference = "Stop"
 . "$PSScriptRoot/comum.ps1"
@@ -26,23 +30,31 @@ function Ler-Senha([string]$Rotulo) {
 $valores = [ordered]@{}
 
 # Senha do admin (mín. 10 caracteres; confirmação).
-do {
-    $senha = Ler-Senha "Nova senha do administrador (mín. 10 caracteres)"
-    $confirma = Ler-Senha "Confirme a senha"
-    $ok = ($senha.Length -ge 10) -and ($senha -ceq $confirma)
-    if (-not $ok) { Write-Host "Senhas diferentes ou curtas demais. Tente de novo." -ForegroundColor Yellow }
-} until ($ok)
-$valores["AdminSeed__Password"] = $senha
+if (-not $ApenasChaves) {
+    do {
+        $senha = Ler-Senha "Nova senha do administrador (mín. 10 caracteres)"
+        $confirma = Ler-Senha "Confirme a senha"
+        $ok = ($senha.Length -ge 10) -and ($senha -ceq $confirma)
+        if (-not $ok) { Write-Host "Senhas diferentes ou curtas demais. Tente de novo." -ForegroundColor Yellow }
+    } until ($ok)
+    $valores["AdminSeed__Password"] = $senha
+}
 
 # Gemini e SMTP a partir do user-secrets da API (o pepper de dev NÃO vai: produção tem o seu).
 $csproj = "$PSScriptRoot/../../ClinicaMaisSaude.API/ClinicaMaisSaude.API.csproj"
 $id = ([xml](Get-Content $csproj)).Project.PropertyGroup.UserSecretsId | Where-Object { $_ } | Select-Object -First 1
 $arquivo = "$env:APPDATA\Microsoft\UserSecrets\$id\secrets.json"
 if (Test-Path $arquivo) {
+    # O user-secrets guarda as chaves achatadas ("GeminiAI:ApiKey"), mas aceita também seções aninhadas.
     $segredos = Get-Content $arquivo -Raw | ConvertFrom-Json
-    foreach ($secao in @("GeminiAI", "EmailConfig")) {
-        $obj = $segredos.$secao
-        if ($obj) { $obj.PSObject.Properties | ForEach-Object { $valores["${secao}__$($_.Name)"] = [string]$_.Value } }
+    $pares = foreach ($p in $segredos.PSObject.Properties) {
+        if ($p.Value -is [pscustomobject]) {
+            foreach ($q in $p.Value.PSObject.Properties) { [pscustomobject]@{ Chave = "$($p.Name):$($q.Name)"; Valor = $q.Value } }
+        }
+        else { [pscustomobject]@{ Chave = $p.Name; Valor = $p.Value } }
+    }
+    foreach ($par in $pares) {
+        if ($par.Chave -match '^(GeminiAI|EmailConfig):') { $valores[$par.Chave -replace ':', '__'] = [string]$par.Valor }
     }
 }
 else {
