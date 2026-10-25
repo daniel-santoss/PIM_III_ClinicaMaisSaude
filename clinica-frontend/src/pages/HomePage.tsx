@@ -182,7 +182,7 @@ export default function HomePage({
                       onClick={(e) => {
                         if (slide.link.startsWith('#')) scrollToSection(e, slide.link);
                       }}
-                      className="inline-flex items-center justify-center px-8 py-3 border-2 border-white text-base font-medium rounded-full text-white bg-transparent hover:shadow-[0_0_20px_rgba(255,255,255,0.65)] transition-all duration-300 md:py-3.5 md:text-lg md:px-10"
+                      className="inline-flex items-center justify-center px-8 py-3 border-2 border-white text-base font-medium rounded-full text-white bg-transparent"
                     >
                       {slide.botao}
                     </a>
