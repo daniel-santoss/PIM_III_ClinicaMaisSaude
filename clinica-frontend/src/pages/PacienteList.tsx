@@ -508,13 +508,15 @@ export default function PacienteList({
                               <Key className="w-[15px] h-[15px]" />
                             </button>
                           )}
-                          <button
-                            title="Excluir usuário"
-                            className="w-8 h-8 grid place-items-center bg-white border border-line rounded-md text-danger hover:bg-danger-tint hover:border-danger-border transition-colors"
-                            onClick={() => abrirModalExclusao(p.id, p.nome)}
-                          >
-                            <Trash className="w-[15px] h-[15px]" />
-                          </button>
+                          {isAdmin && (
+                            <button
+                              title="Excluir usuário"
+                              className="w-8 h-8 grid place-items-center bg-white border border-line rounded-md text-danger hover:bg-danger-tint hover:border-danger-border transition-colors"
+                              onClick={() => abrirModalExclusao(p.id, p.nome)}
+                            >
+                              <Trash className="w-[15px] h-[15px]" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>

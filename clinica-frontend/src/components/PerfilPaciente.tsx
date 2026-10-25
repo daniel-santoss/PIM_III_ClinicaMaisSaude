@@ -69,16 +69,15 @@ export default function PerfilPaciente() {
   const salvarTudo = async () => {
     setSalvando(true);
     try {
-      // 1. Salvar Perfil
-      const resPerfil = await fetch(`${API_URL}/api/Pacientes/${pacienteId}`, {
-        method: "PUT",
+      // 1. Salvar Perfil (self-service: PATCH /api/Perfil não expõe o temProblemaMemoria,
+      // dado gerido pela clínica que alimenta o cálculo de risco de falta)
+      const resPerfil = await fetch(`${API_URL}/api/Perfil`, {
+        method: "PATCH",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           nome: editData.nome,
-          cpf: paciente.cpf,
           telefone: editData.telefone,
-          email: editData.email,
-          temProblemaMemoria: editData.temProblemaMemoria
+          email: editData.email
         })
       });
 
@@ -243,11 +242,8 @@ export default function PerfilPaciente() {
           <div className="px-6 py-4 flex items-center justify-between border-t border-line bg-white md:border-r group transition-colors hover:bg-canvas">
             <div className="flex flex-col gap-1 flex-1">
               <span className="text-[11px] font-semibold text-muted uppercase tracking-wide">Problema de memória?</span>
-              {editMode ? (
-                <input type="checkbox" checked={editData.temProblemaMemoria} onChange={e => setEditData({...editData, temProblemaMemoria: e.target.checked})} className="w-5 h-5 text-[#2C5282] rounded border-gray-300 focus:ring-[#2C5282] focus:ring-2 outline-none cursor-pointer mt-1" />
-              ) : (
-                <span className="text-sm font-semibold text-ink">{paciente?.temProblemaMemoria ? "Sim" : "Não"}</span>
-              )}
+              <span className="text-sm font-semibold text-ink">{paciente?.temProblemaMemoria ? "Sim" : "Não"}</span>
+              {editMode && <span className="text-xs text-muted">Gerido pela clínica</span>}
             </div>
           </div>
 
