@@ -16,6 +16,8 @@ ambiente — então em produção **não há segredo no código**: tudo vem do a
 | `JwtConfig__Secret` | **sim** | Chave HMAC do JWT (≥ 32 chars). App falha ao subir se ausente |
 | `JwtConfig__Issuer` | não | Default `ClinicaMaisSaude` |
 | `JwtConfig__Audience` | não | Default `ClinicaMaisSaudeApp` |
+| `JwtConfig__AccessTokenMinutos` | não | Validade do JWT em minutos. Default `15` (os clientes renovam sozinhos) |
+| `JwtConfig__RefreshTokenDias` | não | Validade do refresh token em dias. Default `7` (janela deslizante) |
 | `AdminSeed__Email` | sim | E-mail do admin semeado no 1º boot |
 | `AdminSeed__Cpf` | sim | CPF do admin |
 | `AdminSeed__Password` | **sim (prod)** | Senha do admin. Em produção o boot falha se não definida (sem fallback `admin123`) |
