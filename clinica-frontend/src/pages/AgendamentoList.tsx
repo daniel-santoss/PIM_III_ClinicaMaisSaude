@@ -2,6 +2,7 @@ import { API_URL } from "../constants/api";
 import { storageKeys } from "../constants/storage";
 import { perfis } from "../constants/perfis";
 import { statusAgendamento } from "../constants/status";
+import { statusCod } from "../constants/codigos";
 import { useEffect, useState } from "react";
 import { mascaraCpf, mascaraTelefone } from "../utils/validators";
 import { AlertTriangle, Calendar, Plus, User, X, FileText, Mail, Phone, Pencil } from 'lucide-react';
@@ -53,15 +54,7 @@ export interface AgendamentoHistoricoResponse {
   dtCriado: string;
 }
 
-const EnumStatusUrl = {
-  [statusAgendamento.agendado]: 0,
-  [statusAgendamento.emAtendimento]: 1,
-  [statusAgendamento.aguardandoRetorno]: 2,
-  [statusAgendamento.retornoAgendado]: 3,
-  [statusAgendamento.finalizado]: 4,
-  [statusAgendamento.faltou]: 5,
-  [statusAgendamento.cancelado]: 6
-};
+const EnumStatusUrl = statusCod;
 
 
 export default function AgendamentoList({ agendamentoDestaque }: { agendamentoDestaque?: string | null }) {

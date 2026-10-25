@@ -17,8 +17,19 @@ export const STATUS_ATIVOS = ['Agendado', 'EmAtendimento', 'AguardandoRetorno', 
 // O paciente só pode cancelar consultas ainda não iniciadas.
 export const STATUS_CANCELAVEIS = ['Agendado', 'RetornoAgendado'];
 
-// Código do enum StatusAgendamento no backend para Cancelado.
-export const STATUS_CANCELADO_COD = 6;
+// Códigos numéricos que a API espera (chaves das tabelas lookup, começam em 1).
+// Use estes nomes em vez de números soltos.
+export const STATUS_CANCELADO_COD = 7;
+
+export const TIPO_PROFISSIONAL = { enfermeira: 1, medico: 2 } as const;
+
+export const TIPO_CONSULTA = {
+  triagem: 1,
+  exame: 2,
+  vacina: 3,
+  consultaMedica: 4,
+  retorno: 5,
+} as const;
 
 export const TIPO_CONSULTA_LABEL: Record<string, string> = {
   Triagem: 'Triagem',

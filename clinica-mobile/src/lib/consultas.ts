@@ -1,3 +1,4 @@
+import { TIPO_CONSULTA, TIPO_PROFISSIONAL } from '@/constants/agendamento';
 import { apiFetch } from '@/lib/api';
 import { mensagemErro } from '@/lib/erros';
 
@@ -52,8 +53,8 @@ export async function horariosDisponiveis(
   origemId?: string,
 ): Promise<string[]> {
   let q = `?data=${data}&tipoConsulta=${tipoConsulta}`;
-  if (tipoConsulta === 3 && especialidadeId) q += `&especialidadeId=${especialidadeId}`;
-  else if (tipoConsulta === 4 && origemId) q += `&origemId=${origemId}`;
+  if (tipoConsulta === TIPO_CONSULTA.consultaMedica && especialidadeId != null) q += `&especialidadeId=${especialidadeId}`;
+  else if (tipoConsulta === TIPO_CONSULTA.retorno && origemId) q += `&origemId=${origemId}`;
   const res = await apiFetch(`/api/Agendamentos/horarios-disponiveis${q}`);
   if (!res.ok) return [];
   return (await res.json()) as string[];
@@ -68,8 +69,8 @@ export async function diasDisponiveis(
   origemId?: string,
 ): Promise<string[]> {
   let q = `?ano=${ano}&mes=${mes}&tipoConsulta=${tipoConsulta}`;
-  if (tipoConsulta === 3 && especialidadeId != null) q += `&especialidadeId=${especialidadeId}`;
-  else if (tipoConsulta === 4 && origemId) q += `&origemId=${origemId}`;
+  if (tipoConsulta === TIPO_CONSULTA.consultaMedica && especialidadeId != null) q += `&especialidadeId=${especialidadeId}`;
+  else if (tipoConsulta === TIPO_CONSULTA.retorno && origemId) q += `&origemId=${origemId}`;
   const res = await apiFetch(`/api/Agendamentos/dias-disponiveis${q}`);
   if (!res.ok) return [];
   return (await res.json()) as string[];
@@ -82,7 +83,7 @@ export interface CriarAgendamentoInput {
   tipoConsulta: number;
   especialidadeId: number | null;
   observacao: string;
-  agendamentoOrigemId?: string | null; // obrigatório para Retorno (tipoConsulta 4)
+  agendamentoOrigemId?: string | null; // obrigatório para Retorno
 }
 
 // O backend delega o profissional na criação e devolve nome + foto dele.
@@ -112,20 +113,20 @@ export async function criarAgendamento(input: CriarAgendamentoInput): Promise<Ag
 
 // Conversão dos textos da IA para os inteiros do enum do backend (espelha o web).
 export function tipoProfissionalParaInt(texto: string): number {
-  return texto === 'Enfermeira' ? 0 : 1; // padrão: Médico
+  return texto === 'Enfermeira' ? TIPO_PROFISSIONAL.enfermeira : TIPO_PROFISSIONAL.medico; // padrão: Médico
 }
 
 export function tipoConsultaParaInt(texto: string): number {
   switch (texto) {
     case 'Triagem':
-      return 0;
+      return TIPO_CONSULTA.triagem;
     case 'Exame':
-      return 1;
+      return TIPO_CONSULTA.exame;
     case 'Vacina':
-      return 2;
+      return TIPO_CONSULTA.vacina;
     case 'Retorno':
-      return 4;
+      return TIPO_CONSULTA.retorno;
     default:
-      return 3; // ConsultaMedica
+      return TIPO_CONSULTA.consultaMedica;
   }
 }

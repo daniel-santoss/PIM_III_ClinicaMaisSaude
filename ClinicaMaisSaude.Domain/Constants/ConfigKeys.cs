@@ -11,6 +11,13 @@ namespace ClinicaMaisSaude.Domain.Constants
         // Valores padrão do JWT quando não configurados (dev). Em produção, sobrescrever via config.
         public const string JwtIssuerPadrao = "ClinicaMaisSaude";
         public const string JwtAudiencePadrao = "ClinicaMaisSaudeApp";
+
+        // Duração da sessão. O JWT é curto (o cliente renova sozinho via refresh ao tomar 401);
+        // o refresh token é de uso único e a janela é deslizante (cada renovação gera um novo).
+        public const string JwtAccessTokenMinutos = "JwtConfig:AccessTokenMinutos";
+        public const string JwtRefreshTokenDias = "JwtConfig:RefreshTokenDias";
+        public const int JwtAccessTokenMinutosPadrao = 15;
+        public const int JwtRefreshTokenDiasPadrao = 7;
         public const string AdminSeedEmail = "AdminSeed:Email";
         public const string AdminSeedCpf = "AdminSeed:Cpf";
         public const string AdminSeedPassword = "AdminSeed:Password";

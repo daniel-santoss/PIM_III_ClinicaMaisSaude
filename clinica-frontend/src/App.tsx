@@ -5,6 +5,8 @@ import * as signalR from "@microsoft/signalr";
 import { API_URL } from "./constants/api";
 import { perfis } from "./constants/perfis";
 import { storageKeys } from "./constants/storage";
+import { obterTokenValido } from "./fetchInterceptor";
+import { tipoConsultaCod as TC, tipoProfissionalCod as TP } from "./constants/codigos";
 import { useState, useEffect } from "react";
 import AppLayout from "./components/AppLayout";
 import PacienteList from "./pages/PacienteList";
@@ -58,15 +60,15 @@ export default function App() {
   const [canceladosExpandido, setCanceladosExpandido] = useState(true);
 
   const mapTipoProfissional = (tipo: string) => {
-    return tipo === perfis.medico || tipo === "Médico" ? 1 : 0;
+    return tipo === perfis.medico || tipo === "Médico" ? TP.medico : TP.enfermeira;
   };
 
   const mapTipoConsulta = (tipo: string) => {
-    if (tipo === "Triagem") return 0;
-    if (tipo === "Exame") return 1;
-    if (tipo === "Vacina") return 2;
-    if (tipo === "Retorno") return 4;
-    return 3;
+    if (tipo === "Triagem") return TC.triagem;
+    if (tipo === "Exame") return TC.exame;
+    if (tipo === "Vacina") return TC.vacina;
+    if (tipo === "Retorno") return TC.retorno;
+    return TC.consultaMedica;
   };
 
   useEffect(() => {
@@ -179,7 +181,7 @@ export default function App() {
 
     connection = new signalR.HubConnectionBuilder()
       .withUrl(`${API_URL}/hubs/notificacoes`, {
-        accessTokenFactory: () => localStorage.getItem(storageKeys.authToken) || ""
+        accessTokenFactory: obterTokenValido
       })
       .withAutomaticReconnect()
       .build();

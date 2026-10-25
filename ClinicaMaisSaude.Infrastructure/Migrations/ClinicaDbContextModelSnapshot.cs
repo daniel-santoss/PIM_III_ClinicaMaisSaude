@@ -248,109 +248,109 @@ namespace ClinicaMaisSaude.Infrastructure.Migrations
                     b.HasData(
                         new
                         {
-                            Id = 0,
+                            Id = 1,
                             DtCriado = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Nome = "ClinicaGeral"
                         },
                         new
                         {
-                            Id = 1,
+                            Id = 2,
                             DtCriado = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Nome = "MedicinaDeFamilia"
                         },
                         new
                         {
-                            Id = 2,
+                            Id = 3,
                             DtCriado = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Nome = "Pediatria"
                         },
                         new
                         {
-                            Id = 3,
+                            Id = 4,
                             DtCriado = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Nome = "GinecologiaEObstetricia"
                         },
                         new
                         {
-                            Id = 4,
+                            Id = 5,
                             DtCriado = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Nome = "Cardiologia"
                         },
                         new
                         {
-                            Id = 5,
+                            Id = 6,
                             DtCriado = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Nome = "Dermatologia"
                         },
                         new
                         {
-                            Id = 6,
+                            Id = 7,
                             DtCriado = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Nome = "Endocrinologia"
                         },
                         new
                         {
-                            Id = 7,
+                            Id = 8,
                             DtCriado = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Nome = "Gastroenterologia"
                         },
                         new
                         {
-                            Id = 8,
+                            Id = 9,
                             DtCriado = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Nome = "Neurologia"
                         },
                         new
                         {
-                            Id = 9,
+                            Id = 10,
                             DtCriado = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Nome = "OrtopediaETraumatologia"
                         },
                         new
                         {
-                            Id = 10,
+                            Id = 11,
                             DtCriado = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Nome = "Psiquiatria"
                         },
                         new
                         {
-                            Id = 11,
+                            Id = 12,
                             DtCriado = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Nome = "Otorrinolaringologia"
                         },
                         new
                         {
-                            Id = 12,
+                            Id = 13,
                             DtCriado = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Nome = "Oftalmologia"
                         },
                         new
                         {
-                            Id = 13,
+                            Id = 14,
                             DtCriado = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Nome = "Urologia"
                         },
                         new
                         {
-                            Id = 14,
+                            Id = 15,
                             DtCriado = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Nome = "Pneumologia"
                         },
                         new
                         {
-                            Id = 15,
+                            Id = 16,
                             DtCriado = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Nome = "Reumatologia"
                         },
                         new
                         {
-                            Id = 16,
+                            Id = 17,
                             DtCriado = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Nome = "Geriatria"
                         },
                         new
                         {
-                            Id = 17,
+                            Id = 18,
                             DtCriado = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Nome = "MedicinaEsportiva"
                         });
@@ -850,43 +850,43 @@ namespace ClinicaMaisSaude.Infrastructure.Migrations
                     b.HasData(
                         new
                         {
-                            Id = 0,
+                            Id = 1,
                             DtCriado = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Nome = "Agendado"
                         },
                         new
                         {
-                            Id = 1,
+                            Id = 2,
                             DtCriado = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Nome = "EmAtendimento"
                         },
                         new
                         {
-                            Id = 2,
+                            Id = 3,
                             DtCriado = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Nome = "AguardandoRetorno"
                         },
                         new
                         {
-                            Id = 3,
+                            Id = 4,
                             DtCriado = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Nome = "RetornoAgendado"
                         },
                         new
                         {
-                            Id = 4,
+                            Id = 5,
                             DtCriado = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Nome = "Finalizado"
                         },
                         new
                         {
-                            Id = 5,
+                            Id = 6,
                             DtCriado = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Nome = "Faltou"
                         },
                         new
                         {
-                            Id = 6,
+                            Id = 7,
                             DtCriado = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Nome = "Cancelado"
                         });
@@ -952,31 +952,31 @@ namespace ClinicaMaisSaude.Infrastructure.Migrations
                     b.HasData(
                         new
                         {
-                            Id = 0,
+                            Id = 1,
                             DtCriado = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Nome = "Triagem"
                         },
                         new
                         {
-                            Id = 1,
+                            Id = 2,
                             DtCriado = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Nome = "Exame"
                         },
                         new
                         {
-                            Id = 2,
+                            Id = 3,
                             DtCriado = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Nome = "Vacina"
                         },
                         new
                         {
-                            Id = 3,
+                            Id = 4,
                             DtCriado = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Nome = "ConsultaMedica"
                         },
                         new
                         {
-                            Id = 4,
+                            Id = 5,
                             DtCriado = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Nome = "Retorno"
                         });
@@ -1048,13 +1048,13 @@ namespace ClinicaMaisSaude.Infrastructure.Migrations
                     b.HasData(
                         new
                         {
-                            Id = 0,
+                            Id = 1,
                             DtCriado = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Nome = "Enfermeira"
                         },
                         new
                         {
-                            Id = 1,
+                            Id = 2,
                             DtCriado = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Nome = "Medico"
                         });

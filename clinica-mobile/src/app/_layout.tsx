@@ -1,6 +1,7 @@
 import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
+import { Platform, StyleSheet, View } from 'react-native';
 
 import { AuthProvider, useAuth } from '@/auth/AuthContext';
 import TelaBloqueio from '@/components/TelaBloqueio';
@@ -38,7 +39,21 @@ function RootNavigator() {
 export default function RootLayout() {
   return (
     <AuthProvider>
-      <RootNavigator />
+      {Platform.OS === 'web' ? (
+        // No navegador, mantém a largura de celular centralizada (o app foi desenhado para ela).
+        <View style={styles.fundoWeb}>
+          <View style={styles.colunaWeb}>
+            <RootNavigator />
+          </View>
+        </View>
+      ) : (
+        <RootNavigator />
+      )}
     </AuthProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  fundoWeb: { flex: 1, backgroundColor: '#EEF2F7' },
+  colunaWeb: { flex: 1, width: '100%', maxWidth: 480, alignSelf: 'center', backgroundColor: '#fff', overflow: 'hidden' },
+});

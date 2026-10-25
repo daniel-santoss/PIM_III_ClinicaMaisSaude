@@ -100,16 +100,25 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                 throw new UnauthorizedException("Esta conta foi encerrada.");
             }
 
-            // Papel unificado (Fase A3): a string do papel vem direto do Role — formato de
-            // fio idêntico ({Admin, Medico, Enfermeira, Paciente}), então os fronts não mudam.
-            string tipoUsuarioStr = usuario.Role.ToString();
-            Guid? pacienteId = perfilPaciente?.Id;
+            return await EmitirSessaoAsync(usuario, perfilPaciente, perfilProfissional);
+        }
 
-            var tokenHandler = new JwtSecurityTokenHandler();
+        // Emite a sessão (JWT curto + refresh token de uso único). Único ponto que gera
+        // tokens: login e refresh passam por aqui, então as durações vêm de um só lugar
+        // (JwtConfig:AccessTokenMinutos / JwtConfig:RefreshTokenDias).
+        private async Task<LoginResponse> EmitirSessaoAsync(Usuario usuario, Paciente? perfilPaciente, Profissional? perfilProfissional)
+        {
             var secretKey = _configuration[ConfigKeys.JwtSecret] ?? throw new InvalidOperationException($"{ConfigKeys.JwtSecret} não configurado.");
             var key = Encoding.UTF8.GetBytes(secretKey);
             var issuer = _configuration[ConfigKeys.JwtIssuer] ?? ConfigKeys.JwtIssuerPadrao;
             var audience = _configuration[ConfigKeys.JwtAudience] ?? ConfigKeys.JwtAudiencePadrao;
+            var minutosAcesso = _configuration.GetValue(ConfigKeys.JwtAccessTokenMinutos, ConfigKeys.JwtAccessTokenMinutosPadrao);
+            var diasRefresh = _configuration.GetValue(ConfigKeys.JwtRefreshTokenDias, ConfigKeys.JwtRefreshTokenDiasPadrao);
+
+            // Papel unificado (Fase A3): a string do papel vem direto do Role — formato de
+            // fio idêntico ({Admin, Medico, Enfermeira, Paciente}), então os fronts não mudam.
+            string tipoUsuarioStr = usuario.Role.ToString();
+            Guid? pacienteId = perfilPaciente?.Id;
 
             var claims = new List<Claim>
             {
@@ -119,28 +128,23 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
 
-            if (pacienteId.HasValue)
-            {
-                claims.Add(new Claim(ClinicaClaims.PacienteId, pacienteId.Value.ToString()));
-            }
+            if (pacienteId.HasValue) claims.Add(new Claim(ClinicaClaims.PacienteId, pacienteId.Value.ToString()));
+            if (perfilProfissional != null) claims.Add(new Claim(ClinicaClaims.ProfissionalId, perfilProfissional.Id.ToString()));
 
-            if (perfilProfissional != null)
-            {
-                claims.Add(new Claim(ClinicaClaims.ProfissionalId, perfilProfissional.Id.ToString()));
-            }
-
+            var agora = DateTime.UtcNow;
+            var tokenHandler = new JwtSecurityTokenHandler();
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(claims),
-                Expires = DateTime.UtcNow.AddHours(3),
+                Expires = agora.AddMinutes(minutosAcesso),
                 Issuer = issuer,
                 Audience = audience,
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
             };
 
             var token = tokenHandler.CreateToken(tokenDescriptor);
-
             var jwtToken = tokenHandler.WriteToken(token);
+
             var refreshToken = new RefreshToken
             {
                 Token = Guid.NewGuid().ToString() + Guid.NewGuid().ToString(),
@@ -148,8 +152,8 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                 Usado = false,
                 Revogado = false,
                 UsuarioId = usuario.Id,
-                DtCriado = DateTime.UtcNow,
-                DtExpiracao = DateTime.UtcNow.AddDays(7)
+                DtCriado = agora,
+                DtExpiracao = agora.AddDays(diasRefresh)
             };
 
             await LimparRefreshTokensAsync(usuario.Id);
@@ -185,11 +189,6 @@ namespace ClinicaMaisSaude.Infrastructure.Services
 
         public async Task<LoginResponse> RefreshTokenAsync(RefreshTokenRequest request)
         {
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var secretKey = _configuration[ConfigKeys.JwtSecret] ?? throw new InvalidOperationException($"{ConfigKeys.JwtSecret} não configurado.");
-            var key = Encoding.UTF8.GetBytes(secretKey);
-            var issuer = _configuration[ConfigKeys.JwtIssuer] ?? ConfigKeys.JwtIssuerPadrao;
-            var audience = _configuration[ConfigKeys.JwtAudience] ?? ConfigKeys.JwtAudiencePadrao;
             var storedToken = await _context.RefreshTokens.FirstOrDefaultAsync(x => x.Token == request.RefreshToken);
 
             if (storedToken == null) throw new UnauthorizedException("Refresh token não existe.");
@@ -207,60 +206,12 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             var perfilProfissional = await _context.Profissionais.AsNoTracking().FirstOrDefaultAsync(p => p.UsuarioId == usuario.Id);
             var perfilPaciente = await _context.Pacientes.AsNoTracking().FirstOrDefaultAsync(p => p.UsuarioId == usuario.Id);
 
-            // Papel unificado (Fase A3): string do papel direto do Role.
-            string tipoUsuarioStr = usuario.Role.ToString();
-            Guid? pacienteId = perfilPaciente?.Id;
+            // A sessão só se renova enquanto a conta do paciente estiver ativa (mesma regra do
+            // login). Assim um banimento ou desativação tira o acesso em até um JWT (15 min).
+            if (perfilPaciente != null && perfilPaciente.Situacao != Situacao.Ativo)
+                throw new UnauthorizedException("Esta conta foi encerrada.");
 
-            var claims = new List<Claim>
-            {
-                new Claim(ClaimTypes.NameIdentifier, usuario.Id.ToString()),
-                new Claim(ClaimTypes.Role, tipoUsuarioStr),
-                new Claim(ClinicaClaims.TipoUsuario, tipoUsuarioStr),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
-            };
-
-            if (pacienteId.HasValue) claims.Add(new Claim(ClinicaClaims.PacienteId, pacienteId.Value.ToString()));
-            if (perfilProfissional != null) claims.Add(new Claim(ClinicaClaims.ProfissionalId, perfilProfissional.Id.ToString()));
-
-            var tokenDescriptor = new SecurityTokenDescriptor
-            {
-                Subject = new ClaimsIdentity(claims),
-                Expires = DateTime.UtcNow.AddHours(3),
-                Issuer = issuer,
-                Audience = audience,
-                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
-            };
-
-            var token = tokenHandler.CreateToken(tokenDescriptor);
-            var jwtToken = tokenHandler.WriteToken(token);
-
-            var refreshToken = new RefreshToken
-            {
-                Token = Guid.NewGuid().ToString() + Guid.NewGuid().ToString(),
-                JwtId = token.Id,
-                Usado = false,
-                Revogado = false,
-                UsuarioId = usuario.Id,
-                DtCriado = DateTime.UtcNow,
-                DtExpiracao = DateTime.UtcNow.AddDays(7)
-            };
-
-            await LimparRefreshTokensAsync(usuario.Id);
-            await _context.RefreshTokens.AddAsync(refreshToken);
-            await _context.SaveChangesAsync();
-
-            return new LoginResponse
-            {
-                Token = jwtToken,
-                Nome = usuario.Pessoa?.Nome ?? string.Empty,
-                RefreshToken = refreshToken.Token,
-                UsuarioId = usuario.Id,
-                TipoUsuario = tipoUsuarioStr,
-                PacienteId = pacienteId,
-                ProfissionalId = perfilProfissional?.Id,
-                IsAdmin = tipoUsuarioStr == PerfisUsuario.Admin,
-                FotoBase64 = usuario.FotoBase64
-            };
+            return await EmitirSessaoAsync(usuario, perfilPaciente, perfilProfissional);
         }
     }
 }

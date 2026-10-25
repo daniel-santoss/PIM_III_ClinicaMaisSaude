@@ -406,20 +406,20 @@ INSERT INTO SituacaoLookup (Id, Nome, Dt_Criado) VALUES
     (1,'Ativo',@seed),(2,'Inativo',@seed),(3,'Excluido',@seed),(4,'Banido',@seed),(5,'EmAnalise',@seed);
 
 INSERT INTO StatusAgendamentoLookup (Id, Nome, Dt_Criado) VALUES
-    (0,'Agendado',@seed),(1,'EmAtendimento',@seed),(2,'AguardandoRetorno',@seed),
-    (3,'RetornoAgendado',@seed),(4,'Finalizado',@seed),(5,'Faltou',@seed),(6,'Cancelado',@seed);
+    (1,'Agendado',@seed),(2,'EmAtendimento',@seed),(3,'AguardandoRetorno',@seed),
+    (4,'RetornoAgendado',@seed),(5,'Finalizado',@seed),(6,'Faltou',@seed),(7,'Cancelado',@seed);
 
 INSERT INTO StatusSolicitacaoLookup (Id, Nome, Dt_Criado) VALUES
     (1,'EmAnalise',@seed),(2,'Aprovada',@seed),(3,'Recusada',@seed);
 
 INSERT INTO TipoConsultaLookup (Id, Nome, Dt_Criado) VALUES
-    (0,'Triagem',@seed),(1,'Exame',@seed),(2,'Vacina',@seed),(3,'ConsultaMedica',@seed),(4,'Retorno',@seed);
+    (1,'Triagem',@seed),(2,'Exame',@seed),(3,'Vacina',@seed),(4,'ConsultaMedica',@seed),(5,'Retorno',@seed);
 
 INSERT INTO TipoEventoHistoricoLookup (Id, Nome, Dt_Criado) VALUES
     (1,'Criacao',@seed),(2,'MudancaStatus',@seed),(3,'Remarcacao',@seed),(4,'Cancelamento',@seed);
 
 INSERT INTO TipoProfissionalLookup (Id, Nome, Dt_Criado) VALUES
-    (0,'Enfermeira',@seed),(1,'Medico',@seed);
+    (1,'Enfermeira',@seed),(2,'Medico',@seed);
 
 INSERT INTO TipoVerificacaoLookup (Id, Nome, Dt_Criado) VALUES
     (1,'RecuperacaoSenha',@seed),(2,'PrimeiroAcesso',@seed),(3,'VerificacaoEmail',@seed);
@@ -428,10 +428,10 @@ INSERT INTO TipoViolacaoLookup (Id, Nome, Dt_Criado) VALUES
     (1,'Injecao',@seed),(2,'UsoIndevido',@seed);
 
 INSERT INTO EspecialidadeLookup (Id, Nome, Dt_Criado) VALUES
-    (0,'ClinicaGeral',@seed),(1,'MedicinaDeFamilia',@seed),(2,'Pediatria',@seed),
-    (3,'GinecologiaEObstetricia',@seed),(4,'Cardiologia',@seed),(5,'Dermatologia',@seed),
-    (6,'Endocrinologia',@seed),(7,'Gastroenterologia',@seed),(8,'Neurologia',@seed),
-    (9,'OrtopediaETraumatologia',@seed),(10,'Psiquiatria',@seed),(11,'Otorrinolaringologia',@seed),
-    (12,'Oftalmologia',@seed),(13,'Urologia',@seed),(14,'Pneumologia',@seed),
-    (15,'Reumatologia',@seed),(16,'Geriatria',@seed),(17,'MedicinaEsportiva',@seed);
+    (1,'ClinicaGeral',@seed),(2,'MedicinaDeFamilia',@seed),(3,'Pediatria',@seed),
+    (4,'GinecologiaEObstetricia',@seed),(5,'Cardiologia',@seed),(6,'Dermatologia',@seed),
+    (7,'Endocrinologia',@seed),(8,'Gastroenterologia',@seed),(9,'Neurologia',@seed),
+    (10,'OrtopediaETraumatologia',@seed),(11,'Psiquiatria',@seed),(12,'Otorrinolaringologia',@seed),
+    (13,'Oftalmologia',@seed),(14,'Urologia',@seed),(15,'Pneumologia',@seed),
+    (16,'Reumatologia',@seed),(17,'Geriatria',@seed),(18,'MedicinaEsportiva',@seed);
 GO

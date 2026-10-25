@@ -197,20 +197,21 @@ erDiagram
 
 ## 3. Tabelas de referência (*lookup*)
 
-Semeadas por `HasData`; o `Id` **coincide com o valor do `enum`** para preservar dados já gravados.
+Semeadas por `HasData`; o `Id` **coincide com o valor do `enum`** para preservar dados já gravados. Todas começam em **1**
+(as quatro que começavam em 0 foram deslocadas pela migration `Fase22_LookupsIniciamEmUm`, junto com os dados).
 
 | Tabela | Valores (`Id` = `Nome`) |
 |--------|--------------------------|
 | `RoleUsuarioLookup` | 1 Paciente · 2 Admin · 3 Medico · 4 Enfermeira |
 | `SituacaoLookup` | 1 Ativo · 2 Inativo · 3 Excluido · 4 Banido · 5 EmAnalise |
-| `StatusAgendamentoLookup` | 0 Agendado · 1 EmAtendimento · 2 AguardandoRetorno · 3 RetornoAgendado · 4 Finalizado · 5 Faltou · 6 Cancelado |
+| `StatusAgendamentoLookup` | 1 Agendado · 2 EmAtendimento · 3 AguardandoRetorno · 4 RetornoAgendado · 5 Finalizado · 6 Faltou · 7 Cancelado |
 | `StatusSolicitacaoLookup` | 1 EmAnalise · 2 Aprovada · 3 Recusada |
-| `TipoConsultaLookup` | 0 Triagem · 1 Exame · 2 Vacina · 3 ConsultaMedica · 4 Retorno |
+| `TipoConsultaLookup` | 1 Triagem · 2 Exame · 3 Vacina · 4 ConsultaMedica · 5 Retorno |
 | `TipoEventoHistoricoLookup` | 1 Criacao · 2 MudancaStatus · 3 Remarcacao · 4 Cancelamento |
-| `TipoProfissionalLookup` | 0 Enfermeira · 1 Medico |
+| `TipoProfissionalLookup` | 1 Enfermeira · 2 Medico |
 | `TipoVerificacaoLookup` | 1 RecuperacaoSenha · 2 PrimeiroAcesso · 3 VerificacaoEmail |
 | `TipoViolacaoLookup` | 1 Injecao · 2 UsoIndevido |
-| `EspecialidadeLookup` | 0..17 (ClinicaGeral, MedicinaDeFamilia, Pediatria, … MedicinaEsportiva) |
+| `EspecialidadeLookup` | 1..18 (ClinicaGeral, MedicinaDeFamilia, Pediatria, … MedicinaEsportiva) |
 
 ---
 

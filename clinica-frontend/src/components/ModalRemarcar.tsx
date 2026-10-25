@@ -1,4 +1,6 @@
 import { API_URL } from "../constants/api";
+import { tipoConsultaCod as TC } from "../constants/codigos";
+import { MapNomesTipoConsulta } from "../constants/statusMap";
 import { useEffect, useState } from "react";
 import { obterMinDate, getRealDate } from "../utils/dates";
 import { Calendar, Clock, AlertCircle, X } from 'lucide-react';
@@ -47,11 +49,11 @@ export default function ModalRemarcar({ agenda, onFechar, onSucesso }: ModalRema
       setCarregandoHorarios(true);
       try {
         const token = localStorage.getItem("authToken");
-        let tipoConsultaInt = 0;
-        if (agenda.tipoConsulta === "Exame") tipoConsultaInt = 1;
-        else if (agenda.tipoConsulta === "Vacina") tipoConsultaInt = 2;
-        else if (agenda.tipoConsulta === "Consulta Médica" || agenda.tipoConsulta === "ConsultaMédica") tipoConsultaInt = 3;
-        else if (agenda.tipoConsulta === "Retorno") tipoConsultaInt = 4;
+        let tipoConsultaInt: number = TC.triagem;
+        if (agenda.tipoConsulta === "Exame") tipoConsultaInt = TC.exame;
+        else if (agenda.tipoConsulta === "Vacina") tipoConsultaInt = TC.vacina;
+        else if (agenda.tipoConsulta === "Consulta Médica" || agenda.tipoConsulta === "ConsultaMédica") tipoConsultaInt = TC.consultaMedica;
+        else if (agenda.tipoConsulta === "Retorno") tipoConsultaInt = TC.retorno;
 
         const res = await fetch(`${API_URL}/api/Agendamentos/horarios-disponiveis?data=${alterarDataSomente}&tipoConsulta=${tipoConsultaInt}`, {
           headers: { Authorization: `Bearer ${token}` }
@@ -137,7 +139,7 @@ export default function ModalRemarcar({ agenda, onFechar, onSucesso }: ModalRema
           <p className="text-[11px] font-semibold text-brand-600 uppercase tracking-wide mb-1.5">Reagendar consulta</p>
           <h3 className="text-xl font-semibold text-ink leading-tight">{agenda.pacienteNome}</h3>
           <span className="inline-block mt-2 text-xs font-medium text-body bg-line-soft px-2.5 py-1 rounded-md">
-            {agenda.tipoConsulta}
+            {MapNomesTipoConsulta[agenda.tipoConsulta] || agenda.tipoConsulta}
           </span>
         </div>
 

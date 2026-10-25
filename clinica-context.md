@@ -36,6 +36,7 @@ Dependências apontam para dentro: `API → Application → Domain` e `Infrastru
 
 ### Modelagem
 - **PK `Guid`** em toda entidade (gerado na aplicação, sequencial). Exceções: tabelas de *lookup* de enums (`int`) e `ProfissionalEspecialidade` (chave composta).
+- **Enums com lookup começam em 1**, com valores explícitos (`Agendado = 1`); o `Id` da lookup é o valor do enum. Um teste (`EnumsLookupTests`) garante isso. Nos fronts, nada de número solto: use `constants/codigos.ts` (web) e `TIPO_CONSULTA`/`TIPO_PROFISSIONAL` em `constants/agendamento.ts` (mobile).
 - **Domain sem Data Annotations.** Mapeamento só via Fluent API no `ClinicaDbContext`.
 - Entidades encapsuladas: setters privados, mutação por métodos de domínio.
 - **Identidade:** `Pessoa` é dona de Nome/CPF/E-mail/Telefone. `LoginPortal` (entidade `Usuario`) é a credencial: senha, `Role`, bloqueios e foto. `Paciente` e `Profissional` são perfis que apontam para a `Pessoa`. Não renomear a tabela `LoginPortal`.

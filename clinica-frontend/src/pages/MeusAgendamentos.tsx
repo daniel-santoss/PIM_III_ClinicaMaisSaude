@@ -1,6 +1,8 @@
 import { API_URL } from "../constants/api";
 import { storageKeys } from "../constants/storage";
 import { perfis } from "../constants/perfis";
+import { statusAgendamento } from "../constants/status";
+import { statusCod } from "../constants/codigos";
 import { useEffect, useState } from "react";
 import { Calendar, Plus } from 'lucide-react';
 import AgendamentoFiltros from "../components/AgendamentoFiltros";
@@ -80,7 +82,7 @@ export default function MeusAgendamentos({ onNovoAgendamento, agendamentoDestaqu
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify(6) // 6 is Cancelado
+        body: JSON.stringify(statusCod[statusAgendamento.cancelado])
       });
 
       if (!response.ok) {

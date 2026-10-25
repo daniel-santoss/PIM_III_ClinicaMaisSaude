@@ -22,7 +22,9 @@
       "predictiveBackGestureEnabled": false
     },
     "web": {
-      "output": "static",
+      "output": "single",
+      "name": "Clínica Mais Saúde",
+      "shortName": "Mais Saúde",
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
