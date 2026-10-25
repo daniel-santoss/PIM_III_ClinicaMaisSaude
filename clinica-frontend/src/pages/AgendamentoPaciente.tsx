@@ -208,7 +208,8 @@ export default function AgendamentoPaciente({
       }
       setSucesso(true);
       onLimparPrePreenchidos?.();
-      if (onSucesso) setTimeout(onSucesso, 2000);
+      // Sem auto-redirect: a tela de sucesso permanece até o usuário escolher
+      // "Novo agendamento" ou "Meus agendamentos".
     } catch (err: any) {
       if (err.message.includes("60 dias") || err.message.includes("recente") || err.message.includes("Recente")) {
         setModalMensagem(err.message);
