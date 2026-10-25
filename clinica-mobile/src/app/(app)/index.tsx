@@ -21,13 +21,6 @@ import type { Agendamento } from '@/types/agendamento';
 
 const AZUL = '#2C5282';
 
-function saudacaoPorHora(): string {
-  const h = new Date().getHours();
-  if (h < 12) return 'Bom dia';
-  if (h < 18) return 'Boa tarde';
-  return 'Boa noite';
-}
-
 // Próxima consulta = a consulta ativa mais próxima no futuro (menor data ainda por vir).
 function proximaConsulta(consultas: Agendamento[]): Agendamento | null {
   const agora = Date.now();
@@ -92,9 +85,8 @@ export default function InicioScreen() {
       >
         {/* Saudação */}
         <View style={styles.header}>
-          <Text style={styles.saudacao}>{saudacaoPorHora()},</Text>
           <Text style={styles.nome} numberOfLines={1}>
-            {primeiroNome} 👋
+            Olá, {primeiroNome}!
           </Text>
         </View>
 
@@ -171,7 +163,6 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#fff' },
   conteudo: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 32 },
   header: { paddingBottom: 8 },
-  saudacao: { fontSize: 15, fontWeight: '600', color: '#9CA3AF' },
   nome: { fontSize: 28, fontWeight: '800', color: '#111827', letterSpacing: -0.5 },
 
   secaoTitulo: {
