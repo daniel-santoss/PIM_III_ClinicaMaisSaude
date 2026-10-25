@@ -5,7 +5,8 @@
 .DESCRIPTION
   Etapas (todas por padrão; escolha com os switches):
     -Banco  aplica as migrations no Azure SQL (abre o firewall só para o seu IP e fecha ao final)
-    -Api    aponta a API para a imagem do commit atual no GHCR (gerada pelo GitHub Actions) e reinicia
+    -Api    aponta a API para a imagem do último commit da branch publicada no GHCR (gerada pelo
+            GitHub Actions) e reinicia
     -Web    builda o portal (Vite) apontando para a API pública e publica no Static Web Apps
     -App    exporta o app mobile para web (Expo) e publica no Static Web Apps
 
@@ -17,6 +18,8 @@ param(
     [string]$Sufixo = "dvs",
     # Dono do repositório no GitHub (a imagem fica em ghcr.io/<dono>/clinica-api).
     [string]$GitHubOwner = "daniel-santoss",
+    # Branch publicada: a imagem usada é a do último commit dela (o workflow roda nela).
+    [string]$Branch = "main",
     [switch]$Banco,
     [switch]$Api,
     [switch]$Web,
@@ -71,8 +74,9 @@ if ($Banco) {
 if ($Api) {
     # A imagem é gerada pelo GitHub Actions (.github/workflows/cd.yml, "Run workflow") e publicada
     # no GHCR: a assinatura de estudante bloqueia o build no Azure (ACR Tasks). Aqui só se aponta
-    # a API para a imagem do commit atual (tag "sha-<7 caracteres>") e reinicia.
-    $sha = (& git -C $raiz rev-parse --short=7 HEAD).Trim()
+    # a API para a imagem do último commit da branch (tag "sha-<7 caracteres>") e reinicia.
+    & git -C $raiz fetch origin $Branch --quiet
+    $sha = (& git -C $raiz rev-parse --short=7 "origin/$Branch").Trim()
     $imagem = "ghcr.io/$($GitHubOwner.ToLower())/clinica-api:sha-$sha"
     Write-Etapa "Trocando o container da API para $imagem"
     Invoke-Az webapp config container set -g $n.Grupo -n $n.Api `

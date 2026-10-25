@@ -33,7 +33,7 @@ Pré-requisitos: [Azure CLI](https://learn.microsoft.com/cli/azure/install-azure
    ./infra/azure/definir-segredos.ps1 -Sufixo dvs
    ```
 
-3. **Imagem da API:** no GitHub, *Actions → CD → Run workflow* na branch publicada. O pipeline
+3. **Imagem da API:** no GitHub, *Actions → CD → Run workflow* na branch `main`. O pipeline
    builda a imagem e publica no GHCR com a tag `sha-<commit>` (na 1ª vez, deixe o pacote
    `clinica-api` **público** em *Packages → Package settings*; ele não contém segredos).
    A assinatura de estudante bloqueia o build no Azure (ACR Tasks), por isso o build fica no GitHub.
