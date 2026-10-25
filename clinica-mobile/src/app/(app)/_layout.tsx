@@ -32,28 +32,28 @@ function AbasPaciente() {
         name="index"
         options={{
           title: 'Início',
-          tabBarIcon: ({ color, size }) => <Ionicons name="home" color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => <Ionicons name="home" color={color as string} size={size} />,
         }}
       />
       <Tabs.Screen
         name="consultas"
         options={{
           title: 'Consultas',
-          tabBarIcon: ({ color, size }) => <Ionicons name="calendar" color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => <Ionicons name="calendar" color={color as string} size={size} />,
         }}
       />
       <Tabs.Screen
         name="agendar"
         options={{
           title: 'Agendar',
-          tabBarIcon: ({ color, size }) => <Ionicons name="add-circle" color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => <Ionicons name="add-circle" color={color as string} size={size} />,
         }}
       />
       <Tabs.Screen
         name="notificacoes"
         options={{
           title: 'Avisos',
-          tabBarIcon: ({ color, size }) => <Ionicons name="notifications" color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => <Ionicons name="notifications" color={color as string} size={size} />,
           tabBarBadge: naoLidas > 0 ? (naoLidas > 9 ? '9+' : naoLidas) : undefined,
           tabBarBadgeStyle: { backgroundColor: '#EF4444', fontSize: 10, fontWeight: '700' },
         }}
@@ -62,7 +62,7 @@ function AbasPaciente() {
         name="perfil"
         options={{
           title: 'Perfil',
-          tabBarIcon: ({ color, size }) => <Ionicons name="person" color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => <Ionicons name="person" color={color as string} size={size} />,
         }}
       />
       {/* Rota acessível pelo Perfil, escondida da barra de abas. */}
