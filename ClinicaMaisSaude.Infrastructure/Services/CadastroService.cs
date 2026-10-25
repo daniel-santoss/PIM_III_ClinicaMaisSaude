@@ -149,6 +149,15 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             return new CadastroResult { Sucesso = true, Mensagem = "Senha redefinida com sucesso." };
         }
 
+        public async Task<RoleUsuario?> ObterRoleAsync(Guid usuarioId)
+        {
+            return await _context.Usuarios
+                .AsNoTracking()
+                .Where(u => u.Id == usuarioId)
+                .Select(u => (RoleUsuario?)u.Role)
+                .FirstOrDefaultAsync();
+        }
+
         public async Task PurgeTestsAsync()
         {
             // Identidade (e-mail de teste) vive na Pessoa (Thread B).

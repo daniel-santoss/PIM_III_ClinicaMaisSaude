@@ -1,4 +1,5 @@
 using ClinicaMaisSaude.Application.DTOs.Auth;
+using ClinicaMaisSaude.Domain.Enums;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -10,6 +11,8 @@ namespace ClinicaMaisSaude.Application.Interfaces
         Task<CadastroResult> CadastrarAsync(CadastroRequest request);
         Task<IEnumerable<UsuarioResponse>> ListarUsuariosAsync();
         Task<CadastroResult> RedefinirSenhaAsync(Guid id, string novaSenha);
+        /// <summary>Papel da conta de acesso, ou <c>null</c> se a conta não existe.</summary>
+        Task<RoleUsuario?> ObterRoleAsync(Guid usuarioId);
         Task PurgeTestsAsync();
     }
 

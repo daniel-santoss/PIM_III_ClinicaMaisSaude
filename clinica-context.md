@@ -13,7 +13,7 @@ As regras de negócio (agendamento, máquina de estados, IA, limites) estão em 
 | `ClinicaMaisSaude.Application` | DTOs, interfaces de serviço, exceções tipadas, validadores (FluentValidation), serviços de aplicação |
 | `ClinicaMaisSaude.Infrastructure` | `ClinicaDbContext`, migrations, repositórios, serviços que usam banco/e-mail/IA, gateways externos |
 | `ClinicaMaisSaude.API` | Controllers, `Program.cs`, middleware, SignalR hub |
-| `*.Tests` | xUnit — Domain, Application (fakes em memória) e Infrastructure (EF InMemory) |
+| `*.Tests` | xUnit — Domain, Application (fakes em memória), Infrastructure (EF InMemory) e API (handlers de autorização) |
 | `clinica-frontend` | Web (React 19 + Vite + Tailwind) — admin, médico, enfermeira e paciente |
 | `clinica-mobile` | App Expo/React Native — **somente pacientes** |
 | `docs/` | Artefatos do PIM IV (banco, ágil, acessibilidade, nuvem, monografia) |
@@ -46,7 +46,8 @@ Dependências apontam para dentro: `API → Application → Domain` e `Infrastru
 - **Sanitização de máscaras** (CPF, telefone) só no backend. O front envia o dado bruto.
 - Erros por **exceções tipadas** (`Application/Exceptions`) → `GlobalExceptionHandler` devolve `ProblemDetails` com o status certo. Não usar `throw new Exception` nem regra codificada em string.
 - **Nomes:** `Buscar*` garante existência (lança 404); `Obter*` pode devolver `null`.
-- **Autorização de recurso** ("é dono?") fica no **controller**, usando as propriedades de `ClinicaControllerBase` (`IsAdmin`, `EhPaciente`, `PacienteIdToken`, `ProfissionalIdToken`…). Não passar claims para a Application. Recurso de terceiro responde 404.
+- **Autorização por papel** com `[Authorize(Roles=...)]`; o admin passa em qualquer requisito pelo `AdminSuperusuarioHandler`.
+- **Autorização por recurso** ("é dono?") fica na API, nunca na Application: o controller carrega o recurso e chama `IAuthorizationService.AuthorizeAsync(User, recurso, operacao)`, e a regra vive num handler em `API/Authorization` (ex.: `AgendamentoAuthorizationHandler` + `OperacoesAgendamento`). Recurso de terceiro responde 404. Claims são lidas por `ClaimsPrincipalExtensions` / `ClinicaControllerBase`.
 - **Abstração com parcimônia:** interface só quando cruza fronteira externa (rede, e-mail, IA), tem 2+ implementações ou precisa de fake em teste. Dividir uma classe grande ≠ criar interface. Não criar repositório para toda entidade.
 
 ### IA (triagem)

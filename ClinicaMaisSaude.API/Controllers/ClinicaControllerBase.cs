@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using ClinicaMaisSaude.API.Authorization;
 using ClinicaMaisSaude.Domain.Constants;
 using Microsoft.AspNetCore.Mvc;
 
@@ -17,8 +18,7 @@ namespace ClinicaMaisSaude.API.Controllers
             Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
         /// <summary>Tipo do usuário (claim própria), com fallback para a Role padrão.</summary>
-        protected string? TipoUsuario =>
-            User.FindFirstValue(ClinicaClaims.TipoUsuario) ?? User.FindFirstValue(ClaimTypes.Role);
+        protected string? TipoUsuario => User.TipoUsuario();
 
         protected bool IsAdmin => User.IsInRole(PerfisUsuario.Admin);
 
@@ -27,11 +27,9 @@ namespace ClinicaMaisSaude.API.Controllers
         protected bool EhMedico => TipoUsuario == PerfisUsuario.Medico;
 
         /// <summary>PacienteId vindo da claim, ou <c>null</c> se ausente/inválido.</summary>
-        protected Guid? PacienteIdToken =>
-            Guid.TryParse(User.FindFirstValue(ClinicaClaims.PacienteId), out var id) ? id : null;
+        protected Guid? PacienteIdToken => User.PacienteId();
 
         /// <summary>ProfissionalId vindo da claim, ou <c>null</c> se ausente/inválido.</summary>
-        protected Guid? ProfissionalIdToken =>
-            Guid.TryParse(User.FindFirstValue(ClinicaClaims.ProfissionalId), out var id) ? id : null;
+        protected Guid? ProfissionalIdToken => User.ProfissionalId();
     }
 }
