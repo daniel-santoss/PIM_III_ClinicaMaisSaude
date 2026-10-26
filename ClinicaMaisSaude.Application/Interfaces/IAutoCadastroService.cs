@@ -18,8 +18,11 @@ namespace ClinicaMaisSaude.Application.Interfaces
         /// <summary>Registra uma solicitação de auto-cadastro (proponente sem login, EmAnalise).</summary>
         Task<CadastroResult> SolicitarAsync(SolicitacaoCadastroRequest request);
 
-        /// <summary>Fila de aprovação (admin): solicitações em análise, com identidade e respostas da DS.</summary>
-        Task<List<SolicitacaoAdminResponse>> ListarSolicitacoesEmAnaliseAsync();
+        /// <summary>
+        /// Fila de aprovação (admin): solicitações em análise, com identidade e respostas da DS,
+        /// paginadas (mais antigas primeiro) e filtradas por nome ou CPF.
+        /// </summary>
+        Task<SolicitacoesPaginadasResponse> ListarSolicitacoesEmAnaliseAsync(string? busca, int page, int pageSize);
 
         /// <summary>Aprova uma solicitação e convida o proponente ao 1º acesso por e-mail.</summary>
         Task<CadastroResult> AprovarAsync(Guid solicitacaoId);

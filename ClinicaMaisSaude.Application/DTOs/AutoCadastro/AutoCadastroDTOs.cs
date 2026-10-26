@@ -56,6 +56,16 @@ namespace ClinicaMaisSaude.Application.DTOs.AutoCadastro
         public List<RespostaAdminItem> Respostas { get; set; } = new();
     }
 
+    /// <summary>
+    /// Página da fila de aprovação. Os totais da fila inteira (indicadores da tela) não dependem
+    /// da busca nem da página; TotalCount/TotalPages se referem ao resultado filtrado.
+    /// </summary>
+    public class SolicitacoesPaginadasResponse : PagedResult<SolicitacaoAdminResponse>
+    {
+        public int TotalEmAnalise { get; set; }
+        public int TotalRequerApoio { get; set; }
+    }
+
     public class RespostaAdminItem
     {
         public string Pergunta { get; set; } = string.Empty;

@@ -189,14 +189,34 @@ namespace ClinicaMaisSaude.Infrastructure.Services
 
         // ----------------- Fluxo admin (D3): fila de aprovação -----------------
 
-        public async Task<List<SolicitacaoAdminResponse>> ListarSolicitacoesEmAnaliseAsync()
+        public async Task<SolicitacoesPaginadasResponse> ListarSolicitacoesEmAnaliseAsync(string? busca, int page, int pageSize)
         {
-            var solicitacoes = await _context.SolicitacoesCadastro
+            var emAnalise = _context.SolicitacoesCadastro
                 .AsNoTracking()
-                .Where(s => s.Status == StatusSolicitacao.EmAnalise)
+                .Where(s => s.Status == StatusSolicitacao.EmAnalise);
+
+            // Indicadores da fila inteira (não dependem da busca nem da página).
+            var totalEmAnalise = await emAnalise.CountAsync();
+            var totalRequerApoio = await emAnalise.CountAsync(s =>
+                _context.Pacientes.Any(p => p.PessoaId == s.PessoaId && p.TemProblemaMemoria));
+
+            var filtradas = emAnalise;
+            if (!string.IsNullOrWhiteSpace(busca))
+            {
+                var termo = busca.Trim();
+                var digitos = new string(termo.Where(char.IsDigit).ToArray());
+                filtradas = filtradas.Where(s =>
+                    s.Pessoa!.Nome.Contains(termo) || (digitos.Length > 0 && s.Pessoa.Cpf.Contains(digitos)));
+            }
+
+            var totalFiltrado = await filtradas.CountAsync();
+            var solicitacoes = await filtradas
                 .Include(s => s.Pessoa)
                 .Include(s => s.Respostas).ThenInclude(r => r.Pergunta)
                 .OrderBy(s => s.DtCriado)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .AsSplitQuery()
                 .ToListAsync();
 
             // TemProblemaMemoria vive no Paciente (proponente): carrega em lote por PessoaId.
@@ -206,7 +226,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                 .Where(p => p.PessoaId != null && pessoaIds.Contains(p.PessoaId.Value))
                 .ToDictionaryAsync(p => p.PessoaId!.Value, p => p.TemProblemaMemoria);
 
-            return solicitacoes.Select(s => new SolicitacaoAdminResponse
+            var itens = solicitacoes.Select(s => new SolicitacaoAdminResponse
             {
                 SolicitacaoId = s.Id,
                 DtCriado = s.DtCriado,
@@ -226,6 +246,16 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                     })
                     .ToList()
             }).ToList();
+
+            return new SolicitacoesPaginadasResponse
+            {
+                Items = itens,
+                TotalCount = totalFiltrado,
+                Page = page,
+                PageSize = pageSize,
+                TotalEmAnalise = totalEmAnalise,
+                TotalRequerApoio = totalRequerApoio
+            };
         }
 
         public async Task<CadastroResult> AprovarAsync(Guid solicitacaoId)
