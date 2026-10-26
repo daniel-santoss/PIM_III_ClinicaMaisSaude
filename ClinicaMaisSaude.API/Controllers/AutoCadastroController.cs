@@ -74,10 +74,12 @@ namespace ClinicaMaisSaude.API.Controllers
 
         [HttpGet("solicitacoes")]
         [Authorize]
-        public async Task<IActionResult> ListarSolicitacoes()
+        public async Task<IActionResult> ListarSolicitacoes([FromQuery] string? busca, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
         {
             ExigirAdmin();
-            var solicitacoes = await _service.ListarSolicitacoesEmAnaliseAsync();
+            page = Math.Max(1, page);
+            pageSize = Math.Clamp(pageSize, 1, 50);
+            var solicitacoes = await _service.ListarSolicitacoesEmAnaliseAsync(busca, page, pageSize);
             return Ok(solicitacoes);
         }
 

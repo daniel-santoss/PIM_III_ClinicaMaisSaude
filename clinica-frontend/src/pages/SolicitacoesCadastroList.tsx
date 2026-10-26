@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { API_URL } from "../constants/api";
 import {
-  Inbox, Search, RefreshCw, Check, X, Brain, Mail, Phone, UserCheck,
+  Inbox, Search, RefreshCw, Check, X, Brain, Mail, Phone, UserCheck, ChevronDown, ClipboardList,
 } from "lucide-react";
 import { getRealDate } from "../utils/dates";
 import { useToast } from "../hooks/useToast";
@@ -9,6 +9,7 @@ import ConfirmModal from "../components/ConfirmModal";
 import ModalPortal from "../components/ui/ModalPortal";
 import Badge from "../components/ui/Badge";
 import Button from "../components/ui/Button";
+import Paginacao from "../components/ui/Paginacao";
 
 type RespostaItem = { pergunta: string; ordem: number; resposta: boolean; detalhe: string | null };
 type Solicitacao = {
@@ -21,6 +22,15 @@ type Solicitacao = {
   temProblemaMemoria: boolean;
   respostas: RespostaItem[];
 };
+type PaginaSolicitacoes = {
+  items: Solicitacao[];
+  totalCount: number;
+  totalPages: number;
+  totalEmAnalise: number;
+  totalRequerApoio: number;
+};
+
+const TAMANHO_PAGINA = 10;
 
 const authHeaders = () => ({
   Authorization: `Bearer ${localStorage.getItem("authToken")}`,
@@ -35,6 +45,11 @@ export default function SolicitacoesCadastroList() {
   const [solicitacoes, setSolicitacoes] = useState<Solicitacao[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [busca, setBusca] = useState("");
+  const [buscaAplicada, setBuscaAplicada] = useState("");
+  const [pagina, setPagina] = useState(1);
+  const [totais, setTotais] = useState({ filtrado: 0, paginas: 1, emAnalise: 0, requerApoio: 0 });
+  // Declaração de saúde recolhida por padrão; abre por solicitação.
+  const [expandidas, setExpandidas] = useState<Record<string, boolean>>({});
   const [processando, setProcessando] = useState<Record<string, boolean>>({});
 
   const [aprovarAlvo, setAprovarAlvo] = useState<{ id: string; nome: string } | null>(null);
@@ -44,9 +59,20 @@ export default function SolicitacoesCadastroList() {
   const carregar = async () => {
     setCarregando(true);
     try {
-      const res = await fetch(`${API_URL}/api/AutoCadastro/solicitacoes`, { headers: authHeaders() });
+      const params = new URLSearchParams({ page: String(pagina), pageSize: String(TAMANHO_PAGINA) });
+      if (buscaAplicada) params.set("busca", buscaAplicada);
+      const res = await fetch(`${API_URL}/api/AutoCadastro/solicitacoes?${params}`, { headers: authHeaders() });
       if (!res.ok) { toast.error("Erro ao carregar solicitações."); return; }
-      setSolicitacoes(await res.json());
+      const dados: PaginaSolicitacoes = await res.json();
+      // A página ficou vazia (ex.: aprovou o último item dela): volta uma.
+      if (dados.items.length === 0 && pagina > 1) { setPagina(p => p - 1); return; }
+      setSolicitacoes(dados.items);
+      setTotais({
+        filtrado: dados.totalCount,
+        paginas: Math.max(1, dados.totalPages),
+        emAnalise: dados.totalEmAnalise,
+        requerApoio: dados.totalRequerApoio,
+      });
     } catch {
       toast.error("Erro de conexão ao carregar solicitações.");
     } finally {
@@ -54,7 +80,16 @@ export default function SolicitacoesCadastroList() {
     }
   };
 
-  useEffect(() => { carregar(); }, []);
+  useEffect(() => { carregar(); }, [pagina, buscaAplicada]);
+
+  // Busca no servidor com debounce; nova busca volta para a 1ª página.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setBuscaAplicada(busca.trim());
+      setPagina(1);
+    }, 400);
+    return () => clearTimeout(t);
+  }, [busca]);
 
   const aprovar = async (id: string) => {
     setProcessando(p => ({ ...p, [id]: true }));
@@ -63,7 +98,7 @@ export default function SolicitacoesCadastroList() {
         method: "POST", headers: authHeaders(),
       });
       if (!res.ok) { toast.error(await res.text()); return; }
-      setSolicitacoes(prev => prev.filter(s => s.solicitacaoId !== id));
+      await carregar();
       toast.success("Solicitação aprovada. O proponente foi avisado por e-mail.");
     } catch {
       toast.error("Erro de conexão ao aprovar.");
@@ -80,7 +115,7 @@ export default function SolicitacoesCadastroList() {
         method: "POST", headers: authHeaders(), body: JSON.stringify({ motivo: motivoTexto }),
       });
       if (!res.ok) { toast.error(await res.text()); return; }
-      setSolicitacoes(prev => prev.filter(s => s.solicitacaoId !== id));
+      await carregar();
       toast.success("Solicitação recusada. O proponente foi avisado por e-mail.");
       setRecusarAlvo(null);
       setMotivo("");
@@ -91,10 +126,6 @@ export default function SolicitacoesCadastroList() {
     }
   };
 
-  const filtradas = solicitacoes.filter(s =>
-    s.nome.toLowerCase().includes(busca.toLowerCase()) || s.cpf.includes(busca)
-  );
-  const totalMemoria = solicitacoes.filter(s => s.temProblemaMemoria).length;
 
   return (
     <>
@@ -134,7 +165,7 @@ export default function SolicitacoesCadastroList() {
               </div>
               <span className="font-semibold text-[11px] tracking-wide text-muted uppercase">Em análise</span>
             </div>
-            <div className="font-bold text-[22px] leading-tight mt-0.5 text-ink">{solicitacoes.length}</div>
+            <div className="font-bold text-[22px] leading-tight mt-0.5 text-ink">{totais.emAnalise}</div>
           </div>
           <div className="bg-white border border-line rounded-lg px-4 py-[11px]">
             <div className="flex items-center gap-2.5">
@@ -143,7 +174,7 @@ export default function SolicitacoesCadastroList() {
               </div>
               <span className="font-semibold text-[11px] tracking-wide text-muted uppercase">Requer apoio (memória)</span>
             </div>
-            <div className="font-bold text-[22px] leading-tight mt-0.5 text-warning-text">{totalMemoria}</div>
+            <div className="font-bold text-[22px] leading-tight mt-0.5 text-warning-text">{totais.requerApoio}</div>
           </div>
         </div>
 
@@ -152,16 +183,23 @@ export default function SolicitacoesCadastroList() {
           <div className="flex justify-center items-center py-20">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600" />
           </div>
-        ) : filtradas.length === 0 ? (
+        ) : solicitacoes.length === 0 ? (
           <div className="text-center py-16 bg-white border border-line rounded-lg">
             <UserCheck className="w-10 h-10 text-muted mx-auto mb-3" />
-            <h3 className="text-base font-semibold text-body">Nenhuma solicitação em análise</h3>
-            <p className="text-muted text-sm mt-1">Novos auto-cadastros aparecem aqui para avaliação.</p>
+            <h3 className="text-base font-semibold text-body">
+              {buscaAplicada ? "Nenhuma solicitação encontrada" : "Nenhuma solicitação em análise"}
+            </h3>
+            <p className="text-muted text-sm mt-1">
+              {buscaAplicada ? "Confira o nome ou o CPF buscado." : "Novos auto-cadastros aparecem aqui para avaliação."}
+            </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-4">
-            {filtradas.map(s => {
+            {solicitacoes.map(s => {
               const ocupado = processando[s.solicitacaoId];
+              const aberta = !!expandidas[s.solicitacaoId];
+              const totalSim = s.respostas.filter(r => r.resposta).length;
+              const idPainel = `ds-${s.solicitacaoId}`;
               return (
                 <div key={s.solicitacaoId} className="flex flex-col gap-4 p-5 rounded-lg bg-white border border-line">
                   {/* Cabeçalho */}
@@ -191,28 +229,52 @@ export default function SolicitacoesCadastroList() {
                     </div>
                   </div>
 
-                  {/* Declaração de Saúde */}
-                  <div className="bg-canvas rounded-md border border-line p-4">
-                    <div className="text-[10px] font-semibold uppercase tracking-wider text-muted mb-2.5">Declaração de saúde</div>
-                    <div className="flex flex-col gap-2.5">
-                      {s.respostas.map((r, i) => (
-                        <div key={i} className="flex items-start gap-2.5">
-                          <span className={`shrink-0 text-[11px] font-semibold px-2 py-0.5 rounded-md border ${
-                            r.resposta
-                              ? "bg-warning-tint border-warning-border text-warning-text"
-                              : "bg-success-tint border-success-border text-success"
-                          }`}>
-                            {r.resposta ? "Sim" : "Não"}
-                          </span>
-                          <div className="min-w-0">
-                            <p className="text-[13px] text-ink leading-snug">{r.pergunta}</p>
-                            {r.resposta && r.detalhe && (
-                              <p className="text-[12px] text-body mt-0.5 italic">“{r.detalhe}”</p>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                  {/* Declaração de Saúde: recolhida; o botão mostra quantas respostas foram "Sim". */}
+                  <div className="rounded-md border border-line">
+                    <button
+                      type="button"
+                      onClick={() => setExpandidas(e => ({ ...e, [s.solicitacaoId]: !aberta }))}
+                      aria-expanded={aberta}
+                      aria-controls={idPainel}
+                      className={`w-full flex items-center gap-2.5 px-4 py-3 text-left hover:bg-canvas transition-colors ${aberta ? "rounded-t-md border-b border-line" : "rounded-md"}`}
+                    >
+                      <ClipboardList className="w-4 h-4 text-brand-600 shrink-0" />
+                      <span className="text-[13px] font-semibold text-ink">Declaração de saúde</span>
+                      <span className="text-[12px] text-muted">
+                        {s.respostas.length} {s.respostas.length === 1 ? "pergunta" : "perguntas"}
+                      </span>
+                      {totalSim > 0 && (
+                        <Badge variant="warning">{totalSim} {totalSim === 1 ? "resposta \"Sim\"" : "respostas \"Sim\""}</Badge>
+                      )}
+                      <span className="ml-auto inline-flex items-center gap-1 text-[12px] font-medium text-brand-600">
+                        {aberta ? "Recolher" : "Ver respostas"}
+                        <ChevronDown className={`w-4 h-4 transition-transform ${aberta ? "rotate-180" : ""}`} />
+                      </span>
+                    </button>
+
+                    {aberta && (
+                      <div id={idPainel} className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 p-4 bg-canvas rounded-b-md">
+                        {s.respostas.map((r, i) => {
+                          const idCampo = `${idPainel}-${i}`;
+                          const valor = r.resposta ? (r.detalhe ? `Sim — ${r.detalhe}` : "Sim") : "Não";
+                          return (
+                            <div key={i} className="flex flex-col gap-1.5">
+                              <label htmlFor={idCampo} className="text-[13px] font-medium text-ink leading-snug">{r.pergunta}</label>
+                              <input
+                                id={idCampo}
+                                type="text"
+                                readOnly
+                                value={valor}
+                                title={valor}
+                                className={`w-full h-10 px-3 text-sm bg-white border rounded-md outline-none cursor-default ${
+                                  r.resposta ? "border-warning-border text-warning-text font-medium" : "border-line text-body"
+                                }`}
+                              />
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
 
                   {/* Ações */}
@@ -229,6 +291,13 @@ export default function SolicitacoesCadastroList() {
                 </div>
               );
             })}
+
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-1">
+              <p className="text-xs font-medium text-muted">
+                Exibindo {solicitacoes.length} de {totais.filtrado} {totais.filtrado === 1 ? "solicitação" : "solicitações"}
+              </p>
+              <Paginacao pagina={pagina} totalPaginas={totais.paginas} onMudar={setPagina} />
+            </div>
           </div>
         )}
       </div>

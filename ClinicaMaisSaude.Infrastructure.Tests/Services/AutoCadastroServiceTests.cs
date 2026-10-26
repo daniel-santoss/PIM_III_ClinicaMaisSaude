@@ -192,14 +192,56 @@ namespace ClinicaMaisSaude.Infrastructure.Tests.Services
         {
             await _service.SolicitarAsync(RequestValido());
 
-            var fila = await _service.ListarSolicitacoesEmAnaliseAsync();
+            var fila = await _service.ListarSolicitacoesEmAnaliseAsync(null, 1, 10);
 
-            var s = Assert.Single(fila);
+            var s = Assert.Single(fila.Items);
             Assert.Equal("Fulano de Tal", s.Nome);
             Assert.Equal(CpfValido, s.Cpf);
             Assert.Equal(2, s.Respostas.Count);
             Assert.Equal(1, s.Respostas[0].Ordem);
             Assert.Equal("Losartana 50mg", s.Respostas[1].Detalhe);
+        }
+
+        // Semeia direto um proponente em análise (sem passar pelo fluxo de e-mail), para montar filas grandes.
+        private void SemearProponente(string nome, string cpf, bool temProblemaMemoria = false)
+        {
+            var pessoa = new Pessoa(nome, cpf, $"{cpf}@teste.com", "11987654321");
+            _context.Pessoas.Add(pessoa);
+            _context.Pacientes.Add(Paciente.NovoProponente(pessoa.Id, temProblemaMemoria));
+            _context.SolicitacoesCadastro.Add(new SolicitacaoCadastro(pessoa.Id, _modelo.Id));
+            _context.SaveChanges();
+        }
+
+        [Fact]
+        public async Task Listar_PaginaAFilaSemRepetirItens()
+        {
+            for (var i = 1; i <= 12; i++) SemearProponente($"Proponente {i:00}", $"000000000{i:00}");
+
+            var p1 = await _service.ListarSolicitacoesEmAnaliseAsync(null, 1, 5);
+            var p3 = await _service.ListarSolicitacoesEmAnaliseAsync(null, 3, 5);
+
+            Assert.Equal(12, p1.TotalCount);
+            Assert.Equal(3, p1.TotalPages);
+            Assert.Equal(5, p1.Items.Count());
+            Assert.Equal(2, p3.Items.Count());
+            Assert.Empty(p1.Items.Select(x => x.SolicitacaoId).Intersect(p3.Items.Select(x => x.SolicitacaoId)));
+        }
+
+        [Fact]
+        public async Task Listar_BuscaPorNomeOuCpfMasIndicadoresContamAFilaInteira()
+        {
+            SemearProponente("Ana Souza", "11111111111", temProblemaMemoria: true);
+            SemearProponente("Bruno Lima", "22222222222");
+            SemearProponente("Carla Dias", "33333333333", temProblemaMemoria: true);
+
+            var porNome = await _service.ListarSolicitacoesEmAnaliseAsync("Bruno", 1, 10);
+            var porCpf = await _service.ListarSolicitacoesEmAnaliseAsync("333.333.333-33", 1, 10);
+
+            Assert.Equal("Bruno Lima", Assert.Single(porNome.Items).Nome);
+            Assert.Equal("Carla Dias", Assert.Single(porCpf.Items).Nome);
+            Assert.Equal(1, porNome.TotalCount);
+            Assert.Equal(3, porNome.TotalEmAnalise);
+            Assert.Equal(2, porNome.TotalRequerApoio);
         }
 
         [Fact]
