@@ -12,6 +12,7 @@ import StatCard from "../components/ui/StatCard";
 import Badge from "../components/ui/Badge";
 import Button from "../components/ui/Button";
 import ModalPortal from "../components/ui/ModalPortal";
+import Paginacao from "../components/ui/Paginacao";
 
 const modalInputCls =
   "w-full h-10 px-3 text-sm text-ink bg-white border border-line rounded-md outline-none focus:border-brand-600 focus:shadow-focus transition-shadow placeholder:text-muted";
@@ -532,52 +533,7 @@ export default function PacienteList({
             Exibindo {pacientes.length} de {totalCount} {totalCount === 1 ? "resultado" : "resultados"}
           </p>
 
-          {totalPages > 1 && (
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="h-8 px-3 text-[13px] font-medium border border-line rounded-md text-body bg-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-canvas transition-colors"
-              >
-                Anterior
-              </button>
-              
-              <div className="flex items-center gap-1">
-                {Array.from({ length: totalPages }).map((_, i) => {
-                  const pNum = i + 1;
-                  // Show max 5 page numbers: first, last, current, current-1, current+1
-                  if (pNum === 1 || pNum === totalPages || (pNum >= page - 1 && pNum <= page + 1)) {
-                    return (
-                      <button
-                        key={pNum}
-                        onClick={() => setPage(pNum)}
-                        className={`w-8 h-8 flex items-center justify-center text-xs font-semibold rounded-md transition-colors border ${
-                          page === pNum
-                            ? 'bg-brand-600 text-white border-brand-600'
-                            : 'bg-white text-body border-line hover:bg-canvas'
-                        }`}
-                      >
-                        {pNum}
-                      </button>
-                    );
-                  }
-                  // Ellipsis
-                  if (pNum === page - 2 || pNum === page + 2) {
-                    return <span key={pNum} className="text-gray-400 text-xs px-1">...</span>;
-                  }
-                  return null;
-                })}
-              </div>
-
-              <button 
-                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-                className="h-8 px-3 text-[13px] font-medium border border-line rounded-md text-body bg-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-canvas transition-colors"
-              >
-                Próximo
-              </button>
-            </div>
-          )}
+          <Paginacao pagina={page} totalPaginas={totalPages} onMudar={setPage} />
         </div>
       </div>
 
