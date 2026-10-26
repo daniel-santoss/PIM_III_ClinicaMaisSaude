@@ -5,6 +5,7 @@ import bgImage from "../assets/itens_medicos_background.png";
 import { ArrowLeft, CheckCircle2, AlertCircle, ShieldCheck, MailCheck } from "lucide-react";
 import { isCpfValido, isEmailValido, mascaraCpf, mascaraTelefone } from "../utils/validators";
 import { useToast } from "../hooks/useToast";
+import { TERMOS_DATA, TERMOS_SECOES, TERMOS_VERSAO } from "../constants/termos";
 
 type Pergunta = { perguntaId: string; pergunta: string; ordem: number };
 type Modelo = { modeloId: string; nome: string; perguntas: Pergunta[] };
@@ -14,7 +15,6 @@ type RespostaState = { resposta: boolean | null; detalhe: string };
 type Etapa = "termos" | "dados" | "codigo" | "ds" | "sucesso";
 
 const soDigitos = (v: string) => v.replace(/\D/g, "");
-const TERMOS_VERSAO = "1.0";
 
 // Rascunho do wizard (resiliente a recarregar a página): guarda termos + dados +
 // o token de e-mail JÁ confirmado, para o usuário não repetir a verificação de e-mail
@@ -347,25 +347,14 @@ export default function AutoCadastro({ onVoltar }: { onVoltar: () => void }) {
                     <ShieldCheck className="w-5 h-5 text-brand-600" />
                     <h3 className="text-sm font-bold text-ink">Termos de uso e proteção de dados</h3>
                   </div>
-                  <div className="bg-canvas border border-line rounded-lg p-4 max-h-64 overflow-y-auto text-[13px] text-body leading-relaxed space-y-2.5">
-                    <p>
-                      Ao criar seu cadastro na <strong className="text-ink">Clínica Mais Saúde</strong>, você concorda em
-                      fornecer dados pessoais e informações de saúde verdadeiras, usados exclusivamente para a sua
-                      avaliação, atendimento e acompanhamento clínico.
-                    </p>
-                    <p>
-                      Em conformidade com a <strong className="text-ink">Lei Geral de Proteção de Dados (LGPD, Lei nº
-                      13.709/2018)</strong>, seus dados são tratados com confidencialidade, armazenados de forma segura e
-                      não são compartilhados com terceiros sem a sua autorização, salvo obrigação legal.
-                    </p>
-                    <p>
-                      A conclusão do cadastro depende de uma <strong className="text-ink">avaliação presencial</strong> na
-                      clínica. Você pode solicitar a qualquer momento a consulta, correção ou exclusão dos seus dados
-                      junto à recepção.
-                    </p>
-                    <p className="text-muted">
-                      Este é um texto genérico e será substituído pela versão oficial dos termos. (v{TERMOS_VERSAO})
-                    </p>
+                  <div className="bg-canvas border border-line rounded-lg p-4 max-h-64 overflow-y-auto text-[13px] text-body leading-relaxed space-y-3">
+                    {TERMOS_SECOES.map(sec => (
+                      <section key={sec.titulo}>
+                        <h4 className="text-[13px] font-semibold text-ink mb-0.5">{sec.titulo}</h4>
+                        <p>{sec.texto}</p>
+                      </section>
+                    ))}
+                    <p className="text-muted text-[12px]">Versão {TERMOS_VERSAO} — {TERMOS_DATA}.</p>
                   </div>
 
                   <label className="flex items-start gap-2.5 mt-4 cursor-pointer">

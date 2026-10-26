@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
 import { cores } from '@/constants/tema';
+import { TERMOS_DATA, TERMOS_SECOES, TERMOS_VERSAO } from '@/constants/termos';
 import { isEmailValido, mascaraCpf, mascaraTelefone, soDigitos } from '@/lib/validadores';
 import {
   confirmarVerificacaoEmail,
@@ -29,7 +30,6 @@ type RespostaState = { resposta: boolean | null; detalhe: string };
 // Etapas do wizard: termos -> dados -> confirmação do e-mail -> declaração de saúde -> sucesso.
 type Etapa = 'termos' | 'dados' | 'codigo' | 'ds' | 'sucesso';
 
-const TERMOS_VERSAO = '1.0';
 
 const PASSOS: { chave: Etapa; rotulo: string }[] = [
   { chave: 'termos', rotulo: 'Termos' },
@@ -250,23 +250,14 @@ export default function AutoCadastroScreen() {
                     <Text style={styles.secaoTitulo}>Termos de uso e proteção de dados</Text>
                   </View>
                   <ScrollView style={styles.termosBox} nestedScrollEnabled>
-                    <Text style={styles.termosTexto}>
-                      Ao criar seu cadastro na <Text style={styles.introForte}>Clínica Mais Saúde</Text>, você concorda em
-                      fornecer dados pessoais e informações de saúde verdadeiras, usados exclusivamente para a sua
-                      avaliação, atendimento e acompanhamento clínico.
-                    </Text>
-                    <Text style={styles.termosTexto}>
-                      Em conformidade com a <Text style={styles.introForte}>Lei Geral de Proteção de Dados (LGPD, Lei nº
-                      13.709/2018)</Text>, seus dados são tratados com confidencialidade, armazenados de forma segura e
-                      não são compartilhados com terceiros sem a sua autorização, salvo obrigação legal.
-                    </Text>
-                    <Text style={styles.termosTexto}>
-                      A conclusão do cadastro depende de uma <Text style={styles.introForte}>avaliação presencial</Text> na
-                      clínica. Você pode solicitar a qualquer momento a consulta, correção ou exclusão dos seus dados
-                      junto à recepção.
-                    </Text>
+                    {TERMOS_SECOES.map((sec) => (
+                      <View key={sec.titulo}>
+                        <Text style={styles.termosTitulo}>{sec.titulo}</Text>
+                        <Text style={styles.termosTexto}>{sec.texto}</Text>
+                      </View>
+                    ))}
                     <Text style={styles.termosNota}>
-                      Este é um texto genérico e será substituído pela versão oficial dos termos. (v{TERMOS_VERSAO})
+                      Versão {TERMOS_VERSAO} — {TERMOS_DATA}.
                     </Text>
                   </ScrollView>
 
@@ -495,6 +486,7 @@ const styles = StyleSheet.create({
     maxHeight: 220, backgroundColor: cores.neutroSuave, borderRadius: 12, borderWidth: 1, borderColor: cores.borda,
     padding: 14,
   },
+  termosTitulo: { fontSize: 13, color: cores.texto, fontWeight: '800', marginBottom: 2 },
   termosTexto: { fontSize: 13, color: cores.textoMedio, fontWeight: '500', lineHeight: 20, marginBottom: 10 },
   termosNota: { fontSize: 12, color: cores.textoSuave, fontWeight: '500', lineHeight: 18 },
 

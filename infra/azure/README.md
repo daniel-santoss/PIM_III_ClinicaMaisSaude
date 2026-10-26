@@ -44,6 +44,15 @@ Pré-requisitos: [Azure CLI](https://learn.microsoft.com/cli/azure/install-azure
    ```
    Para publicar só uma parte: `-Banco`, `-Api`, `-Web` ou `-App`.
 
+5. **Acesso direto ao banco** (opcional, para consultar pelo SSMS):
+   ```powershell
+   ./infra/azure/acesso-banco.ps1 -Sufixo dvs
+   ```
+   Define a sua conta do `az login` como administradora Microsoft Entra do servidor SQL e libera o
+   seu IP no firewall (regra `AcessoDev`). No SSMS: servidor `sql-clinica-dvs.database.windows.net`,
+   autenticação **Microsoft Entra MFA**, banco `ClinicaMaisSaudeDb`. Mudou de IP? Rode de novo.
+   Para revogar: `-Remover`.
+
 ## Observações
 
 - **Migrations:** o `publicar.ps1 -Banco` libera o firewall do SQL só para o seu IP durante a

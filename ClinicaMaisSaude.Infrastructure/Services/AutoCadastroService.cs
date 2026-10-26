@@ -26,8 +26,9 @@ namespace ClinicaMaisSaude.Infrastructure.Services
         private readonly IConfiguration _configuration;
         private readonly IEmailService _emailService;
 
-        // Versão dos termos de uso aceitos (consentimento LGPD). Bump ao trocar o texto dos termos.
-        private const string TermosVersaoAtual = "1.0";
+        // Versão dos termos de uso aceitos (consentimento LGPD). Bump ao trocar o texto dos termos,
+        // junto com TERMOS_VERSAO em clinica-frontend/src/constants/termos.ts e no equivalente do mobile.
+        private const string TermosVersaoAtual = "2.0";
 
         public AutoCadastroService(ClinicaDbContext context, IConfiguration configuration, IEmailService emailService)
         {
