@@ -2,7 +2,7 @@
 
 Backlog do produto priorizado por **MoSCoW** (Must / Should / Could / Won't), organizado em épicos.
 Cada história tem critérios de aceite e situação atual. Derivado do histórico de desenvolvimento
-(abr–set/2026) e do roadmap do projeto.
+(abr–out/2026) e do roadmap do projeto. Atualizado em 26/10/2026.
 
 **Legenda de situação:** ✅ Concluído · 🔜 Próximo · 📦 Backlog (planejado, não iniciado)
 
@@ -27,6 +27,11 @@ Cada história tem critérios de aceite e situação atual. Derivado do históri
 | E1-08 | Como equipe, quero **eliminar o caminho duplicado entre as tabelas de identidade** (paciente e profissional ligam à `Pessoa` pelo login *e* diretamente) para que o banco garanta a consistência. | Could | 📦 |
 | E1-09 | Como administrador, quero **escolher quais enfermeiras gerenciam pacientes** (cadastrar, editar, redefinir senha) em vez de todas terem esse acesso. | Should | 📦 |
 | E1-10 | Como sistema, quero **autorização por recurso** (cada um só vê e altera os próprios agendamentos/fichas; enfermeira só redefine senha de paciente). | Must | ✅ |
+| E1-11 | Como sistema, quero **sessão curta** (JWT de 15 min, renovado sem o usuário perceber) e **recusar a renovação** de contas banidas ou desativadas. | Should | ✅ |
+
+**Nota (E8-05):** publicado no Azure (*Azure for Students*) em 25/10/2026: API no App Service B1 (container
+vindo do GHCR), Azure SQL na oferta gratuita e portal + app web em Static Web Apps. Detalhes e custos em
+[`docs/nuvem/ARQUITETURA_NUVEM.md`](../nuvem/ARQUITETURA_NUVEM.md) e scripts em [`infra/azure/`](../../infra/azure/README.md).
 
 **Critérios de aceite (ex. E1-03):** o código expira em 15 min, é de uso único, trava após 5 tentativas;
 o e-mail é enviado com identidade visual da clínica; resposta genérica (anti-enumeração de contas).
@@ -92,6 +97,12 @@ Declaração de Saúde, moderação da IA, aprovação de cadastros e gestão da
 | E4-07 | Como administrador, quero **editar os modelos e perguntas** da Declaração de Saúde. | Should | ✅ |
 | E4-08 | Como administrador, quero **adicionar várias perguntas de uma vez** (colar em lote). | Could | ✅ |
 | E4-09 | Como proponente no **app mobile**, quero o mesmo fluxo em wizard (termos→dados→e-mail→DS). | Must | ✅ |
+| E4-10 | Como administrador, quero a **fila de solicitações paginada**, com busca por nome/CPF e a DS recolhida, para avaliar muitos cadastros sem rolar a página inteira. | Should | ✅ |
+| E4-11 | Como proponente, quero ler os **termos oficiais (LGPD)** antes de aceitar, e a clínica quer registrar **qual versão** foi aceita. | Must | ✅ |
+
+**Critérios de aceite (ex. E4-11):** a API grava com cada solicitação a versão dos termos aceita
+(`TermosVersao`); trocar o texto exige subir a versão na API e nos dois apps, e quem aceitou a versão anterior
+continua registrado com ela.
 
 **Critérios de aceite (ex. E4-05):** máquina de estados `EmAnalise → Aprovada | Recusada`; recusa exige
 motivo e notifica o proponente por e-mail; um modelo já usado em solicitações fica travado para edição
@@ -120,6 +131,8 @@ motivo e notifica o proponente por e-mail; um modelo já usado em solicitações
 | E6-05 | Como paciente, quero **agendar pela IA ou manualmente** (modo avançado). | Should | ✅ |
 | E6-06 | Como paciente, quero **escolher o dia num calendário** que destaca os dias com horário livre. | Should | ✅ |
 | E6-07 | Como paciente, quero um **perfil enxuto** (foto e nome) com telas de *Dados pessoais* e *Configurações*. | Could | ✅ |
+| E6-08 | Como paciente, quero **instalar o app no Android** (APK gerado pelo EAS Build). | Should | 🔜 |
+| E6-09 | Como paciente, quero **usar o app pelo navegador**, sem instalar nada. | Could | ✅ |
 
 ---
 
@@ -142,8 +155,9 @@ motivo e notifica o proponente por e-mail; um modelo já usado em solicitações
 | E8-02 | Como equipe, quero **testes automatizados** (unit/integração) cobrindo regras críticas. | Must | ✅ |
 | E8-03 | Como equipe, quero **CI** (build + testes + tsc) a cada push. | Should | ✅ |
 | E8-04 | Como equipe, quero **artefatos de deploy** (Dockerfile, compose, DEPLOY.md). | Should | ✅ |
-| E8-05 | Como equipe, quero **publicar em nuvem** com pipeline de CD. | Could | 📦 |
-| E8-06 | Como equipe, quero **acessibilidade** auditada (web + mobile). | Should | 🔜 |
+| E8-05 | Como equipe, quero **publicar em nuvem** com pipeline de CD. | Could | ✅ |
+| E8-06 | Como equipe, quero **acessibilidade** auditada (web + mobile). | Should | ✅ |
+| E8-07 | Como equipe, quero **automatizar no CD** a troca da imagem da API e as migrations (hoje são passos do script local). | Could | 📦 |
 
 ---
 
@@ -151,9 +165,9 @@ motivo e notifica o proponente por e-mail; um modelo já usado em solicitações
 
 | Prioridade | Item | Épico |
 |-----------|------|-------|
-| 🔜 Should | Auditoria de acessibilidade (web + mobile) + seção de responsabilidade social | E8-06 |
+| 🔜 Should | APK do app Android (EAS Build) | E6-08 |
 | 📦 Could | Push nativo FCM (background) | E5-03 |
-| 📦 Could | Deploy em nuvem + pipeline de CD + diagrama de arquitetura | E8-05 |
+| 📦 Could | Automatizar troca da imagem e migrations no CD | E8-07 |
 | 📦 Could | Painel administrativo com indicadores | E7-04 |
 | 📦 Should | Permissão "Gerenciar pacientes" por enfermeira | E1-09 |
 | 📦 Could | Eliminar o caminho duplicado entre as tabelas de identidade | E1-08 |

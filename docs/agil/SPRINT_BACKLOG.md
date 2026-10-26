@@ -1,6 +1,6 @@
 # Sprint Backlog — Clínica Mais Saúde
 
-Registro dos *sprints* executados, derivado do histórico real de commits (abr–set/2026). Cada sprint tem
+Registro dos *sprints* executados, derivado do histórico real de commits (abr–out/2026). Cada sprint tem
 **objetivo (meta)**, **itens entregues** (com o épico/história do [Product Backlog](PRODUCT_BACKLOG.md)) e
 **incremento**. O projeto foi conduzido em cadência incremental — cada fase entregou software funcionando.
 
@@ -108,11 +108,51 @@ Registro dos *sprints* executados, derivado do histórico real de commits (abr�
 
 ---
 
+## Sprint 10 — Documentação PIM IV, Acessibilidade e Qualidade (07–20/set/2026)
+**Meta:** produzir os artefatos documentais do PIM IV e reduzir dívida técnica.
+- Documentação ágil (este pacote): Product/Sprint Backlog, Kanban e Cronograma.
+- E8-06 — acessibilidade: VLibras e *skip link* no web, rótulos de acessibilidade no mobile, auditoria WCAG
+  e seção de responsabilidade social (`docs/acessibilidade/`).
+- Refatorações de qualidade: leitura de *claims* centralizada, padrão `Buscar*`, geração de Excel/PDF
+  separada do serviço de relatórios, gateway da Gemini isolado e templates de e-mail centralizados.
+- E3 — triagem por IA acolhe crise emocional (CVV 188) sem punir o paciente.
+- E8-05 (plano) — escalabilidade e monitoramento no plano de nuvem; EAS Build configurado no mobile.
+
+**Incremento:** artefatos do PIM IV versionados e código mais coeso.
+
+---
+
+## Sprint 11 — Paridade Mobile, Segurança e UX (20–25/out/2026)
+**Meta:** fechar a paridade do app com o web e corrigir falhas de autorização.
+- Edição de profissionais pelo admin; remover foto de perfil (web + mobile); profissional responsável na
+  tela de sucesso do agendamento; resultado de exame visível no app.
+- Atualização para **Expo SDK 58** (React Native 0.88).
+- E1-10 — **autorização por recurso** (handlers de agendamento, paciente e conta) com testes; correção de
+  acesso indevido a agendamentos de terceiros.
+- E6-06 — calendário mensal com os dias que têm horário livre; E6-07 — perfil enxuto e *Dados pessoais*.
+- E1-11 — JWT de 15 min com renovação transparente; refresh recusa contas inativas.
+- Lookups de enum passam a começar em 1 (migration `Fase22`) e a API valida tipos numéricos (400).
+
+**Incremento:** app mobile equivalente ao web e API com autorização por recurso.
+
+---
+
+## Sprint 12 — Publicação em Nuvem (25–26/out/2026)
+**Meta:** colocar o sistema no ar e preparar a demonstração.
+- E8-05 — **publicação no Azure**: App Service B1 (API), Azure SQL gratuito, Static Web Apps (portal e app
+  web), imagem gerada pelo GitHub Actions no GHCR; scripts reproduzíveis em `infra/azure/`.
+- E6-09 — versão web do app mobile (SPA com largura de celular).
+- Pacotes com vulnerabilidades conhecidas atualizados; botão *Authorize* no Swagger.
+- E4-10 — fila de solicitações paginada com busca e DS recolhida.
+- E4-11 — termos de uso e proteção de dados oficiais (v2.0), com a versão aceita registrada.
+
+**Incremento:** sistema publicado e acessível pela internet (portal, app web e API).
+
+---
+
 ## Próximos sprints (planejados — frente PIM IV)
 
 | Sprint | Meta | Itens |
 |--------|------|-------|
-| S10 | **Documentação ágil** | Product/Sprint Backlog, Kanban, Cronograma (este pacote) |
-| S11 | **Acessibilidade & responsabilidade social** | Auditoria a11y (web+mobile), seção de inclusão (E8-06) |
-| S12 | **Nuvem & CD** | Deploy real, pipeline de CD, diagrama de arquitetura (E8-05) |
-| S13 | **Monografia ABNT** | Integrar caracterização, planejamento, arquitetura, banco e telas |
+| S13 | **Monografia ABNT + APK** | Integrar os artefatos e as entregas de out/2026 na monografia; E6-08 — APK do app Android |
+| S14 | **Revisão final e entrega** | Revisão ABNT, sumário, contagem de páginas; entrega em 14/11/2026 |
