@@ -98,7 +98,7 @@ namespace ClinicaMaisSaude.Infrastructure.Tests.Services
             Assert.Equal(2, await _context.RespostasDeclaracaoSaude.CountAsync());
             // Consentimento LGPD gravado e token de e-mail consumido (uso único).
             Assert.NotNull(solicitacao.TermosAceitosEm);
-            Assert.Equal("1.0", solicitacao.TermosVersao);
+            Assert.Equal("2.0", solicitacao.TermosVersao);
             Assert.Equal(0, await _context.CodigosVerificacao.CountAsync(c => c.Tipo == TipoVerificacao.VerificacaoEmail));
         }
 
