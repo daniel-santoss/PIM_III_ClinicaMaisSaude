@@ -17,6 +17,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi;
 using System.Text;
 using System.Threading.RateLimiting;
 
@@ -73,7 +74,22 @@ builder.Services.AddCors(options =>
 });
 builder.Services.AddValidatorsFromAssemblyContaining<PacienteRequestValidator>();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+// Botão "Authorize" no Swagger (só em Development): cole o token do login e as rotas
+// protegidas passam a ser chamadas com "Authorization: Bearer <token>".
+builder.Services.AddSwaggerGen(c =>
+{
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        Description = "Cole o token devolvido por POST /api/Auth/login (sem o prefixo \"Bearer\")."
+    });
+    c.AddSecurityRequirement(documento => new OpenApiSecurityRequirement
+    {
+        [new OpenApiSecuritySchemeReference("Bearer", documento)] = []
+    });
+});
 
 // Tratamento global de exceções → respostas ProblemDetails com status HTTP correto.
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
