@@ -188,20 +188,20 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             };
         }
 
-        // ----------------- Fluxo admin (D3): fila de aprovação -----------------
+        // ----------------- Fluxo admin (D3): fila de aprovação, histórico e retificação -----------------
 
-        public async Task<SolicitacoesPaginadasResponse> ListarSolicitacoesEmAnaliseAsync(string? busca, int page, int pageSize)
+        public async Task<SolicitacoesPaginadasResponse> ListarSolicitacoesAsync(StatusSolicitacao status, string? busca, int page, int pageSize)
         {
-            var emAnalise = _context.SolicitacoesCadastro
-                .AsNoTracking()
-                .Where(s => s.Status == StatusSolicitacao.EmAnalise);
+            var todas = _context.SolicitacoesCadastro.AsNoTracking();
 
-            // Indicadores da fila inteira (não dependem da busca nem da página).
-            var totalEmAnalise = await emAnalise.CountAsync();
-            var totalRequerApoio = await emAnalise.CountAsync(s =>
+            // Indicadores e contagem das abas (não dependem da busca nem da página).
+            var totalEmAnalise = await todas.CountAsync(s => s.Status == StatusSolicitacao.EmAnalise);
+            var totalAprovadas = await todas.CountAsync(s => s.Status == StatusSolicitacao.Aprovada);
+            var totalRecusadas = await todas.CountAsync(s => s.Status == StatusSolicitacao.Recusada);
+            var totalRequerApoio = await todas.CountAsync(s => s.Status == StatusSolicitacao.EmAnalise &&
                 _context.Pacientes.Any(p => p.PessoaId == s.PessoaId && p.TemProblemaMemoria));
 
-            var filtradas = emAnalise;
+            var filtradas = todas.Where(s => s.Status == status);
             if (!string.IsNullOrWhiteSpace(busca))
             {
                 var termo = busca.Trim();
@@ -210,42 +210,87 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                     s.Pessoa!.Nome.Contains(termo) || (digitos.Length > 0 && s.Pessoa.Cpf.Contains(digitos)));
             }
 
+            // Em análise é fila (mais antigas primeiro); decididas mostram a decisão mais recente primeiro.
+            var ordenadas = status == StatusSolicitacao.EmAnalise
+                ? filtradas.OrderBy(s => s.DtCriado)
+                : filtradas.OrderByDescending(s => s.UltAtualizacao ?? s.DtCriado);
+
             var totalFiltrado = await filtradas.CountAsync();
-            var solicitacoes = await filtradas
+            var solicitacoes = await ordenadas
                 .Include(s => s.Pessoa)
                 .Include(s => s.Respostas).ThenInclude(r => r.Pergunta)
-                .OrderBy(s => s.DtCriado)
+                .Include(s => s.Historico)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .AsSplitQuery()
                 .ToListAsync();
 
-            // TemProblemaMemoria vive no Paciente (proponente): carrega em lote por PessoaId.
-            var pessoaIds = solicitacoes.Select(s => s.PessoaId).ToList();
+            // Dados de outras tabelas, em lote: apoio de memória (Paciente), contas já criadas,
+            // solicitações mais novas da mesma pessoa e nomes de quem decidiu.
+            var pessoaIds = solicitacoes.Select(s => s.PessoaId).Distinct().ToList();
             var problemaMemoriaPorPessoa = await _context.Pacientes
                 .AsNoTracking()
                 .Where(p => p.PessoaId != null && pessoaIds.Contains(p.PessoaId.Value))
                 .ToDictionaryAsync(p => p.PessoaId!.Value, p => p.TemProblemaMemoria);
+            var pessoasComConta = (await _context.Usuarios.AsNoTracking()
+                .Where(u => u.PessoaId != null && pessoaIds.Contains(u.PessoaId.Value))
+                .Select(u => u.PessoaId!.Value)
+                .ToListAsync()).ToHashSet();
+            var ultimaSolicitacaoPorPessoa = await _context.SolicitacoesCadastro.AsNoTracking()
+                .Where(s => pessoaIds.Contains(s.PessoaId))
+                .GroupBy(s => s.PessoaId)
+                .Select(g => new { PessoaId = g.Key, Ultima = g.Max(s => s.DtCriado) })
+                .ToDictionaryAsync(x => x.PessoaId, x => x.Ultima);
+            var autorIds = solicitacoes.SelectMany(s => s.Historico)
+                .Where(h => h.RealizadoPor != null).Select(h => h.RealizadoPor!.Value).Distinct().ToList();
+            var nomePorUsuario = await _context.Usuarios.AsNoTracking()
+                .Where(u => autorIds.Contains(u.Id))
+                .Select(u => new { u.Id, Nome = u.Pessoa!.Nome })
+                .ToDictionaryAsync(x => x.Id, x => x.Nome);
 
-            var itens = solicitacoes.Select(s => new SolicitacaoAdminResponse
+            string? NomeDe(Guid? usuarioId) =>
+                usuarioId != null && nomePorUsuario.TryGetValue(usuarioId.Value, out var nome) ? nome : null;
+
+            var itens = solicitacoes.Select(s =>
             {
-                SolicitacaoId = s.Id,
-                DtCriado = s.DtCriado,
-                Nome = s.Pessoa?.Nome ?? string.Empty,
-                Cpf = s.Pessoa?.Cpf ?? string.Empty,
-                Email = s.Pessoa?.Email ?? string.Empty,
-                Telefone = s.Pessoa?.Telefone,
-                TemProblemaMemoria = problemaMemoriaPorPessoa.TryGetValue(s.PessoaId, out var tpm) && tpm,
-                Respostas = s.Respostas
-                    .OrderBy(r => r.Pergunta?.Ordem ?? 0)
-                    .Select(r => new RespostaAdminItem
+                var historico = s.Historico.OrderBy(h => h.DtCriado).ToList();
+                var ultima = historico.LastOrDefault();
+                var bloqueio = MotivoNaoRetificavel(s, pessoasComConta.Contains(s.PessoaId),
+                    ultimaSolicitacaoPorPessoa.TryGetValue(s.PessoaId, out var maisNova) && maisNova > s.DtCriado);
+                return new SolicitacaoAdminResponse
+                {
+                    SolicitacaoId = s.Id,
+                    DtCriado = s.DtCriado,
+                    Nome = s.Pessoa?.Nome ?? string.Empty,
+                    Cpf = s.Pessoa?.Cpf ?? string.Empty,
+                    Email = s.Pessoa?.Email ?? string.Empty,
+                    Telefone = s.Pessoa?.Telefone,
+                    TemProblemaMemoria = problemaMemoriaPorPessoa.TryGetValue(s.PessoaId, out var tpm) && tpm,
+                    Respostas = s.Respostas
+                        .OrderBy(r => r.Pergunta?.Ordem ?? 0)
+                        .Select(r => new RespostaAdminItem
+                        {
+                            Pergunta = r.Pergunta?.Pergunta ?? string.Empty,
+                            Ordem = r.Pergunta?.Ordem ?? 0,
+                            Resposta = r.Resposta,
+                            Detalhe = r.Detalhe
+                        })
+                        .ToList(),
+                    Status = s.Status.ToString(),
+                    MotivoRecusa = s.MotivoRecusa,
+                    DecididaEm = ultima?.DtCriado,
+                    DecididaPor = NomeDe(ultima?.RealizadoPor),
+                    PodeRetificar = bloqueio == null,
+                    MotivoNaoRetificavel = bloqueio,
+                    Historico = historico.Select(h => new HistoricoSolicitacaoItem
                     {
-                        Pergunta = r.Pergunta?.Pergunta ?? string.Empty,
-                        Ordem = r.Pergunta?.Ordem ?? 0,
-                        Resposta = r.Resposta,
-                        Detalhe = r.Detalhe
-                    })
-                    .ToList()
+                        StatusAnterior = h.StatusAnterior.ToString(),
+                        StatusNovo = h.StatusNovo.ToString(),
+                        Motivo = h.Motivo,
+                        RealizadoPor = NomeDe(h.RealizadoPor),
+                        Dt = h.DtCriado
+                    }).ToList()
+                };
             }).ToList();
 
             return new SolicitacoesPaginadasResponse
@@ -255,11 +300,25 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                 Page = page,
                 PageSize = pageSize,
                 TotalEmAnalise = totalEmAnalise,
-                TotalRequerApoio = totalRequerApoio
+                TotalRequerApoio = totalRequerApoio,
+                TotalAprovadas = totalAprovadas,
+                TotalRecusadas = totalRecusadas
             };
         }
 
-        public async Task<CadastroResult> AprovarAsync(Guid solicitacaoId)
+        // Regras de retificação que dependem de outras tabelas. Nulo = pode retificar.
+        private static string? MotivoNaoRetificavel(SolicitacaoCadastro s, bool jaTemConta, bool temSolicitacaoMaisNova)
+        {
+            if (s.EstaEmAnalise)
+                return "A solicitação ainda está em análise.";
+            if (temSolicitacaoMaisNova)
+                return "O proponente enviou uma solicitação mais nova; avalie a mais recente.";
+            if (s.Status == StatusSolicitacao.Aprovada && jaTemConta)
+                return "O proponente já concluiu o primeiro acesso. Para retirar o acesso, desative o paciente na tela de Pacientes.";
+            return null;
+        }
+
+        public async Task<CadastroResult> AprovarAsync(Guid solicitacaoId, Guid? realizadoPor = null)
         {
             var solicitacao = await _context.SolicitacoesCadastro
                 .Include(s => s.Pessoa)
@@ -269,7 +328,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             if (!solicitacao.EstaEmAnalise)
                 return Falha("Esta solicitação já foi decidida.");
 
-            solicitacao.Aprovar();
+            solicitacao.Aprovar(realizadoPor);
             await _context.SaveChangesAsync();
 
             // Convite de 1º acesso: o proponente conclui o cadastro definindo a senha no app (fluxo
@@ -284,7 +343,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             };
         }
 
-        public async Task<CadastroResult> RecusarAsync(Guid solicitacaoId, string motivo)
+        public async Task<CadastroResult> RecusarAsync(Guid solicitacaoId, string motivo, Guid? realizadoPor = null)
         {
             if (string.IsNullOrWhiteSpace(motivo))
                 return Falha("Informe o motivo da recusa.");
@@ -297,7 +356,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             if (!solicitacao.EstaEmAnalise)
                 return Falha("Esta solicitação já foi decidida.");
 
-            solicitacao.Recusar(motivo);
+            solicitacao.Recusar(motivo, realizadoPor);
 
             // O perfil do proponente (sem conta) é encerrado; a Pessoa permanece (CPF único), então
             // ele pode reaplicar depois — o SolicitarAsync reabre via Paciente.ReabrirComoProponente.
@@ -314,6 +373,64 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             {
                 Sucesso = true,
                 Mensagem = "Solicitação recusada. O proponente foi avisado por e-mail."
+            };
+        }
+
+        public async Task<CadastroResult> RetificarAsync(Guid solicitacaoId, string motivo, Guid? realizadoPor = null)
+        {
+            if (string.IsNullOrWhiteSpace(motivo))
+                return Falha("Informe o motivo da retificação.");
+
+            var solicitacao = await _context.SolicitacoesCadastro
+                .Include(s => s.Pessoa)
+                .FirstOrDefaultAsync(s => s.Id == solicitacaoId);
+            if (solicitacao == null)
+                return Falha("Solicitação não encontrada.");
+
+            var jaTemConta = await _context.Usuarios.AnyAsync(u => u.PessoaId == solicitacao.PessoaId);
+            var temMaisNova = await _context.SolicitacoesCadastro.AnyAsync(s =>
+                s.PessoaId == solicitacao.PessoaId && s.DtCriado > solicitacao.DtCriado);
+            var bloqueio = MotivoNaoRetificavel(solicitacao, jaTemConta, temMaisNova);
+            if (bloqueio != null)
+                return Falha(bloqueio);
+
+            var paciente = await _context.Pacientes.FirstOrDefaultAsync(p => p.PessoaId == solicitacao.PessoaId);
+            var eraAprovada = solicitacao.Status == StatusSolicitacao.Aprovada;
+            solicitacao.Retificar(motivo, realizadoPor);
+
+            if (eraAprovada)
+            {
+                // Aprovada → Recusada: encerra o perfil como numa recusa e invalida códigos de 1º acesso
+                // já emitidos, para ninguém concluir a conta com um código de antes da retificação.
+                paciente?.Excluir();
+                var codigos = await _context.CodigosVerificacao
+                    .Where(c => c.Tipo == TipoVerificacao.PrimeiroAcesso && c.PessoaId == solicitacao.PessoaId)
+                    .ToListAsync();
+                _context.CodigosVerificacao.RemoveRange(codigos);
+            }
+            else
+            {
+                // Recusada → Aprovada: o perfil (encerrado na recusa) volta a proponente em análise,
+                // estado esperado pelo 1º acesso.
+                paciente?.ReabrirComoProponente(paciente.TemProblemaMemoria);
+            }
+
+            await _context.SaveChangesAsync();
+
+            if (eraAprovada)
+                await EnviarEmailAsync(solicitacao.Pessoa!, "Sobre a sua solicitação de cadastro",
+                    CorpoRecusa(solicitacao.Pessoa!.Nome, solicitacao.MotivoRecusa!),
+                    TextoRecusa(solicitacao.Pessoa!.Nome, solicitacao.MotivoRecusa!));
+            else
+                await EnviarEmailAsync(solicitacao.Pessoa!, "Cadastro aprovado — faça seu primeiro acesso",
+                    CorpoAprovacao(solicitacao.Pessoa!.Nome), TextoAprovacao(solicitacao.Pessoa!.Nome));
+
+            return new CadastroResult
+            {
+                Sucesso = true,
+                Mensagem = eraAprovada
+                    ? "Decisão retificada para recusada. O proponente foi avisado por e-mail."
+                    : "Decisão retificada para aprovada. O proponente foi avisado por e-mail para concluir o primeiro acesso."
             };
         }
 

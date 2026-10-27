@@ -829,6 +829,44 @@ namespace ClinicaMaisSaude.Infrastructure.Migrations
                     b.ToTable("SolicitacoesCadastro", (string)null);
                 });
 
+            modelBuilder.Entity("ClinicaMaisSaude.Domain.Entities.SolicitacaoCadastroHistorico", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("DtCriado")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("Dt_Criado");
+
+                    b.Property<string>("Motivo")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<Guid?>("RealizadoPor")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("SolicitacaoId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("StatusAnterior")
+                        .HasColumnType("int");
+
+                    b.Property<int>("StatusNovo")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RealizadoPor");
+
+                    b.HasIndex("SolicitacaoId");
+
+                    b.HasIndex("StatusAnterior");
+
+                    b.HasIndex("StatusNovo");
+
+                    b.ToTable("SolicitacoesCadastroHistorico", (string)null);
+                });
+
             modelBuilder.Entity("ClinicaMaisSaude.Domain.Entities.StatusAgendamentoLookup", b =>
                 {
                     b.Property<int>("Id")
@@ -1471,6 +1509,34 @@ namespace ClinicaMaisSaude.Infrastructure.Migrations
                     b.Navigation("Pessoa");
                 });
 
+            modelBuilder.Entity("ClinicaMaisSaude.Domain.Entities.SolicitacaoCadastroHistorico", b =>
+                {
+                    b.HasOne("ClinicaMaisSaude.Domain.Entities.Usuario", null)
+                        .WithMany()
+                        .HasForeignKey("RealizadoPor")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("ClinicaMaisSaude.Domain.Entities.SolicitacaoCadastro", "Solicitacao")
+                        .WithMany("Historico")
+                        .HasForeignKey("SolicitacaoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ClinicaMaisSaude.Domain.Entities.StatusSolicitacaoLookup", null)
+                        .WithMany()
+                        .HasForeignKey("StatusAnterior")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ClinicaMaisSaude.Domain.Entities.StatusSolicitacaoLookup", null)
+                        .WithMany()
+                        .HasForeignKey("StatusNovo")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Solicitacao");
+                });
+
             modelBuilder.Entity("ClinicaMaisSaude.Domain.Entities.UsoInadequadoIA", b =>
                 {
                     b.HasOne("ClinicaMaisSaude.Domain.Entities.TipoViolacaoLookup", null)
@@ -1530,6 +1596,8 @@ namespace ClinicaMaisSaude.Infrastructure.Migrations
 
             modelBuilder.Entity("ClinicaMaisSaude.Domain.Entities.SolicitacaoCadastro", b =>
                 {
+                    b.Navigation("Historico");
+
                     b.Navigation("Respostas");
                 });
 

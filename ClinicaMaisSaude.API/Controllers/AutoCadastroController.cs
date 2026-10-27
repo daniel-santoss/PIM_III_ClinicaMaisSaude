@@ -1,6 +1,7 @@
 using ClinicaMaisSaude.Application.DTOs.Auth;
 using ClinicaMaisSaude.Application.DTOs.AutoCadastro;
 using ClinicaMaisSaude.Application.Exceptions;
+using ClinicaMaisSaude.Domain.Enums;
 using ClinicaMaisSaude.Application.Interfaces;
 using ClinicaMaisSaude.Domain.Constants;
 using Microsoft.AspNetCore.Authorization;
@@ -70,16 +71,22 @@ namespace ClinicaMaisSaude.API.Controllers
             return Ok(new { Mensagem = resultado.Mensagem });
         }
 
-        // ----------------- Fila de aprovação (ADMIN, D3) -----------------
+        // ----------------- Fila de aprovação, histórico e retificação (ADMIN, D3) -----------------
 
+        /// <summary>Solicitações de um status: EmAnalise (padrão), Aprovada ou Recusada.</summary>
         [HttpGet("solicitacoes")]
         [Authorize]
-        public async Task<IActionResult> ListarSolicitacoes([FromQuery] string? busca, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+        public async Task<IActionResult> ListarSolicitacoes([FromQuery] string? status, [FromQuery] string? busca,
+            [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
         {
             ExigirAdmin();
+            var filtro = StatusSolicitacao.EmAnalise;
+            if (!string.IsNullOrWhiteSpace(status) &&
+                (!Enum.TryParse(status, ignoreCase: true, out filtro) || !Enum.IsDefined(filtro)))
+                return BadRequest("Status inválido. Use EmAnalise, Aprovada ou Recusada.");
             page = Math.Max(1, page);
             pageSize = Math.Clamp(pageSize, 1, 50);
-            var solicitacoes = await _service.ListarSolicitacoesEmAnaliseAsync(busca, page, pageSize);
+            var solicitacoes = await _service.ListarSolicitacoesAsync(filtro, busca, page, pageSize);
             return Ok(solicitacoes);
         }
 
@@ -88,7 +95,7 @@ namespace ClinicaMaisSaude.API.Controllers
         public async Task<IActionResult> Aprovar(Guid id)
         {
             ExigirAdmin();
-            var resultado = await _service.AprovarAsync(id);
+            var resultado = await _service.AprovarAsync(id, UsuarioLogadoId);
             if (!resultado.Sucesso)
                 return BadRequest(resultado.Mensagem);
             return Ok(new { Mensagem = resultado.Mensagem });
@@ -99,7 +106,19 @@ namespace ClinicaMaisSaude.API.Controllers
         public async Task<IActionResult> Recusar(Guid id, [FromBody] RecusarSolicitacaoRequest request)
         {
             ExigirAdmin();
-            var resultado = await _service.RecusarAsync(id, request?.Motivo ?? string.Empty);
+            var resultado = await _service.RecusarAsync(id, request?.Motivo ?? string.Empty, UsuarioLogadoId);
+            if (!resultado.Sucesso)
+                return BadRequest(resultado.Mensagem);
+            return Ok(new { Mensagem = resultado.Mensagem });
+        }
+
+        /// <summary>Inverte uma decisão já tomada (Aprovada ↔ Recusada), com motivo obrigatório.</summary>
+        [HttpPost("solicitacoes/{id}/retificar")]
+        [Authorize]
+        public async Task<IActionResult> Retificar(Guid id, [FromBody] RetificarSolicitacaoRequest request)
+        {
+            ExigirAdmin();
+            var resultado = await _service.RetificarAsync(id, request?.Motivo ?? string.Empty, UsuarioLogadoId);
             if (!resultado.Sucesso)
                 return BadRequest(resultado.Mensagem);
             return Ok(new { Mensagem = resultado.Mensagem });
