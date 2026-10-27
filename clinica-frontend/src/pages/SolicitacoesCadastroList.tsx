@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { API_URL } from "../constants/api";
 import {
-  Inbox, Search, RefreshCw, Check, X, Brain, Mail, Phone, UserCheck, ChevronDown, ClipboardList, History, RotateCcw,
+  Inbox, Search, RefreshCw, Check, X, Brain, Mail, Phone, UserCheck, ChevronDown, ClipboardList, History, RotateCcw, Info,
 } from "lucide-react";
 import { getRealDate } from "../utils/dates";
 import { useToast } from "../hooks/useToast";
@@ -31,6 +31,7 @@ type Solicitacao = {
 };
 type HistoricoItem = { statusAnterior: StatusSolicitacao; statusNovo: StatusSolicitacao; motivo: string | null; realizadoPor: string | null; dt: string };
 type StatusSolicitacao = "EmAnalise" | "Aprovada" | "Recusada";
+type Painel = "ds" | "hist";
 type PaginaSolicitacoes = {
   items: Solicitacao[];
   totalCount: number;
@@ -70,9 +71,8 @@ export default function SolicitacoesCadastroList() {
   // Aba = status listado. Decididas ficam consultáveis (e retificáveis) em vez de sumirem.
   const [aba, setAba] = useState<StatusSolicitacao>("EmAnalise");
   const [totais, setTotais] = useState({ filtrado: 0, paginas: 1, emAnalise: 0, requerApoio: 0, aprovadas: 0, recusadas: 0 });
-  const [historicoAberto, setHistoricoAberto] = useState<Record<string, boolean>>({});
-  // Declaração de saúde recolhida por padrão; abre por solicitação.
-  const [expandidas, setExpandidas] = useState<Record<string, boolean>>({});
+  // Painel aberto em cada card (declaração de saúde ou histórico), um por vez; tudo recolhido por padrão.
+  const [painelAberto, setPainelAberto] = useState<Record<string, Painel | null>>({});
   const [processando, setProcessando] = useState<Record<string, boolean>>({});
 
   const [aprovarAlvo, setAprovarAlvo] = useState<{ id: string; nome: string } | null>(null);
@@ -272,161 +272,149 @@ export default function SolicitacoesCadastroList() {
           <div className="grid grid-cols-1 gap-4">
             {solicitacoes.map(s => {
               const ocupado = processando[s.solicitacaoId];
-              const aberta = !!expandidas[s.solicitacaoId];
+              const painel = painelAberto[s.solicitacaoId] ?? null;
+              const alternar = (p: Painel) => setPainelAberto(a => ({ ...a, [s.solicitacaoId]: a[s.solicitacaoId] === p ? null : p }));
               const totalSim = s.respostas.filter(r => r.resposta).length;
-              const idPainel = `ds-${s.solicitacaoId}`;
+              const idPainel = `painel-${s.solicitacaoId}`;
+              const botaoPainel = (ativo: boolean) =>
+                `h-9 px-3 inline-flex items-center gap-2 rounded-md border text-[13px] font-medium transition-colors ${
+                  ativo ? "border-brand-600 bg-brand-50 text-brand-600" : "border-line bg-white text-body hover:bg-canvas"
+                }`;
               return (
-                <div key={s.solicitacaoId} className="flex flex-col gap-4 p-5 rounded-lg bg-white border border-line">
-                  {/* Cabeçalho */}
-                  <div className="flex items-start justify-between gap-4 flex-wrap sm:flex-nowrap">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-9 h-9 rounded-lg flex items-center justify-center text-[13px] font-semibold shrink-0 bg-brand-50 text-brand-600">
-                        {getInitials(s.nome)}
+                <div key={s.solicitacaoId} className="rounded-lg bg-white border border-line">
+                  {/* Identificação + status */}
+                  <div className="p-5 flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-lg flex items-center justify-center text-[13px] font-semibold shrink-0 bg-brand-50 text-brand-600">
+                      {getInitials(s.nome)}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                        <span className="font-semibold text-ink text-sm">{s.nome}</span>
+                        <span className="text-[13px] text-muted">CPF: {s.cpf}</span>
+                        {s.temProblemaMemoria && (
+                          <Badge variant="warning" className="gap-1"><Brain className="w-3 h-3" /> Requer apoio</Badge>
+                        )}
                       </div>
-                      <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="font-semibold text-ink text-sm">{s.nome}</span>
-                          <span className="text-[13px] text-muted">CPF: {s.cpf}</span>
-                          {s.temProblemaMemoria && (
-                            <Badge variant="warning" className="gap-1"><Brain className="w-3 h-3" /> Requer apoio</Badge>
-                          )}
-                        </div>
-                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1.5 text-[12px] text-muted">
-                          <span className="inline-flex items-center gap-1.5"><Mail className="w-3.5 h-3.5" /> {s.email}</span>
-                          {s.telefone && <span className="inline-flex items-center gap-1.5"><Phone className="w-3.5 h-3.5" /> {s.telefone}</span>}
-                        </div>
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-[12px] text-muted">
+                        <span className="inline-flex items-center gap-1.5"><Mail className="w-3.5 h-3.5" /> {s.email}</span>
+                        {s.telefone && <span className="inline-flex items-center gap-1.5"><Phone className="w-3.5 h-3.5" /> {s.telefone}</span>}
+                      </div>
+                      <div className="flex flex-wrap items-center gap-x-1.5 mt-1 text-[12px] text-muted">
+                        <span>Enviada em {formatarDataHora(s.dtCriado)}</span>
+                        {s.decididaEm && (
+                          <>
+                            <span aria-hidden="true">·</span>
+                            <span>Decidida em {formatarDataHora(s.decididaEm)}{s.decididaPor ? ` por ${s.decididaPor}` : ""}</span>
+                          </>
+                        )}
                       </div>
                     </div>
-                    <div className="text-right shrink-0 flex flex-col items-end gap-1">
-                      {s.status !== "EmAnalise" && (
-                        <Badge variant={s.status === "Aprovada" ? "success" : "danger"}>{ROTULO_STATUS[s.status]}</Badge>
-                      )}
-                      <span className="text-xs text-muted">Enviada em {formatarDataHora(s.dtCriado)}</span>
-                      {s.decididaEm && (
-                        <span className="text-xs text-muted">
-                          Decidida em {formatarDataHora(s.decididaEm)}{s.decididaPor ? ` por ${s.decididaPor}` : ""}
-                        </span>
-                      )}
-                    </div>
+                    {s.status !== "EmAnalise" && (
+                      <Badge variant={s.status === "Aprovada" ? "success" : "danger"} className="shrink-0">{ROTULO_STATUS[s.status]}</Badge>
+                    )}
                   </div>
 
                   {s.status === "Recusada" && s.motivoRecusa && (
-                    <div className="px-4 py-3 rounded-md bg-danger-tint border border-danger-border text-[13px] text-body">
+                    <div className="mx-5 mb-4 px-4 py-3 rounded-md bg-danger-tint border border-danger-border text-[13px] text-body">
                       <span className="font-semibold text-danger">Motivo da recusa: </span>{s.motivoRecusa}
                     </div>
                   )}
 
-                  {/* Declaração de Saúde: recolhida; o botão mostra quantas respostas foram "Sim". */}
-                  <div className="rounded-md border border-line">
-                    <button
-                      type="button"
-                      onClick={() => setExpandidas(e => ({ ...e, [s.solicitacaoId]: !aberta }))}
-                      aria-expanded={aberta}
-                      aria-controls={idPainel}
-                      className={`w-full flex items-center gap-2.5 px-4 py-3 text-left hover:bg-canvas transition-colors ${aberta ? "rounded-t-md border-b border-line" : "rounded-md"}`}
-                    >
-                      <ClipboardList className="w-4 h-4 text-brand-600 shrink-0" />
-                      <span className="text-[13px] font-semibold text-ink">Declaração de saúde</span>
-                      <span className="text-[12px] text-muted">
-                        {s.respostas.length} {s.respostas.length === 1 ? "pergunta" : "perguntas"}
-                      </span>
+                  {/* Barra única: painéis à esquerda, ações à direita */}
+                  <div className="px-5 py-3 border-t border-line flex flex-wrap items-center gap-2">
+                    <button type="button" onClick={() => alternar("ds")} aria-expanded={painel === "ds"} aria-controls={idPainel}
+                      className={botaoPainel(painel === "ds")}>
+                      <ClipboardList className="w-4 h-4" />
+                      Declaração de saúde
+                      <span className="text-[12px] text-muted">{s.respostas.length}</span>
                       {totalSim > 0 && (
-                        <Badge variant="warning">{totalSim} {totalSim === 1 ? "resposta \"Sim\"" : "respostas \"Sim\""}</Badge>
+                        <span className="px-1.5 py-0.5 rounded text-[11px] font-semibold bg-warning-tint text-warning-text">
+                          {totalSim} "Sim"
+                        </span>
                       )}
-                      <span className="ml-auto inline-flex items-center gap-1 text-[12px] font-medium text-brand-600">
-                        {aberta ? "Recolher" : "Ver respostas"}
-                        <ChevronDown className={`w-4 h-4 transition-transform ${aberta ? "rotate-180" : ""}`} />
-                      </span>
+                      <ChevronDown className={`w-4 h-4 transition-transform ${painel === "ds" ? "rotate-180" : ""}`} />
                     </button>
+                    {s.historico.length > 0 && (
+                      <button type="button" onClick={() => alternar("hist")} aria-expanded={painel === "hist"} aria-controls={idPainel}
+                        className={botaoPainel(painel === "hist")}>
+                        <History className="w-4 h-4" />
+                        Histórico
+                        <span className="text-[12px] text-muted">{s.historico.length}</span>
+                        <ChevronDown className={`w-4 h-4 transition-transform ${painel === "hist" ? "rotate-180" : ""}`} />
+                      </button>
+                    )}
 
-                    {aberta && (
-                      <div id={idPainel} className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 p-4 bg-canvas rounded-b-md">
-                        {s.respostas.map((r, i) => {
-                          const idCampo = `${idPainel}-${i}`;
-                          const valor = r.resposta ? (r.detalhe ? `Sim — ${r.detalhe}` : "Sim") : "Não";
-                          return (
-                            <div key={i} className="flex flex-col gap-1.5">
-                              <label htmlFor={idCampo} className="text-[13px] font-medium text-ink leading-snug">{r.pergunta}</label>
-                              <input
-                                id={idCampo}
-                                type="text"
-                                readOnly
-                                value={valor}
-                                title={valor}
-                                className={`w-full h-10 px-3 text-sm bg-white border rounded-md outline-none cursor-default ${
-                                  r.resposta ? "border-warning-border text-warning-text font-medium" : "border-line text-body"
-                                }`}
-                              />
-                            </div>
-                          );
-                        })}
-                      </div>
+                    <div className="ml-auto flex items-center gap-2">
+                      {s.status === "EmAnalise" ? (
+                        <>
+                          <Button variant="danger" size="sm" icon={<X size={15} />} disabled={ocupado}
+                            onClick={() => { setMotivo(""); setRecusarAlvo({ id: s.solicitacaoId, nome: s.nome }); }}>
+                            Recusar
+                          </Button>
+                          <Button variant="primary" size="sm" icon={<Check size={15} />} disabled={ocupado}
+                            onClick={() => setAprovarAlvo({ id: s.solicitacaoId, nome: s.nome })}>
+                            Aprovar
+                          </Button>
+                        </>
+                      ) : (
+                        <Button variant="secondary" size="sm" icon={<RotateCcw size={15} />}
+                          disabled={ocupado || !s.podeRetificar}
+                          title={s.podeRetificar ? undefined : s.motivoNaoRetificavel ?? undefined}
+                          onClick={() => { setMotivo(""); setRetificarAlvo({ id: s.solicitacaoId, nome: s.nome, status: s.status }); }}>
+                          Retificar decisão
+                        </Button>
+                      )}
+                    </div>
+
+                    {!s.podeRetificar && s.status !== "EmAnalise" && s.motivoNaoRetificavel && (
+                      <p className="w-full flex items-start justify-end gap-1.5 text-[12px] text-muted">
+                        <Info className="w-3.5 h-3.5 mt-px shrink-0" /> {s.motivoNaoRetificavel}
+                      </p>
                     )}
                   </div>
 
-                  {/* Histórico de decisões (decididas) */}
-                  {s.historico.length > 0 && (
-                    <div className="rounded-md border border-line">
-                      <button
-                        type="button"
-                        onClick={() => setHistoricoAberto(h => ({ ...h, [s.solicitacaoId]: !h[s.solicitacaoId] }))}
-                        aria-expanded={!!historicoAberto[s.solicitacaoId]}
-                        className="w-full flex items-center gap-2.5 px-4 py-3 text-left hover:bg-canvas transition-colors rounded-md"
-                      >
-                        <History className="w-4 h-4 text-brand-600 shrink-0" />
-                        <span className="text-[13px] font-semibold text-ink">Histórico de decisões</span>
-                        <span className="text-[12px] text-muted">
-                          {s.historico.length} {s.historico.length === 1 ? "registro" : "registros"}
-                        </span>
-                        <span className="ml-auto inline-flex items-center gap-1 text-[12px] font-medium text-brand-600">
-                          {historicoAberto[s.solicitacaoId] ? "Recolher" : "Ver histórico"}
-                          <ChevronDown className={`w-4 h-4 transition-transform ${historicoAberto[s.solicitacaoId] ? "rotate-180" : ""}`} />
-                        </span>
-                      </button>
-                      {historicoAberto[s.solicitacaoId] && (
-                        <ol className="border-t border-line bg-canvas rounded-b-md px-4 py-3 flex flex-col gap-3">
-                          {s.historico.map((h, i) => (
-                            <li key={i} className="text-[13px] text-body">
-                              <div>
-                                <span className="font-semibold text-ink">
-                                  {ROTULO_STATUS[h.statusAnterior]} → {ROTULO_STATUS[h.statusNovo]}
-                                </span>
-                                {h.statusAnterior !== "EmAnalise" && <span className="text-muted"> (retificação)</span>}
-                              </div>
-                              <div className="text-[12px] text-muted">
-                                {formatarDataHora(h.dt)} · {h.realizadoPor ?? "registro anterior ao histórico"}
-                              </div>
-                              {h.motivo && <div className="mt-0.5">Motivo: {h.motivo}</div>}
-                            </li>
-                          ))}
-                        </ol>
-                      )}
+                  {/* Painel aberto (um por vez) */}
+                  {painel === "ds" && (
+                    <div id={idPainel} className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 p-5 border-t border-line bg-canvas rounded-b-lg">
+                      {s.respostas.map((r, i) => {
+                        const idCampo = `${idPainel}-${i}`;
+                        const valor = r.resposta ? (r.detalhe ? `Sim — ${r.detalhe}` : "Sim") : "Não";
+                        return (
+                          <div key={i} className="flex flex-col gap-1.5">
+                            <label htmlFor={idCampo} className="text-[13px] font-medium text-ink leading-snug">{r.pergunta}</label>
+                            <input
+                              id={idCampo}
+                              type="text"
+                              readOnly
+                              value={valor}
+                              title={valor}
+                              className={`w-full h-10 px-3 text-sm bg-white border rounded-md outline-none cursor-default ${
+                                r.resposta ? "border-warning-border text-warning-text font-medium" : "border-line text-body"
+                              }`}
+                            />
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
-
-                  {/* Ações */}
-                  {s.status === "EmAnalise" ? (
-                    <div className="flex justify-end gap-2">
-                      <Button variant="danger" size="sm" icon={<X size={15} />} disabled={ocupado}
-                        onClick={() => { setMotivo(""); setRecusarAlvo({ id: s.solicitacaoId, nome: s.nome }); }}>
-                        Recusar
-                      </Button>
-                      <Button variant="primary" size="sm" icon={<Check size={15} />} disabled={ocupado}
-                        onClick={() => setAprovarAlvo({ id: s.solicitacaoId, nome: s.nome })}>
-                        Aprovar
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-2">
-                      {!s.podeRetificar && s.motivoNaoRetificavel && (
-                        <span className="text-[12px] text-muted sm:mr-auto">{s.motivoNaoRetificavel}</span>
-                      )}
-                      <Button variant="secondary" size="sm" icon={<RotateCcw size={15} />}
-                        disabled={ocupado || !s.podeRetificar}
-                        onClick={() => { setMotivo(""); setRetificarAlvo({ id: s.solicitacaoId, nome: s.nome, status: s.status }); }}>
-                        Retificar decisão
-                      </Button>
-                    </div>
+                  {painel === "hist" && (
+                    <ol id={idPainel} className="p-5 border-t border-line bg-canvas rounded-b-lg flex flex-col gap-4">
+                      {s.historico.map((h, i) => (
+                        <li key={i} className="flex gap-3 text-[13px] text-body">
+                          <span className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${h.statusNovo === "Aprovada" ? "bg-success" : "bg-danger"}`} />
+                          <div className="min-w-0">
+                            <div>
+                              <span className="font-semibold text-ink">{ROTULO_STATUS[h.statusAnterior]} → {ROTULO_STATUS[h.statusNovo]}</span>
+                              {h.statusAnterior !== "EmAnalise" && <span className="text-muted"> · retificação</span>}
+                            </div>
+                            <div className="text-[12px] text-muted">
+                              {formatarDataHora(h.dt)} · {h.realizadoPor ?? "registro anterior ao histórico"}
+                            </div>
+                            {h.motivo && <div className="mt-0.5">Motivo: {h.motivo}</div>}
+                          </div>
+                        </li>
+                      ))}
+                    </ol>
                   )}
                 </div>
               );
