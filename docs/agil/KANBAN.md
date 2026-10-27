@@ -1,6 +1,6 @@
 # Quadro Kanban — Clínica Mais Saúde
 
-Retrato do fluxo de trabalho (atualizado em **07/09/2026**). O quadro reflete a situação das histórias do
+Retrato do fluxo de trabalho (atualizado em **26/10/2026**). O quadro reflete a situação das histórias do
 [Product Backlog](PRODUCT_BACKLOG.md). Política de **WIP** (trabalho em progresso): no máximo **1–2 itens**
 em *Em andamento* — o projeto é conduzido por uma equipe enxuta, priorizando fluxo contínuo.
 
@@ -15,12 +15,12 @@ flowchart LR
 
 | 📋 Backlog | 🔜 A fazer | ⚙️ Em andamento | ✅ Concluído (recentes) |
 |-----------|-----------|-----------------|--------------------------|
-| E5-03 Push nativo FCM | E8-06 Auditoria de acessibilidade (web+mobile) | **Documentação ágil (PIM IV)** *(este pacote)* | E4-09 Auto-cadastro mobile em wizard |
-| E8-05 Deploy em nuvem + CD | Seção de responsabilidade social/inclusão | | E4-02 30 perguntas oficiais da DS |
-| E7-04 Painel de indicadores | Diagrama de arquitetura em nuvem | | E4-08 "Colar várias perguntas" no editor |
-| 2º fator no 1º acesso | Monografia ABNT — seções escritas | | Artefatos de banco (MER/DDL/procedures) |
-| Multi-tenant (unidades) | | | E4-03 Verificação de e-mail por código |
-| Planos de saúde na home *(descartado por ora)* | | | E1-03 Recuperação de senha self-service |
+| E5-03 Push nativo FCM | E6-08 APK do app Android (EAS) | **Monografia ABNT** (integração das entregas de out/2026) | E8-05 Publicação no Azure |
+| E8-07 Troca de imagem e migrations no CD | Revisão final da monografia | | E4-11 Termos LGPD oficiais (v2.0) |
+| E7-04 Painel de indicadores | | | E4-10 Fila de solicitações paginada |
+| E1-09 Permissão "Gerenciar pacientes" | | | E1-11 Sessão de 15 min com renovação |
+| E1-08 Caminho duplicado nas tabelas de identidade | | | E1-10 Autorização por recurso |
+| 2º fator no 1º acesso · Multi-tenant *(fora do escopo atual)* | | | E6-06/07 Calendário e perfil enxuto (mobile) |
 
 ## Regras de política (Definition of Done)
 
@@ -33,6 +33,7 @@ Um item só entra em **✅ Concluído** quando:
 
 ## Métricas de fluxo (visão geral)
 
-- **222 commits** entre 07/04 e 07/09/2026 · picos de entrega em maio (features) e agosto (refactor + mobile).
-- **~107 testes** automatizados no backend + `tsc` (web/mobile) na CI.
+- **312 commits** entre 07/04 e 26/10/2026 · picos de entrega em maio (features), agosto (refactor + mobile) e
+  outubro (segurança, paridade mobile e publicação).
+- **172 testes** automatizados no backend (domínio, aplicação, API e infraestrutura) + `tsc` (web/mobile) na CI.
 - Cadência: entregas incrementais frequentes; sem *sprints* de duração fixa (fluxo Kanban orientado a tema).

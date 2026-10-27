@@ -26,11 +26,11 @@ gantt
     S9 Correções & artefatos de banco (PIM IV)    :done, s9, 2026-09-07, 2026-09-07
 
     section Documentação (PIM IV)
-    S10 Documentação ágil                         :active, s10, 2026-09-07, 3d
-    S11 Acessibilidade & responsabilidade social  :         s11, 2026-09-15, 12d
-    S12 Nuvem, CD & diagrama de arquitetura       :         s12, 2026-10-01, 14d
-    S13 Redação da monografia (ABNT)              :         s13, 2026-10-06, 35d
-    Revisão final & entrega                       :crit,    s14, 2026-11-10, 4d
+    S10 Documentação PIM IV, a11y & qualidade     :done,   s10, 2026-09-07, 2026-09-20
+    S11 Paridade mobile, segurança & UX           :done,   s11, 2026-10-20, 2026-10-25
+    S12 Publicação em nuvem (Azure)               :done,   s12, 2026-10-25, 2026-10-26
+    S13 Monografia ABNT + APK                     :active, s13, 2026-10-26, 2026-11-10
+    Revisão final & entrega                       :crit,   s14, 2026-11-10, 4d
     Entrega da monografia                         :milestone, m1, 2026-11-14, 0d
 ```
 
@@ -47,15 +47,17 @@ gantt
 | 31/08/2026 | Auto-cadastro moderado no backend + editor da DS |
 | 02/09/2026 | Auto-cadastro ponta a ponta com wizard e verificação de e-mail |
 | 07/09/2026 | Correções mobile · 30 perguntas da DS · **artefatos de banco (PIM IV)** |
+| 13/09/2026 | Documentação ágil, acessibilidade (VLibras) e plano de nuvem concluídos |
+| 24/10/2026 | Expo SDK 58 · **autorização por recurso** na API |
+| 25/10/2026 | **Sistema publicado no Azure** (API, banco, portal e app web) |
 | **14/11/2026** | **Entrega da monografia do PIM IV** (ABNT) |
 
 ## Frente restante até a entrega
 
-1. **Documentação ágil** (este pacote) — Product/Sprint Backlog, Kanban, Cronograma. *(em andamento)*
-2. **Acessibilidade** — auditoria web + mobile; seção de responsabilidade social/inclusão.
-3. **Nuvem & CD** — publicar em um provedor, pipeline de deploy, diagrama de arquitetura.
-4. **Monografia ABNT** — capa, resumo/abstract, sumário, introdução, desenvolvimento (20–30 pág.),
-   conclusão e referências, integrando os artefatos de web, mobile, banco e DevOps já produzidos.
+1. **Monografia ABNT** — integrar as entregas de outubro (publicação no Azure, autorização por recurso,
+   sessão curta, termos LGPD v2.0) e revisar capa, sumário e contagem de páginas.
+2. **APK do app Android** (EAS Build) — app instalável para a demonstração.
+3. **Revisão final e entrega** em 14/11/2026.
 
 > **Observação de método:** o projeto usou fluxo incremental contínuo (estilo Kanban) em vez de sprints de
 > duração fixa. O agrupamento em "S0…S13" é uma leitura *a posteriori* para fins de documentação e não
