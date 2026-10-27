@@ -177,6 +177,17 @@ Se você não solicitou o primeiro acesso, ignore este e-mail."));
                 throw new ValidationException("Token inválido ou expirado.");
             }
 
+            // A decisão pode ter sido retificada para "recusada" depois de o código ser emitido:
+            // só cria a conta se a solicitação do código continua aprovada.
+            var aindaAprovada = await _context.SolicitacoesCadastro.AnyAsync(s =>
+                s.Id == codigo.SolicitacaoId && s.Status == StatusSolicitacao.Aprovada);
+            if (!aindaAprovada)
+            {
+                _context.CodigosVerificacao.Remove(codigo);
+                await _context.SaveChangesAsync();
+                throw new ValidationException("Token inválido ou expirado.");
+            }
+
             var paciente = await _context.Pacientes.FirstOrDefaultAsync(p => p.PessoaId == codigo.PessoaId);
             if (paciente == null) throw new ValidationException("Cadastro não encontrado.");
 

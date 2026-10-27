@@ -29,6 +29,8 @@ namespace ClinicaMaisSaude.Domain.Entities
         public virtual Pessoa? Pessoa { get; private set; }
         public virtual ModeloDeclaracaoSaude? Modelo { get; private set; }
         public virtual ICollection<RespostaDeclaracaoSaude> Respostas { get; private set; } = new List<RespostaDeclaracaoSaude>();
+        /// <summary>Decisões (aprovação, recusa, retificação), na ordem em que ocorreram.</summary>
+        public virtual ICollection<SolicitacaoCadastroHistorico> Historico { get; private set; } = new List<SolicitacaoCadastroHistorico>();
 
         protected SolicitacaoCadastro() { } // EF Core
 
@@ -53,23 +55,54 @@ namespace ClinicaMaisSaude.Domain.Entities
         public bool EstaEmAnalise => Status == StatusSolicitacao.EmAnalise;
 
         /// <summary>Aprova a solicitação (a criação da conta/1º acesso é orquestrada no serviço).</summary>
-        public void Aprovar()
+        public void Aprovar(Guid? realizadoPor = null)
         {
             if (Status != StatusSolicitacao.EmAnalise)
                 throw new InvalidOperationException("Só é possível aprovar uma solicitação em análise.");
-            Status = StatusSolicitacao.Aprovada;
+            MudarStatus(StatusSolicitacao.Aprovada, null, realizadoPor);
             MotivoRecusa = null;
         }
 
         /// <summary>Recusa a solicitação com um motivo (enviado por e-mail ao proponente).</summary>
-        public void Recusar(string motivo)
+        public void Recusar(string motivo, Guid? realizadoPor = null)
         {
             if (Status != StatusSolicitacao.EmAnalise)
                 throw new InvalidOperationException("Só é possível recusar uma solicitação em análise.");
             if (string.IsNullOrWhiteSpace(motivo))
                 throw new ArgumentException("O motivo da recusa é obrigatório.", nameof(motivo));
-            Status = StatusSolicitacao.Recusada;
+            MudarStatus(StatusSolicitacao.Recusada, motivo.Trim(), realizadoPor);
             MotivoRecusa = motivo.Trim();
+        }
+
+        /// <summary>
+        /// Inverte uma decisão já tomada (Aprovada ↔ Recusada), com motivo obrigatório. As regras que
+        /// dependem de outras entidades (o proponente já criou a conta? enviou nova solicitação?) ficam
+        /// no serviço; aqui só a transição de estado e o registro na trilha.
+        /// </summary>
+        public void Retificar(string motivo, Guid? realizadoPor = null)
+        {
+            if (string.IsNullOrWhiteSpace(motivo))
+                throw new ArgumentException("O motivo da retificação é obrigatório.", nameof(motivo));
+
+            switch (Status)
+            {
+                case StatusSolicitacao.Aprovada:
+                    MudarStatus(StatusSolicitacao.Recusada, motivo.Trim(), realizadoPor);
+                    MotivoRecusa = motivo.Trim();
+                    break;
+                case StatusSolicitacao.Recusada:
+                    MudarStatus(StatusSolicitacao.Aprovada, motivo.Trim(), realizadoPor);
+                    MotivoRecusa = null;
+                    break;
+                default:
+                    throw new InvalidOperationException("Só é possível retificar uma solicitação já decidida.");
+            }
+        }
+
+        private void MudarStatus(StatusSolicitacao novo, string? motivo, Guid? realizadoPor)
+        {
+            Historico.Add(new SolicitacaoCadastroHistorico(Id, Status, novo, motivo, realizadoPor));
+            Status = novo;
         }
     }
 }

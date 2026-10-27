@@ -5,8 +5,8 @@ vigente (EF Core 10, 22 *migrations* `InitialCreate`…`Fase21`) e **validados**
 
 | Arquivo | Conteúdo |
 |---------|----------|
-| [`MODELO_DADOS.md`](MODELO_DADOS.md) | MER (diagrama ER em Mermaid), convenções, dicionário de dados das 26 tabelas, tabelas de referência e ciclos de vida. |
-| [`01_schema.sql`](01_schema.sql) | Script DDL completo: 26 tabelas (16 de entidade + 10 *lookup*), PKs, 37 FKs, índices (inclui únicos filtrados) e *seed* dos *lookups*. |
+| [`MODELO_DADOS.md`](MODELO_DADOS.md) | MER (diagrama ER em Mermaid), convenções, dicionário de dados das 27 tabelas, tabelas de referência e ciclos de vida. |
+| [`01_schema.sql`](01_schema.sql) | Script DDL completo: 27 tabelas (17 de entidade + 10 *lookup*), PKs, 41 FKs, índices (inclui únicos filtrados) e *seed* dos *lookups*. |
 | [`02_procedures_triggers.sql`](02_procedures_triggers.sql) | 2 *triggers* (auditoria de status; *updated-at* no banco) + 2 *procedures* (aprovar solicitação; relatório de faltas). |
 
 ## Como executar (SQL Server / LocalDB)

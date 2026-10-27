@@ -42,7 +42,7 @@ namespace ClinicaMaisSaude.Application.DTOs.AutoCadastro
         public string? Detalhe { get; set; }
     }
 
-    /// <summary>Uma solicitação em análise, com identidade e respostas da DS — para a fila de aprovação do admin.</summary>
+    /// <summary>Uma solicitação (em análise ou já decidida), com identidade, respostas da DS e decisões — para o admin.</summary>
     public class SolicitacaoAdminResponse
     {
         public Guid SolicitacaoId { get; set; }
@@ -54,16 +54,40 @@ namespace ClinicaMaisSaude.Application.DTOs.AutoCadastro
         /// <summary>Sinal de acessibilidade (proponente declarou dificuldade de memória).</summary>
         public bool TemProblemaMemoria { get; set; }
         public List<RespostaAdminItem> Respostas { get; set; } = new();
+
+        /// <summary>Nome do status (EmAnalise, Aprovada, Recusada).</summary>
+        public string Status { get; set; } = string.Empty;
+        public string? MotivoRecusa { get; set; }
+        /// <summary>Última decisão (aprovação, recusa ou retificação): quando e por quem.</summary>
+        public DateTime? DecididaEm { get; set; }
+        public string? DecididaPor { get; set; }
+        /// <summary>Se a decisão ainda pode ser retificada; quando não, MotivoNaoRetificavel diz por quê.</summary>
+        public bool PodeRetificar { get; set; }
+        public string? MotivoNaoRetificavel { get; set; }
+        public List<HistoricoSolicitacaoItem> Historico { get; set; } = new();
+    }
+
+    /// <summary>Uma decisão da trilha de auditoria da solicitação.</summary>
+    public class HistoricoSolicitacaoItem
+    {
+        public string StatusAnterior { get; set; } = string.Empty;
+        public string StatusNovo { get; set; } = string.Empty;
+        public string? Motivo { get; set; }
+        /// <summary>Nome de quem decidiu; nulo nas decisões anteriores à trilha.</summary>
+        public string? RealizadoPor { get; set; }
+        public DateTime Dt { get; set; }
     }
 
     /// <summary>
-    /// Página da fila de aprovação. Os totais da fila inteira (indicadores da tela) não dependem
-    /// da busca nem da página; TotalCount/TotalPages se referem ao resultado filtrado.
+    /// Página de solicitações de um status. Os totais por status (indicadores e abas da tela) não
+    /// dependem da busca nem da página; TotalCount/TotalPages se referem ao resultado filtrado.
     /// </summary>
     public class SolicitacoesPaginadasResponse : PagedResult<SolicitacaoAdminResponse>
     {
         public int TotalEmAnalise { get; set; }
         public int TotalRequerApoio { get; set; }
+        public int TotalAprovadas { get; set; }
+        public int TotalRecusadas { get; set; }
     }
 
     public class RespostaAdminItem
@@ -76,6 +100,12 @@ namespace ClinicaMaisSaude.Application.DTOs.AutoCadastro
 
     /// <summary>Corpo da recusa de uma solicitação (o motivo vai no e-mail ao proponente).</summary>
     public class RecusarSolicitacaoRequest
+    {
+        public string Motivo { get; set; } = string.Empty;
+    }
+
+    /// <summary>Corpo da retificação de uma decisão (o motivo fica na trilha e vai no e-mail ao proponente).</summary>
+    public class RetificarSolicitacaoRequest
     {
         public string Motivo { get; set; } = string.Empty;
     }

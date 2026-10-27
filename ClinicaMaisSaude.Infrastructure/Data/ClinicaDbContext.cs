@@ -79,6 +79,7 @@ namespace ClinicaMaisSaude.Infrastructure.Data
         public DbSet<ModeloDeclaracaoSaude> ModelosDeclaracaoSaude { get; set; } = null!;
         public DbSet<PerguntaDeclaracaoSaude> PerguntasDeclaracaoSaude { get; set; } = null!;
         public DbSet<SolicitacaoCadastro> SolicitacoesCadastro { get; set; } = null!;
+        public DbSet<SolicitacaoCadastroHistorico> SolicitacoesCadastroHistorico { get; set; } = null!;
         public DbSet<RespostaDeclaracaoSaude> RespostasDeclaracaoSaude { get; set; } = null!;
         public DbSet<StatusSolicitacaoLookup> StatusSolicitacaoLookup { get; set; } = null!;
 
@@ -593,9 +594,41 @@ namespace ClinicaMaisSaude.Infrastructure.Data
                     .WithOne(r => r.Solicitacao)
                     .HasForeignKey(r => r.SolicitacaoId)
                     .OnDelete(DeleteBehavior.Cascade);
+                // Restrict: a trilha de decisões nunca é apagada junto com a solicitação.
+                entidade.HasMany(s => s.Historico)
+                    .WithOne(h => h.Solicitacao)
+                    .HasForeignKey(h => h.SolicitacaoId)
+                    .OnDelete(DeleteBehavior.Restrict);
 
                 entidade.HasIndex(s => s.PessoaId);
                 entidade.HasIndex(s => s.Status);
+            });
+
+            // Trilha de auditoria das decisões do auto-cadastro (aprovação, recusa, retificação).
+            modelBuilder.Entity<SolicitacaoCadastroHistorico>(entidade =>
+            {
+                entidade.ToTable("SolicitacoesCadastroHistorico");
+                entidade.HasKey(h => h.Id);
+                // Id gerado no domínio: sem isto, a linha nova incluída pela coleção Historico de uma
+                // solicitação já rastreada seria tratada como existente (UPDATE em vez de INSERT).
+                entidade.Property(h => h.Id).ValueGeneratedNever();
+                entidade.Property(h => h.Motivo).HasMaxLength(1000);
+                entidade.Property(h => h.DtCriado).HasColumnName("Dt_Criado");
+
+                entidade.HasOne<StatusSolicitacaoLookup>()
+                    .WithMany()
+                    .HasForeignKey(h => h.StatusAnterior)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entidade.HasOne<StatusSolicitacaoLookup>()
+                    .WithMany()
+                    .HasForeignKey(h => h.StatusNovo)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entidade.HasOne<Usuario>()
+                    .WithMany()
+                    .HasForeignKey(h => h.RealizadoPor)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entidade.HasIndex(h => h.SolicitacaoId);
             });
 
             modelBuilder.Entity<RespostaDeclaracaoSaude>(entidade =>

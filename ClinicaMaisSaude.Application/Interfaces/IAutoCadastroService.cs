@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using ClinicaMaisSaude.Application.DTOs.AutoCadastro;
+using ClinicaMaisSaude.Domain.Enums;
 
 namespace ClinicaMaisSaude.Application.Interfaces
 {
@@ -19,15 +20,21 @@ namespace ClinicaMaisSaude.Application.Interfaces
         Task<CadastroResult> SolicitarAsync(SolicitacaoCadastroRequest request);
 
         /// <summary>
-        /// Fila de aprovação (admin): solicitações em análise, com identidade e respostas da DS,
-        /// paginadas (mais antigas primeiro) e filtradas por nome ou CPF.
+        /// Solicitações de um status (admin), com identidade, respostas da DS e decisões, paginadas e
+        /// filtradas por nome ou CPF. Em análise: mais antigas primeiro (fila); decididas: mais recentes.
         /// </summary>
-        Task<SolicitacoesPaginadasResponse> ListarSolicitacoesEmAnaliseAsync(string? busca, int page, int pageSize);
+        Task<SolicitacoesPaginadasResponse> ListarSolicitacoesAsync(StatusSolicitacao status, string? busca, int page, int pageSize);
 
         /// <summary>Aprova uma solicitação e convida o proponente ao 1º acesso por e-mail.</summary>
-        Task<CadastroResult> AprovarAsync(Guid solicitacaoId);
+        Task<CadastroResult> AprovarAsync(Guid solicitacaoId, Guid? realizadoPor = null);
 
         /// <summary>Recusa uma solicitação (com motivo), encerra o perfil do proponente e avisa por e-mail.</summary>
-        Task<CadastroResult> RecusarAsync(Guid solicitacaoId, string motivo);
+        Task<CadastroResult> RecusarAsync(Guid solicitacaoId, string motivo, Guid? realizadoPor = null);
+
+        /// <summary>
+        /// Inverte uma decisão (Aprovada ↔ Recusada), com motivo, e avisa o proponente. Bloqueada se ele
+        /// já criou a conta (aí é desativar o paciente) ou se enviou uma solicitação mais nova.
+        /// </summary>
+        Task<CadastroResult> RetificarAsync(Guid solicitacaoId, string motivo, Guid? realizadoPor = null);
     }
 }

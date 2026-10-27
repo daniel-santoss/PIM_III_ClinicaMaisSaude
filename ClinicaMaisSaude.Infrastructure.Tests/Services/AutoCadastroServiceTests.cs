@@ -192,7 +192,7 @@ namespace ClinicaMaisSaude.Infrastructure.Tests.Services
         {
             await _service.SolicitarAsync(RequestValido());
 
-            var fila = await _service.ListarSolicitacoesEmAnaliseAsync(null, 1, 10);
+            var fila = await _service.ListarSolicitacoesAsync(StatusSolicitacao.EmAnalise, null, 1, 10);
 
             var s = Assert.Single(fila.Items);
             Assert.Equal("Fulano de Tal", s.Nome);
@@ -217,8 +217,8 @@ namespace ClinicaMaisSaude.Infrastructure.Tests.Services
         {
             for (var i = 1; i <= 12; i++) SemearProponente($"Proponente {i:00}", $"000000000{i:00}");
 
-            var p1 = await _service.ListarSolicitacoesEmAnaliseAsync(null, 1, 5);
-            var p3 = await _service.ListarSolicitacoesEmAnaliseAsync(null, 3, 5);
+            var p1 = await _service.ListarSolicitacoesAsync(StatusSolicitacao.EmAnalise, null, 1, 5);
+            var p3 = await _service.ListarSolicitacoesAsync(StatusSolicitacao.EmAnalise, null, 3, 5);
 
             Assert.Equal(12, p1.TotalCount);
             Assert.Equal(3, p1.TotalPages);
@@ -234,14 +234,148 @@ namespace ClinicaMaisSaude.Infrastructure.Tests.Services
             SemearProponente("Bruno Lima", "22222222222");
             SemearProponente("Carla Dias", "33333333333", temProblemaMemoria: true);
 
-            var porNome = await _service.ListarSolicitacoesEmAnaliseAsync("Bruno", 1, 10);
-            var porCpf = await _service.ListarSolicitacoesEmAnaliseAsync("333.333.333-33", 1, 10);
+            var porNome = await _service.ListarSolicitacoesAsync(StatusSolicitacao.EmAnalise, "Bruno", 1, 10);
+            var porCpf = await _service.ListarSolicitacoesAsync(StatusSolicitacao.EmAnalise, "333.333.333-33", 1, 10);
 
             Assert.Equal("Bruno Lima", Assert.Single(porNome.Items).Nome);
             Assert.Equal("Carla Dias", Assert.Single(porCpf.Items).Nome);
             Assert.Equal(1, porNome.TotalCount);
             Assert.Equal(3, porNome.TotalEmAnalise);
             Assert.Equal(2, porNome.TotalRequerApoio);
+        }
+
+        // ----------------- Histórico e retificação -----------------
+
+        private Usuario SemearAdmin()
+        {
+            var pessoa = new Pessoa("Admin Teste", "12345678909", "admin@teste.com");
+            var admin = new Usuario(pessoa.Id, "hash", RoleUsuario.Admin);
+            _context.Pessoas.Add(pessoa);
+            _context.Usuarios.Add(admin);
+            _context.SaveChanges();
+            return admin;
+        }
+
+        private SolicitacaoCadastro SolicitacaoDe(string cpf) =>
+            _context.SolicitacoesCadastro.Include(s => s.Historico).Single(s => s.Pessoa!.Cpf == cpf);
+
+        [Fact]
+        public async Task Aprovar_RegistraNaTrilhaQuemDecidiu()
+        {
+            var admin = SemearAdmin();
+            SemearProponente("Ana Souza", "11111111111");
+
+            await _service.AprovarAsync(SolicitacaoDe("11111111111").Id, admin.Id);
+
+            var h = Assert.Single(SolicitacaoDe("11111111111").Historico);
+            Assert.Equal(StatusSolicitacao.EmAnalise, h.StatusAnterior);
+            Assert.Equal(StatusSolicitacao.Aprovada, h.StatusNovo);
+            Assert.Equal(admin.Id, h.RealizadoPor);
+        }
+
+        [Fact]
+        public async Task Retificar_RecusadaParaAprovada_ReabrePerfilEEnviaConvite()
+        {
+            var admin = SemearAdmin();
+            SemearProponente("Ana Souza", "11111111111");
+            var id = SolicitacaoDe("11111111111").Id;
+            await _service.RecusarAsync(id, "CPF divergente", admin.Id);
+
+            var r = await _service.RetificarAsync(id, "Erro de digitação confirmado na recepção", admin.Id);
+
+            Assert.True(r.Sucesso, r.Mensagem);
+            var s = SolicitacaoDe("11111111111");
+            Assert.Equal(StatusSolicitacao.Aprovada, s.Status);
+            Assert.Null(s.MotivoRecusa);
+            Assert.Equal(2, s.Historico.Count);
+            var paciente = await _context.Pacientes.SingleAsync(p => p.PessoaId == s.PessoaId);
+            Assert.Equal(Situacao.EmAnalise, paciente.Situacao);
+            Assert.Contains("primeiro acesso", _email.UltimoAssunto);
+        }
+
+        [Fact]
+        public async Task Retificar_AprovadaSemConta_RecusaEInvalidaCodigosDePrimeiroAcesso()
+        {
+            SemearProponente("Bruno Lima", "22222222222");
+            var s0 = SolicitacaoDe("22222222222");
+            await _service.AprovarAsync(s0.Id);
+            _context.CodigosVerificacao.Add(CodigoVerificacao.ParaPrimeiroAcesso(s0.PessoaId, s0.Id, "x@teste.com", "hash", DateTime.UtcNow.AddMinutes(10)));
+            _context.SaveChanges();
+
+            var r = await _service.RetificarAsync(s0.Id, "Aprovado por engano");
+
+            Assert.True(r.Sucesso, r.Mensagem);
+            var s = SolicitacaoDe("22222222222");
+            Assert.Equal(StatusSolicitacao.Recusada, s.Status);
+            Assert.Equal("Aprovado por engano", s.MotivoRecusa);
+            Assert.Equal(0, await _context.CodigosVerificacao.CountAsync(c => c.Tipo == TipoVerificacao.PrimeiroAcesso));
+            var paciente = await _context.Pacientes.SingleAsync(p => p.PessoaId == s.PessoaId);
+            Assert.Equal(Situacao.Excluido, paciente.Situacao);
+        }
+
+        [Fact]
+        public async Task Retificar_AprovadaComContaCriada_Bloqueia()
+        {
+            SemearProponente("Carla Dias", "33333333333");
+            var s0 = SolicitacaoDe("33333333333");
+            await _service.AprovarAsync(s0.Id);
+            _context.Usuarios.Add(new Usuario(s0.PessoaId, "hash", RoleUsuario.Paciente));
+            _context.SaveChanges();
+
+            var r = await _service.RetificarAsync(s0.Id, "Tentativa");
+
+            Assert.False(r.Sucesso);
+            Assert.Contains("primeiro acesso", r.Mensagem);
+            Assert.Equal(StatusSolicitacao.Aprovada, SolicitacaoDe("33333333333").Status);
+        }
+
+        [Fact]
+        public async Task Retificar_ComSolicitacaoMaisNovaDaMesmaPessoa_Bloqueia()
+        {
+            SemearProponente("Diego Reis", "44444444444");
+            var antiga = SolicitacaoDe("44444444444");
+            await _service.RecusarAsync(antiga.Id, "Dados incompletos");
+            var nova = new SolicitacaoCadastro(antiga.PessoaId, _modelo.Id);
+            typeof(SolicitacaoCadastro).GetProperty(nameof(SolicitacaoCadastro.DtCriado))!.SetValue(nova, antiga.DtCriado.AddMinutes(5));
+            _context.SolicitacoesCadastro.Add(nova);
+            _context.SaveChanges();
+
+            var r = await _service.RetificarAsync(antiga.Id, "Reconsiderar");
+
+            Assert.False(r.Sucesso);
+            Assert.Contains("mais nova", r.Mensagem);
+        }
+
+        [Fact]
+        public async Task Retificar_EmAnalise_Falha()
+        {
+            SemearProponente("Eva Melo", "55555555555");
+
+            var r = await _service.RetificarAsync(SolicitacaoDe("55555555555").Id, "Sem decisão ainda");
+
+            Assert.False(r.Sucesso);
+        }
+
+        [Fact]
+        public async Task Listar_Recusadas_TrazDecisaoQuemDecidiuEContagemPorStatus()
+        {
+            var admin = SemearAdmin();
+            SemearProponente("Ana Souza", "11111111111");
+            SemearProponente("Bruno Lima", "22222222222");
+            SemearProponente("Carla Dias", "33333333333");
+            await _service.RecusarAsync(SolicitacaoDe("11111111111").Id, "CPF divergente", admin.Id);
+            await _service.AprovarAsync(SolicitacaoDe("22222222222").Id, admin.Id);
+
+            var recusadas = await _service.ListarSolicitacoesAsync(StatusSolicitacao.Recusada, null, 1, 10);
+
+            var item = Assert.Single(recusadas.Items);
+            Assert.Equal("Recusada", item.Status);
+            Assert.Equal("CPF divergente", item.MotivoRecusa);
+            Assert.Equal("Admin Teste", item.DecididaPor);
+            Assert.True(item.PodeRetificar);
+            Assert.Equal(1, recusadas.TotalEmAnalise);
+            Assert.Equal(1, recusadas.TotalAprovadas);
+            Assert.Equal(1, recusadas.TotalRecusadas);
         }
 
         [Fact]

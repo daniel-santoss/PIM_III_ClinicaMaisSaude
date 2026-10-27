@@ -361,6 +361,24 @@ CREATE INDEX IX_Resposta_PerguntaId ON RespostasDeclaracaoSaude (PerguntaId);
 CREATE UNIQUE INDEX IX_Resposta_Solicitacao_Pergunta ON RespostasDeclaracaoSaude (SolicitacaoId, PerguntaId);
 GO
 
+-- Trilha (só inserção) das decisões do auto-cadastro: aprovação, recusa e retificação.
+CREATE TABLE SolicitacoesCadastroHistorico (
+    Id             UNIQUEIDENTIFIER NOT NULL CONSTRAINT PK_SolicitacoesCadastroHistorico PRIMARY KEY,
+    SolicitacaoId  UNIQUEIDENTIFIER NOT NULL,
+    StatusAnterior INT              NOT NULL,
+    StatusNovo     INT              NOT NULL,
+    Motivo         NVARCHAR(1000)   NULL,
+    RealizadoPor   UNIQUEIDENTIFIER NULL,
+    Dt_Criado      DATETIME2        NOT NULL,
+    CONSTRAINT FK_HistSolicitacao_Solicitacao FOREIGN KEY (SolicitacaoId)  REFERENCES SolicitacoesCadastro (Id)    ON DELETE NO ACTION,
+    CONSTRAINT FK_HistSolicitacao_Anterior    FOREIGN KEY (StatusAnterior) REFERENCES StatusSolicitacaoLookup (Id) ON DELETE NO ACTION,
+    CONSTRAINT FK_HistSolicitacao_Novo        FOREIGN KEY (StatusNovo)     REFERENCES StatusSolicitacaoLookup (Id) ON DELETE NO ACTION,
+    CONSTRAINT FK_HistSolicitacao_Usuario     FOREIGN KEY (RealizadoPor)   REFERENCES LoginPortal (Id)             ON DELETE NO ACTION
+);
+GO
+CREATE INDEX IX_HistSolicitacao_SolicitacaoId ON SolicitacoesCadastroHistorico (SolicitacaoId);
+GO
+
 /* ------------------------------------------------------------------ */
 /* 7. Códigos de verificação (unificados: recuperação/1º acesso/e-mail)*/
 /* ------------------------------------------------------------------ */
