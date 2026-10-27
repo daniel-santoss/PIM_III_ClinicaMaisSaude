@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { API_URL } from "../constants/api";
 import {
-  Inbox, Search, RefreshCw, Check, X, Brain, Mail, Phone, UserCheck, ChevronDown, ClipboardList, History, RotateCcw, Info,
+  Inbox, Search, RefreshCw, Check, X, Brain, Mail, Phone, UserCheck, ChevronDown, ClipboardList, History, RotateCcw, Info, Clock,
 } from "lucide-react";
 import { getRealDate } from "../utils/dates";
+import { mascaraCpf, mascaraTelefone } from "../utils/validators";
 import { useToast } from "../hooks/useToast";
 import ConfirmModal from "../components/ConfirmModal";
 import ModalPortal from "../components/ui/ModalPortal";
@@ -274,44 +275,45 @@ export default function SolicitacoesCadastroList() {
               const ocupado = processando[s.solicitacaoId];
               const painel = painelAberto[s.solicitacaoId] ?? null;
               const alternar = (p: Painel) => setPainelAberto(a => ({ ...a, [s.solicitacaoId]: a[s.solicitacaoId] === p ? null : p }));
-              const totalSim = s.respostas.filter(r => r.resposta).length;
               const idPainel = `painel-${s.solicitacaoId}`;
               const botaoPainel = (ativo: boolean) =>
-                `h-9 px-3 inline-flex items-center gap-2 rounded-md border text-[13px] font-medium transition-colors ${
+                `h-10 px-3.5 inline-flex items-center gap-2 rounded-md border text-sm font-medium transition-colors ${
                   ativo ? "border-brand-600 bg-brand-50 text-brand-600" : "border-line bg-white text-body hover:bg-canvas"
                 }`;
               return (
                 <div key={s.solicitacaoId} className="rounded-lg bg-white border border-line">
-                  {/* Identificação + status */}
-                  <div className="p-5 flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-lg flex items-center justify-center text-[13px] font-semibold shrink-0 bg-brand-50 text-brand-600">
+                  {/* Identificação + datas */}
+                  <div className="p-5 flex items-start gap-4">
+                    <div className="w-12 h-12 rounded-lg flex items-center justify-center text-base font-semibold shrink-0 bg-brand-50 text-brand-600">
                       {getInitials(s.nome)}
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                        <span className="font-semibold text-ink text-sm">{s.nome}</span>
-                        <span className="text-[13px] text-muted">CPF: {s.cpf}</span>
+                        <span className="font-semibold text-ink text-base">{s.nome}</span>
+                        <span className="text-muted" aria-hidden="true">•</span>
+                        <span className="text-sm text-muted">CPF: {mascaraCpf(s.cpf)}</span>
                         {s.temProblemaMemoria && (
                           <Badge variant="warning" className="gap-1"><Brain className="w-3 h-3" /> Requer apoio</Badge>
                         )}
                       </div>
-                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-[12px] text-muted">
-                        <span className="inline-flex items-center gap-1.5"><Mail className="w-3.5 h-3.5" /> {s.email}</span>
-                        {s.telefone && <span className="inline-flex items-center gap-1.5"><Phone className="w-3.5 h-3.5" /> {s.telefone}</span>}
-                      </div>
-                      <div className="flex flex-wrap items-center gap-x-1.5 mt-1 text-[12px] text-muted">
-                        <span>Enviada em {formatarDataHora(s.dtCriado)}</span>
-                        {s.decididaEm && (
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5 text-[13px] text-body">
+                        <span className="inline-flex items-center gap-1.5"><Mail className="w-4 h-4 text-muted" /> {s.email}</span>
+                        {s.telefone && (
                           <>
-                            <span aria-hidden="true">·</span>
-                            <span>Decidida em {formatarDataHora(s.decididaEm)}{s.decididaPor ? ` por ${s.decididaPor}` : ""}</span>
+                            <span className="w-px h-4 bg-line" aria-hidden="true" />
+                            <span className="inline-flex items-center gap-1.5"><Phone className="w-4 h-4 text-muted" /> {mascaraTelefone(s.telefone)}</span>
                           </>
                         )}
                       </div>
                     </div>
-                    {s.status !== "EmAnalise" && (
-                      <Badge variant={s.status === "Aprovada" ? "success" : "danger"} className="shrink-0">{ROTULO_STATUS[s.status]}</Badge>
-                    )}
+                    <div className="shrink-0 flex flex-col items-end gap-1 text-[13px] text-muted">
+                      <span className="inline-flex items-center gap-1.5"><Clock className="w-4 h-4" /> Enviada em {formatarDataHora(s.dtCriado)}</span>
+                      {s.decididaEm && (
+                        <span className="inline-flex items-center gap-1.5">
+                          <History className="w-4 h-4" /> Decidida em {formatarDataHora(s.decididaEm)}{s.decididaPor ? ` por ${s.decididaPor}` : ""}
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   {s.status === "Recusada" && s.motivoRecusa && (
@@ -321,17 +323,11 @@ export default function SolicitacoesCadastroList() {
                   )}
 
                   {/* Barra única: painéis à esquerda, ações à direita */}
-                  <div className="px-5 py-3 border-t border-line flex flex-wrap items-center gap-2">
+                  <div className="px-5 py-4 border-t border-line flex flex-wrap items-center gap-2">
                     <button type="button" onClick={() => alternar("ds")} aria-expanded={painel === "ds"} aria-controls={idPainel}
                       className={botaoPainel(painel === "ds")}>
                       <ClipboardList className="w-4 h-4" />
                       Declaração de saúde
-                      <span className="text-[12px] text-muted">{s.respostas.length}</span>
-                      {totalSim > 0 && (
-                        <span className="px-1.5 py-0.5 rounded text-[11px] font-semibold bg-warning-tint text-warning-text">
-                          {totalSim} "Sim"
-                        </span>
-                      )}
                       <ChevronDown className={`w-4 h-4 transition-transform ${painel === "ds" ? "rotate-180" : ""}`} />
                     </button>
                     {s.historico.length > 0 && (
@@ -347,17 +343,17 @@ export default function SolicitacoesCadastroList() {
                     <div className="ml-auto flex items-center gap-2">
                       {s.status === "EmAnalise" ? (
                         <>
-                          <Button variant="danger" size="sm" icon={<X size={15} />} disabled={ocupado}
+                          <Button variant="danger" icon={<X size={16} />} disabled={ocupado}
                             onClick={() => { setMotivo(""); setRecusarAlvo({ id: s.solicitacaoId, nome: s.nome }); }}>
                             Recusar
                           </Button>
-                          <Button variant="primary" size="sm" icon={<Check size={15} />} disabled={ocupado}
+                          <Button variant="success" icon={<Check size={16} />} disabled={ocupado}
                             onClick={() => setAprovarAlvo({ id: s.solicitacaoId, nome: s.nome })}>
                             Aprovar
                           </Button>
                         </>
                       ) : (
-                        <Button variant="secondary" size="sm" icon={<RotateCcw size={15} />}
+                        <Button variant="secondary" icon={<RotateCcw size={16} />}
                           disabled={ocupado || !s.podeRetificar}
                           title={s.podeRetificar ? undefined : s.motivoNaoRetificavel ?? undefined}
                           onClick={() => { setMotivo(""); setRetificarAlvo({ id: s.solicitacaoId, nome: s.nome, status: s.status }); }}>
