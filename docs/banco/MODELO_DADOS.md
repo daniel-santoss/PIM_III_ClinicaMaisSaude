@@ -6,7 +6,7 @@ o modelo lógico/físico e o dicionário de dados do sistema Clínica Mais Saúd
 - **SGBD:** Microsoft SQL Server (produção) / SQL Server LocalDB (desenvolvimento).
 - **Origem do schema:** EF Core 10 *Code-First* — 22 *migrations* (`InitialCreate` → `Fase21`). O DDL
   equivalente está em [`01_schema.sql`](01_schema.sql); procedures e triggers em [`02_procedures_triggers.sql`](02_procedures_triggers.sql).
-- **Total:** 26 tabelas — **16 de entidade** + **10 de referência (*lookup*)**.
+- **Total:** 27 tabelas — **17 de entidade** + **10 de referência (*lookup*)**.
 
 > Este documento é gerado a partir do modelo vigente (`ClinicaDbContextModelSnapshot`) e mantido em sincronia
 > com o código. Ao alterar o schema, regenere o DDL com
@@ -130,6 +130,7 @@ erDiagram
     ModeloDeclaracaoSaude ||--o{ SolicitacaoCadastro : "versiona"
     Pessoa ||--o{ SolicitacaoCadastro : "propõe"
     SolicitacaoCadastro ||--o{ RespostaDeclaracaoSaude : "responde"
+    SolicitacaoCadastro ||--o{ SolicitacaoCadastroHistorico : "decisões"
     PerguntaDeclaracaoSaude ||--o{ RespostaDeclaracaoSaude : "é respondida"
     StatusSolicitacaoLookup ||--o{ SolicitacaoCadastro : "estado"
 
@@ -190,6 +191,14 @@ erDiagram
         uniqueidentifier PerguntaId FK
         bit Resposta
         nvarchar1000 Detalhe "null"
+    }
+    SolicitacaoCadastroHistorico {
+        uniqueidentifier Id PK
+        uniqueidentifier SolicitacaoId FK
+        int StatusAnterior FK
+        int StatusNovo FK
+        nvarchar1000 Motivo "null"
+        uniqueidentifier RealizadoPor FK "null"
     }
 ```
 
@@ -328,6 +337,16 @@ filtra pelo `Tipo` (discriminador), evitando colisão entre os três fluxos.
 | `TermosVersao` | nvarchar(20) | NULL — versão dos termos aceitos |
 | `MotivoRecusa` | nvarchar(1000) | NULL |
 
+### `SolicitacaoCadastroHistorico` — trilha das decisões do auto-cadastro (*append-only*)
+| Coluna | Tipo | Restrições |
+|--------|------|-----------|
+| `Id` | uniqueidentifier | PK (gerado na aplicação) |
+| `SolicitacaoId` | uniqueidentifier | FK → `SolicitacoesCadastro` (Restrict), NOT NULL |
+| `StatusAnterior` / `StatusNovo` | int | FK → `StatusSolicitacaoLookup` (Restrict), NOT NULL |
+| `Motivo` | nvarchar(1000) | NULL — recusa ou retificação |
+| `RealizadoPor` | uniqueidentifier | FK → `LoginPortal` (Restrict), NULL — admin que decidiu (nulo nas decisões anteriores à trilha) |
+| `Dt_Criado` | datetime2 | NOT NULL |
+
 ### `ModeloDeclaracaoSaude` / `PerguntaDeclaracaoSaude` / `RespostaDeclaracaoSaude`
 | Tabela | Colunas-chave | Regra |
 |--------|---------------|-------|
@@ -352,6 +371,8 @@ filtra pelo `Tipo` (discriminador), evitando colisão entre os três fluxos.
   ramos `Faltou` e `Cancelado`. Toda transição é registrada em `AgendamentoHistorico` (ver trigger em
   [`02_procedures_triggers.sql`](02_procedures_triggers.sql)).
 - **`StatusSolicitacao`:** `EmAnalise → Aprovada` (cria `Usuario` + ativa `Paciente`) **ou** `EmAnalise → Recusada`
-  (com `MotivoRecusa`, notificado por e-mail). Ver `SP_AprovarSolicitacaoCadastro`.
+  (com `MotivoRecusa`, notificado por e-mail). Ver `SP_AprovarSolicitacaoCadastro`. Uma decisão pode ser
+  **retificada** (`Aprovada ↔ Recusada`, com motivo) enquanto o proponente não criou a conta nem enviou
+  solicitação mais nova; toda decisão gera uma linha em `SolicitacaoCadastroHistorico`.
 - **Exclusão protegida:** FKs `Restrict` impedem apagar `Pessoa`/`Profissional`/lookups referenciados;
   `Cascade` só onde o filho não faz sentido sozinho (`RefreshToken`, `UsuarioFoto`, `Respostas`, `Perguntas`).

@@ -99,6 +99,7 @@ Declaração de Saúde, moderação da IA, aprovação de cadastros e gestão da
 | E4-09 | Como proponente no **app mobile**, quero o mesmo fluxo em wizard (termos→dados→e-mail→DS). | Must | ✅ |
 | E4-10 | Como administrador, quero a **fila de solicitações paginada**, com busca por nome/CPF e a DS recolhida, para avaliar muitos cadastros sem rolar a página inteira. | Should | ✅ |
 | E4-11 | Como proponente, quero ler os **termos oficiais (LGPD)** antes de aceitar, e a clínica quer registrar **qual versão** foi aceita. | Must | ✅ |
+| E4-12 | Como administrador, quero **consultar as solicitações já decididas** (aprovadas e recusadas), com quem decidiu e quando, e **retificar uma decisão** tomada por engano. | Should | ✅ |
 
 **Critérios de aceite (ex. E4-11):** a API grava com cada solicitação a versão dos termos aceita
 (`TermosVersao`); trocar o texto exige subir a versão na API e nos dois apps, e quem aceitou a versão anterior
