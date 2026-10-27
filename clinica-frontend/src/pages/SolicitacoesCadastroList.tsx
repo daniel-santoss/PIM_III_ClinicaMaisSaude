@@ -377,7 +377,7 @@ export default function SolicitacoesCadastroList() {
                         const valor = r.resposta ? (r.detalhe ? `Sim — ${r.detalhe}` : "Sim") : "Não";
                         return (
                           <div key={i} className="flex flex-col gap-1.5">
-                            <label htmlFor={idCampo} className="text-[13px] font-medium text-ink leading-snug">{r.pergunta}</label>
+                            <label htmlFor={idCampo} className="text-[13px] font-medium text-ink leading-snug">{i + 1}. {r.pergunta}</label>
                             <input
                               id={idCampo}
                               type="text"
