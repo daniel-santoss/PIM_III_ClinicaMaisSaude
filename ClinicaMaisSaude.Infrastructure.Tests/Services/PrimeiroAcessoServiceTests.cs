@@ -153,6 +153,24 @@ namespace ClinicaMaisSaude.Infrastructure.Tests.Services
         }
 
         [Fact]
+        public async Task DefinirSenha_DecisaoRetificadaParaRecusadaDepoisDoCodigo_NaoCriaConta()
+        {
+            SemearProponente();
+            await _service.SolicitarAsync(new SolicitarPrimeiroAcessoRequest { Identificador = CpfProponente });
+            var codigo = ExtrairCodigo(_email.UltimoCorpo!);
+            var conf = await _service.ConfirmarAsync(new ConfirmarPrimeiroAcessoRequest { Cpf = CpfProponente, Codigo = codigo });
+
+            // O admin retifica a aprovação depois que o proponente já tinha o token em mãos.
+            var solicitacao = await _context.SolicitacoesCadastro.SingleAsync();
+            solicitacao.Retificar("Aprovado por engano");
+            await _context.SaveChangesAsync();
+
+            await Assert.ThrowsAsync<ValidationException>(() =>
+                _service.DefinirSenhaAsync(new DefinirSenhaPrimeiroAcessoRequest { ResetToken = conf.ResetToken, NovaSenha = "senhaForte2026" }));
+            Assert.Equal(0, await _context.Usuarios.CountAsync());
+        }
+
+        [Fact]
         public async Task DefinirSenha_TokenReutilizado_Falha()
         {
             SemearProponente();
