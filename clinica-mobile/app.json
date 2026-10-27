@@ -30,7 +30,10 @@
       "output": "single",
       "name": "Clínica Mais Saúde",
       "shortName": "Mais Saúde",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/favicon.png",
+      "lang": "pt-BR",
+      "themeColor": "#FFFFFF",
+      "description": "Agende e acompanhe suas consultas na Clínica Mais Saúde."
     },
     "plugins": [
       "expo-router",
