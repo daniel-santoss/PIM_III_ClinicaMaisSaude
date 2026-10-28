@@ -81,17 +81,17 @@ namespace ClinicaMaisSaude.API.Controllers
         }
 
         [HttpGet("horarios-disponiveis")]
-        public async Task<IActionResult> ObterHorariosDisponiveis([FromQuery] DateTime data, [FromQuery] int tipoConsulta, [FromQuery] int? especialidadeId = null, [FromQuery] Guid? origemId = null)
+        public async Task<IActionResult> ObterHorariosDisponiveis([FromQuery] DateTime data, [FromQuery] int tipoConsulta, [FromQuery] int? especialidadeId = null, [FromQuery] Guid? origemId = null, [FromQuery] Guid? profissionalId = null)
         {
-            var horarios = await _agendamentoService.ObterHorariosDisponiveisAsync(data, tipoConsulta, especialidadeId, origemId);
+            var horarios = await _agendamentoService.ObterHorariosDisponiveisAsync(data, tipoConsulta, especialidadeId, origemId, profissionalId);
             return Ok(horarios);
         }
 
         // Calendário do app: dias do mês com ao menos um horário livre (mesma regra de horarios-disponiveis).
         [HttpGet("dias-disponiveis")]
-        public async Task<IActionResult> ObterDiasDisponiveis([FromQuery] int ano, [FromQuery] int mes, [FromQuery] int tipoConsulta, [FromQuery] int? especialidadeId = null, [FromQuery] Guid? origemId = null)
+        public async Task<IActionResult> ObterDiasDisponiveis([FromQuery] int ano, [FromQuery] int mes, [FromQuery] int tipoConsulta, [FromQuery] int? especialidadeId = null, [FromQuery] Guid? origemId = null, [FromQuery] Guid? profissionalId = null)
         {
-            var dias = await _agendamentoService.ObterDiasDisponiveisAsync(ano, mes, tipoConsulta, especialidadeId, origemId);
+            var dias = await _agendamentoService.ObterDiasDisponiveisAsync(ano, mes, tipoConsulta, especialidadeId, origemId, profissionalId);
             return Ok(dias);
         }
 

@@ -22,9 +22,10 @@ namespace ClinicaMaisSaude.Application.Tests.Services
             _sut = new DelegacaoProfissionalService(_profRepo, _agRepo, _conflito);
         }
 
-        private Profissional AdicionarMedico(int? especialidade = null)
+        // Escopo (03/08/2026) é dia da Escala 1; o médico padrão é da Escala 1.
+        private Profissional AdicionarMedico(int? especialidade = null, EscalaTrabalho escala = EscalaTrabalho.Escala1)
         {
-            var prof = new Profissional(Guid.NewGuid());
+            var prof = new Profissional(Guid.NewGuid(), escala: escala);
             if (especialidade.HasValue)
                 prof.Especialidades.Add(new ProfissionalEspecialidade(prof.Id, (EspecialidadeMedica)especialidade.Value));
             _profRepo.AdicionarComRole(prof, RoleUsuario.Medico);
@@ -138,6 +139,43 @@ namespace ClinicaMaisSaude.Application.Tests.Services
             var escolhido = await _sut.DelegarAsync(TipoProfissional.Medico, TipoConsulta.ConsultaMedica, Escopo, null, especialidadeId: 4);
 
             Assert.Equal(comEspecialidade.Id, escolhido);
+        }
+
+        [Fact]
+        public async Task Delegar_IgnoraProfissionalDeOutraEscala()
+        {
+            var deFolga = AdicionarMedico(escala: EscalaTrabalho.Escala2);
+            var dePlantao = AdicionarMedico();
+            // deFolga teria menor carga, mas não trabalha neste dia
+            AdicionarCargaNoDia(dePlantao.Id, 5);
+
+            var escolhido = await _sut.DelegarAsync(TipoProfissional.Medico, TipoConsulta.ConsultaMedica, Escopo, null, null);
+
+            Assert.Equal(dePlantao.Id, escolhido);
+        }
+
+        [Fact]
+        public async Task Delegar_IgnoraProfissionalAusenteNoDia()
+        {
+            var ausente = AdicionarMedico();
+            var presente = AdicionarMedico();
+            _profRepo.AdicionarAusencia(ausente.Id, Escopo);
+            AdicionarCargaNoDia(presente.Id, 5);
+
+            var escolhido = await _sut.DelegarAsync(TipoProfissional.Medico, TipoConsulta.ConsultaMedica, Escopo, null, null);
+
+            Assert.Equal(presente.Id, escolhido);
+        }
+
+        [Fact]
+        public async Task Delegar_NinguemDePlantao_LancaBusinessRule()
+        {
+            AdicionarMedico(escala: EscalaTrabalho.Escala2);
+
+            var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
+                _sut.DelegarAsync(TipoProfissional.Medico, TipoConsulta.ConsultaMedica, Escopo, null, null));
+
+            Assert.Equal("Nenhum profissional de plantão em 03/08/2026. Escolha outra data.", ex.Message);
         }
     }
 }

@@ -10,5 +10,8 @@ namespace ClinicaMaisSaude.Domain.Interfaces
         Task<IEnumerable<Profissional>> ObterTodosPorTipoAsync(TipoProfissional tipo);
         Task<Profissional?> ObterPorIdAsync(System.Guid id);
         Task<IEnumerable<Profissional>> ObterTodosAsync();
+
+        /// <summary>Ids dos profissionais com ausência registrada no dia (agenda fechada).</summary>
+        Task<HashSet<System.Guid>> ObterIdsAusentesNoDiaAsync(System.DateTime dia);
     }
 }

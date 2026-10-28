@@ -28,5 +28,13 @@ namespace ClinicaMaisSaude.Application.Tests.Fakes
 
         public Task<IEnumerable<Profissional>> ObterTodosAsync()
             => Task.FromResult(_profissionais.Select(x => x.Prof));
+
+        // Ausências registradas no fake: (profissional, dia).
+        private readonly List<(Guid ProfissionalId, DateTime Dia)> _ausencias = new();
+
+        public void AdicionarAusencia(Guid profissionalId, DateTime dia) => _ausencias.Add((profissionalId, dia.Date));
+
+        public Task<HashSet<Guid>> ObterIdsAusentesNoDiaAsync(DateTime dia)
+            => Task.FromResult(_ausencias.Where(a => a.Dia == dia.Date).Select(a => a.ProfissionalId).ToHashSet());
     }
 }

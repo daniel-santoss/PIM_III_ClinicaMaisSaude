@@ -1,6 +1,7 @@
 using ClinicaMaisSaude.Domain.Enums;
 using System;
 using ClinicaMaisSaude.Domain.Common;
+using ClinicaMaisSaude.Domain.Services;
 
 namespace ClinicaMaisSaude.Domain.Entities
 {
@@ -14,6 +15,9 @@ namespace ClinicaMaisSaude.Domain.Entities
         public string? Crm { get; private set; }
         public string? UfCrm { get; private set; }
 
+        /// <summary>Turma na escala 12x36: o profissional só recebe consultas nos dias da sua escala.</summary>
+        public EscalaTrabalho Escala { get; private set; } = EscalaTrabalho.Escala1;
+
         // Identidade (Thread B). Aditivo/nulável na Fase B2a: backfill aponta para a Pessoa da conta.
         public Guid? PessoaId { get; private set; }
         public virtual Pessoa? Pessoa { get; private set; }
@@ -26,12 +30,13 @@ namespace ClinicaMaisSaude.Domain.Entities
 
         protected Profissional() { } // EF Core
 
-        public Profissional(Guid usuarioId, string? crm = null, string? ufCrm = null)
+        public Profissional(Guid usuarioId, string? crm = null, string? ufCrm = null, EscalaTrabalho escala = EscalaTrabalho.Escala1)
         {
             Id = SequentialGuid.Next();
             UsuarioId = usuarioId;
             Crm = crm;
             UfCrm = ufCrm;
+            Escala = escala;
             Situacao = Situacao.Ativo;
             DtCriado = DateTime.UtcNow;
         }
@@ -55,5 +60,10 @@ namespace ClinicaMaisSaude.Domain.Entities
 
         /// <summary>Reabilita o profissional (Ativo).</summary>
         public void Reativar() => Situacao = Situacao.Ativo;
+
+        public void DefinirEscala(EscalaTrabalho escala) => Escala = escala;
+
+        /// <summary>O dia informado é um dia de plantão da escala deste profissional? (Ausências à parte.)</summary>
+        public bool EscaladoNoDia(DateTime dia) => Expediente.EscalaDoDia(dia) == Escala;
     }
 }

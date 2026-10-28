@@ -13,9 +13,10 @@ namespace ClinicaMaisSaude.Application.Interfaces
         Task<AgendamentoResponse> AlterarStatusAsync(Guid id, int novoStatusInt, Guid usuarioLogadoId);
         Task<IEnumerable<AgendamentoResponse>> ObterTodosAsync();
         Task<DTOs.PagedResult<AgendamentoResponse>> ObterTodosPaginadoAsync(int page, int pageSize, Guid? profissionalId = null, Guid? pacienteId = null, string? buscaPaciente = null, string? dataConsulta = null, string? status = null, bool riscoAltoApenas = false, string ordem = "asc");
-        Task<List<string>> ObterHorariosDisponiveisAsync(DateTime data, int tipoConsultaInt, int? especialidadeId = null, Guid? origemId = null);
+        /// <param name="profissionalId">Restringe aos horários de um profissional (remarcação mantém o profissional).</param>
+        Task<List<string>> ObterHorariosDisponiveisAsync(DateTime data, int tipoConsultaInt, int? especialidadeId = null, Guid? origemId = null, Guid? profissionalId = null);
         /// <summary>Dias do mês (yyyy-MM-dd), a partir de hoje, com pelo menos um horário livre.</summary>
-        Task<List<string>> ObterDiasDisponiveisAsync(int ano, int mes, int tipoConsultaInt, int? especialidadeId = null, Guid? origemId = null);
+        Task<List<string>> ObterDiasDisponiveisAsync(int ano, int mes, int tipoConsultaInt, int? especialidadeId = null, Guid? origemId = null, Guid? profissionalId = null);
         // Convenção do projeto: Buscar* garante que existe (senão 404); Obter* pode devolver nulo.
         Task<AgendamentoResponse> BuscarPorIdAsync(Guid id);
         Task<AgendamentoResponse> RemarcarAsync(Guid id, RemarcarAgendamentoRequest request, Guid usuarioLogadoId);

@@ -44,6 +44,12 @@ namespace ClinicaMaisSaude.Application.Services
                     throw new BusinessRuleException("Nenhum médico com a especialidade solicitada encontrado.");
             }
 
+            // Escala 12x36: só concorre quem está de plantão no dia e sem ausência registrada.
+            var ausentes = await _profissionalRepository.ObterIdsAusentesNoDiaAsync(escopoHorario);
+            profissionais = profissionais.Where(p => p.EscaladoNoDia(escopoHorario) && !ausentes.Contains(p.Id)).ToList();
+            if (!profissionais.Any())
+                throw new BusinessRuleException($"Nenhum profissional de plantão em {escopoHorario:dd/MM/yyyy}. Escolha outra data.");
+
             var candidatos = new List<(Guid ProfissionalId, int NoDia, int AtivosGeral)>();
 
             foreach (var prof in profissionais)
