@@ -61,7 +61,8 @@ namespace ClinicaMaisSaude.Application.DTOs.Escala
     {
         public Guid Id { get; set; }
         public DateTime DataHoraConsulta { get; set; }
-        public int TipoConsulta { get; set; }
+        /// <summary>Nome do tipo (como em AgendamentoResponse): Triagem, ConsultaMedica...</summary>
+        public string TipoConsulta { get; set; } = string.Empty;
         public string Paciente { get; set; } = string.Empty;
         public Guid ProfissionalId { get; set; }
         public string Profissional { get; set; } = string.Empty;

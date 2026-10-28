@@ -134,7 +134,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                     {
                         Id = c.Id,
                         DataHoraConsulta = c.DataHoraConsulta,
-                        TipoConsulta = (int)c.TipoConsulta,
+                        TipoConsulta = c.TipoConsulta.ToString(),
                         Paciente = c.Paciente?.Pessoa?.Nome ?? "-",
                         ProfissionalId = c.ProfissionalId,
                         Profissional = prof?.Pessoa?.Nome ?? "-",
