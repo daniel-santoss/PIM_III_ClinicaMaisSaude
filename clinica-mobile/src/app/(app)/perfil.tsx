@@ -15,7 +15,7 @@ const AZUL = '#2C5282';
 // Perfil: só foto e nome no topo, e um menu para as telas de detalhe (dados pessoais e
 // configurações). A edição dos dados fica em "Dados pessoais", atrás do ícone de lápis.
 export default function PerfilScreen() {
-  const { session } = useAuth();
+  const { session, semBloqueio } = useAuth();
   const router = useRouter();
   const [perfil, setPerfil] = useState<PacientePerfil | null>(null);
   const [carregando, setCarregando] = useState(true);
@@ -79,27 +79,30 @@ export default function PerfilScreen() {
 
   async function pegarFoto(origem: 'camera' | 'galeria') {
     try {
-      const perm =
-        origem === 'camera'
-          ? await ImagePicker.requestCameraPermissionsAsync()
-          : await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!perm.granted) {
-        Alert.alert('Permissão necessária', 'Autorize o acesso para escolher uma foto.');
-        return;
-      }
+      // A galeria e a câmera levam o app para o segundo plano: sem o semBloqueio, a
+      // biometria seria pedida de novo ao voltar com a foto.
+      const res = await semBloqueio(async () => {
+        const perm =
+          origem === 'camera'
+            ? await ImagePicker.requestCameraPermissionsAsync()
+            : await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!perm.granted) {
+          Alert.alert('Permissão necessária', 'Autorize o acesso para escolher uma foto.');
+          return null;
+        }
 
-      const opcoes: ImagePicker.ImagePickerOptions = {
-        mediaTypes: ['images'],
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.5,
-      };
-      const res =
-        origem === 'camera'
+        const opcoes: ImagePicker.ImagePickerOptions = {
+          mediaTypes: ['images'],
+          allowsEditing: true,
+          aspect: [1, 1],
+          quality: 0.5,
+        };
+        return origem === 'camera'
           ? await ImagePicker.launchCameraAsync(opcoes)
           : await ImagePicker.launchImageLibraryAsync(opcoes);
+      });
 
-      if (res.canceled || !res.assets?.[0]) return;
+      if (!res || res.canceled || !res.assets?.[0]) return;
       const asset = res.assets[0];
 
       setEnviandoFoto(true);
