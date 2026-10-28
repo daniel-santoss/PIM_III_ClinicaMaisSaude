@@ -15,8 +15,10 @@ flowchart LR
 
 | 📋 Backlog | 🔜 A fazer | ⚙️ Em andamento | ✅ Concluído (recentes) |
 |-----------|-----------|-----------------|--------------------------|
-| E5-03 Push nativo FCM | E6-08 APK do app Android (EAS) | **Monografia ABNT** (integração das entregas de out/2026) | E8-05 Publicação no Azure |
-| E8-07 Troca de imagem e migrations no CD | Revisão final da monografia | | E4-11 Termos LGPD oficiais (v2.0) |
+| E5-03 Push nativo FCM | Revisão final da monografia | **Monografia ABNT** (integração das entregas de out/2026) | E2-09/10 Escala 12x36 e ausências |
+| E8-07 Troca de imagem e migrations no CD | | | E6-08 APK do app Android (EAS) |
+| E2-11 Troca de plantão e plantão extra | | | E8-05 Publicação no Azure |
+| | | | E4-11 Termos LGPD oficiais (v2.0) |
 | E7-04 Painel de indicadores | | | E4-10 Fila de solicitações paginada |
 | E1-09 Permissão "Gerenciar pacientes" | | | E1-11 Sessão de 15 min com renovação |
 | E1-08 Caminho duplicado nas tabelas de identidade | | | E1-10 Autorização por recurso |

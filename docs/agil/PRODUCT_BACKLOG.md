@@ -67,6 +67,9 @@ Declaração de Saúde, moderação da IA, aprovação de cadastros e gestão da
 | E2-06 | Como sistema, quero **impedir conflito de horário** por profissional (integridade de agenda). | Must | ✅ |
 | E2-07 | Como gestor, quero **prever probabilidade de falta** (no-show) para priorizar lembretes. | Could | ✅ |
 | E2-08 | Como sistema, quero **lembretes automáticos** (manhã / 2h antes) da consulta. | Should | ✅ |
+| E2-09 | Como administrador, quero definir a **escala 12x36** de cada profissional (Escala 1 ou 2), com a clínica aberta das 07:00 às 19:00 todos os dias e a agenda oferecendo só quem está de plantão. | Must | ✅ |
+| E2-10 | Como administrador, quero um **controle de escala** (calendário com quantos profissionais trabalham em cada dia) e registrar **folga/ausência** imprevista, vendo as consultas que precisam ser remarcadas. | Must | ✅ |
+| E2-11 | Como administrador, quero registrar **troca de plantão** e **plantão extra** entre profissionais e, no futuro, outros regimes (5x2, 6x1). | Could | 📦 |
 
 **Critérios de aceite (ex. E2-04):** cada transição de status gera um registro *append-only* em
 `AgendamentoHistoricos` com status anterior/novo, data e ator (ver trigger em `docs/banco/`).
@@ -166,10 +169,10 @@ motivo e notifica o proponente por e-mail; um modelo já usado em solicitações
 
 | Prioridade | Item | Épico |
 |-----------|------|-------|
-| 🔜 Should | APK do app Android (EAS Build) | E6-08 |
 | 📦 Could | Push nativo FCM (background) | E5-03 |
 | 📦 Could | Automatizar troca da imagem e migrations no CD | E8-07 |
 | 📦 Could | Painel administrativo com indicadores | E7-04 |
+| 📦 Could | Troca de plantão, plantão extra e outros regimes de escala | E2-11 |
 | 📦 Should | Permissão "Gerenciar pacientes" por enfermeira | E1-09 |
 | 📦 Could | Eliminar o caminho duplicado entre as tabelas de identidade | E1-08 |
 | 🚫 Won't (agora) | Multi-tenant (múltiplas unidades) · 2º fator no 1º acesso · planos de saúde na home | — |

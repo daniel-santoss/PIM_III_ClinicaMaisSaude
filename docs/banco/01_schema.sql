@@ -2,7 +2,7 @@
    Clínica Mais Saúde — Script de criação do schema (SQL Server / T-SQL)
    Artefato de Banco de Dados do PIM IV (rubrica 07).
 
-   Estado final do modelo (equivalente às 22 migrations EF Core InitialCreate..Fase21).
+   Estado final do modelo (equivalente às 25 migrations EF Core InitialCreate..Fase24).
    Ordem: tabelas de referência (lookup) -> identidade -> perfis -> operação.
    Comportamento de exclusão: NO ACTION (Restrict) por padrão; CASCADE/SET NULL
    apenas onde o registro filho não existe sem o pai (marcado em cada FK).
@@ -21,6 +21,13 @@ GO
 /* ------------------------------------------------------------------ */
 /* 1. Tabelas de referência (lookup)                                  */
 /* ------------------------------------------------------------------ */
+
+CREATE TABLE EscalaTrabalhoLookup (
+    Id        INT           NOT NULL CONSTRAINT PK_EscalaTrabalhoLookup PRIMARY KEY,
+    Nome      NVARCHAR(50)  NOT NULL,
+    Dt_Criado DATETIME2     NOT NULL
+);
+GO
 
 CREATE TABLE EspecialidadeLookup (
     Id        INT           NOT NULL CONSTRAINT PK_EspecialidadeLookup PRIMARY KEY,
@@ -157,15 +164,19 @@ CREATE TABLE Profissionais (
     Situacao        INT              NOT NULL CONSTRAINT DF_Profissionais_Situacao DEFAULT 1,
     Crm             NVARCHAR(20)     NULL,
     UfCrm           NVARCHAR(2)      NULL,
+    -- Escala 12x36 (1 ou 2): as duas se alternam dia sim, dia não (RN08).
+    Escala          INT              NOT NULL CONSTRAINT DF_Profissionais_Escala DEFAULT 1,
     Dt_Criado       DATETIME2        NOT NULL,
     ult_Atualizacao DATETIME2        NULL,
     CONSTRAINT FK_Profissionais_Pessoas     FOREIGN KEY (PessoaId)  REFERENCES Pessoas (Id)        ON DELETE NO ACTION,
     CONSTRAINT FK_Profissionais_LoginPortal FOREIGN KEY (UsuarioId) REFERENCES LoginPortal (Id)    ON DELETE CASCADE,
-    CONSTRAINT FK_Profissionais_Situacao    FOREIGN KEY (Situacao)  REFERENCES SituacaoLookup (Id) ON DELETE NO ACTION
+    CONSTRAINT FK_Profissionais_Situacao    FOREIGN KEY (Situacao)  REFERENCES SituacaoLookup (Id) ON DELETE NO ACTION,
+    CONSTRAINT FK_Profissionais_Escala      FOREIGN KEY (Escala)    REFERENCES EscalaTrabalhoLookup (Id) ON DELETE NO ACTION
 );
 GO
 CREATE INDEX IX_Profissionais_PessoaId ON Profissionais (PessoaId);
 CREATE INDEX IX_Profissionais_Situacao ON Profissionais (Situacao);
+CREATE INDEX IX_Profissionais_Escala ON Profissionais (Escala);
 CREATE UNIQUE INDEX IX_Profissionais_UsuarioId ON Profissionais (UsuarioId);
 GO
 
@@ -379,6 +390,24 @@ GO
 CREATE INDEX IX_HistSolicitacao_SolicitacaoId ON SolicitacoesCadastroHistorico (SolicitacaoId);
 GO
 
+/* Folga/ausência de um profissional num dia de plantão (RN08): fecha a agenda dele no dia. */
+CREATE TABLE AusenciasProfissional (
+    Id             UNIQUEIDENTIFIER NOT NULL CONSTRAINT PK_AusenciasProfissional PRIMARY KEY,
+    ProfissionalId UNIQUEIDENTIFIER NOT NULL,
+    Data           DATE             NOT NULL,
+    Motivo         NVARCHAR(200)    NOT NULL,
+    RegistradoPor  UNIQUEIDENTIFIER NULL,
+    Dt_Criado      DATETIME2        NOT NULL,
+    CONSTRAINT FK_Ausencia_Profissional FOREIGN KEY (ProfissionalId) REFERENCES Profissionais (Id) ON DELETE CASCADE,
+    CONSTRAINT FK_Ausencia_Usuario      FOREIGN KEY (RegistradoPor)  REFERENCES LoginPortal (Id)   ON DELETE NO ACTION
+);
+GO
+-- Uma ausência por profissional por dia; o índice por data serve o calendário da escala.
+CREATE UNIQUE INDEX IX_Ausencia_Profissional_Data ON AusenciasProfissional (ProfissionalId, Data);
+CREATE INDEX IX_Ausencia_Data ON AusenciasProfissional (Data);
+CREATE INDEX IX_Ausencia_RegistradoPor ON AusenciasProfissional (RegistradoPor);
+GO
+
 /* ------------------------------------------------------------------ */
 /* 7. Códigos de verificação (unificados: recuperação/1º acesso/e-mail)*/
 /* ------------------------------------------------------------------ */
@@ -416,6 +445,9 @@ GO
 /* 8. Seed das tabelas de referência                                  */
 /* ------------------------------------------------------------------ */
 DECLARE @seed DATETIME2 = '2026-01-01T00:00:00';
+
+INSERT INTO EscalaTrabalhoLookup (Id, Nome, Dt_Criado) VALUES
+    (1,'Escala1',@seed),(2,'Escala2',@seed);
 
 INSERT INTO RoleUsuarioLookup (Id, Nome, Dt_Criado) VALUES
     (1,'Paciente',@seed),(2,'Admin',@seed),(3,'Medico',@seed),(4,'Enfermeira',@seed);

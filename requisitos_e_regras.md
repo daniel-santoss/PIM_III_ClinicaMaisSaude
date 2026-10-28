@@ -10,7 +10,7 @@ Os Requisitos Funcionais descrevem as ações e funcionalidades que o sistema fo
 
 *   **RF01 - Gestão de Autenticação e Autorização:** O sistema deve permitir o login seguro de usuários (Pacientes, Médicos, Enfermeiras e Administradores) por e-mail ou CPF, utilizando controle de acesso baseado em perfis (RBAC - Role-Based Access Control) via JWT.
 *   **RF02 - Gestão de Pacientes:** O sistema deve permitir o cadastro, edição e visualização de dados de pacientes, incluindo nome, CPF, e-mail, telefone e foto de perfil (com opção de remover a foto e voltar ao avatar com a inicial do nome).
-*   **RF03 - Gestão de Profissionais:** O sistema deve permitir o cadastro de profissionais de saúde, especificando seu tipo (Médico, Enfermeira), CRM e especialidades médicas vinculadas.
+*   **RF03 - Gestão de Profissionais:** O sistema deve permitir o cadastro de profissionais de saúde, especificando seu tipo (Médico, Enfermeira), CRM, especialidades médicas vinculadas e a **escala de trabalho** (Escala 1 ou 2, ver RN08), escolhida no cadastro e alterável no modal de edição.
 *   **RF04 - Agendamento de Consultas:** O sistema deve permitir a criação, reagendamento, cancelamento e alteração de status de consultas. No app, o paciente escolhe a data num calendário que destaca os dias com horário livre. Ao concluir o agendamento, o paciente vê o profissional delegado (nome e foto).
 *   **RF05 - Triagem Inteligente com IA:** O sistema deve possuir integração com inteligência artificial para sugerir especialidades médicas adequadas a partir dos sintomas livres relatados pelo paciente, contando com bloqueios de abuso e injeção de prompt.
 *   **RF06 - Gestão de Status de Agendamentos:** O sistema deve evoluir e validar o status do agendamento de acordo com uma máquina de estados estrita.
@@ -23,6 +23,7 @@ Os Requisitos Funcionais descrevem as ações e funcionalidades que o sistema fo
 *   **RF13 - Recuperação de Senha:** O usuário deve poder redefinir a própria senha por código enviado ao e-mail cadastrado, sem depender da recepção.
 *   **RF14 - Aplicativo Mobile do Paciente:** O paciente deve poder executar todo o seu fluxo pelo celular (cadastro, login com biometria, triagem por IA, agendamento manual e de retorno, consultas, notificações, perfil e exclusão de conta). Médicos, enfermeiras e administradores usam apenas a versão web.
 *   **RF15 - Exclusão de Conta:** O paciente deve poder encerrar a própria conta (confirmando a senha), com desativação lógica (*soft-delete*) e revogação das sessões ativas.
+*   **RF17 - Controle de Escala:** O Administrador deve visualizar a escala do mês num calendário (escala do dia, quantos médicos e enfermeiras estão de plantão, ausências e consultas a remarcar), registrar ou remover a **folga/ausência** de um profissional num dia e remarcar as consultas afetadas.
 *   **RF16 - Acolhimento em Crise Emocional:** Quando a triagem identificar relato de sofrimento emocional grave (automutilação ou ideação suicida), o sistema deve acolher o paciente com uma mensagem de apoio e o contato do CVV (188), e perguntar se ele deseja agendar com Psiquiatria — sem nenhuma punição.
 
 ---
@@ -67,6 +68,7 @@ Os Requisitos Não Funcionais definem as premissas técnicas, restrições arqui
 *   **RN04 - Acesso a Agendamentos:** O paciente vê apenas os próprios agendamentos e só pode cancelá-los ou remarcá-los; o médico e a enfermeira veem e operam (status, remarcação, edição, exame, histórico) apenas os agendamentos delegados a eles; o administrador acessa todos. A probabilidade de falta nunca é exibida ao paciente. Qualquer acesso ao agendamento de outra pessoa retorna "não encontrado".
 *   **RN05 - Auto-cadastro:** Só pode existir uma solicitação de cadastro em análise por CPF; o CPF é validado pelo dígito verificador e não pode pertencer a uma conta já existente. O e-mail precisa ser verificado por código antes do envio da solicitação.
 *   **RN07 - Decisão e Retificação do Auto-cadastro:** Toda aprovação, recusa ou retificação de solicitação fica registrada numa trilha de auditoria (status anterior e novo, motivo, quem decidiu e quando). O administrador pode **retificar** uma decisão (aprovada ↔ recusada), com motivo obrigatório e aviso ao proponente por e-mail, exceto quando o proponente **já criou a conta** (aí o caminho é desativar o paciente) ou **enviou uma solicitação mais nova**. Ao retificar uma aprovação para recusa, os códigos de primeiro acesso já emitidos deixam de valer.
+*   **RN08 - Escala 12x36 e Ausências:** Cada profissional pertence à **Escala 1** ou à **Escala 2**; as duas se revezam dia sim, dia não (12 horas de plantão, 36 de descanso), em **alternância contínua** a partir de uma data de referência (01/01/2026 = Escala 1). A alternância não segue a paridade do dia do mês, para ninguém trabalhar dois dias seguidos na virada de um mês de 31 dias. Só recebe consultas quem está de plantão no dia e sem ausência registrada. A ausência (folga, atestado, imprevisto) vale para o plantão inteiro, exige motivo, só pode ser registrada para hoje ou datas futuras e num dia de plantão do profissional; ela não cancela nada sozinha: as consultas do dia ficam listadas como **a remarcar**. Trocar a escala de um profissional é bloqueado enquanto houver consultas futuras em dias que deixariam de ser dele.
 *   **RN06 - Gestão de Pacientes e Contas:** O paciente lê apenas a própria ficha e edita os próprios dados pelo perfil — o indicador de dificuldade de memória é gerido só pela clínica. A enfermeira (recepção) lista, consulta e edita os dados cadastrais de pacientes, cadastra novos pacientes e redefine senha **apenas de contas de paciente**. Desativar contas é exclusivo do administrador.
 
 ---
@@ -113,7 +115,7 @@ Cada tipo de consulta tem uma duração padronizada em minutos:
 *   **Exame:** 30 minutos
 *   **Consulta Médica:** 40 minutos
 
-**Horário de funcionamento:** segunda a sexta, das 08:00 às 18:00, com almoço fixo das 12:00 às 13:00. Sem expediente aos fins de semana.
+**Horário de funcionamento:** todos os dias (inclusive sábados e domingos), das 07:00 às 19:00, com pausa fixa das 12:00 às 13:00. A equipe trabalha em escala 12x36 (RN08). Horários fora do expediente são recusados pela API.
 
 ### 4.4 Validação de Conflito de Horário Inteligente
 É proibido realizar agendamentos que gerem sobreposição de horários para um mesmo Profissional ou para um mesmo Paciente. A sobreposição é calculada em tempo real com base no início e término previsto da consulta (utilizando a duração do slot):
@@ -125,7 +127,7 @@ Cada tipo de consulta tem uma duração padronizada em minutos:
 
 ### 4.5 Auto-delegação e Balanceamento de Carga
 *   **Atribuição Automática:** Pacientes e recepcionistas não selecionam o profissional de saúde diretamente na criação do agendamento (exceto no fluxo de Retorno). O backend delega o profissional automaticamente.
-*   **Lógica de Delegação:** O sistema filtra os profissionais do tipo correto (Matriz de Permissões) e habilitados na especialidade selecionada (se for médico). Dentre os candidatos livres e sem conflito de horário no slot, o agendamento é atribuído àquele com o **menor volume de consultas no dia**; em caso de empate, vence o de menor volume de consultas ativas.
+*   **Lógica de Delegação:** O sistema filtra os profissionais do tipo correto (Matriz de Permissões), habilitados na especialidade selecionada (se for médico) e **de plantão no dia** (escala do dia, sem ausência — RN08). Dentre os candidatos livres e sem conflito de horário no slot, o agendamento é atribuído àquele com o **menor volume de consultas no dia**; em caso de empate, vence o de menor volume de consultas ativas.
 
 ### 4.6 Regras Estritas de Agendamento
 *   **Não Retroatividade:** É proibido efetuar agendamentos para datas e horários passados.
@@ -137,7 +139,8 @@ Cada tipo de consulta tem uma duração padronizada em minutos:
 *   **Remarcação pelo Paciente:** O paciente pode remarcar a própria consulta, informando o motivo, sujeito aos limites diários, à especialidade ativa única e aos conflitos de horário.
 *   **Vínculo do Profissional em Retornos:**
     *   Um agendamento do tipo "Retorno" só pode ser criado se houver uma consulta inicial anterior concluída com status de `AguardandoRetorno`. A consulta de origem informada precisa ser **do próprio paciente** e estar `AguardandoRetorno`.
-    *   O agendamento de retorno é travado obrigatoriamente ao mesmo profissional que atendeu a consulta inicial de origem, herdando o `ProfissionalId` e ignorando a regra de balanceamento de carga.
+    *   O agendamento de retorno é travado obrigatoriamente ao mesmo profissional que atendeu a consulta inicial de origem, herdando o `ProfissionalId` e ignorando a regra de balanceamento de carga. O profissional precisa estar de plantão na data escolhida.
+*   **Remarcação mantém o profissional:** a remarcação só oferece os horários do profissional da consulta, nos dias de plantão dele.
 
 ### 4.7 Máquina de Estados e Transições de Status
 O ciclo de vida do agendamento obedece rigidamente à seguinte máquina de estados, e qualquer transição fora do fluxo descrito é rejeitada:

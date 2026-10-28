@@ -4,9 +4,9 @@ Artefato de Banco de Dados do PIM IV (rubrica 07). Descreve o **MER** (Modelo En
 o modelo lógico/físico e o dicionário de dados do sistema Clínica Mais Saúde.
 
 - **SGBD:** Microsoft SQL Server (produção) / SQL Server LocalDB (desenvolvimento).
-- **Origem do schema:** EF Core 10 *Code-First* — 22 *migrations* (`InitialCreate` → `Fase21`). O DDL
+- **Origem do schema:** EF Core 10 *Code-First* — 25 *migrations* (`InitialCreate` → `Fase24`). O DDL
   equivalente está em [`01_schema.sql`](01_schema.sql); procedures e triggers em [`02_procedures_triggers.sql`](02_procedures_triggers.sql).
-- **Total:** 27 tabelas — **17 de entidade** + **10 de referência (*lookup*)**.
+- **Total:** 29 tabelas — **18 de entidade** + **11 de referência (*lookup*)**.
 
 > Este documento é gerado a partir do modelo vigente (`ClinicaDbContextModelSnapshot`) e mantido em sincronia
 > com o código. Ao alterar o schema, regenere o DDL com
@@ -45,6 +45,9 @@ erDiagram
     RoleUsuarioLookup ||--o{ LoginPortal : "classifica"
     SituacaoLookup ||--o{ Paciente : "situa"
     SituacaoLookup ||--o{ Profissional : "situa"
+    EscalaTrabalhoLookup ||--o{ Profissional : "escala"
+    Profissional ||--o{ AusenciasProfissional : "falta em"
+    LoginPortal ||--o{ AusenciasProfissional : "registra"
     TipoVerificacaoLookup ||--o{ CodigosVerificacao : "tipa"
     TipoViolacaoLookup ||--o{ UsoInadequadoIA : "tipa"
 
@@ -78,6 +81,14 @@ erDiagram
         int Situacao FK
         nvarchar20 Crm "null"
         nvarchar2 UfCrm "null"
+        int Escala FK "12x36: 1 ou 2"
+    }
+    AusenciasProfissional {
+        uniqueidentifier Id PK
+        uniqueidentifier ProfissionalId FK
+        date Data "UK com ProfissionalId"
+        nvarchar200 Motivo
+        uniqueidentifier RegistradoPor FK "null"
     }
     UsuarioFoto {
         uniqueidentifier UsuarioId PK "FK 1:1"
@@ -211,6 +222,7 @@ Semeadas por `HasData`; o `Id` **coincide com o valor do `enum`** para preservar
 
 | Tabela | Valores (`Id` = `Nome`) |
 |--------|--------------------------|
+| `EscalaTrabalhoLookup` | 1 Escala1 · 2 Escala2 |
 | `RoleUsuarioLookup` | 1 Paciente · 2 Admin · 3 Medico · 4 Enfermeira |
 | `SituacaoLookup` | 1 Ativo · 2 Inativo · 3 Excluido · 4 Banido · 5 EmAnalise |
 | `StatusAgendamentoLookup` | 1 Agendado · 2 EmAtendimento · 3 AguardandoRetorno · 4 RetornoAgendado · 5 Finalizado · 6 Faltou · 7 Cancelado |
@@ -270,6 +282,19 @@ estrangeira, **UK** = única.
 | `UsuarioId` | uniqueidentifier | FK → `LoginPortal` (**Cascade**), NOT NULL, **UK** |
 | `Situacao` | int | FK → `SituacaoLookup` (Restrict), default 1 |
 | `Crm` / `UfCrm` | nvarchar(20) / nvarchar(2) | NULL |
+| `Escala` | int | FK → `EscalaTrabalhoLookup` (Restrict), default 1 — escala 12x36; a escala de cada dia é calculada (alternância contínua a partir de 01/01/2026 = Escala 1) |
+
+### `AusenciasProfissional` — folga/ausência num dia de plantão
+| Coluna | Tipo | Restrições |
+|--------|------|-----------|
+| `Id` | uniqueidentifier | PK |
+| `ProfissionalId` | uniqueidentifier | FK → `Profissional` (**Cascade**), NOT NULL |
+| `Data` | date | NOT NULL — **UK** com `ProfissionalId` (uma ausência por dia); índice próprio para o calendário |
+| `Motivo` | nvarchar(200) | NOT NULL |
+| `RegistradoPor` | uniqueidentifier | FK → `LoginPortal` (Restrict), NULL — quem registrou |
+| `Dt_Criado` | datetime2 | NOT NULL |
+
+Não há tabela de plantões: a escala do dia é derivada da data (RN08); só as **exceções** (ausências) são gravadas.
 
 ### `Agendamento` — consulta agendada
 | Coluna | Tipo | Restrições |
