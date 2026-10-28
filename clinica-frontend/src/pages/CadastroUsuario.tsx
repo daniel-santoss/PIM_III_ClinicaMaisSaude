@@ -8,6 +8,7 @@ import { useToast } from "../hooks/useToast";
 import Button from "../components/ui/Button";
 import { useScrollBlock } from "../hooks/useScrollBlock";
 import ModalPortal from "../components/ui/ModalPortal";
+import SeletorEscala from "../components/SeletorEscala";
 
 const inputCls =
   "w-full h-10 px-3 text-sm text-ink bg-white border border-line rounded-md outline-none focus:border-brand-600 focus:shadow-focus transition-shadow placeholder:text-muted";
@@ -25,6 +26,9 @@ export function CadastroUsuario({ open, onClose, onUserCreated, tipoUsuarioLogad
   const [crm, setCrm] = useState("");
   const [ufCrm, setUfCrm] = useState("");
   const [temProblemaMemoria, setTemProblemaMemoria] = useState(false);
+  const [escala, setEscala] = useState<number | null>(null);
+
+  const ehProfissional = tipoUsuario === perfis.medico || tipoUsuario === perfis.enfermeira;
 
   const [loading, setLoading] = useState(false);
   const [dropdownAberto, setDropdownAberto] = useState(false);
@@ -53,10 +57,15 @@ export function CadastroUsuario({ open, onClose, onUserCreated, tipoUsuarioLogad
     setCrm("");
     setUfCrm("");
     setTemProblemaMemoria(false);
+    setEscala(null);
   };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    if (ehProfissional && escala === null) {
+      toast.error("Escolha a escala de trabalho do profissional.");
+      return;
+    }
     setLoading(true);
 
     const token = localStorage.getItem("authToken");
@@ -78,6 +87,7 @@ export function CadastroUsuario({ open, onClose, onUserCreated, tipoUsuarioLogad
           crm: tipoUsuario === perfis.medico ? crm : null,
           ufCrm: tipoUsuario === perfis.medico ? ufCrm : null,
           temProblemaMemoria: tipoUsuario === perfis.paciente ? temProblemaMemoria : false,
+          escala: ehProfissional ? escala : null,
         }),
       });
 
@@ -276,6 +286,12 @@ export function CadastroUsuario({ open, onClose, onUserCreated, tipoUsuarioLogad
                 <option value="TO">TO</option>
               </select>
             </div>
+          </div>
+        )}
+
+        {ehProfissional && (
+          <div className="mt-4">
+            <SeletorEscala valor={escala} onMudar={setEscala} />
           </div>
         )}
 

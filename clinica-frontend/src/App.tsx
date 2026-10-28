@@ -20,6 +20,7 @@ import PerfilMedico from "./components/PerfilMedico";
 import ViolacoesList from "./pages/ViolacoesList";
 import DeclaracaoSaudeEditor from "./pages/DeclaracaoSaudeEditor";
 import SolicitacoesCadastroList from "./pages/SolicitacoesCadastroList";
+import ControleEscala from "./pages/ControleEscala";
 import Relatorios from "./pages/Relatorios";
 import type { PacienteResponse } from "./types/PacienteResponse";
 import { useScrollBlock } from "./hooks/useScrollBlock";
@@ -36,7 +37,7 @@ type Notificacao = {
 };
 
 // Aba ativa — inclui "painel" (reservado para uso futuro) sem quebrar nada
-type AbaAtiva = "painel" | "pacientes" | "agendamentos" | "minhas-consultas" | "violacoes" | "relatorios" | "declaracao-saude" | "solicitacoes";
+type AbaAtiva = "painel" | "pacientes" | "agendamentos" | "minhas-consultas" | "violacoes" | "relatorios" | "declaracao-saude" | "solicitacoes" | "escala";
 
 export default function App() {
   const [autenticado, setAutenticado] = useState(false);
@@ -432,6 +433,13 @@ export default function App() {
       {abaAtiva === "solicitacoes" && isAdmin && (
         <section aria-label="Fila de aprovação de auto-cadastro">
           <SolicitacoesCadastroList />
+        </section>
+      )}
+
+      {/* ── Controle de escala 12x36 (admin) ───────────────────────────────── */}
+      {abaAtiva === "escala" && isAdmin && (
+        <section aria-label="Controle de escala">
+          <ControleEscala />
         </section>
       )}
 

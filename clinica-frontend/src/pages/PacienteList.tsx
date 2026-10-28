@@ -13,6 +13,7 @@ import Badge from "../components/ui/Badge";
 import Button from "../components/ui/Button";
 import ModalPortal from "../components/ui/ModalPortal";
 import Paginacao from "../components/ui/Paginacao";
+import SeletorEscala from "../components/SeletorEscala";
 
 const modalInputCls =
   "w-full h-10 px-3 text-sm text-ink bg-white border border-line rounded-md outline-none focus:border-brand-600 focus:shadow-focus transition-shadow placeholder:text-muted";
@@ -29,6 +30,8 @@ interface PacienteEdicao {
   cpf: string;
   telefone: string;
   email: string;
+  /** Só profissionais: escala 12x36. */
+  escala: number | null;
 }
 
 
@@ -59,7 +62,7 @@ export default function PacienteList({
   // Guarda o tipo da linha em edição: a lista do admin mistura pacientes e
   // profissionais, e cada um tem seu próprio endpoint de atualização.
   const [editandoTipo, setEditandoTipo] = useState<string | null>(null);
-  const [form, setForm] = useState<PacienteEdicao>({ nome: "", cpf: "", telefone: "", email: "" });
+  const [form, setForm] = useState<PacienteEdicao>({ nome: "", cpf: "", telefone: "", email: "", escala: null });
   const [salvando, setSalvando] = useState(false);
 
   const [excluindoPaciente, setExcluindoPaciente] = useState<{ id: string, nome: string } | null>(null);
@@ -142,7 +145,7 @@ export default function PacienteList({
   const abrirEdicao = (p: PacienteResponse) => {
     setEditandoId(p.id);
     setEditandoTipo(p.tipo ?? perfis.paciente);
-    setForm({ nome: p.nome, cpf: p.cpf, telefone: p.telefone, email: p.email });
+    setForm({ nome: p.nome, cpf: p.cpf, telefone: p.telefone, email: p.email, escala: p.escala ?? null });
   };
 
   const fecharModal = () => {
@@ -598,6 +601,11 @@ export default function PacienteList({
                   />
                 </div>
               </div>
+              {editandoTipo !== perfis.paciente && (
+                <div className="mt-4">
+                  <SeletorEscala valor={form.escala} onMudar={(escala) => setForm({ ...form, escala })} />
+                </div>
+              )}
             </div>
 
             <div className="flex justify-end gap-2.5 px-6 py-4 border-t border-line shrink-0">

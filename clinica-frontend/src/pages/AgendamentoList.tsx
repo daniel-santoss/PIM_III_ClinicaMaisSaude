@@ -23,6 +23,7 @@ export interface AgendamentoResponse {
   pacienteId: string;
   pacienteNome: string;
   medicoId: string;
+  profissionalId?: string;
   dataHoraConsulta: string;
   tipoProfissional: string;
   tipoConsulta: string;

@@ -9,4 +9,6 @@ export interface PacienteResponse {
   ultimoAcesso?: string;
   isBanidoPermanente?: boolean;
   fotoBase64?: string;
+  /** Escala 12x36 (só profissionais). */
+  escala?: number | null;
 }
