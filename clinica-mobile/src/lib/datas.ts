@@ -40,30 +40,27 @@ export function tempoRelativo(dateStr?: string | null): string {
   return `${dd}/${mm}`;
 }
 
-export interface DiaUtil {
+export interface DiaAgenda {
   iso: string; // "YYYY-MM-DD"
   diaSemana: string; // "Seg"
   dia: string; // "07"
   mes: string; // "08"
 }
 
-// Gera os próximos N dias úteis (Seg–Sex) a partir de hoje. A clínica não atende
-// fins de semana; a validação final de horário/regras fica no backend.
-export function proximosDiasUteis(quantidade: number): DiaUtil[] {
+// Gera os próximos N dias a partir de hoje. A clínica abre todos os dias (escala 12x36);
+// quem decide se há horário (profissional de plantão, ausências) é o backend.
+export function proximosDias(quantidade: number): DiaAgenda[] {
   const nomes = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-  const out: DiaUtil[] = [];
+  const out: DiaAgenda[] = [];
   const d = new Date();
   d.setHours(0, 0, 0, 0);
   while (out.length < quantidade) {
-    const dow = d.getDay();
-    if (dow >= 1 && dow <= 5) {
-      out.push({
-        iso: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`,
-        diaSemana: nomes[dow],
-        dia: String(d.getDate()).padStart(2, '0'),
-        mes: String(d.getMonth() + 1).padStart(2, '0'),
-      });
-    }
+    out.push({
+      iso: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`,
+      diaSemana: nomes[d.getDay()],
+      dia: String(d.getDate()).padStart(2, '0'),
+      mes: String(d.getMonth() + 1).padStart(2, '0'),
+    });
     d.setDate(d.getDate() + 1);
   }
   return out;

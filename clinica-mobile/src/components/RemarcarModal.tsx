@@ -15,7 +15,7 @@ import { TIPO_CONSULTA_LABEL } from '@/constants/agendamento';
 import { remarcarConsulta } from '@/lib/agendamentos';
 import { tipoConsultaParaInt } from '@/lib/consultas';
 import { horariosDisponiveis } from '@/lib/consultas';
-import { parseData, proximosDiasUteis, type DiaUtil } from '@/lib/datas';
+import { parseData, proximosDias, type DiaAgenda } from '@/lib/datas';
 import type { Agendamento } from '@/types/agendamento';
 
 const AZUL = '#2C5282';
@@ -31,7 +31,7 @@ function pad(n: number) {
 }
 
 export default function RemarcarModal({ agendamento, onClose, onSuccess }: Props) {
-  const dias = useMemo(() => proximosDiasUteis(10), []);
+  const dias = useMemo(() => proximosDias(14), []);
   const [diaSel, setDiaSel] = useState<string | null>(null);
   const [horarios, setHorarios] = useState<string[]>([]);
   const [carregandoHorarios, setCarregandoHorarios] = useState(false);
@@ -52,12 +52,13 @@ export default function RemarcarModal({ agendamento, onClose, onSuccess }: Props
   const tipoInt = tipoConsultaParaInt(agendamento.tipoConsulta);
   const tipoLabel = TIPO_CONSULTA_LABEL[agendamento.tipoConsulta] ?? agendamento.tipoConsulta;
 
-  async function selecionarDia(dia: DiaUtil) {
+  async function selecionarDia(dia: DiaAgenda) {
     setDiaSel(dia.iso);
     setHorarioSel(null);
     setCarregandoHorarios(true);
     try {
-      setHorarios(await horariosDisponiveis(dia.iso, tipoInt));
+      // A remarcação mantém o profissional: só os horários dele, nos dias de plantão.
+      setHorarios(await horariosDisponiveis(dia.iso, tipoInt, undefined, undefined, agendamento?.profissionalId));
     } catch {
       setHorarios([]);
     } finally {
@@ -129,7 +130,7 @@ export default function RemarcarModal({ agendamento, onClose, onSuccess }: Props
               {carregandoHorarios ? (
                 <ActivityIndicator color={AZUL} style={{ marginVertical: 12 }} />
               ) : horarios.length === 0 ? (
-                <Text style={styles.semHorario}>Nenhum horário disponível para esta data.</Text>
+                <Text style={styles.semHorario}>Seu profissional não está de plantão ou não tem horário livre nesta data.</Text>
               ) : (
                 <View style={styles.horariosWrap}>
                   {horarios.map((h) => {

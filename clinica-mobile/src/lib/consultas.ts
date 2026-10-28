@@ -51,10 +51,12 @@ export async function horariosDisponiveis(
   tipoConsulta: number,
   especialidadeId?: number,
   origemId?: string,
+  profissionalId?: string, // remarcação: só os horários do profissional da consulta
 ): Promise<string[]> {
   let q = `?data=${data}&tipoConsulta=${tipoConsulta}`;
   if (tipoConsulta === TIPO_CONSULTA.consultaMedica && especialidadeId != null) q += `&especialidadeId=${especialidadeId}`;
   else if (tipoConsulta === TIPO_CONSULTA.retorno && origemId) q += `&origemId=${origemId}`;
+  if (profissionalId) q += `&profissionalId=${profissionalId}`;
   const res = await apiFetch(`/api/Agendamentos/horarios-disponiveis${q}`);
   if (!res.ok) return [];
   return (await res.json()) as string[];
