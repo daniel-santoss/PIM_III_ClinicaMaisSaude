@@ -1,3 +1,4 @@
+using ClinicaMaisSaude.Domain.Common;
 using ClinicaMaisSaude.Domain.Entities;
 using ClinicaMaisSaude.Domain.Enums;
 using ClinicaMaisSaude.Domain.Interfaces;
@@ -104,9 +105,19 @@ namespace ClinicaMaisSaude.Infrastructure.Repositories
 
             if (!string.IsNullOrWhiteSpace(buscaPaciente))
             {
-                // CPF por prefixo (SARGable, usa índice); nome por Contains (UX de busca).
+                // Uma coluna só por busca: dígitos = CPF por prefixo (SARGable, usa o índice); texto =
+                // nome por Contains (UX de busca). Com OU entre as duas, o banco varre a tabela sempre.
                 // Para nome em escala, a evolução seria full-text search do SQL Server.
-                query = query.Where(a => a.Paciente.Pessoa!.Nome.Contains(buscaPaciente) || a.Paciente.Pessoa!.Cpf.StartsWith(buscaPaciente));
+                if (Cpf.EhTermoDeBusca(buscaPaciente))
+                {
+                    var digitos = Cpf.Sanitizar(buscaPaciente);
+                    query = query.Where(a => a.Paciente.Pessoa!.Cpf.StartsWith(digitos));
+                }
+                else
+                {
+                    var nome = buscaPaciente.Trim();
+                    query = query.Where(a => a.Paciente.Pessoa!.Nome.Contains(nome));
+                }
             }
 
             if (!string.IsNullOrWhiteSpace(dataConsulta))

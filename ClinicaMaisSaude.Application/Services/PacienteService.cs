@@ -89,7 +89,7 @@ namespace ClinicaMaisSaude.Application.Services
                 }
                 if (!string.IsNullOrWhiteSpace(cpf))
                 {
-                    profissionais = profissionais.Where(p => p.Pessoa != null && p.Pessoa.Cpf.Contains(cpf));
+                    profissionais = profissionais.Where(p => p.Pessoa != null && p.Pessoa.Cpf.StartsWith(cpf));
                 }
 
                 foreach (var prof in profissionais)
@@ -141,7 +141,7 @@ namespace ClinicaMaisSaude.Application.Services
                 if (!string.IsNullOrWhiteSpace(nome))
                     profissionais = profissionais.Where(p => p.Pessoa != null && p.Pessoa.Nome.Contains(nome, StringComparison.OrdinalIgnoreCase));
                 if (!string.IsNullOrWhiteSpace(cpf))
-                    profissionais = profissionais.Where(p => p.Pessoa != null && p.Pessoa.Cpf.Contains(cpf));
+                    profissionais = profissionais.Where(p => p.Pessoa != null && p.Pessoa.Cpf.StartsWith(cpf));
 
                 foreach (var prof in profissionais)
                 {
