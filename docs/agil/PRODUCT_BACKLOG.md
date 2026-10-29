@@ -161,6 +161,7 @@ motivo e notifica o proponente por e-mail; um modelo já usado em solicitações
 | E8-04 | Como equipe, quero **artefatos de deploy** (Dockerfile, compose, DEPLOY.md). | Should | ✅ |
 | E8-05 | Como equipe, quero **publicar em nuvem** com pipeline de CD. | Could | ✅ |
 | E8-06 | Como equipe, quero **acessibilidade** auditada (web + mobile). | Should | ✅ |
+| E8-08 | Como usuário, quero que as **buscas por nome ou CPF** só disparem a partir do 3º caractere e consultem uma coluna só (CPF pelo índice), para a tela não pesar com muitos registros. | Should | ✅ |
 | E8-07 | Como equipe, quero **automatizar no CD** a troca da imagem da API e as migrations (hoje são passos do script local). | Could | 📦 |
 
 ---

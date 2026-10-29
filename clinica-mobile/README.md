@@ -89,9 +89,22 @@ eas init
 eas build -p android --profile preview
 ```
 
+Sem instalar o `eas-cli` globalmente: `npx eas-cli@latest build -p android --profile preview` (o `npx eas` não funciona,
+porque o pacote se chama `eas-cli`). Ao final, o link do APK aparece no terminal e em `npx eas-cli build:list`.
+
 O `eas init` grava o `projectId` no `app.json` (já commitado). Os perfis `preview` e `production` do `eas.json`
 definem `EXPO_PUBLIC_API_URL` apontando para a API publicada no Azure; o `.env` local é ignorado pelo git e não vai
 para o build. Os ícones e a tela de abertura são gerados a partir da logo da clínica (`assets/images/`).
+
+---
+
+### Cuidados do SDK 58
+
+- **Envio de arquivos:** o `fetch` global passou a ser o do Expo, que não aceita o formato antigo do React Native
+  (`{ uri, name, type }`) no `FormData` ("Unsupported FormDataPart implementation"). A foto de perfil vai como
+  `File` do `expo-file-system` no celular e como `Blob` na versão web (`src/lib/perfil.ts`).
+- **Biometria × telas do sistema:** galeria e câmera levam o app para o segundo plano, o que re-trancaria o app.
+  Ações externas pedidas pelo paciente rodam dentro de `semBloqueio(...)` (`AuthContext`).
 
 ---
 

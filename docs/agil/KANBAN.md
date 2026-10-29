@@ -16,6 +16,7 @@ flowchart LR
 | 📋 Backlog | 🔜 A fazer | ⚙️ Em andamento | ✅ Concluído (recentes) |
 |-----------|-----------|-----------------|--------------------------|
 | E5-03 Push nativo FCM | Revisão final da monografia | **Monografia ABNT** (integração das entregas de out/2026) | E2-09/10 Escala 12x36 e ausências |
+| | | | E8-08 Buscas a partir do 3º caractere |
 | E8-07 Troca de imagem e migrations no CD | | | E6-08 APK do app Android (EAS) |
 | E2-11 Troca de plantão e plantão extra | | | E8-05 Publicação no Azure |
 | | | | E4-11 Termos LGPD oficiais (v2.0) |
@@ -35,7 +36,7 @@ Um item só entra em **✅ Concluído** quando:
 
 ## Métricas de fluxo (visão geral)
 
-- **312 commits** entre 07/04 e 26/10/2026 · picos de entrega em maio (features), agosto (refactor + mobile) e
+- **353 commits** entre 07/04 e 29/10/2026 · picos de entrega em maio (features), agosto (refactor + mobile) e
   outubro (segurança, paridade mobile e publicação).
-- **172 testes** automatizados no backend (domínio, aplicação, API e infraestrutura) + `tsc` (web/mobile) na CI.
+- **217 testes** automatizados no backend (domínio, aplicação, API e infraestrutura) + `tsc` (web/mobile) na CI.
 - Cadência: entregas incrementais frequentes; sem *sprints* de duração fixa (fluxo Kanban orientado a tema).

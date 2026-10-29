@@ -28,10 +28,20 @@ A consulta é classificada em três categorias visuais de risco: **Baixo, Médio
 ---
 
 ### 📅 Distribuição Dinâmica e Regras de Agendamento
-- **Balanceamento de Carga:** Novas consultas são direcionadas automaticamente ao profissional habilitado com menor quantidade de agendamentos no dia. Em caso de empate na quantidade de agendamentos do dia, será utilizada a quantidade total de agendamentos ativos como critério de desempate.
+- **Balanceamento de Carga:** Novas consultas são direcionadas automaticamente ao profissional habilitado **e de plantão no dia** com menor quantidade de agendamentos no dia. Em caso de empate na quantidade de agendamentos do dia, será utilizada a quantidade total de agendamentos ativos como critério de desempate.
 - **Slot de Atendimento:** Cada tipo de consulta possui duração padronizada (Triagem, Vacina, Exame, Consulta Médica, Retorno).
 - **Retornos Vinculados:** Agendamentos de retorno direcionam o paciente obrigatoriamente ao mesmo médico do atendimento inicial.
 - **Divisão de Competências:** Separação clara entre procedimentos de enfermagem e consultas médicas.
+
+---
+
+### 🗓️ Escala 12x36 e Controle de Escala
+A clínica funciona **todos os dias, das 07:00 às 19:00** (pausa das 12:00 às 13:00), com a equipe em escala 12x36:
+cada profissional pertence à Escala 1 ou à Escala 2, que se revezam dia sim, dia não. O admin escolhe num calendário o
+**primeiro plantão** de cada profissional, e a escala sai dele; a agenda só oferece horários de quem está de plantão.
+Na tela **Escala**, cartões de resumo (que também filtram o calendário), um calendário com alertas (dia sem médico ou
+sem enfermeira, ausências, consultas a remarcar), um painel com o detalhe do dia e um **filtro por profissional**
+permitem lançar **folgas e ausências** — inclusive em data passada — e remarcar as consultas afetadas.
 
 ---
 

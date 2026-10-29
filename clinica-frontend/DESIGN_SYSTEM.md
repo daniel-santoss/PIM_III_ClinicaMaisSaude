@@ -61,6 +61,20 @@ Topo: tile de ícone 32px (`rounded-lg bg-brand-50 text-brand-600`) + label UPPE
 `font-bold text-[22px] text-ink mt-0.5`. Sub `text-xs text-muted mt-0.5`. **Nada de quebra
 de linha nos textos; padding enxuto.**
 
+**Cartão de resumo com caixas** (padrão "Equipe" da tela de usuários; também na Escala) — o mesmo metric card,
+mas o valor vai em caixas lado a lado `flex-1 bg-canvas border border-line rounded-md px-2.5 py-1.5` com número
+`font-bold text-[20px] leading-none text-ink` e rótulo embaixo `font-medium text-[11px] text-body`; complemento curto
+no cabeçalho (`ml-auto text-[11px] text-muted`, sem quebrar linha). Quando a caixa é um **atalho de filtro**, vira
+`button` e, ativa, fica `bg-brand-50 border-brand-600`.
+
+**Tela com calendário e detalhe** (Controle de escala) — cartões no topo; calendário com o essencial em cada dia
+(número, escala, alertas); o detalhe do dia clicado num **painel lateral** `lg:grid-cols-[minmax(0,1fr)_380px]`,
+não em modal. Com um destaque ativo, os dias em foco ficam `border-brand-200 bg-brand-50` e os demais `opacity-30`.
+
+**Busca por texto** — só dispara a partir do **3º caractere** e com espera entre teclas
+(`termoDeBusca` em `src/utils/busca.ts`: dígitos = CPF por prefixo, texto = nome). Abaixo disso, `<AvisoBusca>`
+mostra a dica sob o campo (o pai do campo precisa ser `relative`).
+
 **Badge** — `inline-flex items-center font-semibold text-[11px] tracking-wide px-2.5 py-1 rounded-md uppercase`,
 com par bg/borda/texto por variante:
 - Navy (Agendado): `bg-brand-50 border-brand-200 text-brand-600`
