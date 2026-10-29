@@ -52,8 +52,33 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             // Contagem agrupada por escala, início e papel: poucas linhas, mesmo com centenas de profissionais.
             var grupos = await ProfissionaisQueAtendem()
                 .GroupBy(p => new { p.Escala, p.InicioPlantoes, p.Usuario.Role })
-                .Select(g => new { g.Key.Escala, g.Key.InicioPlantoes, g.Key.Role, Qtd = g.Count() })
+                .Select(g => new GrupoProfissionais(g.Key.Escala, g.Key.InicioPlantoes, g.Key.Role, g.Count()))
                 .ToListAsync();
+
+            var dias = await ResumirDiasAsync(inicio, fim, grupos);
+            // Os cartões de resumo mostram "hoje" mesmo quando o calendário está em outro mês.
+            var hoje = dias.FirstOrDefault(d => d.Data == Hoje) ?? (await ResumirDiasAsync(Hoje, Hoje.AddDays(1), grupos)).Single();
+
+            return new EscalaMesResponse
+            {
+                Ano = ano,
+                Mes = mes,
+                Dias = dias,
+                Hoje = hoje,
+                Composicao = Enum.GetValues<EscalaTrabalho>().Select(e => new ComposicaoEscala
+                {
+                    Escala = (int)e,
+                    Medicos = grupos.Where(g => g.Escala == e && g.Role == RoleUsuario.Medico).Sum(g => g.Qtd),
+                    Enfermeiras = grupos.Where(g => g.Escala == e && g.Role == RoleUsuario.Enfermeira).Sum(g => g.Qtd)
+                }).ToList()
+            };
+        }
+
+        private record GrupoProfissionais(EscalaTrabalho Escala, DateTime InicioPlantoes, RoleUsuario Role, int Qtd);
+
+        // Resumo (plantão, ausências, consultas a remarcar) de cada dia do intervalo [inicio, fim).
+        private async Task<List<EscalaDiaResumo>> ResumirDiasAsync(DateTime inicio, DateTime fim, List<GrupoProfissionais> grupos)
+        {
             var ausencias = await _context.AusenciasProfissional.AsNoTracking()
                 .Where(a => a.Data >= inicio && a.Data < fim)
                 .Join(ProfissionaisQueAtendem(), a => a.ProfissionalId, p => p.Id,
@@ -68,7 +93,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             var ausenciasValidas = ausencias.Where(a => Escalado(a.Escala, a.InicioPlantoes, a.Data)).ToList();
             var ausentes = ausenciasValidas.Select(a => (a.ProfissionalId, a.Data)).ToHashSet();
 
-            var resposta = new EscalaMesResponse { Ano = ano, Mes = mes };
+            var dias = new List<EscalaDiaResumo>();
             for (var dia = inicio; dia < fim; dia = dia.AddDays(1))
             {
                 var escala = Expediente.EscalaDoDia(dia);
@@ -81,7 +106,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                     (ausentes.Contains((c.ProfissionalId, dia)) ||
                      (dia >= Hoje && !Escalado(c.Escala, c.InicioPlantoes, dia))));
 
-                resposta.Dias.Add(new EscalaDiaResumo
+                dias.Add(new EscalaDiaResumo
                 {
                     Data = dia,
                     Escala = (int)escala,
@@ -91,8 +116,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                     ConsultasARemarcar = aRemarcar
                 });
             }
-
-            return resposta;
+            return dias;
         }
 
         public async Task<EscalaDiaResponse> ObterDiaAsync(DateTime data, string? busca, int pagina, int tamanhoPagina)

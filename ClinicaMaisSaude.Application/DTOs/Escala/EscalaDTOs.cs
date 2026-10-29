@@ -18,11 +18,22 @@ namespace ClinicaMaisSaude.Application.DTOs.Escala
         public int ConsultasARemarcar { get; set; }
     }
 
+    /// <summary>Quantos profissionais compõem cada escala (cadastro, sem considerar ausências).</summary>
+    public class ComposicaoEscala
+    {
+        public int Escala { get; set; }
+        public int Medicos { get; set; }
+        public int Enfermeiras { get; set; }
+    }
+
     public class EscalaMesResponse
     {
         public int Ano { get; set; }
         public int Mes { get; set; }
         public List<EscalaDiaResumo> Dias { get; set; } = new();
+        /// <summary>Resumo de hoje (cartão "De plantão hoje"), independente do mês aberto.</summary>
+        public EscalaDiaResumo Hoje { get; set; } = new();
+        public List<ComposicaoEscala> Composicao { get; set; } = new();
     }
 
     public class AusenciaResponse

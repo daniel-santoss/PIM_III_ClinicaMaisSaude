@@ -93,6 +93,11 @@ namespace ClinicaMaisSaude.Infrastructure.Tests.Services
             var diaEscala2 = mes.Dias.First(d => d.Escala == 2);
             Assert.Equal((0, 1), (diaEscala2.Medicos, diaEscala2.Enfermeiras));
 
+            // Cartões: composição de cada escala e o resumo de hoje (mesmo com outro mês aberto).
+            var composicao1 = mes.Composicao.Single(c => c.Escala == 1);
+            Assert.Equal((2, 0), (composicao1.Medicos, composicao1.Enfermeiras));
+            Assert.Equal(Hoje, mes.Hoje.Data);
+
         }
 
         [Fact]
