@@ -7,8 +7,8 @@ using Microsoft.AspNetCore.Mvc;
 namespace ClinicaMaisSaude.API.Controllers
 {
     /// <summary>
-    /// Controle da escala 12x36 (admin): calendário do mês com quantos profissionais estão de
-    /// plantão por dia, detalhe do dia e registro de folga/ausência.
+    /// Controle da escala 12x36 (admin): calendário do mês com alertas por dia, detalhe do dia
+    /// (paginado), visão de um profissional e registro de folga/ausência.
     /// </summary>
     [ApiController]
     [Route("api/[controller]")]
@@ -27,8 +27,17 @@ namespace ClinicaMaisSaude.API.Controllers
             => Ok(await _escalaService.ObterMesAsync(ano, mes));
 
         [HttpGet("dia")]
-        public async Task<IActionResult> ObterDia([FromQuery] DateTime data)
-            => Ok(await _escalaService.ObterDiaAsync(data));
+        public async Task<IActionResult> ObterDia([FromQuery] DateTime data, [FromQuery] string? busca = null,
+            [FromQuery] int pagina = 1, [FromQuery] int tamanhoPagina = 8)
+            => Ok(await _escalaService.ObterDiaAsync(data, busca, pagina, tamanhoPagina));
+
+        [HttpGet("profissionais")]
+        public async Task<IActionResult> BuscarProfissionais([FromQuery] string? busca = null)
+            => Ok(await _escalaService.BuscarProfissionaisAsync(busca));
+
+        [HttpGet("profissionais/{id}")]
+        public async Task<IActionResult> ObterMesDoProfissional(Guid id, [FromQuery] int ano, [FromQuery] int mes)
+            => Ok(await _escalaService.ObterMesDoProfissionalAsync(id, ano, mes));
 
         [HttpPost("ausencias")]
         public async Task<IActionResult> RegistrarAusencia([FromBody] RegistrarAusenciaRequest request)

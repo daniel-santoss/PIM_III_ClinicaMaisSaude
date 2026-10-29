@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace ClinicaMaisSaude.Application.DTOs.Escala
 {
-    /// <summary>Resumo de um dia no calendário do controle de escala.</summary>
+    /// <summary>Resumo de um dia no calendário do controle de escala (só números e alertas).</summary>
     public class EscalaDiaResumo
     {
         public DateTime Data { get; set; }
@@ -18,43 +18,45 @@ namespace ClinicaMaisSaude.Application.DTOs.Escala
         public int ConsultasARemarcar { get; set; }
     }
 
-    /// <summary>Quantos profissionais compõem cada escala (cadastro, sem considerar ausências).</summary>
-    public class ComposicaoEscala
-    {
-        public int Escala { get; set; }
-        public int Medicos { get; set; }
-        public int Enfermeiras { get; set; }
-    }
-
     public class EscalaMesResponse
     {
         public int Ano { get; set; }
         public int Mes { get; set; }
         public List<EscalaDiaResumo> Dias { get; set; } = new();
-        public List<ComposicaoEscala> Composicao { get; set; } = new();
     }
 
     public class AusenciaResponse
     {
         public Guid Id { get; set; }
         public Guid ProfissionalId { get; set; }
+        public string? Profissional { get; set; }
+        /// <summary>Medico | Enfermeira.</summary>
+        public string? TipoProfissional { get; set; }
         public DateTime Data { get; set; }
         public string Motivo { get; set; } = string.Empty;
         public string? RegistradoPor { get; set; }
         public DateTime DtCriado { get; set; }
     }
 
+    /// <summary>Profissional de plantão num dia (lista paginada do detalhe do dia).</summary>
     public class ProfissionalPlantao
     {
         public Guid Id { get; set; }
         public string Nome { get; set; } = string.Empty;
         /// <summary>Medico | Enfermeira.</summary>
         public string Tipo { get; set; } = string.Empty;
-        public List<int> Especialidades { get; set; } = new();
         /// <summary>Consultas agendadas com o profissional no dia.</summary>
         public int Consultas { get; set; }
         /// <summary>Preenchida quando o profissional está ausente no dia.</summary>
         public AusenciaResponse? Ausencia { get; set; }
+    }
+
+    public class PaginaProfissionaisPlantao
+    {
+        public List<ProfissionalPlantao> Itens { get; set; } = new();
+        public int Total { get; set; }
+        public int Pagina { get; set; }
+        public int TamanhoPagina { get; set; }
     }
 
     public class ConsultaARemarcar
@@ -70,13 +72,46 @@ namespace ClinicaMaisSaude.Application.DTOs.Escala
         public string Motivo { get; set; } = string.Empty;
     }
 
+    /// <summary>Detalhe de um dia (janela aberta ao clicar no calendário).</summary>
     public class EscalaDiaResponse
     {
         public DateTime Data { get; set; }
         public int Escala { get; set; }
-        /// <summary>Profissionais da escala do dia, ausentes incluídos (marcados).</summary>
-        public List<ProfissionalPlantao> Profissionais { get; set; } = new();
+        public int Medicos { get; set; }
+        public int Enfermeiras { get; set; }
+        /// <summary>Ausências que valem no dia (de quem estaria de plantão).</summary>
+        public List<AusenciaResponse> Ausencias { get; set; } = new();
         public List<ConsultaARemarcar> ConsultasARemarcar { get; set; } = new();
+        /// <summary>Quem está na escala do dia, paginado e filtrável por nome.</summary>
+        public PaginaProfissionaisPlantao Profissionais { get; set; } = new();
+    }
+
+    /// <summary>Item da busca de profissionais do filtro da tela.</summary>
+    public class ProfissionalResumo
+    {
+        public Guid Id { get; set; }
+        public string Nome { get; set; } = string.Empty;
+        public string Tipo { get; set; } = string.Empty;
+    }
+
+    public class DiaDoProfissional
+    {
+        public DateTime Data { get; set; }
+        public bool Plantao { get; set; }
+        public int Consultas { get; set; }
+        /// <summary>Ausência que vale no dia (só em dia de plantão).</summary>
+        public AusenciaResponse? Ausencia { get; set; }
+    }
+
+    /// <summary>Mês de um profissional: plantões, ausências e consultas por dia.</summary>
+    public class EscalaProfissionalResponse
+    {
+        public Guid Id { get; set; }
+        public string Nome { get; set; } = string.Empty;
+        public string Tipo { get; set; } = string.Empty;
+        public int Escala { get; set; }
+        public DateTime InicioPlantoes { get; set; }
+        public List<DiaDoProfissional> Dias { get; set; } = new();
     }
 
     public class RegistrarAusenciaRequest

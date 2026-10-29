@@ -11,16 +11,21 @@ namespace ClinicaMaisSaude.Infrastructure.Services
 {
     /// <summary>
     /// Controle da escala 12x36 (tela do admin). A escala do dia é calculada
-    /// (<see cref="Expediente.EscalaDoDia"/>); o que fica no banco é só a escala de cada profissional
-    /// e as ausências pontuais. "Consultas a remarcar" são as agendadas com um profissional que não
-    /// está de plantão no dia: ausente, ou fora dos plantões dele (outra escala ou antes do primeiro
-    /// plantão — troca de início ou dados antigos). Uma ausência só vale em dia de plantão: se a escala
-    /// mudar e o dia deixar de ser plantão, ela fica guardada sem efeito (não é contada nem listada).
+    /// (<see cref="Expediente.EscalaDoDia"/>); o que fica no banco é só o primeiro plantão (e a escala)
+    /// de cada profissional e as ausências pontuais. "Consultas a remarcar" são as agendadas com um
+    /// profissional que não está de plantão no dia: ausente, ou fora dos plantões dele (outra escala
+    /// ou antes do primeiro plantão — troca de início ou dados antigos). Uma ausência só vale em dia de
+    /// plantão: se a escala mudar e o dia deixar de ser plantão, ela fica guardada sem efeito.
+    ///
+    /// Pensado para crescer: o calendário do mês usa contagens agrupadas (não carrega os profissionais
+    /// um a um), a lista do dia é paginada no banco e a busca do filtro devolve no máximo 10 nomes.
     /// </summary>
     public class EscalaService : IEscalaService
     {
         private const string MotivoAusencia = "Ausência";
         private const string MotivoForaDaEscala = "Fora da escala";
+        private const int LimiteBusca = 10;
+        private const int TamanhoPaginaMaximo = 50;
 
         private readonly ClinicaDbContext _context;
 
@@ -32,6 +37,10 @@ namespace ClinicaMaisSaude.Infrastructure.Services
         // Fuso de Brasília, como no cálculo dos horários da agenda.
         private static DateTime Hoje => DateTime.UtcNow.AddHours(-3).Date;
 
+        // Mesma regra de Profissional.EscaladoNoDia, para dados já projetados (sem a entidade).
+        private static bool Escalado(EscalaTrabalho escala, DateTime inicioPlantoes, DateTime dia) =>
+            dia.Date >= inicioPlantoes && Expediente.EscalaDoDia(dia) == escala;
+
         public async Task<EscalaMesResponse> ObterMesAsync(int ano, int mes)
         {
             if (mes < 1 || mes > 12 || ano < 2000 || ano > 2100)
@@ -40,100 +49,99 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             var inicio = new DateTime(ano, mes, 1);
             var fim = inicio.AddMonths(1);
 
-            var profissionais = await CarregarProfissionaisAtivosAsync();
+            // Contagem agrupada por escala, início e papel: poucas linhas, mesmo com centenas de profissionais.
+            var grupos = await ProfissionaisQueAtendem()
+                .GroupBy(p => new { p.Escala, p.InicioPlantoes, p.Usuario.Role })
+                .Select(g => new { g.Key.Escala, g.Key.InicioPlantoes, g.Key.Role, Qtd = g.Count() })
+                .ToListAsync();
             var ausencias = await _context.AusenciasProfissional.AsNoTracking()
                 .Where(a => a.Data >= inicio && a.Data < fim)
-                .Select(a => new { a.ProfissionalId, a.Data })
+                .Join(ProfissionaisQueAtendem(), a => a.ProfissionalId, p => p.Id,
+                    (a, p) => new { a.ProfissionalId, a.Data, p.Escala, p.InicioPlantoes, p.Usuario.Role })
                 .ToListAsync();
             var consultas = await _context.Agendamentos.AsNoTracking()
                 .Where(a => a.Status == StatusAgendamento.Agendado && a.DataHoraConsulta >= inicio && a.DataHoraConsulta < fim)
-                .Select(a => new { a.ProfissionalId, a.DataHoraConsulta })
+                .Select(a => new { a.ProfissionalId, a.DataHoraConsulta, a.Profissional.Escala, a.Profissional.InicioPlantoes })
                 .ToListAsync();
 
-            var porId = profissionais.ToDictionary(p => p.Id);
-            var resposta = new EscalaMesResponse { Ano = ano, Mes = mes };
+            // Só valem as ausências de quem estaria de plantão no dia.
+            var ausenciasValidas = ausencias.Where(a => Escalado(a.Escala, a.InicioPlantoes, a.Data)).ToList();
+            var ausentes = ausenciasValidas.Select(a => (a.ProfissionalId, a.Data)).ToHashSet();
 
+            var resposta = new EscalaMesResponse { Ano = ano, Mes = mes };
             for (var dia = inicio; dia < fim; dia = dia.AddDays(1))
             {
                 var escala = Expediente.EscalaDoDia(dia);
-                var escalados = profissionais.Where(p => p.EscaladoNoDia(dia)).ToList();
-                // Só contam as ausências de quem estaria de plantão no dia.
-                var ausentes = ausencias.Where(a => a.Data == dia).Select(a => a.ProfissionalId)
-                    .Where(id => escalados.Any(p => p.Id == id)).ToHashSet();
-                var dePlantao = escalados.Where(p => !ausentes.Contains(p.Id)).ToList();
+                int EscaladosDoPapel(RoleUsuario role) =>
+                    grupos.Where(g => g.Role == role && g.Escala == escala && g.InicioPlantoes <= dia).Sum(g => g.Qtd);
+                var ausentesDoDia = ausenciasValidas.Where(a => a.Data == dia).ToList();
 
-                // Dias passados: só as consultas que ficaram sem atendimento por ausência (registrada
-                // depois, por exemplo); "fora da escala" no passado é só dado antigo.
+                // No passado, só a ausência deixa consulta pendente; "fora da escala" lá é dado antigo.
                 var aRemarcar = consultas.Count(c => c.DataHoraConsulta.Date == dia &&
-                    (ausentes.Contains(c.ProfissionalId) ||
-                     (dia >= Hoje && porId.TryGetValue(c.ProfissionalId, out var p) && !p.EscaladoNoDia(dia))));
+                    (ausentes.Contains((c.ProfissionalId, dia)) ||
+                     (dia >= Hoje && !Escalado(c.Escala, c.InicioPlantoes, dia))));
 
                 resposta.Dias.Add(new EscalaDiaResumo
                 {
                     Data = dia,
                     Escala = (int)escala,
-                    Medicos = dePlantao.Count(p => p.Usuario.Role == RoleUsuario.Medico),
-                    Enfermeiras = dePlantao.Count(p => p.Usuario.Role == RoleUsuario.Enfermeira),
-                    Ausencias = ausentes.Count,
+                    Medicos = EscaladosDoPapel(RoleUsuario.Medico) - ausentesDoDia.Count(a => a.Role == RoleUsuario.Medico),
+                    Enfermeiras = EscaladosDoPapel(RoleUsuario.Enfermeira) - ausentesDoDia.Count(a => a.Role == RoleUsuario.Enfermeira),
+                    Ausencias = ausentesDoDia.Count,
                     ConsultasARemarcar = aRemarcar
-                });
-            }
-
-            foreach (var escala in Enum.GetValues<EscalaTrabalho>())
-            {
-                var daEscala = profissionais.Where(p => p.Escala == escala).ToList();
-                resposta.Composicao.Add(new ComposicaoEscala
-                {
-                    Escala = (int)escala,
-                    Medicos = daEscala.Count(p => p.Usuario.Role == RoleUsuario.Medico),
-                    Enfermeiras = daEscala.Count(p => p.Usuario.Role == RoleUsuario.Enfermeira)
                 });
             }
 
             return resposta;
         }
 
-        public async Task<EscalaDiaResponse> ObterDiaAsync(DateTime data)
+        public async Task<EscalaDiaResponse> ObterDiaAsync(DateTime data, string? busca, int pagina, int tamanhoPagina)
         {
             var dia = data.Date;
             var escala = Expediente.EscalaDoDia(dia);
+            pagina = Math.Max(1, pagina);
+            tamanhoPagina = Math.Clamp(tamanhoPagina, 1, TamanhoPaginaMaximo);
 
-            var profissionais = await CarregarProfissionaisAtivosAsync();
+            var escalados = ProfissionaisQueAtendem().Where(p => p.Escala == escala && p.InicioPlantoes <= dia);
+
+            // Ausências que valem no dia (de quem está na escala) — costumam ser poucas.
             var ausencias = await _context.AusenciasProfissional.AsNoTracking()
-                .Where(a => a.Data == dia)
+                .Where(a => a.Data == dia && escalados.Select(p => p.Id).Contains(a.ProfissionalId))
+                .Select(a => new { Ausencia = a, Nome = a.Profissional!.Pessoa!.Nome, a.Profissional.Usuario.Role })
                 .ToListAsync();
-            var nomesRegistro = await NomesDosUsuariosAsync(ausencias.Select(a => a.RegistradoPor));
+            var nomesRegistro = await NomesDosUsuariosAsync(ausencias.Select(a => a.Ausencia.RegistradoPor));
+            var ausenciaPorProfissional = ausencias.ToDictionary(
+                a => a.Ausencia.ProfissionalId,
+                a => MapearAusencia(a.Ausencia, nomesRegistro, a.Nome, a.Role));
+
+            var resposta = new EscalaDiaResponse
+            {
+                Data = dia,
+                Escala = (int)escala,
+                Medicos = await escalados.CountAsync(p => p.Usuario.Role == RoleUsuario.Medico)
+                          - ausencias.Count(a => a.Role == RoleUsuario.Medico),
+                Enfermeiras = await escalados.CountAsync(p => p.Usuario.Role == RoleUsuario.Enfermeira)
+                              - ausencias.Count(a => a.Role == RoleUsuario.Enfermeira),
+                Ausencias = ausenciaPorProfissional.Values.OrderBy(a => a.Profissional).ToList()
+            };
+
+            // Consultas a remarcar do dia.
             var consultas = await _context.Agendamentos.AsNoTracking()
-                .Include(a => a.Paciente).ThenInclude(p => p.Pessoa)
                 .Where(a => a.Status == StatusAgendamento.Agendado && a.DataHoraConsulta >= dia && a.DataHoraConsulta < dia.AddDays(1))
                 .OrderBy(a => a.DataHoraConsulta)
-                .ToListAsync();
-
-            var resposta = new EscalaDiaResponse { Data = dia, Escala = (int)escala };
-
-            foreach (var p in profissionais.Where(p => p.EscaladoNoDia(dia)).OrderBy(p => p.Usuario.Role).ThenBy(p => p.Pessoa?.Nome))
-            {
-                var ausencia = ausencias.FirstOrDefault(a => a.ProfissionalId == p.Id);
-                resposta.Profissionais.Add(new ProfissionalPlantao
+                .Select(a => new
                 {
-                    Id = p.Id,
-                    Nome = p.Pessoa?.Nome ?? "-",
-                    Tipo = p.Usuario.Role.ToString(),
-                    Especialidades = p.Especialidades.Select(e => (int)e.EspecialidadeId).ToList(),
-                    Consultas = consultas.Count(c => c.ProfissionalId == p.Id),
-                    Ausencia = ausencia == null ? null : MapearAusencia(ausencia, nomesRegistro)
-                });
-            }
-
-            var porId = profissionais.ToDictionary(p => p.Id);
-            var ausentes = ausencias.Select(a => a.ProfissionalId).ToHashSet();
+                    a.Id, a.DataHoraConsulta, a.TipoConsulta, a.ProfissionalId,
+                    Paciente = a.Paciente.Pessoa!.Nome,
+                    Profissional = a.Profissional.Pessoa!.Nome,
+                    a.Profissional.Escala, a.Profissional.InicioPlantoes
+                })
+                .ToListAsync();
             foreach (var c in consultas)
             {
-                porId.TryGetValue(c.ProfissionalId, out var prof);
-                var foraDaEscala = prof != null && !prof.EscaladoNoDia(dia);
-                // No passado, só a ausência deixa consulta pendente; "fora da escala" lá é dado antigo.
+                var foraDaEscala = !Escalado(c.Escala, c.InicioPlantoes, dia);
                 string? motivo = foraDaEscala ? (dia >= Hoje ? MotivoForaDaEscala : null)
-                    : ausentes.Contains(c.ProfissionalId) ? MotivoAusencia
+                    : ausenciaPorProfissional.ContainsKey(c.ProfissionalId) ? MotivoAusencia
                     : null;
                 if (motivo == null) continue;
 
@@ -142,10 +150,108 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                     Id = c.Id,
                     DataHoraConsulta = c.DataHoraConsulta,
                     TipoConsulta = c.TipoConsulta.ToString(),
-                    Paciente = c.Paciente?.Pessoa?.Nome ?? "-",
+                    Paciente = c.Paciente ?? "-",
                     ProfissionalId = c.ProfissionalId,
-                    Profissional = prof?.Pessoa?.Nome ?? "-",
+                    Profissional = c.Profissional ?? "-",
                     Motivo = motivo
+                });
+            }
+
+            // Profissionais da escala do dia: paginado e filtrado no banco.
+            var filtrados = escalados;
+            if (!string.IsNullOrWhiteSpace(busca))
+            {
+                var termo = busca.Trim();
+                filtrados = filtrados.Where(p => p.Pessoa != null && p.Pessoa.Nome.Contains(termo));
+            }
+            var total = await filtrados.CountAsync();
+            var itensDaPagina = await filtrados
+                .OrderBy(p => p.Usuario.Role).ThenBy(p => p.Pessoa!.Nome)
+                .Skip((pagina - 1) * tamanhoPagina).Take(tamanhoPagina)
+                .Select(p => new { p.Id, Nome = p.Pessoa!.Nome, p.Usuario.Role })
+                .ToListAsync();
+            var ids = itensDaPagina.Select(p => p.Id).ToList();
+            var consultasPorProfissional = consultas.Where(c => ids.Contains(c.ProfissionalId))
+                .GroupBy(c => c.ProfissionalId).ToDictionary(g => g.Key, g => g.Count());
+
+            resposta.Profissionais = new PaginaProfissionaisPlantao
+            {
+                Total = total,
+                Pagina = pagina,
+                TamanhoPagina = tamanhoPagina,
+                Itens = itensDaPagina.Select(p => new ProfissionalPlantao
+                {
+                    Id = p.Id,
+                    Nome = p.Nome ?? "-",
+                    Tipo = p.Role.ToString(),
+                    Consultas = consultasPorProfissional.GetValueOrDefault(p.Id),
+                    Ausencia = ausenciaPorProfissional.GetValueOrDefault(p.Id)
+                }).ToList()
+            };
+
+            return resposta;
+        }
+
+        public async Task<List<ProfissionalResumo>> BuscarProfissionaisAsync(string? busca)
+        {
+            var consulta = ProfissionaisQueAtendem();
+            if (!string.IsNullOrWhiteSpace(busca))
+            {
+                var termo = busca.Trim();
+                consulta = consulta.Where(p => p.Pessoa != null && p.Pessoa.Nome.Contains(termo));
+            }
+
+            var itens = await consulta
+                .OrderBy(p => p.Pessoa!.Nome)
+                .Take(LimiteBusca)
+                .Select(p => new { p.Id, Nome = p.Pessoa!.Nome, p.Usuario.Role })
+                .ToListAsync();
+            return itens.Select(p => new ProfissionalResumo { Id = p.Id, Nome = p.Nome ?? "-", Tipo = p.Role.ToString() }).ToList();
+        }
+
+        public async Task<EscalaProfissionalResponse> ObterMesDoProfissionalAsync(Guid profissionalId, int ano, int mes)
+        {
+            if (mes < 1 || mes > 12 || ano < 2000 || ano > 2100)
+                throw new ValidationException("Mês inválido.");
+
+            var profissional = await _context.Profissionais.AsNoTracking()
+                .Include(p => p.Pessoa)
+                .Include(p => p.Usuario)
+                .FirstOrDefaultAsync(p => p.Id == profissionalId)
+                ?? throw new NotFoundException("Profissional não encontrado.");
+
+            var inicio = new DateTime(ano, mes, 1);
+            var fim = inicio.AddMonths(1);
+            var ausencias = await _context.AusenciasProfissional.AsNoTracking()
+                .Where(a => a.ProfissionalId == profissionalId && a.Data >= inicio && a.Data < fim)
+                .ToListAsync();
+            var nomesRegistro = await NomesDosUsuariosAsync(ausencias.Select(a => a.RegistradoPor));
+            var consultasPorDia = (await _context.Agendamentos.AsNoTracking()
+                    .Where(a => a.ProfissionalId == profissionalId && a.Status == StatusAgendamento.Agendado &&
+                                a.DataHoraConsulta >= inicio && a.DataHoraConsulta < fim)
+                    .Select(a => a.DataHoraConsulta)
+                    .ToListAsync())
+                .GroupBy(d => d.Date).ToDictionary(g => g.Key, g => g.Count());
+
+            var nome = profissional.Pessoa?.Nome ?? "-";
+            var resposta = new EscalaProfissionalResponse
+            {
+                Id = profissional.Id,
+                Nome = nome,
+                Tipo = profissional.Usuario.Role.ToString(),
+                Escala = (int)profissional.Escala,
+                InicioPlantoes = profissional.InicioPlantoes
+            };
+            for (var dia = inicio; dia < fim; dia = dia.AddDays(1))
+            {
+                var plantao = profissional.EscaladoNoDia(dia);
+                var ausencia = plantao ? ausencias.FirstOrDefault(a => a.Data == dia) : null;
+                resposta.Dias.Add(new DiaDoProfissional
+                {
+                    Data = dia,
+                    Plantao = plantao,
+                    Consultas = consultasPorDia.GetValueOrDefault(dia),
+                    Ausencia = ausencia == null ? null : MapearAusencia(ausencia, nomesRegistro, nome, profissional.Usuario.Role)
                 });
             }
 
@@ -164,6 +270,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
 
             var profissional = await _context.Profissionais
                 .Include(p => p.Pessoa)
+                .Include(p => p.Usuario)
                 .FirstOrDefaultAsync(p => p.Id == request.ProfissionalId)
                 ?? throw new NotFoundException("Profissional não encontrado.");
 
@@ -186,7 +293,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             var nomes = await NomesDosUsuariosAsync(new Guid?[] { registradoPor });
             return new RegistrarAusenciaResponse
             {
-                Ausencia = MapearAusencia(ausencia, nomes),
+                Ausencia = MapearAusencia(ausencia, nomes, profissional.Pessoa?.Nome, profissional.Usuario.Role),
                 ConsultasARemarcar = aRemarcar
             };
         }
@@ -202,14 +309,10 @@ namespace ClinicaMaisSaude.Infrastructure.Services
         // ----------------- Helpers -----------------
 
         // Médicos e enfermeiras ativos (o admin também tem um registro de profissional, mas não atende).
-        private async Task<List<Profissional>> CarregarProfissionaisAtivosAsync() =>
-            await _context.Profissionais.AsNoTracking()
-                .Include(p => p.Usuario)
-                .Include(p => p.Pessoa)
-                .Include(p => p.Especialidades)
+        private IQueryable<Profissional> ProfissionaisQueAtendem() =>
+            _context.Profissionais.AsNoTracking()
                 .Where(p => p.Situacao == Situacao.Ativo &&
-                            (p.Usuario.Role == RoleUsuario.Medico || p.Usuario.Role == RoleUsuario.Enfermeira))
-                .ToListAsync();
+                            (p.Usuario.Role == RoleUsuario.Medico || p.Usuario.Role == RoleUsuario.Enfermeira));
 
         private async Task<Dictionary<Guid, string>> NomesDosUsuariosAsync(IEnumerable<Guid?> ids)
         {
@@ -222,10 +325,13 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                 .ToDictionaryAsync(x => x.Id, x => x.Nome);
         }
 
-        private static AusenciaResponse MapearAusencia(AusenciaProfissional a, Dictionary<Guid, string> nomes) => new()
+        private static AusenciaResponse MapearAusencia(AusenciaProfissional a, Dictionary<Guid, string> nomes,
+            string? profissional, RoleUsuario role) => new()
         {
             Id = a.Id,
             ProfissionalId = a.ProfissionalId,
+            Profissional = profissional,
+            TipoProfissional = role.ToString(),
             Data = a.Data,
             Motivo = a.Motivo,
             RegistradoPor = a.RegistradoPor.HasValue && nomes.TryGetValue(a.RegistradoPor.Value, out var nome) ? nome : null,

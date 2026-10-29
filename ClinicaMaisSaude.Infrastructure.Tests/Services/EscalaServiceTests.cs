@@ -76,6 +76,8 @@ namespace ClinicaMaisSaude.Infrastructure.Tests.Services
             return agendamento;
         }
 
+        private Task<EscalaDiaResponse> ObterDia(DateTime dia) => _service.ObterDiaAsync(dia, null, 1, 50);
+
         [Fact]
         public async Task ObterMes_ContaProfissionaisDePlantaoPorDia()
         {
@@ -91,8 +93,6 @@ namespace ClinicaMaisSaude.Infrastructure.Tests.Services
             var diaEscala2 = mes.Dias.First(d => d.Escala == 2);
             Assert.Equal((0, 1), (diaEscala2.Medicos, diaEscala2.Enfermeiras));
 
-            var composicao1 = mes.Composicao.Single(c => c.Escala == 1);
-            Assert.Equal((2, 0), (composicao1.Medicos, composicao1.Enfermeiras));
         }
 
         [Fact]
@@ -115,8 +115,8 @@ namespace ClinicaMaisSaude.Infrastructure.Tests.Services
             Assert.Equal(1, resumo.Ausencias);
             Assert.Equal(1, resumo.ConsultasARemarcar);
 
-            var detalhe = await _service.ObterDiaAsync(dia);
-            Assert.Equal("Atestado médico", detalhe.Profissionais.Single(p => p.Id == medico.Id).Ausencia?.Motivo);
+            var detalhe = await ObterDia(dia);
+            Assert.Equal("Atestado médico", detalhe.Profissionais.Itens.Single(p => p.Id == medico.Id).Ausencia?.Motivo);
             var aRemarcar = Assert.Single(detalhe.ConsultasARemarcar);
             Assert.Equal(consulta.Id, aRemarcar.Id);
             Assert.Equal("Ausência", aRemarcar.Motivo);
@@ -156,8 +156,8 @@ namespace ClinicaMaisSaude.Infrastructure.Tests.Services
             await _service.RegistrarAusenciaAsync(
                 new RegistrarAusenciaRequest { ProfissionalId = medico.Id, Data = diaPassado, Motivo = "Faltou sem avisar" }, _adminId);
 
-            var detalhe = await _service.ObterDiaAsync(diaPassado);
-            Assert.NotNull(detalhe.Profissionais.Single().Ausencia);
+            var detalhe = await ObterDia(diaPassado);
+            Assert.NotNull(detalhe.Profissionais.Itens.Single().Ausencia);
             Assert.Equal(consulta.Id, Assert.Single(detalhe.ConsultasARemarcar).Id);
 
             var mes = await _service.ObterMesAsync(diaPassado.Year, diaPassado.Month);
@@ -174,8 +174,8 @@ namespace ClinicaMaisSaude.Infrastructure.Tests.Services
 
             await _service.RemoverAusenciaAsync(registrada.Ausencia.Id);
 
-            var detalhe = await _service.ObterDiaAsync(dia);
-            Assert.Null(detalhe.Profissionais.Single().Ausencia);
+            var detalhe = await ObterDia(dia);
+            Assert.Null(detalhe.Profissionais.Itens.Single().Ausencia);
             Assert.Equal(0, await _context.AusenciasProfissional.CountAsync());
         }
 
@@ -186,11 +186,11 @@ namespace ClinicaMaisSaude.Infrastructure.Tests.Services
             var inicio = ProximoDia(EscalaTrabalho.Escala1).AddDays(2);
             await new ProfissionalService(_context).AtualizarAsync(medico.Id, new ProfissionalUpdateRequest { InicioPlantoes = inicio });
 
-            var antes = await _service.ObterDiaAsync(inicio.AddDays(-2));
-            var noInicio = await _service.ObterDiaAsync(inicio);
+            var antes = await ObterDia(inicio.AddDays(-2));
+            var noInicio = await ObterDia(inicio);
 
-            Assert.Empty(antes.Profissionais);
-            Assert.Single(noInicio.Profissionais);
+            Assert.Empty(antes.Profissionais.Itens);
+            Assert.Single(noInicio.Profissionais.Itens);
         }
 
         [Fact]
@@ -222,6 +222,53 @@ namespace ClinicaMaisSaude.Infrastructure.Tests.Services
             Assert.Equal(1, await _context.AusenciasProfissional.CountAsync());
             var mes = await _service.ObterMesAsync(diaAusencia.Year, diaAusencia.Month);
             Assert.Equal(0, mes.Dias.Single(d => d.Data == diaAusencia).Ausencias);
+        }
+
+        [Fact]
+        public async Task ObterDia_PaginaEFiltraOsProfissionaisPorNome()
+        {
+            var dia = ProximoDia(EscalaTrabalho.Escala1);
+            for (var i = 1; i <= 5; i++)
+                SemearProfissional($"Enfermeira {i}", RoleUsuario.Enfermeira, EscalaTrabalho.Escala1);
+            SemearProfissional("Dr. Carlos", RoleUsuario.Medico, EscalaTrabalho.Escala1);
+            SemearProfissional("Dra. Paula", RoleUsuario.Medico, EscalaTrabalho.Escala2); // não é deste dia
+
+            var pagina2 = await _service.ObterDiaAsync(dia, null, 2, 4);
+            var busca = await _service.ObterDiaAsync(dia, "Carlos", 1, 4);
+
+            Assert.Equal((6, 2), (pagina2.Profissionais.Total, pagina2.Profissionais.Itens.Count));
+            Assert.Equal((1, 5), (pagina2.Medicos, pagina2.Enfermeiras));
+            Assert.Equal("Dr. Carlos", Assert.Single(busca.Profissionais.Itens).Nome);
+        }
+
+        [Fact]
+        public async Task BuscarProfissionais_DevolveNoMaximoDezPorNome()
+        {
+            for (var i = 1; i <= 12; i++)
+                SemearProfissional($"Médico {i:00}", RoleUsuario.Medico, EscalaTrabalho.Escala1);
+            SemearProfissional("Grazielle", RoleUsuario.Enfermeira, EscalaTrabalho.Escala2);
+
+            Assert.Equal(10, (await _service.BuscarProfissionaisAsync(null)).Count);
+            var achados = await _service.BuscarProfissionaisAsync("Graz");
+            Assert.Equal(("Grazielle", "Enfermeira"), (Assert.Single(achados).Nome, achados[0].Tipo));
+        }
+
+        [Fact]
+        public async Task ObterMesDoProfissional_MarcaPlantoesAusenciaEConsultas()
+        {
+            var medico = SemearProfissional("Dr. Carlos", RoleUsuario.Medico, EscalaTrabalho.Escala1);
+            var dia = ProximoDia(EscalaTrabalho.Escala1);
+            SemearConsulta(medico.Id, dia.AddHours(9));
+            await _service.RegistrarAusenciaAsync(new RegistrarAusenciaRequest { ProfissionalId = medico.Id, Data = dia, Motivo = "Folga" }, _adminId);
+
+            var mes = await _service.ObterMesDoProfissionalAsync(medico.Id, dia.Year, dia.Month);
+
+            var diaDaAusencia = mes.Dias.Single(d => d.Data == dia);
+            Assert.True(diaDaAusencia.Plantao);
+            Assert.Equal(1, diaDaAusencia.Consultas);
+            Assert.Equal("Folga", diaDaAusencia.Ausencia?.Motivo);
+            // Dias seguidos alternam entre plantão e folga.
+            Assert.All(mes.Dias.Zip(mes.Dias.Skip(1)), par => Assert.NotEqual(par.First.Plantao, par.Second.Plantao));
         }
 
         public void Dispose() => _context.Dispose();
