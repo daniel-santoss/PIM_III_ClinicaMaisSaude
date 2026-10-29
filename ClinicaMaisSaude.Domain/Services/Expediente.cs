@@ -29,6 +29,10 @@ namespace ClinicaMaisSaude.Domain.Services
             return ((dias % 2) + 2) % 2 == 0 ? EscalaTrabalho.Escala1 : EscalaTrabalho.Escala2;
         }
 
+        /// <summary>Primeiro dia (a partir da referência) em que a escala trabalha.</summary>
+        public static DateTime PrimeiroDiaDaEscala(EscalaTrabalho escala) =>
+            escala == EscalaTrabalho.Escala1 ? ReferenciaEscala : ReferenciaEscala.AddDays(1);
+
         /// <summary>O intervalo [inicio, fim) cai dentro do expediente e fora da pausa?</summary>
         public static bool DentroDoExpediente(TimeSpan inicio, TimeSpan fim) =>
             inicio >= Inicio && fim <= Fim &&

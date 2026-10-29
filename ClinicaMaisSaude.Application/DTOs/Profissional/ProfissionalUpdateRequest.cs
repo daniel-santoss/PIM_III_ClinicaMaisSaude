@@ -7,7 +7,7 @@ namespace ClinicaMaisSaude.Application.DTOs.Profissional
         public string? Nome { get; set; }
         public string? Telefone { get; set; }
         public string? Email { get; set; }
-        /// <summary>Escala 12x36 (1 ou 2); nulo mantém a atual.</summary>
-        public int? Escala { get; set; }
+        /// <summary>Novo primeiro plantão (redefine a escala 12x36 a partir desse dia); nulo mantém o atual.</summary>
+        public DateTime? InicioPlantoes { get; set; }
     }
 }

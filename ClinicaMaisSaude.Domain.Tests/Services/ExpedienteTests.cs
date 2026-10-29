@@ -65,8 +65,23 @@ namespace ClinicaMaisSaude.Domain.Tests.Services
             Assert.False(prof.EscaladoNoDia(diaEscala1));
             Assert.True(prof.EscaladoNoDia(diaEscala1.AddDays(1)));
 
-            prof.DefinirEscala(EscalaTrabalho.Escala1);
+            prof.DefinirInicioPlantoes(diaEscala1);
+            Assert.Equal(EscalaTrabalho.Escala1, prof.Escala);
             Assert.True(prof.EscaladoNoDia(diaEscala1));
+        }
+
+        [Fact]
+        public void Profissional_PrimeiroPlantaoDefineAEscalaEBloqueiaOsDiasAnteriores()
+        {
+            var inicio = new DateTime(2026, 11, 4);
+            var prof = new Profissional(Guid.NewGuid(), inicioPlantoes: inicio.AddHours(10));
+
+            Assert.Equal(inicio, prof.InicioPlantoes); // só a data
+            Assert.Equal(Expediente.EscalaDoDia(inicio), prof.Escala);
+            Assert.False(prof.EscaladoNoDia(inicio.AddDays(-2))); // mesma escala, mas antes de começar
+            Assert.True(prof.EscaladoNoDia(inicio));
+            Assert.False(prof.EscaladoNoDia(inicio.AddDays(1)));
+            Assert.True(prof.EscaladoNoDia(inicio.AddDays(2)));
         }
     }
 }

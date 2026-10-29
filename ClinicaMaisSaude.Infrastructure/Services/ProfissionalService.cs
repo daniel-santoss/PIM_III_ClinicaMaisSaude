@@ -37,7 +37,8 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                 // Categoria do profissional a partir do papel unificado (Role é a fonte única — Fase A3b).
                 TipoProfissional = prof.Usuario?.Role.ToString(),
                 Email = prof.Pessoa?.Email,
-                Escala = (int)prof.Escala
+                Escala = (int)prof.Escala,
+                prof.InicioPlantoes
             };
         }
 
@@ -61,24 +62,25 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                     prof.Pessoa.AtualizarTelefone(request.Telefone.Replace("(", "").Replace(")", "").Replace("-", "").Replace(" ", ""));
             }
 
-            if (request.Escala.HasValue && (int)prof.Escala != request.Escala.Value)
+            if (request.InicioPlantoes.HasValue && request.InicioPlantoes.Value.Date != prof.InicioPlantoes)
             {
-                if (!Enum.IsDefined(typeof(EscalaTrabalho), request.Escala.Value))
-                    throw new ValidationException("Escala de trabalho inválida.");
-                var novaEscala = (EscalaTrabalho)request.Escala.Value;
+                var novoInicio = request.InicioPlantoes.Value.Date;
+                var novaEscala = Expediente.EscalaDoDia(novoInicio);
 
-                // Trocar de escala muda todos os dias de plantão: as consultas já agendadas em dias que
-                // deixariam de ser dele precisam ser remarcadas antes (senão o paciente fica sem médico).
+                // Mudar o primeiro plantão redefine todos os dias de plantão: as consultas já agendadas
+                // que cairiam antes do novo início ou num dia da outra escala precisam ser remarcadas
+                // antes (senão o paciente fica sem profissional). As ausências ficam guardadas: só
+                // valem nos dias de plantão, então as que caírem fora simplesmente deixam de ter efeito.
                 var hoje = DateTime.UtcNow.AddHours(-3).Date;
                 var datasFuturas = await _context.Agendamentos.AsNoTracking()
                     .Where(a => a.ProfissionalId == prof.Id && a.Status == StatusAgendamento.Agendado && a.DataHoraConsulta >= hoje)
                     .Select(a => a.DataHoraConsulta)
                     .ToListAsync();
-                var foraDaNovaEscala = datasFuturas.Count(d => Expediente.EscalaDoDia(d) != novaEscala);
-                if (foraDaNovaEscala > 0)
-                    throw new BusinessRuleException($"Não é possível trocar a escala: {foraDaNovaEscala} consulta(s) agendada(s) cairia(m) em dias fora da nova escala. Remarque-as antes.");
+                var foraDosNovosPlantoes = datasFuturas.Count(d => d.Date < novoInicio || Expediente.EscalaDoDia(d) != novaEscala);
+                if (foraDosNovosPlantoes > 0)
+                    throw new BusinessRuleException($"Não é possível mudar o primeiro plantão: {foraDosNovosPlantoes} consulta(s) agendada(s) ficaria(m) fora dos novos plantões. Remarque-as antes.");
 
-                prof.DefinirEscala(novaEscala);
+                prof.DefinirInicioPlantoes(novoInicio);
             }
 
             await _context.SaveChangesAsync();
@@ -91,7 +93,8 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                 Telefone = prof.Pessoa?.Telefone,
                 Email = prof.Pessoa?.Email,
                 TipoProfissional = prof.Usuario?.Role.ToString(),
-                Escala = (int)prof.Escala
+                Escala = (int)prof.Escala,
+                prof.InicioPlantoes
             };
         }
     }

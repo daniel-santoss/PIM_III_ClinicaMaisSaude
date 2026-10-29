@@ -54,11 +54,6 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                 }
             }
 
-            if (request.Escala.HasValue && !Enum.IsDefined(typeof(EscalaTrabalho), request.Escala.Value))
-            {
-                return new CadastroResult { Sucesso = false, Mensagem = "Escala de trabalho inválida." };
-            }
-
             // Telefone é opcional: se informado, sanitiza para só dígitos e exige DDD+9 (11).
             string? telefoneLimpo = null;
             if (!string.IsNullOrWhiteSpace(request.Telefone))
@@ -101,8 +96,9 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             else if (request.TipoUsuario == PerfisUsuario.Medico || request.TipoUsuario == PerfisUsuario.Enfermeira)
             {
                 // Categoria vem do Role (definido acima); o Profissional é magro, sem TipoProfissional (Fase A3b).
-                var escala = (EscalaTrabalho?)request.Escala ?? EscalaTrabalho.Escala1;
-                var profissional = new Profissional(novoUsuario.Id, request.Crm, request.UfCrm, escala);
+                // O dia do primeiro plantão define a escala 12x36; sem ele, começa hoje (fuso de Brasília).
+                var inicio = request.InicioPlantoes?.Date ?? DateTime.UtcNow.AddHours(-3).Date;
+                var profissional = new Profissional(novoUsuario.Id, request.Crm, request.UfCrm, inicioPlantoes: inicio);
                 profissional.VincularPessoa(pessoa.Id);
                 _context.Profissionais.Add(profissional);
             }

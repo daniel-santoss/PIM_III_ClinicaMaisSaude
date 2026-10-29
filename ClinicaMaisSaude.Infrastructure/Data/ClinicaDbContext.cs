@@ -416,7 +416,9 @@ namespace ClinicaMaisSaude.Infrastructure.Data
                     .HasForeignKey(p => p.Situacao)
                     .OnDelete(DeleteBehavior.Restrict);
 
-                // Turma na escala 12x36: FK ao lookup, default Escala 1.
+                // Turma na escala 12x36: FK ao lookup, default Escala 1. A escala é a do dia do
+                // primeiro plantão (InicioPlantoes), guardada para consultas e contagens por escala.
+                entidade.Property(p => p.InicioPlantoes).HasColumnType("date");
                 entidade.Property(p => p.Escala).HasDefaultValue(EscalaTrabalho.Escala1);
                 entidade.HasOne<EscalaTrabalhoLookup>()
                     .WithMany()

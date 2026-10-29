@@ -106,7 +106,8 @@ namespace ClinicaMaisSaude.Application.Services
                         UltimoAcesso = prof.Usuario?.UltimoAcesso,
                         IsBanidoPermanente = prof.Usuario?.BloqueadoAte.HasValue == true && (prof.Usuario.BloqueadoAte.Value - DateTime.UtcNow).TotalDays > 3650,
                         FotoBase64 = prof.Usuario?.FotoBase64,
-                        Escala = (int)prof.Escala
+                        Escala = (int)prof.Escala,
+                        InicioPlantoes = prof.InicioPlantoes
                     });
                 }
             }
@@ -156,7 +157,8 @@ namespace ClinicaMaisSaude.Application.Services
                         UltimoAcesso = prof.Usuario?.UltimoAcesso,
                         IsBanidoPermanente = prof.Usuario?.BloqueadoAte.HasValue == true && (prof.Usuario.BloqueadoAte.Value - DateTime.UtcNow).TotalDays > 3650,
                         FotoBase64 = prof.Usuario?.FotoBase64,
-                        Escala = (int)prof.Escala
+                        Escala = (int)prof.Escala,
+                        InicioPlantoes = prof.InicioPlantoes
                     });
                 }
 

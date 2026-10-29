@@ -13,7 +13,7 @@ namespace ClinicaMaisSaude.Application.DTOs.Auth
         public string? UfCrm { get; set; }
         public string? Crm { get; set; }
         public bool TemProblemaMemoria { get; set; }
-        /// <summary>Escala 12x36 do profissional (1 ou 2); sem valor, entra na Escala 1.</summary>
-        public int? Escala { get; set; }
+        /// <summary>Primeiro plantão do profissional (define a escala 12x36); sem valor, começa hoje.</summary>
+        public DateTime? InicioPlantoes { get; set; }
     }
 }

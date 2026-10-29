@@ -638,6 +638,9 @@ namespace ClinicaMaisSaude.Infrastructure.Migrations
                         .HasColumnType("int")
                         .HasDefaultValue(1);
 
+                    b.Property<DateTime>("InicioPlantoes")
+                        .HasColumnType("date");
+
                     b.Property<Guid?>("PessoaId")
                         .HasColumnType("uniqueidentifier");
 

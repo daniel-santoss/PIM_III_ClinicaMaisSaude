@@ -132,7 +132,7 @@ namespace ClinicaMaisSaude.Infrastructure.Tests.Services
         }
 
         [Fact]
-        public async Task RegistrarAusencia_DuplicadaOuNoPassadoOuSemMotivo_Falha()
+        public async Task RegistrarAusencia_DuplicadaOuSemMotivo_Falha()
         {
             var medico = SemearProfissional("Dr. Carlos", RoleUsuario.Medico, EscalaTrabalho.Escala1);
             var dia = ProximoDia(EscalaTrabalho.Escala1);
@@ -140,10 +140,28 @@ namespace ClinicaMaisSaude.Infrastructure.Tests.Services
 
             await Assert.ThrowsAsync<BusinessRuleException>(() => _service.RegistrarAusenciaAsync(
                 new RegistrarAusenciaRequest { ProfissionalId = medico.Id, Data = dia, Motivo = "De novo" }, _adminId));
-            await Assert.ThrowsAsync<BusinessRuleException>(() => _service.RegistrarAusenciaAsync(
-                new RegistrarAusenciaRequest { ProfissionalId = medico.Id, Data = dia.AddDays(-4), Motivo = "Passado" }, _adminId));
             await Assert.ThrowsAsync<ValidationException>(() => _service.RegistrarAusenciaAsync(
                 new RegistrarAusenciaRequest { ProfissionalId = medico.Id, Data = dia.AddDays(2), Motivo = "  " }, _adminId));
+        }
+
+        [Fact]
+        public async Task RegistrarAusencia_EmDataPassada_RegistraEListaAConsultaQueFicouSemAtendimento()
+        {
+            // Quem esqueceu de lançar na hora corrige depois: o calendário passa a mostrar a falta.
+            var medico = SemearProfissional("Dr. Carlos", RoleUsuario.Medico, EscalaTrabalho.Escala1);
+            var diaPassado = Hoje.AddDays(-2);
+            if (Expediente.EscalaDoDia(diaPassado) != EscalaTrabalho.Escala1) diaPassado = diaPassado.AddDays(-1);
+            var consulta = SemearConsulta(medico.Id, diaPassado.AddHours(9));
+
+            await _service.RegistrarAusenciaAsync(
+                new RegistrarAusenciaRequest { ProfissionalId = medico.Id, Data = diaPassado, Motivo = "Faltou sem avisar" }, _adminId);
+
+            var detalhe = await _service.ObterDiaAsync(diaPassado);
+            Assert.NotNull(detalhe.Profissionais.Single().Ausencia);
+            Assert.Equal(consulta.Id, Assert.Single(detalhe.ConsultasARemarcar).Id);
+
+            var mes = await _service.ObterMesAsync(diaPassado.Year, diaPassado.Month);
+            Assert.Equal(1, mes.Dias.Single(d => d.Data == diaPassado).Ausencias);
         }
 
         [Fact]
@@ -162,26 +180,48 @@ namespace ClinicaMaisSaude.Infrastructure.Tests.Services
         }
 
         [Fact]
-        public async Task TrocarEscala_ComConsultaFuturaEmDiaQueDeixariaDeSerDele_Bloqueia()
+        public async Task ObterMes_ProfissionalAindaNaoComecou_NaoContaAntesDoPrimeiroPlantao()
+        {
+            var medico = SemearProfissional("Dr. Carlos", RoleUsuario.Medico, EscalaTrabalho.Escala1);
+            var inicio = ProximoDia(EscalaTrabalho.Escala1).AddDays(2);
+            await new ProfissionalService(_context).AtualizarAsync(medico.Id, new ProfissionalUpdateRequest { InicioPlantoes = inicio });
+
+            var antes = await _service.ObterDiaAsync(inicio.AddDays(-2));
+            var noInicio = await _service.ObterDiaAsync(inicio);
+
+            Assert.Empty(antes.Profissionais);
+            Assert.Single(noInicio.Profissionais);
+        }
+
+        [Fact]
+        public async Task MudarInicio_ComConsultaFuturaQueFicariaForaDosPlantoes_Bloqueia()
         {
             var medico = SemearProfissional("Dr. Carlos", RoleUsuario.Medico, EscalaTrabalho.Escala1);
             SemearConsulta(medico.Id, ProximoDia(EscalaTrabalho.Escala1).AddHours(9));
             var profissionalService = new ProfissionalService(_context);
 
-            await Assert.ThrowsAsync<BusinessRuleException>(() =>
-                profissionalService.AtualizarAsync(medico.Id, new ProfissionalUpdateRequest { Escala = 2 }));
+            await Assert.ThrowsAsync<BusinessRuleException>(() => profissionalService.AtualizarAsync(medico.Id,
+                new ProfissionalUpdateRequest { InicioPlantoes = ProximoDia(EscalaTrabalho.Escala2) }));
             Assert.Equal(EscalaTrabalho.Escala1, (await _context.Profissionais.AsNoTracking().SingleAsync(p => p.Id == medico.Id)).Escala);
         }
 
         [Fact]
-        public async Task TrocarEscala_SemConsultasAfetadas_Troca()
+        public async Task MudarInicio_TrocaAEscalaEGuardaAsAusenciasQueFicamSemEfeito()
         {
             var medico = SemearProfissional("Dr. Carlos", RoleUsuario.Medico, EscalaTrabalho.Escala1);
-            var profissionalService = new ProfissionalService(_context);
+            var diaAusencia = ProximoDia(EscalaTrabalho.Escala1);
+            await _service.RegistrarAusenciaAsync(
+                new RegistrarAusenciaRequest { ProfissionalId = medico.Id, Data = diaAusencia, Motivo = "Compromisso" }, _adminId);
 
-            await profissionalService.AtualizarAsync(medico.Id, new ProfissionalUpdateRequest { Escala = 2 });
+            var novoInicio = ProximoDia(EscalaTrabalho.Escala2);
+            await new ProfissionalService(_context).AtualizarAsync(medico.Id, new ProfissionalUpdateRequest { InicioPlantoes = novoInicio });
 
-            Assert.Equal(EscalaTrabalho.Escala2, (await _context.Profissionais.AsNoTracking().SingleAsync(p => p.Id == medico.Id)).Escala);
+            var prof = await _context.Profissionais.AsNoTracking().SingleAsync(p => p.Id == medico.Id);
+            Assert.Equal((EscalaTrabalho.Escala2, novoInicio), (prof.Escala, prof.InicioPlantoes));
+            // A ausência continua guardada, mas o dia deixou de ser plantão: não conta no calendário.
+            Assert.Equal(1, await _context.AusenciasProfissional.CountAsync());
+            var mes = await _service.ObterMesAsync(diaAusencia.Year, diaAusencia.Month);
+            Assert.Equal(0, mes.Dias.Single(d => d.Data == diaAusencia).Ausencias);
         }
 
         public void Dispose() => _context.Dispose();
