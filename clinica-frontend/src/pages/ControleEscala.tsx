@@ -42,9 +42,11 @@ function SeloEscala({ escala }: { escala: number }) {
   return <span className={`inline-flex text-[11px] font-semibold px-2 py-0.5 rounded-md border ${cor}`}>{nomeEscala(escala)}</span>;
 }
 
-// Cartão de resumo clicável: aciona um destaque no calendário (clicar de novo desliga).
-function CartaoResumo({ icone, rotulo, ativo, onClick, children, tom = "brand" }: {
-  icone: React.ReactNode; rotulo: string; ativo?: boolean; onClick: () => void; children: React.ReactNode; tom?: "brand" | "success" | "danger" | "neutral";
+// Cartão de resumo clicável (mesmo visual do cartão "Equipe" da tela de usuários): duas caixas
+// com número e rótulo. Aciona um destaque no calendário (clicar de novo desliga).
+function CartaoResumo({ icone, rotulo, detalhe, caixas, ativo, onClick, tom = "brand" }: {
+  icone: React.ReactNode; rotulo: string; detalhe?: string; caixas: { valor: number | string; rotulo: string; alerta?: boolean }[];
+  ativo?: boolean; onClick: () => void; tom?: "brand" | "success" | "danger" | "neutral";
 }) {
   const tile = { brand: "bg-brand-50 text-brand-600", success: "bg-success-tint text-success", danger: "bg-danger-tint text-danger", neutral: "bg-[#EEF2F7] text-body" }[tom];
   return (
@@ -55,9 +57,17 @@ function CartaoResumo({ icone, rotulo, ativo, onClick, children, tom = "brand" }
     >
       <div className="flex items-center gap-2.5">
         <div className={`w-8 h-8 shrink-0 rounded-lg grid place-items-center ${tile}`}>{icone}</div>
-        <span className="font-semibold text-[11px] tracking-wide text-muted uppercase">{rotulo}</span>
+        <span className="font-semibold text-[11px] tracking-wide text-muted uppercase whitespace-nowrap">{rotulo}</span>
+        {detalhe && <span className="ml-auto text-[11px] text-muted whitespace-nowrap">{detalhe}</span>}
       </div>
-      <div className="mt-1.5">{children}</div>
+      <div className="flex gap-2 mt-2">
+        {caixas.map(c => (
+          <div key={c.rotulo} className="flex-1 flex flex-col bg-canvas border border-line rounded-md px-2.5 py-1.5">
+            <span className={`font-bold text-[20px] leading-none ${c.alerta ? "text-danger" : "text-ink"}`}>{c.valor}</span>
+            <span className="font-medium text-[11px] text-body mt-0.5">{c.rotulo}</span>
+          </div>
+        ))}
+      </div>
     </button>
   );
 }
@@ -199,6 +209,7 @@ export default function ControleEscala() {
   const totalDias = new Date(ano, mes, 0).getDate();
   const vazios = new Date(ano, mes - 1, 1).getDay();
   const aRemarcarNoMes = mesGeral?.dias.reduce((s, d) => s + d.consultasARemarcar, 0) ?? 0;
+  const diasComPendencia = mesGeral?.dias.filter(d => d.consultasARemarcar > 0).length ?? 0;
   const composicao = (e: number) => mesGeral?.composicao.find(c => c.escala === e);
   const resumoHoje = mesGeral?.hoje;
 
@@ -212,24 +223,28 @@ export default function ControleEscala() {
       {/* ── Cartões (também são filtros do calendário) ──────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {[1, 2].map(e => (
-          <CartaoResumo key={e} icone={<CalendarClock className="w-[18px] h-[18px]" />} rotulo={nomeEscala(e)} tom={e === 1 ? "brand" : "neutral"}
-            ativo={realce === (e === 1 ? "escala1" : "escala2")} onClick={() => alternarRealce(e === 1 ? "escala1" : "escala2")}>
-            <div className="flex items-baseline gap-1.5 text-xs text-body">
-              <span className="font-bold text-[22px] leading-none text-ink">{composicao(e)?.medicos ?? "–"}</span> médicos
-              <span className="font-bold text-[22px] leading-none text-ink ml-2">{composicao(e)?.enfermeiras ?? "–"}</span> enfermeiras
-            </div>
-            <div className="text-xs text-muted mt-1">{quandoTrabalha(e)}</div>
-          </CartaoResumo>
+          <CartaoResumo key={e} icone={<CalendarClock className="w-[18px] h-[18px]" />} rotulo={nomeEscala(e)} detalhe={quandoTrabalha(e)}
+            tom={e === 1 ? "brand" : "neutral"} ativo={realce === (e === 1 ? "escala1" : "escala2")}
+            onClick={() => alternarRealce(e === 1 ? "escala1" : "escala2")}
+            caixas={[
+              { valor: composicao(e)?.medicos ?? "–", rotulo: "Médicos" },
+              { valor: composicao(e)?.enfermeiras ?? "–", rotulo: "Enfermeiras" },
+            ]} />
         ))}
-        <CartaoResumo icone={<Stethoscope className="w-[18px] h-[18px]" />} rotulo="De plantão hoje" tom="success" onClick={() => { setProfissional(null); setRealce(null); irPara(hojeK); }}>
-          <div className="font-bold text-[22px] leading-tight text-ink">{resumoHoje ? resumoHoje.medicos + resumoHoje.enfermeiras : "–"}</div>
-          <div className="text-xs text-muted mt-0.5">{resumoHoje ? `${nomeEscala(resumoHoje.escala)} · ${resumoHoje.ausencias} ausente(s)` : ""}</div>
-        </CartaoResumo>
-        <CartaoResumo icone={<CalendarX2 className="w-[18px] h-[18px]" />} rotulo="A remarcar" tom={aRemarcarNoMes > 0 ? "danger" : "neutral"}
-          ativo={realce === "pendencias"} onClick={() => alternarRealce("pendencias")}>
-          <div className={`font-bold text-[22px] leading-tight ${aRemarcarNoMes > 0 ? "text-danger" : "text-ink"}`}>{aRemarcarNoMes}</div>
-          <div className="text-xs text-muted mt-0.5">consultas no mês sem profissional de plantão</div>
-        </CartaoResumo>
+        <CartaoResumo icone={<Stethoscope className="w-[18px] h-[18px]" />} rotulo="De plantão hoje" tom="success"
+          detalhe={resumoHoje ? nomeEscala(resumoHoje.escala) : undefined}
+          onClick={() => { setProfissional(null); setRealce(null); irPara(hojeK); }}
+          caixas={[
+            { valor: resumoHoje?.medicos ?? "–", rotulo: "Médicos" },
+            { valor: resumoHoje?.enfermeiras ?? "–", rotulo: "Enfermeiras" },
+            { valor: resumoHoje?.ausencias ?? "–", rotulo: "Ausentes", alerta: !!resumoHoje?.ausencias },
+          ]} />
+        <CartaoResumo icone={<CalendarX2 className="w-[18px] h-[18px]" />} rotulo="A remarcar" detalhe="no mês" tom={aRemarcarNoMes > 0 ? "danger" : "neutral"}
+          ativo={realce === "pendencias"} onClick={() => alternarRealce("pendencias")}
+          caixas={[
+            { valor: aRemarcarNoMes, rotulo: "Consultas", alerta: aRemarcarNoMes > 0 },
+            { valor: diasComPendencia, rotulo: "Dias", alerta: diasComPendencia > 0 },
+          ]} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px] gap-5 items-start">
