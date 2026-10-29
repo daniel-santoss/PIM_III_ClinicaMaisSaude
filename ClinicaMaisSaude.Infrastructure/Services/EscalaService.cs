@@ -119,7 +119,8 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             return dias;
         }
 
-        public async Task<EscalaDiaResponse> ObterDiaAsync(DateTime data, string? busca, int pagina, int tamanhoPagina)
+        public async Task<EscalaDiaResponse> ObterDiaAsync(DateTime data, string? busca, int pagina, int tamanhoPagina,
+            RoleUsuario? tipo = null, bool somenteAusentes = false)
         {
             var dia = data.Date;
             var escala = Expediente.EscalaDoDia(dia);
@@ -187,6 +188,13 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             {
                 var termo = busca.Trim();
                 filtrados = filtrados.Where(p => p.Pessoa != null && p.Pessoa.Nome.Contains(termo));
+            }
+            if (tipo.HasValue)
+                filtrados = filtrados.Where(p => p.Usuario.Role == tipo.Value);
+            if (somenteAusentes)
+            {
+                var idsAusentes = ausenciaPorProfissional.Keys.ToList();
+                filtrados = filtrados.Where(p => idsAusentes.Contains(p.Id));
             }
             var total = await filtrados.CountAsync();
             var itensDaPagina = await filtrados

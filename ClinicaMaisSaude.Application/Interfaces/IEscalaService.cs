@@ -1,4 +1,5 @@
 using ClinicaMaisSaude.Application.DTOs.Escala;
+using ClinicaMaisSaude.Domain.Enums;
 
 namespace ClinicaMaisSaude.Application.Interfaces
 {
@@ -6,7 +7,10 @@ namespace ClinicaMaisSaude.Application.Interfaces
     public interface IEscalaService
     {
         Task<EscalaMesResponse> ObterMesAsync(int ano, int mes);
-        Task<EscalaDiaResponse> ObterDiaAsync(DateTime data, string? busca, int pagina, int tamanhoPagina);
+        /// <param name="tipo">Só médicos ou só enfermeiras na lista de profissionais.</param>
+        /// <param name="somenteAusentes">Só quem tem ausência no dia.</param>
+        Task<EscalaDiaResponse> ObterDiaAsync(DateTime data, string? busca, int pagina, int tamanhoPagina,
+            RoleUsuario? tipo = null, bool somenteAusentes = false);
         /// <summary>Até 10 médicos/enfermeiras ativos cujo nome contém o termo (filtro da tela).</summary>
         Task<List<ProfissionalResumo>> BuscarProfissionaisAsync(string? busca);
         Task<EscalaProfissionalResponse> ObterMesDoProfissionalAsync(Guid profissionalId, int ano, int mes);

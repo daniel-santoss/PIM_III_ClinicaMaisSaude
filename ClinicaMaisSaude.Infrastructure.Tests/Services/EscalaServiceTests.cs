@@ -244,6 +244,16 @@ namespace ClinicaMaisSaude.Infrastructure.Tests.Services
             Assert.Equal((6, 2), (pagina2.Profissionais.Total, pagina2.Profissionais.Itens.Count));
             Assert.Equal((1, 5), (pagina2.Medicos, pagina2.Enfermeiras));
             Assert.Equal("Dr. Carlos", Assert.Single(busca.Profissionais.Itens).Nome);
+
+            // Filtros dos cartões: só médicos, só enfermeiras, só ausentes.
+            var medicos = await _service.ObterDiaAsync(dia, null, 1, 10, RoleUsuario.Medico);
+            var enfermeiras = await _service.ObterDiaAsync(dia, null, 1, 10, RoleUsuario.Enfermeira);
+            Assert.Equal((1, 5), (medicos.Profissionais.Total, enfermeiras.Profissionais.Total));
+
+            var enfermeira = enfermeiras.Profissionais.Itens.First();
+            await _service.RegistrarAusenciaAsync(new RegistrarAusenciaRequest { ProfissionalId = enfermeira.Id, Data = dia, Motivo = "Atestado" }, _adminId);
+            var ausentes = await _service.ObterDiaAsync(dia, null, 1, 10, somenteAusentes: true);
+            Assert.Equal(enfermeira.Id, Assert.Single(ausentes.Profissionais.Itens).Id);
         }
 
         [Fact]

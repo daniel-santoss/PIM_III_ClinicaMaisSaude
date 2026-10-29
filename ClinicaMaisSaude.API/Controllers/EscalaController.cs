@@ -1,6 +1,8 @@
 using ClinicaMaisSaude.Application.DTOs.Escala;
+using ClinicaMaisSaude.Application.Exceptions;
 using ClinicaMaisSaude.Application.Interfaces;
 using ClinicaMaisSaude.Domain.Constants;
+using ClinicaMaisSaude.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -28,8 +30,19 @@ namespace ClinicaMaisSaude.API.Controllers
 
         [HttpGet("dia")]
         public async Task<IActionResult> ObterDia([FromQuery] DateTime data, [FromQuery] string? busca = null,
-            [FromQuery] int pagina = 1, [FromQuery] int tamanhoPagina = 8)
-            => Ok(await _escalaService.ObterDiaAsync(data, busca, pagina, tamanhoPagina));
+            [FromQuery] int pagina = 1, [FromQuery] int tamanhoPagina = 8,
+            [FromQuery] string? tipo = null, [FromQuery] bool somenteAusentes = false)
+        {
+            // tipo: "Medico" ou "Enfermeira" (mesmo nome do papel devolvido pela API).
+            RoleUsuario? papel = tipo switch
+            {
+                null or "" => null,
+                PerfisUsuario.Medico => RoleUsuario.Medico,
+                PerfisUsuario.Enfermeira => RoleUsuario.Enfermeira,
+                _ => throw new ValidationException("Tipo de profissional inválido.")
+            };
+            return Ok(await _escalaService.ObterDiaAsync(data, busca, pagina, tamanhoPagina, papel, somenteAusentes));
+        }
 
         [HttpGet("profissionais")]
         public async Task<IActionResult> BuscarProfissionais([FromQuery] string? busca = null)
