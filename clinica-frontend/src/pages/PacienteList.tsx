@@ -13,7 +13,8 @@ import Badge from "../components/ui/Badge";
 import Button from "../components/ui/Button";
 import ModalPortal from "../components/ui/ModalPortal";
 import Paginacao from "../components/ui/Paginacao";
-import SeletorEscala from "../components/SeletorEscala";
+import SeletorPrimeiroPlantao from "../components/SeletorPrimeiroPlantao";
+import { proximoPlantao } from "../constants/escala";
 
 const modalInputCls =
   "w-full h-10 px-3 text-sm text-ink bg-white border border-line rounded-md outline-none focus:border-brand-600 focus:shadow-focus transition-shadow placeholder:text-muted";
@@ -30,8 +31,8 @@ interface PacienteEdicao {
   cpf: string;
   telefone: string;
   email: string;
-  /** Só profissionais: escala 12x36. */
-  escala: number | null;
+  /** Só profissionais: dia do primeiro plantão (define a escala 12x36). */
+  inicioPlantoes: string | null;
 }
 
 
@@ -62,7 +63,9 @@ export default function PacienteList({
   // Guarda o tipo da linha em edição: a lista do admin mistura pacientes e
   // profissionais, e cada um tem seu próprio endpoint de atualização.
   const [editandoTipo, setEditandoTipo] = useState<string | null>(null);
-  const [form, setForm] = useState<PacienteEdicao>({ nome: "", cpf: "", telefone: "", email: "", escala: null });
+  const [form, setForm] = useState<PacienteEdicao>({ nome: "", cpf: "", telefone: "", email: "", inicioPlantoes: null });
+  // Valor com que o calendário abriu: só envia o primeiro plantão se o admin escolheu outro dia.
+  const [inicioAoAbrir, setInicioAoAbrir] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
 
   const [excluindoPaciente, setExcluindoPaciente] = useState<{ id: string, nome: string } | null>(null);
@@ -145,7 +148,10 @@ export default function PacienteList({
   const abrirEdicao = (p: PacienteResponse) => {
     setEditandoId(p.id);
     setEditandoTipo(p.tipo ?? perfis.paciente);
-    setForm({ nome: p.nome, cpf: p.cpf, telefone: p.telefone, email: p.email, escala: p.escala ?? null });
+    // O calendário abre no próximo plantão da pessoa (o início, se ainda não chegou).
+    const inicio = p.inicioPlantoes ? proximoPlantao(p.inicioPlantoes) : null;
+    setForm({ nome: p.nome, cpf: p.cpf, telefone: p.telefone, email: p.email, inicioPlantoes: inicio });
+    setInicioAoAbrir(inicio);
   };
 
   const fecharModal = () => {
@@ -165,7 +171,10 @@ export default function PacienteList({
       const response = await fetch(`${API_URL}/api/${recurso}/${editandoId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          ...form,
+          inicioPlantoes: form.inicioPlantoes !== inicioAoAbrir ? form.inicioPlantoes : null,
+        }),
       });
       if (!response.ok) {
         if (response.status === 400) toast.error(await response.text());
@@ -603,7 +612,7 @@ export default function PacienteList({
               </div>
               {editandoTipo !== perfis.paciente && (
                 <div className="mt-4">
-                  <SeletorEscala valor={form.escala} onMudar={(escala) => setForm({ ...form, escala })} />
+                  <SeletorPrimeiroPlantao valor={form.inicioPlantoes} onMudar={(inicioPlantoes) => setForm({ ...form, inicioPlantoes })} />
                 </div>
               )}
             </div>

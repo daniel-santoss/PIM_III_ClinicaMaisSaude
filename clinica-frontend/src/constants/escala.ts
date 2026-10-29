@@ -21,6 +21,30 @@ export function escalaDoDia(data: Date): EscalaCod {
   return ((dias % 2) + 2) % 2 === 0 ? escalaCod.escala1 : escalaCod.escala2;
 }
 
+/** "yyyy-mm-dd" de uma data local (sem passar por UTC). */
+export function chaveData(data: Date): string {
+  return `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, "0")}-${String(data.getDate()).padStart(2, "0")}`;
+}
+
+/** Data local a partir de "yyyy-mm-dd" (aceita o ISO completo da API). */
+export function dataDeChave(iso: string): Date {
+  const [a, m, d] = iso.slice(0, 10).split("-").map(Number);
+  return new Date(a, m - 1, d);
+}
+
+/**
+ * Próximo plantão (a partir de hoje) de quem começou em `inicioIso`: o próprio início, se ainda
+ * não chegou; senão, hoje ou amanhã, conforme a escala dele.
+ */
+export function proximoPlantao(inicioIso: string): string {
+  const inicio = dataDeChave(inicioIso);
+  const hoje = dataDeChave(chaveData(new Date()));
+  if (inicio >= hoje) return chaveData(inicio);
+  const d = new Date(hoje);
+  if (escalaDoDia(d) !== escalaDoDia(inicio)) d.setDate(d.getDate() + 1);
+  return chaveData(d);
+}
+
 /** Texto curto de quando a escala trabalha: "trabalha hoje" ou "trabalha amanhã". */
 export function quandoTrabalha(escala: number): string {
   return escalaDoDia(new Date()) === escala ? "trabalha hoje" : "trabalha amanhã";

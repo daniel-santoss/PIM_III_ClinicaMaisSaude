@@ -330,7 +330,7 @@ export default function ControleEscala() {
                               {` · ${p.consultas} consulta(s)`}
                             </p>
                           </div>
-                          {!diaPassado && !p.ausencia && ausenciaAberta !== p.id && (
+                          {!p.ausencia && ausenciaAberta !== p.id && (
                             <Button variant="ghost" size="sm" onClick={() => { setAusenciaAberta(p.id); setMotivo(""); }}>
                               Ausência
                             </Button>
@@ -343,11 +343,9 @@ export default function ControleEscala() {
                               <UserX className="w-3.5 h-3.5 shrink-0 mt-px" />
                               <span>Ausente: {p.ausencia.motivo}{p.ausencia.registradoPor && <span className="text-muted"> · por {p.ausencia.registradoPor}</span>}</span>
                             </span>
-                            {!diaPassado && (
-                              <button onClick={() => removerAusencia(p.ausencia!.id)} disabled={salvando} className="font-semibold text-body hover:text-ink underline-offset-2 hover:underline shrink-0">
-                                Remover
-                              </button>
-                            )}
+                            <button onClick={() => removerAusencia(p.ausencia!.id)} disabled={salvando} className="font-semibold text-body hover:text-ink underline-offset-2 hover:underline shrink-0">
+                              Remover
+                            </button>
                           </div>
                         )}
 
@@ -372,7 +370,7 @@ export default function ControleEscala() {
                     ))}
                   </ul>
                 )}
-                {diaPassado && <p className="text-xs text-muted mt-3">Dia passado: as ausências ficam só para consulta.</p>}
+                {diaPassado && <p className="text-xs text-muted mt-3">Dia passado: registre aqui a falta de quem não veio e não foi lançada na hora.</p>}
               </div>
 
               <div className="px-5 py-4">
