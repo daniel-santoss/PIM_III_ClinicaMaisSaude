@@ -28,6 +28,8 @@ interface MesDoProfissional { id: string; nome: string; tipo: string; escala: nu
 
 /** Destaque acionado pelos cartões: dias de uma escala ou dias com consultas pendentes. */
 type Realce = "escala1" | "escala2" | "pendencias" | null;
+/** Filtro da lista de profissionais do painel do dia (também acionado pelas caixas dos cartões). */
+type FiltroLista = "todos" | "Medico" | "Enfermeira" | "ausentes";
 
 const NOMES_MES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 const DIAS_SEMANA = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
@@ -42,19 +44,15 @@ function SeloEscala({ escala }: { escala: number }) {
   return <span className={`inline-flex text-[11px] font-semibold px-2 py-0.5 rounded-md border ${cor}`}>{nomeEscala(escala)}</span>;
 }
 
-// Cartão de resumo clicável (mesmo visual do cartão "Equipe" da tela de usuários): duas caixas
-// com número e rótulo. Aciona um destaque no calendário (clicar de novo desliga).
-function CartaoResumo({ icone, rotulo, detalhe, caixas, ativo, onClick, tom = "brand" }: {
-  icone: React.ReactNode; rotulo: string; detalhe?: string; caixas: { valor: number | string; rotulo: string; alerta?: boolean }[];
-  ativo?: boolean; onClick: () => void; tom?: "brand" | "success" | "danger" | "neutral";
+// Cartão de resumo no visual do cartão "Equipe" da tela de usuários: caixas com número e rótulo.
+// Cada caixa é um atalho que filtra o calendário e/ou a lista do painel do dia.
+interface Caixa { valor: number | string; rotulo: string; alerta?: boolean; ativa?: boolean; onClick: () => void }
+function CartaoResumo({ icone, rotulo, detalhe, caixas, ativo, tom = "brand" }: {
+  icone: React.ReactNode; rotulo: string; detalhe?: string; caixas: Caixa[]; ativo?: boolean; tom?: "brand" | "success" | "danger" | "neutral";
 }) {
   const tile = { brand: "bg-brand-50 text-brand-600", success: "bg-success-tint text-success", danger: "bg-danger-tint text-danger", neutral: "bg-[#EEF2F7] text-body" }[tom];
   return (
-    <button
-      onClick={onClick}
-      aria-pressed={ativo}
-      className={`text-left bg-white border rounded-lg px-4 py-[11px] transition-colors hover:bg-canvas ${ativo ? "border-brand-600 ring-2 ring-brand-600/15" : "border-line"}`}
-    >
+    <div className={`bg-white border rounded-lg px-4 py-[11px] ${ativo ? "border-brand-600 ring-2 ring-brand-600/15" : "border-line"}`}>
       <div className="flex items-center gap-2.5">
         <div className={`w-8 h-8 shrink-0 rounded-lg grid place-items-center ${tile}`}>{icone}</div>
         <span className="font-semibold text-[11px] tracking-wide text-muted uppercase whitespace-nowrap">{rotulo}</span>
@@ -62,13 +60,18 @@ function CartaoResumo({ icone, rotulo, detalhe, caixas, ativo, onClick, tom = "b
       </div>
       <div className="flex gap-2 mt-2">
         {caixas.map(c => (
-          <div key={c.rotulo} className="flex-1 flex flex-col bg-canvas border border-line rounded-md px-2.5 py-1.5">
+          <button
+            key={c.rotulo}
+            onClick={c.onClick}
+            aria-pressed={c.ativa}
+            className={`flex-1 flex flex-col text-left border rounded-md px-2.5 py-1.5 transition-colors ${c.ativa ? "bg-brand-50 border-brand-600" : "bg-canvas border-line hover:border-brand-200 hover:bg-brand-50/50"}`}
+          >
             <span className={`font-bold text-[20px] leading-none ${c.alerta ? "text-danger" : "text-ink"}`}>{c.valor}</span>
-            <span className="font-medium text-[11px] text-body mt-0.5">{c.rotulo}</span>
-          </div>
+            <span className={`font-medium text-[11px] mt-0.5 ${c.ativa ? "text-brand-600" : "text-body"}`}>{c.rotulo}</span>
+          </button>
         ))}
       </div>
-    </button>
+    </div>
   );
 }
 
@@ -127,6 +130,7 @@ export default function ControleEscala() {
 
   const [diaSel, setDiaSel] = useState(hojeK);
   const [realce, setRealce] = useState<Realce>(null);
+  const [filtroLista, setFiltroLista] = useState<FiltroLista>("todos");
   const [remarcando, setRemarcando] = useState<ConsultaARemarcar | null>(null);
   const [versao, setVersao] = useState(0); // força recarga após lançar/remover/remarcar
   const recarregar = () => setVersao(v => v + 1);
@@ -199,11 +203,37 @@ export default function ControleEscala() {
   // Cartões acionam o destaque no calendário; com um profissional filtrado, voltam para a visão geral.
   const alternarRealce = (r: Exclude<Realce, null>) => {
     setProfissional(null);
+    setFiltroLista("todos");
     setRealce(atual => (atual === r ? null : r));
     if (r === "pendencias") {
       const primeiro = mesGeral?.dias.find(d => d.consultasARemarcar > 0);
       if (primeiro) setDiaSel(primeiro.data.slice(0, 10));
     }
+  };
+
+  // Caixa "Médicos"/"Enfermeiras" de uma escala: destaca os dias dela e filtra a lista do painel.
+  // Se o dia aberto for da outra escala, abre o próximo dia desta (a partir de hoje, no mês visto).
+  const filtrarEscala = (escala: number, tipo: FiltroLista) => {
+    const r: Realce = escala === 1 ? "escala1" : "escala2";
+    if (realce === r && filtroLista === tipo) { setRealce(null); setFiltroLista("todos"); return; }
+    setProfissional(null);
+    setRealce(r);
+    setFiltroLista(tipo);
+    const dias = mesGeral?.dias ?? [];
+    const aberto = dias.find(d => d.data.slice(0, 10) === diaSel);
+    if (!aberto || aberto.escala !== escala) {
+      const proximo = dias.find(d => d.escala === escala && d.data.slice(0, 10) >= hojeK) ?? dias.find(d => d.escala === escala);
+      if (proximo) setDiaSel(proximo.data.slice(0, 10));
+    }
+  };
+
+  // Caixas de "De plantão hoje": abre hoje com a lista filtrada (clicar de novo volta para todos).
+  const filtrarHoje = (tipo: FiltroLista) => {
+    const jaAtivo = diaSel === hojeK && !realce && filtroLista === tipo;
+    setProfissional(null);
+    setRealce(null);
+    setFiltroLista(jaAtivo ? "todos" : tipo);
+    irPara(hojeK);
   };
 
   const totalDias = new Date(ano, mes, 0).getDate();
@@ -222,28 +252,33 @@ export default function ControleEscala() {
     <div className="space-y-5 animate-in fade-in duration-500">
       {/* ── Cartões (também são filtros do calendário) ──────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        {[1, 2].map(e => (
-          <CartaoResumo key={e} icone={<CalendarClock className="w-[18px] h-[18px]" />} rotulo={nomeEscala(e)} detalhe={quandoTrabalha(e)}
-            tom={e === 1 ? "brand" : "neutral"} ativo={realce === (e === 1 ? "escala1" : "escala2")}
-            onClick={() => alternarRealce(e === 1 ? "escala1" : "escala2")}
-            caixas={[
-              { valor: composicao(e)?.medicos ?? "–", rotulo: "Médicos" },
-              { valor: composicao(e)?.enfermeiras ?? "–", rotulo: "Enfermeiras" },
-            ]} />
-        ))}
+        {[1, 2].map(e => {
+          const r = e === 1 ? "escala1" : "escala2";
+          return (
+            <CartaoResumo key={e} icone={<CalendarClock className="w-[18px] h-[18px]" />} rotulo={nomeEscala(e)} detalhe={quandoTrabalha(e)}
+              tom={e === 1 ? "brand" : "neutral"} ativo={realce === r}
+              caixas={[
+                { valor: composicao(e)?.medicos ?? "–", rotulo: "Médicos", ativa: realce === r && filtroLista === "Medico", onClick: () => filtrarEscala(e, "Medico") },
+                { valor: composicao(e)?.enfermeiras ?? "–", rotulo: "Enfermeiras", ativa: realce === r && filtroLista === "Enfermeira", onClick: () => filtrarEscala(e, "Enfermeira") },
+              ]} />
+          );
+        })}
         <CartaoResumo icone={<Stethoscope className="w-[18px] h-[18px]" />} rotulo="De plantão hoje" tom="success"
           detalhe={resumoHoje ? nomeEscala(resumoHoje.escala) : undefined}
-          onClick={() => { setProfissional(null); setRealce(null); irPara(hojeK); }}
-          caixas={[
-            { valor: resumoHoje?.medicos ?? "–", rotulo: "Médicos" },
-            { valor: resumoHoje?.enfermeiras ?? "–", rotulo: "Enfermeiras" },
-            { valor: resumoHoje?.ausencias ?? "–", rotulo: "Ausentes", alerta: !!resumoHoje?.ausencias },
-          ]} />
+          ativo={!realce && !profissional && diaSel === hojeK && filtroLista !== "todos"}
+          caixas={([["Medico", "Médicos", resumoHoje?.medicos], ["Enfermeira", "Enfermeiras", resumoHoje?.enfermeiras], ["ausentes", "Ausentes", resumoHoje?.ausencias]] as const)
+            .map(([filtro, rotulo, valor]) => ({
+              valor: valor ?? "–",
+              rotulo,
+              alerta: filtro === "ausentes" && !!valor,
+              ativa: !realce && !profissional && diaSel === hojeK && filtroLista === filtro,
+              onClick: () => filtrarHoje(filtro),
+            }))} />
         <CartaoResumo icone={<CalendarX2 className="w-[18px] h-[18px]" />} rotulo="A remarcar" detalhe="no mês" tom={aRemarcarNoMes > 0 ? "danger" : "neutral"}
-          ativo={realce === "pendencias"} onClick={() => alternarRealce("pendencias")}
+          ativo={realce === "pendencias"}
           caixas={[
-            { valor: aRemarcarNoMes, rotulo: "Consultas", alerta: aRemarcarNoMes > 0 },
-            { valor: diasComPendencia, rotulo: "Dias", alerta: diasComPendencia > 0 },
+            { valor: aRemarcarNoMes, rotulo: "Consultas", alerta: aRemarcarNoMes > 0, ativa: realce === "pendencias", onClick: () => alternarRealce("pendencias") },
+            { valor: diasComPendencia, rotulo: "Dias", alerta: diasComPendencia > 0, ativa: realce === "pendencias", onClick: () => alternarRealce("pendencias") },
           ]} />
       </div>
 
@@ -391,7 +426,7 @@ export default function ControleEscala() {
               <p className="px-5 py-6 text-sm text-body">Escolha um dia deste mês no calendário.</p>
             )
           ) : (
-            <PainelDia key={diaSel} data={diaSel} versao={versao} onRemarcar={setRemarcando} onAlterou={recarregar} />
+            <PainelDia key={diaSel} data={diaSel} versao={versao} filtro={filtroLista} onFiltro={setFiltroLista} onRemarcar={setRemarcando} onAlterou={recarregar} />
           )}
         </div>
       </div>
@@ -472,8 +507,9 @@ function CabecalhoPainel({ data, escala, subtitulo }: { data: string; escala?: n
 }
 
 // ─── Painel do dia (visão geral) ──────────────────────────────────────────────
-function PainelDia({ data, versao, onRemarcar, onAlterou }: {
-  data: string; versao: number; onRemarcar: (c: ConsultaARemarcar) => void; onAlterou: () => void;
+function PainelDia({ data, versao, filtro, onFiltro, onRemarcar, onAlterou }: {
+  data: string; versao: number; filtro: FiltroLista; onFiltro: (f: FiltroLista) => void;
+  onRemarcar: (c: ConsultaARemarcar) => void; onAlterou: () => void;
 }) {
   const toast = useToast();
   const [dia, setDia] = useState<Dia | null>(null);
@@ -486,6 +522,8 @@ function PainelDia({ data, versao, onRemarcar, onAlterou }: {
     try {
       const q = new URLSearchParams({ data, pagina: String(pagina), tamanhoPagina: String(TAMANHO_PAGINA) });
       if (busca.trim()) q.set("busca", busca.trim());
+      if (filtro === "Medico" || filtro === "Enfermeira") q.set("tipo", filtro);
+      if (filtro === "ausentes") q.set("somenteAusentes", "true");
       const res = await fetch(`${API_URL}/api/Escala/dia?${q}`, { headers: authHeaders() });
       if (!res.ok) { toast.error("Erro ao carregar o plantão do dia."); return; }
       setDia(await res.json());
@@ -493,10 +531,10 @@ function PainelDia({ data, versao, onRemarcar, onAlterou }: {
       toast.error("Falha de conexão ao carregar o plantão.");
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data, pagina, busca]);
+  }, [data, pagina, busca, filtro]);
 
   useEffect(() => { const t = setTimeout(carregar, busca ? 250 : 0); return () => clearTimeout(t); }, [carregar, versao, busca]);
-  useEffect(() => { setPagina(1); }, [busca]);
+  useEffect(() => { setPagina(1); }, [busca, filtro]);
 
   if (!dia) {
     return <div className="p-5 space-y-3">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-12 rounded-md bg-line-soft animate-pulse" />)}</div>;
@@ -535,6 +573,19 @@ function PainelDia({ data, versao, onRemarcar, onAlterou }: {
 
         <section className="px-5 py-4 space-y-3">
           <h4 className="text-[11px] font-semibold text-muted uppercase tracking-wide">Profissionais da escala ({dia.profissionais.total})</h4>
+          <div className="flex gap-1 p-1 bg-canvas border border-line rounded-md" role="tablist" aria-label="Filtrar profissionais">
+            {([["todos", "Todos"], ["Medico", "Médicos"], ["Enfermeira", "Enfermeiras"], ["ausentes", "Ausentes"]] as const).map(([valor, rotulo]) => (
+              <button
+                key={valor}
+                role="tab"
+                aria-selected={filtro === valor}
+                onClick={() => onFiltro(valor)}
+                className={`flex-1 h-7 rounded text-[12px] font-semibold transition-colors ${filtro === valor ? "bg-white text-brand-600 border border-line" : "text-body hover:text-ink"}`}
+              >
+                {rotulo}
+              </button>
+            ))}
+          </div>
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted" />
             <input
@@ -546,7 +597,7 @@ function PainelDia({ data, versao, onRemarcar, onAlterou }: {
           </div>
 
           {dia.profissionais.itens.length === 0 ? (
-            <p className="text-sm text-body">Nenhum profissional encontrado.</p>
+            <p className="text-sm text-body">{filtro === "ausentes" ? "Ninguém ausente neste dia." : "Nenhum profissional encontrado."}</p>
           ) : (
             <ul className="divide-y divide-line border border-line rounded-md">
               {dia.profissionais.itens.map(p => (
