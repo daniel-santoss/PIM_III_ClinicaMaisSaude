@@ -12,6 +12,7 @@ import { MapNomesTipoConsulta } from "../constants/statusMap";
 import { tipoConsultaCod as TC, tipoProfissionalCod as TP } from "../constants/codigos";
 import { storageKeys } from "../constants/storage";
 import ModalPortal from "./ui/ModalPortal";
+import { termoDeBusca } from "../utils/busca";
 
 interface AgendamentoFormCriarProps {
   onFechar: () => void;
@@ -127,12 +128,14 @@ export default function AgendamentoFormCriar({
   }, [pacienteSelecionado, tipoConsulta]);
 
   const buscarPacientesAPI = async () => {
-    if (!buscaPaciente) return;
+    // Só a partir do 3º caractere; dígitos buscam por CPF (prefixo), letras por nome.
+    const termo = termoDeBusca(buscaPaciente);
+    if (!termo) { toast.warning("Digite ao menos 3 caracteres do nome ou do CPF."); return; }
     setBuscandoPacientes(true);
     setMostrarListaPacientes(false);
     try {
       const token = localStorage.getItem(storageKeys.authToken);
-      const response = await fetch(`${API_URL}/api/Pacientes?nome=${encodeURIComponent(buscaPaciente)}&pageSize=10`, {
+      const response = await fetch(`${API_URL}/api/Pacientes?${termo.tipo}=${encodeURIComponent(termo.termo)}&pageSize=10`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (response.ok) {

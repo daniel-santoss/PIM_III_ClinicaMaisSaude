@@ -13,6 +13,8 @@ import Badge from "../components/ui/Badge";
 import Button from "../components/ui/Button";
 import ModalPortal from "../components/ui/ModalPortal";
 import Paginacao from "../components/ui/Paginacao";
+import { termoDeBusca } from "../utils/busca";
+import AvisoBusca from "../components/ui/AvisoBusca";
 import SeletorPrimeiroPlantao from "../components/SeletorPrimeiroPlantao";
 import { proximoPlantao } from "../constants/escala";
 
@@ -87,6 +89,10 @@ export default function PacienteList({
   const [totalCount, setTotalCount] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
 
+  // Só busca a partir do 3º caractere; dígitos viram busca por CPF (prefixo), letras por nome.
+  const termo = termoDeBusca(buscaNome);
+  const chaveBusca = termo ? `${termo.tipo}:${termo.termo}` : "";
+
   useEffect(() => {
     const timer = setTimeout(() => {
       setCarregando(true);
@@ -96,14 +102,7 @@ export default function PacienteList({
       params.set("page", page.toString());
       params.set("pageSize", pageSize.toString());
 
-      const termoBusca = buscaNome.trim();
-      if (termoBusca) {
-        if (/^\d+$/.test(termoBusca)) {
-          params.set("cpf", termoBusca);
-        } else {
-          params.set("nome", termoBusca);
-        }
-      }
+      if (termo) params.set(termo.tipo, termo.termo);
 
       const queryString = params.toString();
       const url = `${API_URL}/api/Pacientes${queryString ? `?${queryString}` : ""}`;
@@ -131,12 +130,13 @@ export default function PacienteList({
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [recarregarContador, refreshInterno, buscaNome, buscaCpf, page]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recarregarContador, refreshInterno, chaveBusca, buscaCpf, page]);
 
   // Reset page to 1 when search filters change
   useEffect(() => {
     setPage(1);
-  }, [buscaNome, buscaCpf, perfisSelecionados]);
+  }, [chaveBusca, buscaCpf, perfisSelecionados]);
 
   // Efeito para abrir edição externa (Vindo da Agenda por exemplo)
   useEffect(() => {
@@ -355,6 +355,7 @@ export default function PacienteList({
               value={buscaNome}
               onChange={(e) => setBuscaNome(e.target.value)}
             />
+            <AvisoBusca texto={buscaNome} />
           </div>
 
           {/* Filtro Tipo */}

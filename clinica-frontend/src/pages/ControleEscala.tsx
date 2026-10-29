@@ -9,6 +9,8 @@ import { useToast } from "../hooks/useToast";
 import Button from "../components/ui/Button";
 import Paginacao from "../components/ui/Paginacao";
 import ModalRemarcar from "../components/ModalRemarcar";
+import AvisoBusca from "../components/ui/AvisoBusca";
+import { MIN_CARACTERES_BUSCA, termoDeBusca } from "../utils/busca";
 
 // ─── Tipos da API (/api/Escala) ───────────────────────────────────────────────
 interface DiaResumo { data: string; escala: number; medicos: number; enfermeiras: number; ausencias: number; consultasARemarcar: number }
@@ -174,19 +176,20 @@ export default function ControleEscala() {
   }, [ano, mes, profissional, versao]);
 
   // ── Busca do filtro (servidor devolve no máximo 10 nomes) ────────────────────
+  const termoProfissional = termoDeBusca(busca)?.termo ?? "";
   useEffect(() => {
-    if (!buscaAberta) return;
+    if (!buscaAberta || !termoProfissional) { setSugestoes([]); return; }
     let cancelado = false; // descarta a resposta de uma digitação anterior
     setBuscando(true);
     const t = setTimeout(async () => {
       try {
-        const res = await fetch(`${API_URL}/api/Escala/profissionais?busca=${encodeURIComponent(busca.trim())}`, { headers: authHeaders() });
+        const res = await fetch(`${API_URL}/api/Escala/profissionais?busca=${encodeURIComponent(termoProfissional)}`, { headers: authHeaders() });
         if (res.ok && !cancelado) setSugestoes(await res.json());
       } catch { /* a lista só fica vazia */ }
       finally { if (!cancelado) setBuscando(false); }
     }, 250);
     return () => { cancelado = true; clearTimeout(t); };
-  }, [busca, buscaAberta]);
+  }, [termoProfissional, buscaAberta]);
 
   const irPara = (k: string) => {
     const d = dataDeChave(k);
@@ -307,7 +310,9 @@ export default function ControleEscala() {
                   />
                   {buscaAberta && (
                     <div className="absolute left-0 right-0 mt-1.5 bg-white border border-line rounded-lg shadow-modal z-20 py-1 max-h-72 overflow-y-auto">
-                      {buscando && sugestoes.length === 0 ? (
+                      {!termoProfissional ? (
+                        <p className="px-3.5 py-2.5 text-sm text-muted">Digite ao menos {MIN_CARACTERES_BUSCA} letras do nome.</p>
+                      ) : buscando && sugestoes.length === 0 ? (
                         <p className="px-3.5 py-2.5 text-sm text-muted">Buscando...</p>
                       ) : sugestoes.length === 0 ? (
                         <p className="px-3.5 py-2.5 text-sm text-muted">Nenhum profissional encontrado.</p>
@@ -518,6 +523,7 @@ function PainelDia({ data, versao, filtro, onFiltro, onRemarcar, onAlterou }: {
   const toast = useToast();
   const [dia, setDia] = useState<Dia | null>(null);
   const [busca, setBusca] = useState("");
+  const termo = termoDeBusca(busca)?.termo ?? ""; // só a partir do 3º caractere
   const [pagina, setPagina] = useState(1);
   const [lancandoPara, setLancandoPara] = useState<string | null>(null);
   const { lancar, remover, salvando } = useAusencias(onAlterou);
@@ -525,7 +531,7 @@ function PainelDia({ data, versao, filtro, onFiltro, onRemarcar, onAlterou }: {
   const carregar = useCallback(async () => {
     try {
       const q = new URLSearchParams({ data, pagina: String(pagina), tamanhoPagina: String(TAMANHO_PAGINA) });
-      if (busca.trim()) q.set("busca", busca.trim());
+      if (termo) q.set("busca", termo);
       if (filtro === "Medico" || filtro === "Enfermeira") q.set("tipo", filtro);
       if (filtro === "ausentes") q.set("somenteAusentes", "true");
       const res = await fetch(`${API_URL}/api/Escala/dia?${q}`, { headers: authHeaders() });
@@ -535,10 +541,10 @@ function PainelDia({ data, versao, filtro, onFiltro, onRemarcar, onAlterou }: {
       toast.error("Falha de conexão ao carregar o plantão.");
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data, pagina, busca, filtro]);
+  }, [data, pagina, termo, filtro]);
 
-  useEffect(() => { const t = setTimeout(carregar, busca ? 250 : 0); return () => clearTimeout(t); }, [carregar, versao, busca]);
-  useEffect(() => { setPagina(1); }, [busca, filtro]);
+  useEffect(() => { const t = setTimeout(carregar, termo ? 250 : 0); return () => clearTimeout(t); }, [carregar, versao, termo]);
+  useEffect(() => { setPagina(1); }, [termo, filtro]);
 
   if (!dia) {
     return <div className="p-5 space-y-3">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-12 rounded-md bg-line-soft animate-pulse" />)}</div>;
@@ -598,6 +604,7 @@ function PainelDia({ data, versao, filtro, onFiltro, onRemarcar, onAlterou }: {
               placeholder="Buscar por nome..."
               className="w-full h-8 pl-8 pr-3 text-[13px] text-ink bg-white border border-line rounded-md outline-none focus:border-brand-600 placeholder:text-muted"
             />
+            <AvisoBusca texto={busca} />
           </div>
 
           {dia.profissionais.itens.length === 0 ? (
