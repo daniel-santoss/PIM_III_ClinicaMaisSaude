@@ -378,7 +378,11 @@ export default function ControleEscala() {
                 const desfalque = !!d && !passado && (d.medicos === 0 || d.enfermeiras === 0);
                 return (
                   <button key={k} onClick={() => setDiaSel(k)}
-                    className={`h-[68px] p-2 rounded-md border text-left flex flex-col justify-between transition-opacity ${desfalque ? "border-warning-border" : "border-line"} ${passado ? "bg-canvas/60" : "bg-white"} ${destacado(d) || selecionado ? "" : "opacity-30"} ${anel}`}>
+                    className={`h-[68px] p-2 rounded-md border text-left flex flex-col justify-between transition-opacity ${
+                      // Com um destaque ativo, os dias em foco ficam azuis (como os plantões na visão do profissional).
+                      realce && destacado(d) ? "border-brand-200 bg-brand-50"
+                        : `${desfalque ? "border-warning-border" : "border-line"} ${passado ? "bg-canvas/60" : "bg-white"}`
+                    } ${destacado(d) || selecionado ? "" : "opacity-30"} ${anel}`}>
                     <div className="flex items-start justify-between">
                       {numero}
                       {d && <span className={`text-[10px] font-semibold ${d.escala === 1 ? "text-brand-600" : "text-teal-700"}`}>E{d.escala}</span>}
