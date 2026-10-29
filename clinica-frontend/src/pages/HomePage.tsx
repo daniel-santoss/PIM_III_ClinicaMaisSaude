@@ -430,8 +430,8 @@ export default function HomePage({
             <div className="flex flex-col items-center md:items-start md:col-span-3">
               <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-4">Funcionamento</h3>
               <ul className="space-y-3 text-center md:text-left text-sm text-gray-300">
-                <li>Segunda a Sexta: 8h às 18h</li>
-                <li>Sábados e Domingos: Fechado</li>
+                <li>Todos os dias: 7h às 19h</li>
+                <li>Inclusive sábados e domingos</li>
               </ul>
             </div>
 

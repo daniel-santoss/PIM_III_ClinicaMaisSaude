@@ -5,6 +5,7 @@ export interface Agendamento {
   tipoConsulta: string;
   status: string;
   nomeProfissional: string;
+  profissionalId?: string;
   especialidade?: string;
   agendamentoOrigemId?: string;
   // Acompanhamento de resultado de exame (informativo para o paciente).

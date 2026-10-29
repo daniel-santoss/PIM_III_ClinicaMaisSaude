@@ -204,10 +204,17 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             var filtradas = todas.Where(s => s.Status == status);
             if (!string.IsNullOrWhiteSpace(busca))
             {
+                // Uma coluna só: dígitos = CPF por prefixo (usa o índice); texto = nome por "contém".
                 var termo = busca.Trim();
-                var digitos = new string(termo.Where(char.IsDigit).ToArray());
-                filtradas = filtradas.Where(s =>
-                    s.Pessoa!.Nome.Contains(termo) || (digitos.Length > 0 && s.Pessoa.Cpf.Contains(digitos)));
+                if (Cpf.EhTermoDeBusca(termo))
+                {
+                    var digitos = Cpf.Sanitizar(termo);
+                    filtradas = filtradas.Where(s => s.Pessoa!.Cpf.StartsWith(digitos));
+                }
+                else
+                {
+                    filtradas = filtradas.Where(s => s.Pessoa!.Nome.Contains(termo));
+                }
             }
 
             // Em análise é fila (mais antigas primeiro); decididas mostram a decisão mais recente primeiro.

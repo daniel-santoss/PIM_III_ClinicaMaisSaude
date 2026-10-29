@@ -10,6 +10,7 @@ import type { PacienteResponse } from "../types/PacienteResponse";
 import AgendamentoFiltros from "../components/AgendamentoFiltros";
 import AgendamentoFormCriar from "../components/AgendamentoFormCriar";
 import ModalRemarcar from "../components/ModalRemarcar";
+import { termoDeBusca } from "../utils/busca";
 import ModalHistorico from "../components/ModalHistorico";
 import ConfirmModal from "../components/ConfirmModal";
 import { useScrollBlock } from "../hooks/useScrollBlock";
@@ -23,6 +24,7 @@ export interface AgendamentoResponse {
   pacienteId: string;
   pacienteNome: string;
   medicoId: string;
+  profissionalId?: string;
   dataHoraConsulta: string;
   tipoProfissional: string;
   tipoConsulta: string;
@@ -86,6 +88,12 @@ export default function AgendamentoList({ agendamentoDestaque }: { agendamentoDe
   useScrollBlock(!!pacienteDetalhesModal);
 
   const [filtroAgenda, setFiltroAgenda] = useState("");
+  // Termo que vai para a API: só a partir do 3º caractere e depois de uma pausa na digitação.
+  const [buscaAplicada, setBuscaAplicada] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => setBuscaAplicada(termoDeBusca(filtroAgenda)?.termo ?? ""), 400);
+    return () => clearTimeout(t);
+  }, [filtroAgenda]);
   const [statusSelecionados, setStatusSelecionados] = useState<string[]>([
     statusAgendamento.agendado,
     statusAgendamento.emAtendimento,
@@ -127,7 +135,7 @@ export default function AgendamentoList({ agendamentoDestaque }: { agendamentoDe
     setPage(1);
   };
 
-  useEffect(() => { carregarDados(); }, [refreshContador, page, filtroAgenda, statusSelecionados, filtroDataConsulta, filtroRiscoApenas, ordemData]);
+  useEffect(() => { carregarDados(); }, [refreshContador, page, buscaAplicada, statusSelecionados, filtroDataConsulta, filtroRiscoApenas, ordemData]);
 
   const carregarDados = async () => {
     setCarregando(true);
@@ -140,7 +148,7 @@ export default function AgendamentoList({ agendamentoDestaque }: { agendamentoDe
       queryParams.append("page", page.toString());
       queryParams.append("pageSize", pageSize.toString());
       queryParams.append("ordem", ordemData);
-      if (filtroAgenda) queryParams.append("busca", filtroAgenda);
+      if (buscaAplicada) queryParams.append("busca", buscaAplicada);
       if (filtroDataConsulta) queryParams.append("data", filtroDataConsulta);
       if (statusSelecionados.length > 0) queryParams.append("status", statusSelecionados.join(','));
       if (filtroRiscoApenas) queryParams.append("riscoAltoApenas", "true");
@@ -281,7 +289,7 @@ export default function AgendamentoList({ agendamentoDestaque }: { agendamentoDe
   // Reset page to 1 when search filters change
   useEffect(() => {
     setPage(1);
-  }, [filtroAgenda, statusSelecionados, filtroDataConsulta, filtroRiscoApenas]);
+  }, [buscaAplicada, statusSelecionados, filtroDataConsulta, filtroRiscoApenas]);
 
   useEffect(() => {
     if (agendamentoDestaque) {

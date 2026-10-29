@@ -154,5 +154,5 @@ Registro dos *sprints* executados, derivado do histórico real de commits (abr�
 
 | Sprint | Meta | Itens |
 |--------|------|-------|
-| S13 | **Monografia ABNT + APK** | Integrar os artefatos e as entregas de out/2026 na monografia; E6-08 — APK do app Android |
+| S13 | **Monografia ABNT + APK + Escala** | Integrar os artefatos e as entregas de out/2026 na monografia; E6-08 — APK do app Android ✅; E4-12 — histórico e retificação de solicitações ✅; E2-09/E2-10 — escala 12x36, controle de escala e ausências ✅ |
 | S14 | **Revisão final e entrega** | Revisão ABNT, sumário, contagem de páginas; entrega em 14/11/2026 |

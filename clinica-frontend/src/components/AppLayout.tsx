@@ -1,4 +1,4 @@
-import { Bell, LayoutDashboard, Users, CalendarDays, ShieldAlert, BarChart2, ClipboardList, Inbox, LogOut, Menu, X } from 'lucide-react';
+import { Bell, LayoutDashboard, Users, CalendarDays, ShieldAlert, BarChart2, ClipboardList, Inbox, CalendarClock, LogOut, Menu, X } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import logoPng from '../assets/logo_clinica.png';
 import { useScrollBlock } from '../hooks/useScrollBlock';
@@ -43,6 +43,7 @@ function getNavItems(tipoUsuario: string, isAdmin: boolean): NavItem[] {
     return [
       { id: 'pacientes',    label: 'Usuários',        icon: <Users size={18} /> },
       { id: 'agendamentos', label: 'Agendamentos',    icon: <CalendarDays size={18} /> },
+      { id: 'escala',       label: 'Escala',          icon: <CalendarClock size={18} /> },
       { id: 'relatorios',   label: 'Relatórios',      icon: <BarChart2 size={18} /> },
       { id: 'solicitacoes', label: 'Solicitações',    icon: <Inbox size={18} /> },
       { id: 'declaracao-saude', label: 'Declaração de Saúde', icon: <ClipboardList size={18} /> },
@@ -81,6 +82,8 @@ function getHeader(abaAtiva: string, tipoUsuario: string, isAdmin: boolean): { t
       return isPaciente
         ? { titulo: 'Agendar consulta', subtitulo: 'Novo atendimento' }
         : { titulo: 'Agendamentos', subtitulo: 'Agenda clínica e triagem' };
+    case 'escala':
+      return { titulo: 'Controle de escala', subtitulo: 'Plantões 12x36, das 07:00 às 19:00' };
     case 'relatorios':
       return { titulo: 'Relatórios', subtitulo: 'Indicadores e exportações' };
     case 'violacoes':

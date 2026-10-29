@@ -58,6 +58,25 @@ namespace ClinicaMaisSaude.Application.Services
             await _repository.ObterPorIdAsync(id)
                 ?? throw new NotFoundException("Agendamento não encontrado.");
 
+        // O horário precisa caber no expediente (07:00–19:00, fora da pausa das 12:00–13:00).
+        private static void ValidarExpediente(DateTime dataHora, TipoConsulta tipoConsulta)
+        {
+            var fim = dataHora.TimeOfDay.Add(TimeSpan.FromMinutes(TipoConsultaDuracao.ObterDuracao(tipoConsulta)));
+            if (!Expediente.DentroDoExpediente(dataHora.TimeOfDay, fim))
+                throw new BusinessRuleException("Horário fora do expediente da clínica (07:00 às 19:00, com pausa das 12:00 às 13:00).");
+        }
+
+        // Escala 12x36: quando o profissional já está definido (retorno, remarcação), ele precisa
+        // estar de plantão no dia — na escala do dia e sem ausência registrada.
+        private async Task GarantirProfissionalDePlantaoAsync(Guid profissionalId, DateTime dataHora)
+        {
+            var profissional = await _profissionalRepository.ObterPorIdAsync(profissionalId)
+                ?? throw new NotFoundException("Profissional não encontrado.");
+            var ausentes = await _profissionalRepository.ObterIdsAusentesNoDiaAsync(dataHora);
+            if (!profissional.EscaladoNoDia(dataHora) || ausentes.Contains(profissionalId))
+                throw new BusinessRuleException($"O profissional responsável não está de plantão em {dataHora:dd/MM/yyyy}. Escolha outra data.");
+        }
+
         public async Task<AgendamentoResponse> AdicionarAsync(AgendamentoRequest request, Guid usuarioLogadoId)
         {
             var tipoProfissional = (TipoProfissional)request.TipoProfissional;
@@ -132,6 +151,7 @@ namespace ClinicaMaisSaude.Application.Services
 
             if (request.DataHoraConsulta <= DateTime.UtcNow.AddHours(-3))
                 throw new BusinessRuleException("Não é possível agendar em datas passadas.");
+            ValidarExpediente(request.DataHoraConsulta, tipoConsulta);
 
             bool temConflitoPaciente = await _conflitoService.ExisteConflitoPacienteAsync(request.PacienteId, request.DataHoraConsulta, tipoConsulta, null);
             if (temConflitoPaciente)
@@ -159,6 +179,8 @@ namespace ClinicaMaisSaude.Application.Services
                     throw new NotFoundException("Agendamento de origem inválido.");
                 if (origem.Status != StatusAgendamento.AguardandoRetorno)
                     throw new BusinessRuleException("A consulta de origem não está aguardando retorno.");
+
+                await GarantirProfissionalDePlantaoAsync(origem.ProfissionalId, request.DataHoraConsulta);
 
                 bool temConflito = await _conflitoService.ExisteConflitoProfissionalAsync(origem.ProfissionalId, request.DataHoraConsulta, tipoConsulta, null);
                 if (temConflito) {
@@ -263,7 +285,9 @@ namespace ClinicaMaisSaude.Application.Services
 
             var tipoProf = (TipoProfissional)request.TipoProfissional;
             var tipoCons = (TipoConsulta)request.TipoConsulta;
-            
+            ValidarExpediente(request.DataHoraConsulta, tipoCons);
+            await GarantirProfissionalDePlantaoAsync(agendamento.ProfissionalId, request.DataHoraConsulta);
+
             var profissionalDelegado = await _delegacaoService.DelegarAsync(tipoProf, tipoCons, request.DataHoraConsulta, agendamento.Id, null);
             
             agendamento.AlterarDataHora(request.DataHoraConsulta);
@@ -415,6 +439,8 @@ namespace ClinicaMaisSaude.Application.Services
 
             if (request.NovaDataHora <= DateTime.UtcNow.AddHours(-3))
                 throw new BusinessRuleException("Não é permitido remarcar para datas/horários passados.");
+            ValidarExpediente(request.NovaDataHora, agendamento.TipoConsulta);
+            await GarantirProfissionalDePlantaoAsync(agendamento.ProfissionalId, request.NovaDataHora);
 
             var pacienteAgendamento = await _pacienteRepository.ObterPorIdAsync(agendamento.PacienteId);
             bool ehProprioPaciente = pacienteAgendamento != null && pacienteAgendamento.UsuarioId == usuarioLogadoId;
@@ -555,12 +581,13 @@ namespace ClinicaMaisSaude.Application.Services
             };
         }
 
-        public Task<List<string>> ObterHorariosDisponiveisAsync(DateTime data, int tipoConsultaInt, int? especialidadeId = null, Guid? origemId = null)
-            => CalcularHorariosAsync(data, tipoConsultaInt, especialidadeId, origemId, apenasPrimeiro: false);
+        public Task<List<string>> ObterHorariosDisponiveisAsync(DateTime data, int tipoConsultaInt, int? especialidadeId = null, Guid? origemId = null, Guid? profissionalId = null)
+            => CalcularHorariosAsync(data, tipoConsultaInt, especialidadeId, origemId, profissionalId, apenasPrimeiro: false);
 
         // Dias do mês (a partir de hoje) com pelo menos um horário livre — alimenta o calendário
         // do app. Usa a mesma regra dos horários, parando no primeiro slot livre de cada dia.
-        public async Task<List<string>> ObterDiasDisponiveisAsync(int ano, int mes, int tipoConsultaInt, int? especialidadeId = null, Guid? origemId = null)
+        // A clínica abre todos os dias; os dias sem ninguém de plantão (escala/ausência) saem sozinhos.
+        public async Task<List<string>> ObterDiasDisponiveisAsync(int ano, int mes, int tipoConsultaInt, int? especialidadeId = null, Guid? origemId = null, Guid? profissionalId = null)
         {
             var dias = new List<string>();
             if (mes < 1 || mes > 12) return dias;
@@ -571,10 +598,7 @@ namespace ClinicaMaisSaude.Application.Services
 
             for (var dia = primeiro < hoje ? hoje : primeiro; dia <= ultimo; dia = dia.AddDays(1))
             {
-                if (dia.DayOfWeek == DayOfWeek.Saturday || dia.DayOfWeek == DayOfWeek.Sunday)
-                    continue;
-
-                var horarios = await CalcularHorariosAsync(dia, tipoConsultaInt, especialidadeId, origemId, apenasPrimeiro: true);
+                var horarios = await CalcularHorariosAsync(dia, tipoConsultaInt, especialidadeId, origemId, profissionalId, apenasPrimeiro: true);
                 if (horarios.Count > 0)
                     dias.Add(dia.ToString("yyyy-MM-dd"));
             }
@@ -582,7 +606,7 @@ namespace ClinicaMaisSaude.Application.Services
             return dias;
         }
 
-        private async Task<List<string>> CalcularHorariosAsync(DateTime data, int tipoConsultaInt, int? especialidadeId, Guid? origemId, bool apenasPrimeiro)
+        private async Task<List<string>> CalcularHorariosAsync(DateTime data, int tipoConsultaInt, int? especialidadeId, Guid? origemId, Guid? profissionalId, bool apenasPrimeiro)
         {
             if (!Enum.IsDefined(typeof(TipoConsulta), tipoConsultaInt))
                 throw new ValidationException("Tipo de consulta inválido.");
@@ -590,15 +614,7 @@ namespace ClinicaMaisSaude.Application.Services
             var duracao = TipoConsultaDuracao.ObterDuracao(tipoConsulta);
             var horarios = new List<string>();
 
-            if (data.DayOfWeek == DayOfWeek.Saturday || data.DayOfWeek == DayOfWeek.Sunday)
-                return horarios;
-
-            var inicioExpediente = new TimeSpan(8, 0, 0);
-            var fimExpediente = new TimeSpan(18, 0, 0);
-            var inicioAlmoco = new TimeSpan(12, 0, 0);
-            var fimAlmoco = new TimeSpan(13, 0, 0);
-
-            var horarioAtual = inicioExpediente;
+            var horarioAtual = Expediente.Inicio;
 
             var tipoProfissionalNecessario = (tipoConsulta == TipoConsulta.ConsultaMedica || tipoConsulta == TipoConsulta.Retorno) 
                 ? TipoProfissional.Medico 
@@ -625,16 +641,22 @@ namespace ClinicaMaisSaude.Application.Services
                     .ToList();
             }
 
+            // Remarcação: o profissional do agendamento é mantido, então só os horários dele importam.
+            if (profissionalId.HasValue)
+                profissionais = profissionais.Where(p => p.Id == profissionalId.Value).ToList();
+
+            // Escala 12x36: só quem está de plantão no dia e sem ausência registrada.
+            var ausentes = await _profissionalRepository.ObterIdsAusentesNoDiaAsync(data);
+            profissionais = profissionais.Where(p => p.EscaladoNoDia(data) && !ausentes.Contains(p.Id)).ToList();
+
             if (!profissionais.Any())
                 return horarios;
 
-            while (horarioAtual.Add(TimeSpan.FromMinutes(duracao)) <= fimExpediente)
+            while (horarioAtual.Add(TimeSpan.FromMinutes(duracao)) <= Expediente.Fim)
             {
                 var fimSlot = horarioAtual.Add(TimeSpan.FromMinutes(duracao));
 
-                if ((horarioAtual >= inicioAlmoco && horarioAtual < fimAlmoco) || 
-                    (fimSlot > inicioAlmoco && fimSlot <= fimAlmoco) ||
-                    (horarioAtual <= inicioAlmoco && fimSlot >= fimAlmoco))
+                if (!Expediente.DentroDoExpediente(horarioAtual, fimSlot))
                 {
                     horarioAtual = horarioAtual.Add(TimeSpan.FromMinutes(duracao));
                     continue;

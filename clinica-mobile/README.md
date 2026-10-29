@@ -89,7 +89,19 @@ eas init
 eas build -p android --profile preview
 ```
 
-O `eas init` grava o `projectId` no `app.json` — commitar essa alteração. Antes do build, o `EXPO_PUBLIC_API_URL` precisa apontar para uma API acessível pelo aparelho.
+O `eas init` grava o `projectId` no `app.json` (já commitado). Os perfis `preview` e `production` do `eas.json`
+definem `EXPO_PUBLIC_API_URL` apontando para a API publicada no Azure; o `.env` local é ignorado pelo git e não vai
+para o build. Os ícones e a tela de abertura são gerados a partir da logo da clínica (`assets/images/`).
+
+---
+
+## Versão web e iPhone
+
+Sem conta Apple Developer não há app iOS instalável; no iPhone o caminho é a **versão web** do app, publicada no
+Azure Static Web Apps (`infra/azure/publicar.ps1 -App`). O `public/index.html` (modelo do build `single` do Expo)
+traz as tags do iOS e o `public/manifest.json` as do Android, então **Adicionar à Tela de Início** (Safari) ou
+**Instalar app** (Chrome) cria um ícone que abre em tela cheia. Na web, os tokens ficam no `localStorage`
+(`src/lib/storage.web.ts`) e não há biometria.
 
 ---
 

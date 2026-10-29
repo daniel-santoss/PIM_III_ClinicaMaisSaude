@@ -21,6 +21,7 @@ namespace ClinicaMaisSaude.Domain.Tests.Enums
             typeof(TipoEventoHistorico),
             typeof(TipoViolacao),
             typeof(TipoVerificacao),
+            typeof(EscalaTrabalho),
         };
 
         [Theory]

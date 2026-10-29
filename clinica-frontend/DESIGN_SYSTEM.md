@@ -44,7 +44,13 @@ foco `focus:border-brand-600 focus:shadow-focus`. **Label** `block text-[13px] f
 - Secundário: `bg-white text-body border border-line px-4`
 - Outline-primário: `bg-white text-brand-600 border border-brand-600 px-4`
 - Perigo-outline: `bg-white text-danger border border-danger-border hover:bg-danger hover:text-white`
+- Sucesso (ações de aprovar): `bg-success text-white border border-success hover:bg-success/90` — `Button variant="success"`
 - Icon-button 32px: `w-8 h-8 grid place-items-center bg-white border border-line rounded-md text-body`
+
+**Card de item com decisão** (ex.: fila de solicitações) — topo `p-5` com avatar 48px, "Nome • CPF" (CPF e telefone com
+máscara), contato com divisor `w-px h-4 bg-line` e datas com ícone alinhadas à direita; embaixo **uma barra única**
+`px-5 py-4 border-t border-line`: painéis recolhíveis como botões `h-10` à esquerda (um aberto por vez) e ações à
+direita (Recusar = perigo-outline, Aprovar = sucesso). Sem selo de status quando a aba já informa.
 
 **Card / Section** — `bg-white border border-line rounded-lg`. Header interno:
 `px-6 py-5 border-b border-line` com `h2` `font-semibold text-base text-ink`.

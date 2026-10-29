@@ -15,5 +15,9 @@ namespace ClinicaMaisSaude.Application.DTOs.Paciente
         public DateTime? UltimoAcesso { get; set; }
         public bool IsBanidoPermanente { get; set; }
         public string? FotoBase64 { get; set; }
+        /// <summary>Escala 12x36 (só para profissionais; nulo para pacientes).</summary>
+        public int? Escala { get; set; }
+        /// <summary>Primeiro plantão (só para profissionais).</summary>
+        public DateTime? InicioPlantoes { get; set; }
     }
 }

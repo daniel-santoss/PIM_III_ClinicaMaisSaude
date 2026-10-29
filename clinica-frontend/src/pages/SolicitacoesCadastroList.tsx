@@ -11,6 +11,8 @@ import ModalPortal from "../components/ui/ModalPortal";
 import Badge from "../components/ui/Badge";
 import Button from "../components/ui/Button";
 import Paginacao from "../components/ui/Paginacao";
+import AvisoBusca from "../components/ui/AvisoBusca";
+import { termoDeBusca } from "../utils/busca";
 
 type RespostaItem = { pergunta: string; ordem: number; resposta: boolean; detalhe: string | null };
 type Solicitacao = {
@@ -114,7 +116,8 @@ export default function SolicitacoesCadastroList() {
   // Busca no servidor com debounce; nova busca volta para a 1ª página.
   useEffect(() => {
     const t = setTimeout(() => {
-      setBuscaAplicada(busca.trim());
+      // Só a partir do 3º caractere (nome ou dígitos do CPF).
+      setBuscaAplicada(termoDeBusca(busca)?.termo ?? "");
       setPagina(1);
     }, 400);
     return () => clearTimeout(t);
@@ -194,6 +197,7 @@ export default function SolicitacoesCadastroList() {
               onChange={e => setBusca(e.target.value)}
               className="w-full sm:w-64 h-10 pl-9 pr-3 text-sm text-ink bg-white border border-line rounded-md outline-none focus:border-brand-600 focus:shadow-focus transition-shadow placeholder:text-muted"
             />
+            <AvisoBusca texto={busca} />
           </div>
           <button
             onClick={carregar}

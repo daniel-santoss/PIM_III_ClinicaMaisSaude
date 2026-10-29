@@ -1,6 +1,7 @@
 import { Search, ArrowDownUp, RefreshCw, Filter, List, CalendarDays } from "lucide-react";
 import { MapNomesStatus } from "../constants/statusMap";
 import { useState } from "react";
+import AvisoBusca from "./ui/AvisoBusca";
 
 interface AgendamentoFiltrosProps {
   filtroAgenda: string;
@@ -46,6 +47,7 @@ export default function AgendamentoFiltros({
           value={filtroAgenda}
           onChange={(e) => setFiltroAgenda(e.target.value)}
         />
+        <AvisoBusca texto={filtroAgenda} />
       </div>
 
       {/* Status Dropdown */}

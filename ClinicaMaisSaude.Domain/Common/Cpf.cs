@@ -12,6 +12,15 @@ namespace ClinicaMaisSaude.Domain.Common
         public static string Sanitizar(string? cpf) =>
             new string((cpf ?? string.Empty).Where(char.IsDigit).ToArray());
 
+        /// <summary>
+        /// O termo de uma busca é um CPF (só dígitos, com ou sem máscara)? Serve para cada busca consultar
+        /// uma coluna só: CPF por prefixo (usa o índice) ou nome por "contém" — nunca as duas com OU.
+        /// </summary>
+        public static bool EhTermoDeBusca(string? termo) =>
+            !string.IsNullOrWhiteSpace(termo) &&
+            termo.Trim().All(c => char.IsDigit(c) || c == '.' || c == '-' || c == ' ') &&
+            termo.Any(char.IsDigit);
+
         /// <summary>Valida matematicamente um CPF (aceita com ou sem máscara).</summary>
         public static bool EhValido(string? cpf)
         {

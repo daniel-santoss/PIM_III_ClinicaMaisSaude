@@ -50,5 +50,16 @@ namespace ClinicaMaisSaude.Infrastructure.Repositories
                 .Include(p => p.Especialidades)
                 .ToListAsync();
         }
+
+        public async Task<HashSet<Guid>> ObterIdsAusentesNoDiaAsync(DateTime dia)
+        {
+            var data = dia.Date;
+            var ids = await _context.AusenciasProfissional
+                .AsNoTracking()
+                .Where(a => a.Data == data)
+                .Select(a => a.ProfissionalId)
+                .ToListAsync();
+            return ids.ToHashSet();
+        }
     }
 }

@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { AppState } from 'react-native';
 
 import { storageKeys } from '@/constants/storage';
@@ -38,6 +38,11 @@ interface AuthState {
   desbloquearComSenha: (senha: string) => Promise<boolean>;
   /** Liga/desliga a exigência de biometria (ao ligar, confirma com o prompt). */
   definirBiometria: (ativa: boolean) => Promise<boolean>;
+  /**
+   * Executa uma ação que abre outra tela do sistema (galeria, câmera, seletor de arquivo)
+   * sem re-trancar o app: essa ida ao segundo plano foi pedida pelo próprio paciente.
+   */
+  semBloqueio: <T>(acao: () => Promise<T>) => Promise<T>;
 }
 
 const AuthContext = createContext<AuthState | undefined>(undefined);
@@ -68,6 +73,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [lembrarUsuario, setLembrarUsuario] = useState(true);
   const [identificadorLembrado, setIdentificadorLembrado] = useState('');
   const [nomeLembrado, setNomeLembrado] = useState('');
+  // Quantas ações externas (galeria, câmera) estão abertas agora; enquanto > 0, ir para
+  // o segundo plano não tranca o app.
+  const acoesExternas = useRef(0);
 
   // Chama o endpoint de login e persiste tokens + identidade. Guarda o
   // identificador (usado pelo desbloqueio por senha durante a sessão).
@@ -135,7 +143,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!session || !biometriaAtiva) return;
     const sub = AppState.addEventListener('change', (estado) => {
-      if (estado === 'background') setBloqueado(true);
+      if (estado === 'background' && acoesExternas.current === 0) setBloqueado(true);
     });
     return () => sub.remove();
   }, [session, biometriaAtiva]);
@@ -193,6 +201,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await storage.remove(storageKeys.biometriaAtiva);
     setBiometriaAtiva(false);
     return true;
+  }, []);
+
+  const semBloqueio = useCallback(async <T,>(acao: () => Promise<T>): Promise<T> => {
+    acoesExternas.current += 1;
+    try {
+      return await acao();
+    } finally {
+      acoesExternas.current -= 1;
+    }
   }, []);
 
   const atualizarNome = useCallback(async (nome: string) => {
@@ -258,6 +275,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         desbloquear,
         desbloquearComSenha,
         definirBiometria,
+        semBloqueio,
       }}
     >
       {children}

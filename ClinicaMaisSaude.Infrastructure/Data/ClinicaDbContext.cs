@@ -83,6 +83,10 @@ namespace ClinicaMaisSaude.Infrastructure.Data
         public DbSet<RespostaDeclaracaoSaude> RespostasDeclaracaoSaude { get; set; } = null!;
         public DbSet<StatusSolicitacaoLookup> StatusSolicitacaoLookup { get; set; } = null!;
 
+        // Escala 12x36: turma do profissional (lookup) e ausências pontuais.
+        public DbSet<EscalaTrabalhoLookup> EscalaTrabalhoLookup { get; set; } = null!;
+        public DbSet<AusenciaProfissional> AusenciasProfissional { get; set; } = null!;
+
         // Método que intercepta a criação das tabelas no SQL Server
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -412,6 +416,15 @@ namespace ClinicaMaisSaude.Infrastructure.Data
                     .HasForeignKey(p => p.Situacao)
                     .OnDelete(DeleteBehavior.Restrict);
 
+                // Turma na escala 12x36: FK ao lookup, default Escala 1. A escala é a do dia do
+                // primeiro plantão (InicioPlantoes), guardada para consultas e contagens por escala.
+                entidade.Property(p => p.InicioPlantoes).HasColumnType("date");
+                entidade.Property(p => p.Escala).HasDefaultValue(EscalaTrabalho.Escala1);
+                entidade.HasOne<EscalaTrabalhoLookup>()
+                    .WithMany()
+                    .HasForeignKey(p => p.Escala)
+                    .OnDelete(DeleteBehavior.Restrict);
+
                 entidade.HasOne(p => p.Usuario)
                     .WithMany()
                     .HasForeignKey(p => p.UsuarioId)
@@ -528,6 +541,38 @@ namespace ClinicaMaisSaude.Infrastructure.Data
                 entidade.Property(s => s.DtCriado).HasColumnName("Dt_Criado");
                 entidade.HasData(Enum.GetValues(typeof(StatusSolicitacao)).Cast<StatusSolicitacao>()
                     .Select(v => new StatusSolicitacaoLookup { Id = v, Nome = v.ToString(), DtCriado = dtSeedLookup }));
+            });
+
+            modelBuilder.Entity<EscalaTrabalhoLookup>(entidade =>
+            {
+                entidade.HasKey(s => s.Id);
+                entidade.Property(s => s.Id).HasConversion<int>().ValueGeneratedNever();
+                entidade.Property(s => s.Nome).IsRequired().HasMaxLength(50);
+                entidade.Property(s => s.DtCriado).HasColumnName("Dt_Criado");
+                entidade.HasData(Enum.GetValues(typeof(EscalaTrabalho)).Cast<EscalaTrabalho>()
+                    .Select(v => new EscalaTrabalhoLookup { Id = v, Nome = v.ToString(), DtCriado = dtSeedLookup }));
+            });
+
+            modelBuilder.Entity<AusenciaProfissional>(entidade =>
+            {
+                entidade.ToTable("AusenciasProfissional");
+                entidade.HasKey(a => a.Id);
+                entidade.Property(a => a.Data).HasColumnType("date");
+                entidade.Property(a => a.Motivo).IsRequired().HasMaxLength(AusenciaProfissional.TamanhoMaximoMotivo);
+                entidade.Property(a => a.DtCriado).HasColumnName("Dt_Criado");
+
+                entidade.HasOne(a => a.Profissional)
+                    .WithMany()
+                    .HasForeignKey(a => a.ProfissionalId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                entidade.HasOne<Usuario>()
+                    .WithMany()
+                    .HasForeignKey(a => a.RegistradoPor)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                // Uma ausência por profissional por dia; o índice também serve a consulta por data.
+                entidade.HasIndex(a => new { a.ProfissionalId, a.Data }).IsUnique();
+                entidade.HasIndex(a => a.Data);
             });
 
             // Lookup do discriminador da tabela unificada de códigos de verificação.

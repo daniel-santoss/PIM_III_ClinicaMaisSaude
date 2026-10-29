@@ -222,6 +222,7 @@ builder.Services.AddScoped<IProbabilidadeFaltaService, ProbabilidadeFaltaService
 builder.Services.AddScoped<IEspecialidadeService, EspecialidadeService>();
 builder.Services.AddScoped<IPerfilService, PerfilService>();
 builder.Services.AddScoped<IProfissionalService, ProfissionalService>();
+builder.Services.AddScoped<IEscalaService, EscalaService>();
 builder.Services.AddScoped<INotificacaoRepository, NotificacaoRepository>();
 builder.Services.AddScoped<INotificacaoService, NotificacaoService>();
 builder.Services.AddScoped<INotificadorTempoReal, NotificadorTempoRealSignalR>();

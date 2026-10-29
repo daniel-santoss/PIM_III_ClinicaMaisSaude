@@ -13,6 +13,10 @@ import Badge from "../components/ui/Badge";
 import Button from "../components/ui/Button";
 import ModalPortal from "../components/ui/ModalPortal";
 import Paginacao from "../components/ui/Paginacao";
+import { termoDeBusca } from "../utils/busca";
+import AvisoBusca from "../components/ui/AvisoBusca";
+import SeletorPrimeiroPlantao from "../components/SeletorPrimeiroPlantao";
+import { proximoPlantao } from "../constants/escala";
 
 const modalInputCls =
   "w-full h-10 px-3 text-sm text-ink bg-white border border-line rounded-md outline-none focus:border-brand-600 focus:shadow-focus transition-shadow placeholder:text-muted";
@@ -29,6 +33,8 @@ interface PacienteEdicao {
   cpf: string;
   telefone: string;
   email: string;
+  /** Só profissionais: dia do primeiro plantão (define a escala 12x36). */
+  inicioPlantoes: string | null;
 }
 
 
@@ -59,7 +65,9 @@ export default function PacienteList({
   // Guarda o tipo da linha em edição: a lista do admin mistura pacientes e
   // profissionais, e cada um tem seu próprio endpoint de atualização.
   const [editandoTipo, setEditandoTipo] = useState<string | null>(null);
-  const [form, setForm] = useState<PacienteEdicao>({ nome: "", cpf: "", telefone: "", email: "" });
+  const [form, setForm] = useState<PacienteEdicao>({ nome: "", cpf: "", telefone: "", email: "", inicioPlantoes: null });
+  // Valor com que o calendário abriu: só envia o primeiro plantão se o admin escolheu outro dia.
+  const [inicioAoAbrir, setInicioAoAbrir] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
 
   const [excluindoPaciente, setExcluindoPaciente] = useState<{ id: string, nome: string } | null>(null);
@@ -81,6 +89,10 @@ export default function PacienteList({
   const [totalCount, setTotalCount] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
 
+  // Só busca a partir do 3º caractere; dígitos viram busca por CPF (prefixo), letras por nome.
+  const termo = termoDeBusca(buscaNome);
+  const chaveBusca = termo ? `${termo.tipo}:${termo.termo}` : "";
+
   useEffect(() => {
     const timer = setTimeout(() => {
       setCarregando(true);
@@ -90,14 +102,7 @@ export default function PacienteList({
       params.set("page", page.toString());
       params.set("pageSize", pageSize.toString());
 
-      const termoBusca = buscaNome.trim();
-      if (termoBusca) {
-        if (/^\d+$/.test(termoBusca)) {
-          params.set("cpf", termoBusca);
-        } else {
-          params.set("nome", termoBusca);
-        }
-      }
+      if (termo) params.set(termo.tipo, termo.termo);
 
       const queryString = params.toString();
       const url = `${API_URL}/api/Pacientes${queryString ? `?${queryString}` : ""}`;
@@ -125,12 +130,13 @@ export default function PacienteList({
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [recarregarContador, refreshInterno, buscaNome, buscaCpf, page]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recarregarContador, refreshInterno, chaveBusca, buscaCpf, page]);
 
   // Reset page to 1 when search filters change
   useEffect(() => {
     setPage(1);
-  }, [buscaNome, buscaCpf, perfisSelecionados]);
+  }, [chaveBusca, buscaCpf, perfisSelecionados]);
 
   // Efeito para abrir edição externa (Vindo da Agenda por exemplo)
   useEffect(() => {
@@ -142,7 +148,10 @@ export default function PacienteList({
   const abrirEdicao = (p: PacienteResponse) => {
     setEditandoId(p.id);
     setEditandoTipo(p.tipo ?? perfis.paciente);
-    setForm({ nome: p.nome, cpf: p.cpf, telefone: p.telefone, email: p.email });
+    // O calendário abre no próximo plantão da pessoa (o início, se ainda não chegou).
+    const inicio = p.inicioPlantoes ? proximoPlantao(p.inicioPlantoes) : null;
+    setForm({ nome: p.nome, cpf: p.cpf, telefone: p.telefone, email: p.email, inicioPlantoes: inicio });
+    setInicioAoAbrir(inicio);
   };
 
   const fecharModal = () => {
@@ -162,7 +171,10 @@ export default function PacienteList({
       const response = await fetch(`${API_URL}/api/${recurso}/${editandoId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          ...form,
+          inicioPlantoes: form.inicioPlantoes !== inicioAoAbrir ? form.inicioPlantoes : null,
+        }),
       });
       if (!response.ok) {
         if (response.status === 400) toast.error(await response.text());
@@ -343,6 +355,7 @@ export default function PacienteList({
               value={buscaNome}
               onChange={(e) => setBuscaNome(e.target.value)}
             />
+            <AvisoBusca texto={buscaNome} />
           </div>
 
           {/* Filtro Tipo */}
@@ -598,6 +611,11 @@ export default function PacienteList({
                   />
                 </div>
               </div>
+              {editandoTipo !== perfis.paciente && (
+                <div className="mt-4">
+                  <SeletorPrimeiroPlantao valor={form.inicioPlantoes} onMudar={(inicioPlantoes) => setForm({ ...form, inicioPlantoes })} />
+                </div>
+              )}
             </div>
 
             <div className="flex justify-end gap-2.5 px-6 py-4 border-t border-line shrink-0">

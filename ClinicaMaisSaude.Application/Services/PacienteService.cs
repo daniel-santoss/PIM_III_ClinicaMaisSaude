@@ -89,7 +89,7 @@ namespace ClinicaMaisSaude.Application.Services
                 }
                 if (!string.IsNullOrWhiteSpace(cpf))
                 {
-                    profissionais = profissionais.Where(p => p.Pessoa != null && p.Pessoa.Cpf.Contains(cpf));
+                    profissionais = profissionais.Where(p => p.Pessoa != null && p.Pessoa.Cpf.StartsWith(cpf));
                 }
 
                 foreach (var prof in profissionais)
@@ -105,7 +105,9 @@ namespace ClinicaMaisSaude.Application.Services
                         Tipo = prof.Usuario?.Role.ToString(),
                         UltimoAcesso = prof.Usuario?.UltimoAcesso,
                         IsBanidoPermanente = prof.Usuario?.BloqueadoAte.HasValue == true && (prof.Usuario.BloqueadoAte.Value - DateTime.UtcNow).TotalDays > 3650,
-                        FotoBase64 = prof.Usuario?.FotoBase64
+                        FotoBase64 = prof.Usuario?.FotoBase64,
+                        Escala = (int)prof.Escala,
+                        InicioPlantoes = prof.InicioPlantoes
                     });
                 }
             }
@@ -139,7 +141,7 @@ namespace ClinicaMaisSaude.Application.Services
                 if (!string.IsNullOrWhiteSpace(nome))
                     profissionais = profissionais.Where(p => p.Pessoa != null && p.Pessoa.Nome.Contains(nome, StringComparison.OrdinalIgnoreCase));
                 if (!string.IsNullOrWhiteSpace(cpf))
-                    profissionais = profissionais.Where(p => p.Pessoa != null && p.Pessoa.Cpf.Contains(cpf));
+                    profissionais = profissionais.Where(p => p.Pessoa != null && p.Pessoa.Cpf.StartsWith(cpf));
 
                 foreach (var prof in profissionais)
                 {
@@ -154,7 +156,9 @@ namespace ClinicaMaisSaude.Application.Services
                         Tipo = prof.Usuario?.Role.ToString(),
                         UltimoAcesso = prof.Usuario?.UltimoAcesso,
                         IsBanidoPermanente = prof.Usuario?.BloqueadoAte.HasValue == true && (prof.Usuario.BloqueadoAte.Value - DateTime.UtcNow).TotalDays > 3650,
-                        FotoBase64 = prof.Usuario?.FotoBase64
+                        FotoBase64 = prof.Usuario?.FotoBase64,
+                        Escala = (int)prof.Escala,
+                        InicioPlantoes = prof.InicioPlantoes
                     });
                 }
 

@@ -14,6 +14,8 @@ interface ModalRemarcarProps {
     pacienteNome: string;
     tipoConsulta: string;
     dataHoraConsulta: string;
+    /** A remarcação mantém o profissional: só os horários dele (nos dias de plantão) servem. */
+    profissionalId?: string;
   };
   onFechar: () => void;
   onSucesso: () => void;
@@ -52,10 +54,11 @@ export default function ModalRemarcar({ agenda, onFechar, onSucesso }: ModalRema
         let tipoConsultaInt: number = TC.triagem;
         if (agenda.tipoConsulta === "Exame") tipoConsultaInt = TC.exame;
         else if (agenda.tipoConsulta === "Vacina") tipoConsultaInt = TC.vacina;
-        else if (agenda.tipoConsulta === "Consulta Médica" || agenda.tipoConsulta === "ConsultaMédica") tipoConsultaInt = TC.consultaMedica;
+        else if (agenda.tipoConsulta === "ConsultaMedica" || agenda.tipoConsulta === "Consulta Médica" || agenda.tipoConsulta === "ConsultaMédica") tipoConsultaInt = TC.consultaMedica;
         else if (agenda.tipoConsulta === "Retorno") tipoConsultaInt = TC.retorno;
 
-        const res = await fetch(`${API_URL}/api/Agendamentos/horarios-disponiveis?data=${alterarDataSomente}&tipoConsulta=${tipoConsultaInt}`, {
+        const filtroProfissional = agenda.profissionalId ? `&profissionalId=${agenda.profissionalId}` : "";
+        const res = await fetch(`${API_URL}/api/Agendamentos/horarios-disponiveis?data=${alterarDataSomente}&tipoConsulta=${tipoConsultaInt}${filtroProfissional}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (res.ok) setHorariosDisponiveis(await res.json());
@@ -66,7 +69,7 @@ export default function ModalRemarcar({ agenda, onFechar, onSucesso }: ModalRema
       }
     };
     fetchHorarios();
-  }, [alterarDataSomente, agenda.tipoConsulta]);
+  }, [alterarDataSomente, agenda.tipoConsulta, agenda.profissionalId]);
 
   const confirmarAlteracaoHora = async () => {
     if (!alterarDataSomente || !alterarHorarioSelecionado) return;
@@ -157,19 +160,10 @@ export default function ModalRemarcar({ agenda, onFechar, onSucesso }: ModalRema
               value={alterarDataSomente}
               min={obterMinDate()}
               onChange={(e) => {
-                const val = e.target.value;
-                if (val) {
-                  const dateObj = new Date(val + "T00:00:00");
-                  if (dateObj.getDay() === 0 || dateObj.getDay() === 6) {
-                    toast.warning("Não é possível agendar consultas aos fins de semana.");
-                    setAlterarDataSomente("");
-                  } else {
-                    setAlterarDataSomente(val);
-                    setAlterarHorarioSelecionado("");
-                  }
-                } else {
-                  setAlterarDataSomente("");
-                }
+                // A clínica abre todos os dias; os dias em que o profissional não está de
+                // plantão simplesmente não trazem horários.
+                setAlterarDataSomente(e.target.value);
+                setAlterarHorarioSelecionado("");
               }}
             />
           </div>
@@ -188,7 +182,9 @@ export default function ModalRemarcar({ agenda, onFechar, onSucesso }: ModalRema
               ) : horariosDisponiveis.length === 0 ? (
                 <div className="flex items-center gap-2 px-3.5 py-3 text-[13px] font-medium text-danger bg-danger-tint border border-danger-border rounded-md">
                   <AlertCircle className="w-4 h-4 shrink-0" />
-                  Nenhum horário disponível para esta data e tipo de consulta.
+                  {agenda.profissionalId
+                    ? "O profissional não está de plantão ou não tem horário livre nesta data."
+                    : "Nenhum horário disponível para esta data e tipo de consulta."}
                 </div>
               ) : (
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-36 overflow-y-auto pr-1 custom-scrollbar">

@@ -42,7 +42,8 @@ Pré-requisitos: [Azure CLI](https://learn.microsoft.com/cli/azure/install-azure
    ```powershell
    ./infra/azure/publicar.ps1 -Sufixo dvs
    ```
-   Para publicar só uma parte: `-Banco`, `-Api`, `-Web` ou `-App`.
+   Para publicar só uma parte: `-Banco`, `-Api`, `-Web` ou `-App`. Quando há migration nova, rode `-Banco`
+   **antes** de `-Api`: a API nova já espera o schema atualizado.
 
 5. **Acesso direto ao banco** (opcional, para consultar pelo SSMS):
    ```powershell

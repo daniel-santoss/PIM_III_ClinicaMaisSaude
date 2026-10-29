@@ -223,11 +223,6 @@ export default function AgendamentoPaciente({
     }
   };
 
-  const isFimDeSemana = (data: string) => {
-    const day = new Date(data).getUTCDay();
-    return day === 0 || day === 6;
-  };
-
   if (sucesso) return (
     <div className="flex flex-col items-center justify-center py-20 animate-in fade-in duration-300">
       <div className="w-16 h-16 bg-success-tint text-success rounded-full grid place-items-center mb-5">
@@ -622,10 +617,8 @@ export default function AgendamentoPaciente({
                   min={obterMinDate()}
                   value={dataSelecionada}
                   onChange={(e) => {
-                    if (isFimDeSemana(e.target.value)) {
-                      setErro("Infelizmente não atendemos aos finais de semana.");
-                      return;
-                    }
+                    // A clínica abre todos os dias (escala 12x36); a API só devolve horários
+                    // dos profissionais de plantão na data escolhida.
                     setErro(null);
                     setDataSelecionada(e.target.value);
                   }}

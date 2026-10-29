@@ -1,6 +1,7 @@
 using ClinicaMaisSaude.Domain.Enums;
 using System;
 using ClinicaMaisSaude.Domain.Common;
+using ClinicaMaisSaude.Domain.Services;
 
 namespace ClinicaMaisSaude.Domain.Entities
 {
@@ -14,6 +15,15 @@ namespace ClinicaMaisSaude.Domain.Entities
         public string? Crm { get; private set; }
         public string? UfCrm { get; private set; }
 
+        /// <summary>Turma na escala 12x36: o profissional só recebe consultas nos dias da sua escala.</summary>
+        public EscalaTrabalho Escala { get; private set; } = EscalaTrabalho.Escala1;
+
+        /// <summary>
+        /// Dia do primeiro plantão (só a data). Define a escala — ela é a escala desse dia — e
+        /// antes dele o profissional não recebe consultas.
+        /// </summary>
+        public DateTime InicioPlantoes { get; private set; } = Expediente.ReferenciaEscala;
+
         // Identidade (Thread B). Aditivo/nulável na Fase B2a: backfill aponta para a Pessoa da conta.
         public Guid? PessoaId { get; private set; }
         public virtual Pessoa? Pessoa { get; private set; }
@@ -26,12 +36,16 @@ namespace ClinicaMaisSaude.Domain.Entities
 
         protected Profissional() { } // EF Core
 
-        public Profissional(Guid usuarioId, string? crm = null, string? ufCrm = null)
+        /// <param name="inicioPlantoes">Primeiro plantão; define a escala. Sem ele, entra na escala
+        /// informada como se já trabalhasse desde a data de referência.</param>
+        public Profissional(Guid usuarioId, string? crm = null, string? ufCrm = null,
+            EscalaTrabalho escala = EscalaTrabalho.Escala1, DateTime? inicioPlantoes = null)
         {
             Id = SequentialGuid.Next();
             UsuarioId = usuarioId;
             Crm = crm;
             UfCrm = ufCrm;
+            DefinirInicioPlantoes(inicioPlantoes ?? Expediente.PrimeiroDiaDaEscala(escala));
             Situacao = Situacao.Ativo;
             DtCriado = DateTime.UtcNow;
         }
@@ -55,5 +69,18 @@ namespace ClinicaMaisSaude.Domain.Entities
 
         /// <summary>Reabilita o profissional (Ativo).</summary>
         public void Reativar() => Situacao = Situacao.Ativo;
+
+        /// <summary>Define o primeiro plantão; a escala passa a ser a desse dia.</summary>
+        public void DefinirInicioPlantoes(DateTime inicio)
+        {
+            InicioPlantoes = inicio.Date;
+            Escala = Expediente.EscalaDoDia(inicio);
+        }
+
+        /// <summary>
+        /// O dia informado é um dia de plantão deste profissional? (A partir do primeiro plantão e na
+        /// escala dele; ausências à parte.)
+        /// </summary>
+        public bool EscaladoNoDia(DateTime dia) => dia.Date >= InicioPlantoes && Expediente.EscalaDoDia(dia) == Escala;
     }
 }

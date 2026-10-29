@@ -158,6 +158,42 @@ namespace ClinicaMaisSaude.Infrastructure.Migrations
                     b.ToTable("AgendamentoHistoricos");
                 });
 
+            modelBuilder.Entity("ClinicaMaisSaude.Domain.Entities.AusenciaProfissional", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("Data")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime>("DtCriado")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("Dt_Criado");
+
+                    b.Property<string>("Motivo")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<Guid>("ProfissionalId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("RegistradoPor")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Data");
+
+                    b.HasIndex("RegistradoPor");
+
+                    b.HasIndex("ProfissionalId", "Data")
+                        .IsUnique();
+
+                    b.ToTable("AusenciasProfissional", (string)null);
+                });
+
             modelBuilder.Entity("ClinicaMaisSaude.Domain.Entities.CodigoVerificacao", b =>
                 {
                     b.Property<Guid>("Id")
@@ -225,6 +261,39 @@ namespace ClinicaMaisSaude.Infrastructure.Migrations
                     b.HasIndex("Tipo", "UsuarioId");
 
                     b.ToTable("CodigosVerificacao", (string)null);
+                });
+
+            modelBuilder.Entity("ClinicaMaisSaude.Domain.Entities.EscalaTrabalhoLookup", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("DtCriado")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("Dt_Criado");
+
+                    b.Property<string>("Nome")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("EscalaTrabalhoLookup");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            DtCriado = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Nome = "Escala1"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            DtCriado = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Nome = "Escala2"
+                        });
                 });
 
             modelBuilder.Entity("ClinicaMaisSaude.Domain.Entities.EspecialidadeLookup", b =>
@@ -564,6 +633,14 @@ namespace ClinicaMaisSaude.Infrastructure.Migrations
                         .HasColumnType("datetime2")
                         .HasColumnName("Dt_Criado");
 
+                    b.Property<int>("Escala")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
+
+                    b.Property<DateTime>("InicioPlantoes")
+                        .HasColumnType("date");
+
                     b.Property<Guid?>("PessoaId")
                         .HasColumnType("uniqueidentifier");
 
@@ -584,6 +661,8 @@ namespace ClinicaMaisSaude.Infrastructure.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Escala");
 
                     b.HasIndex("PessoaId");
 
@@ -1335,6 +1414,22 @@ namespace ClinicaMaisSaude.Infrastructure.Migrations
                     b.Navigation("Agendamento");
                 });
 
+            modelBuilder.Entity("ClinicaMaisSaude.Domain.Entities.AusenciaProfissional", b =>
+                {
+                    b.HasOne("ClinicaMaisSaude.Domain.Entities.Profissional", "Profissional")
+                        .WithMany()
+                        .HasForeignKey("ProfissionalId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ClinicaMaisSaude.Domain.Entities.Usuario", null)
+                        .WithMany()
+                        .HasForeignKey("RegistradoPor")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Profissional");
+                });
+
             modelBuilder.Entity("ClinicaMaisSaude.Domain.Entities.CodigoVerificacao", b =>
                 {
                     b.HasOne("ClinicaMaisSaude.Domain.Entities.Pessoa", "Pessoa")
@@ -1415,6 +1510,12 @@ namespace ClinicaMaisSaude.Infrastructure.Migrations
 
             modelBuilder.Entity("ClinicaMaisSaude.Domain.Entities.Profissional", b =>
                 {
+                    b.HasOne("ClinicaMaisSaude.Domain.Entities.EscalaTrabalhoLookup", null)
+                        .WithMany()
+                        .HasForeignKey("Escala")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("ClinicaMaisSaude.Domain.Entities.Pessoa", "Pessoa")
                         .WithMany()
                         .HasForeignKey("PessoaId")

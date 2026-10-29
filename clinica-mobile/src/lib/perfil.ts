@@ -1,3 +1,6 @@
+import { File } from 'expo-file-system';
+import { Platform } from 'react-native';
+
 import { apiFetch } from '@/lib/api';
 import { mensagemErro } from '@/lib/erros';
 import type { DadosPerfilInput, PacientePerfil } from '@/types/perfil';
@@ -39,17 +42,22 @@ export async function alterarSenha(senhaAtual: string, novaSenha: string): Promi
 }
 
 // Faz upload da foto de perfil (multipart, campo "foto"). Não definimos
-// Content-Type manualmente: o fetch do RN gera o boundary do multipart.
+// Content-Type manualmente: o fetch gera o boundary do multipart.
 // Backend aceita image/jpeg|png|webp até 2 MB e devolve o novo fotoBase64.
+//
+// Desde o SDK 58 o fetch global é o do Expo, que NÃO aceita o formato antigo do RN
+// ({ uri, name, type }) no FormData ("Unsupported FormDataPart implementation"):
+// no celular o arquivo vai como File do expo-file-system; na versão web, como Blob.
 export async function enviarFoto(uri: string, mimeType?: string): Promise<string | null> {
   const tipo = mimeType ?? 'image/jpeg';
   const ext = tipo.split('/')[1] ?? 'jpg';
   const form = new FormData();
-  form.append('foto', {
-    uri,
-    name: `perfil.${ext}`,
-    type: tipo,
-  } as unknown as Blob);
+  if (Platform.OS === 'web') {
+    const blob = await (await fetch(uri)).blob();
+    form.append('foto', blob, `perfil.${ext}`);
+  } else {
+    form.append('foto', new File(uri) as unknown as Blob);
+  }
 
   const res = await apiFetch('/api/Perfil/foto', { method: 'POST', body: form });
   if (!res.ok) {

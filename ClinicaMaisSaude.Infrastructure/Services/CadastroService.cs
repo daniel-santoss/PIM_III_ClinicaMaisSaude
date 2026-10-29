@@ -96,7 +96,9 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             else if (request.TipoUsuario == PerfisUsuario.Medico || request.TipoUsuario == PerfisUsuario.Enfermeira)
             {
                 // Categoria vem do Role (definido acima); o Profissional é magro, sem TipoProfissional (Fase A3b).
-                var profissional = new Profissional(novoUsuario.Id, request.Crm, request.UfCrm);
+                // O dia do primeiro plantão define a escala 12x36; sem ele, começa hoje (fuso de Brasília).
+                var inicio = request.InicioPlantoes?.Date ?? DateTime.UtcNow.AddHours(-3).Date;
+                var profissional = new Profissional(novoUsuario.Id, request.Crm, request.UfCrm, inicioPlantoes: inicio);
                 profissional.VincularPessoa(pessoa.Id);
                 _context.Profissionais.Add(profissional);
             }
