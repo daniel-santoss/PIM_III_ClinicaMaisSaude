@@ -12,6 +12,11 @@ namespace ClinicaMaisSaude.Infrastructure.Reports
     /// </summary>
     internal static class DashboardPdfReport
     {
+        // Cores da marca (navy), as mesmas do portal: brand-600, brand-200 e brand-100 do tailwind.config.js.
+        private const string CorMarca = "#2C5282";
+        private const string CorBorda = "#BEE3F8";
+        private const string CorCabecalhoTabela = "#D6EEFC";
+
         public static byte[] Gerar(
             DashboardEstatisticasDto dto,
             System.DateTime dataInicio,
@@ -31,7 +36,7 @@ namespace ClinicaMaisSaude.Infrastructure.Reports
 
                     page.Header().Column(col =>
                     {
-                        col.Item().Text("Clínica Mais Saúde").Bold().FontSize(18).FontColor(Colors.Purple.Medium);
+                        col.Item().Text("Clínica Mais Saúde").Bold().FontSize(18).FontColor(CorMarca);
                         col.Item().Text($"Relatório: {dataInicio:dd/MM/yyyy} - {dataFim:dd/MM/yyyy}").FontSize(10).FontColor(Colors.Grey.Medium);
                         if (!string.IsNullOrEmpty(textoFiltros))
                         {
@@ -40,7 +45,7 @@ namespace ClinicaMaisSaude.Infrastructure.Reports
 
                         col.Item().Text($"Gerado em: {System.DateTime.Now:dd/MM/yyyy HH:mm}").FontSize(8).FontColor(Colors.Grey.Medium);
                         col.Item().Text($"Usuário: {nomeUsuario} ({role})").FontSize(8).FontColor(Colors.Grey.Medium);
-                        col.Item().PaddingBottom(10).LineHorizontal(1).LineColor(Colors.Purple.Lighten3);
+                        col.Item().PaddingBottom(10).LineHorizontal(1).LineColor(CorBorda);
                     });
 
                     page.Content().Column(col =>
@@ -60,8 +65,8 @@ namespace ClinicaMaisSaude.Infrastructure.Reports
                             table.ColumnsDefinition(c => { c.RelativeColumn(); c.RelativeColumn(); });
                             table.Header(h =>
                             {
-                                h.Cell().Background(Colors.Purple.Lighten4).Padding(4).Text("Data").Bold();
-                                h.Cell().Background(Colors.Purple.Lighten4).Padding(4).Text("Total").Bold();
+                                h.Cell().Background(CorCabecalhoTabela).Padding(4).Text("Data").Bold();
+                                h.Cell().Background(CorCabecalhoTabela).Padding(4).Text("Total").Bold();
                             });
                             foreach (var d in dto.AgendamentosPorDia)
                             {
@@ -78,8 +83,8 @@ namespace ClinicaMaisSaude.Infrastructure.Reports
                             table.ColumnsDefinition(c => { c.RelativeColumn(2); c.RelativeColumn(); });
                             table.Header(h =>
                             {
-                                h.Cell().Background(Colors.Purple.Lighten4).Padding(4).Text("Especialidade").Bold();
-                                h.Cell().Background(Colors.Purple.Lighten4).Padding(4).Text("Total").Bold();
+                                h.Cell().Background(CorCabecalhoTabela).Padding(4).Text("Especialidade").Bold();
+                                h.Cell().Background(CorCabecalhoTabela).Padding(4).Text("Total").Bold();
                             });
                             foreach (var e in dto.EspecialidadesMaisProcuradas)
                             {
@@ -103,8 +108,8 @@ namespace ClinicaMaisSaude.Infrastructure.Reports
                                 table.ColumnsDefinition(c => { c.RelativeColumn(2); c.RelativeColumn(); });
                                 table.Header(h =>
                                 {
-                                    h.Cell().Background(Colors.Purple.Lighten4).Padding(4).Text("Profissional").Bold();
-                                    h.Cell().Background(Colors.Purple.Lighten4).Padding(4).Text("Total").Bold();
+                                    h.Cell().Background(CorCabecalhoTabela).Padding(4).Text("Profissional").Bold();
+                                    h.Cell().Background(CorCabecalhoTabela).Padding(4).Text("Total").Bold();
                                 });
                                 foreach (var p in dto.AgendamentosPorProfissional)
                                 {
