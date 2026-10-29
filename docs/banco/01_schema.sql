@@ -2,7 +2,7 @@
    Clínica Mais Saúde — Script de criação do schema (SQL Server / T-SQL)
    Artefato de Banco de Dados do PIM IV (rubrica 07).
 
-   Estado final do modelo (equivalente às 25 migrations EF Core InitialCreate..Fase24).
+   Estado final do modelo (equivalente às 26 migrations EF Core InitialCreate..Fase25).
    Ordem: tabelas de referência (lookup) -> identidade -> perfis -> operação.
    Comportamento de exclusão: NO ACTION (Restrict) por padrão; CASCADE/SET NULL
    apenas onde o registro filho não existe sem o pai (marcado em cada FK).
@@ -164,8 +164,10 @@ CREATE TABLE Profissionais (
     Situacao        INT              NOT NULL CONSTRAINT DF_Profissionais_Situacao DEFAULT 1,
     Crm             NVARCHAR(20)     NULL,
     UfCrm           NVARCHAR(2)      NULL,
-    -- Escala 12x36 (1 ou 2): as duas se alternam dia sim, dia não (RN08).
+    -- Escala 12x36 (1 ou 2): as duas se alternam dia sim, dia não (RN08). É a escala do dia
+    -- do primeiro plantão; antes dele o profissional não recebe consultas.
     Escala          INT              NOT NULL CONSTRAINT DF_Profissionais_Escala DEFAULT 1,
+    InicioPlantoes  DATE             NOT NULL CONSTRAINT DF_Profissionais_InicioPlantoes DEFAULT 2026-01-01,
     Dt_Criado       DATETIME2        NOT NULL,
     ult_Atualizacao DATETIME2        NULL,
     CONSTRAINT FK_Profissionais_Pessoas     FOREIGN KEY (PessoaId)  REFERENCES Pessoas (Id)        ON DELETE NO ACTION,

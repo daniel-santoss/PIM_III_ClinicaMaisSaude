@@ -4,7 +4,7 @@ Artefato de Banco de Dados do PIM IV (rubrica 07). Descreve o **MER** (Modelo En
 o modelo lógico/físico e o dicionário de dados do sistema Clínica Mais Saúde.
 
 - **SGBD:** Microsoft SQL Server (produção) / SQL Server LocalDB (desenvolvimento).
-- **Origem do schema:** EF Core 10 *Code-First* — 25 *migrations* (`InitialCreate` → `Fase24`). O DDL
+- **Origem do schema:** EF Core 10 *Code-First* — 26 *migrations* (`InitialCreate` → `Fase25`). O DDL
   equivalente está em [`01_schema.sql`](01_schema.sql); procedures e triggers em [`02_procedures_triggers.sql`](02_procedures_triggers.sql).
 - **Total:** 29 tabelas — **18 de entidade** + **11 de referência (*lookup*)**.
 
@@ -82,6 +82,7 @@ erDiagram
         nvarchar20 Crm "null"
         nvarchar2 UfCrm "null"
         int Escala FK "12x36: 1 ou 2"
+        date InicioPlantoes "primeiro plantão"
     }
     AusenciasProfissional {
         uniqueidentifier Id PK
@@ -282,7 +283,8 @@ estrangeira, **UK** = única.
 | `UsuarioId` | uniqueidentifier | FK → `LoginPortal` (**Cascade**), NOT NULL, **UK** |
 | `Situacao` | int | FK → `SituacaoLookup` (Restrict), default 1 |
 | `Crm` / `UfCrm` | nvarchar(20) / nvarchar(2) | NULL |
-| `Escala` | int | FK → `EscalaTrabalhoLookup` (Restrict), default 1 — escala 12x36; a escala de cada dia é calculada (alternância contínua a partir de 01/01/2026 = Escala 1) |
+| `Escala` | int | FK → `EscalaTrabalhoLookup` (Restrict), default 1 — escala 12x36, a do dia do primeiro plantão; a escala de cada dia é calculada (alternância contínua a partir de 01/01/2026 = Escala 1) |
+| `InicioPlantoes` | date | NOT NULL — primeiro plantão; antes dele o profissional não recebe consultas |
 
 ### `AusenciasProfissional` — folga/ausência num dia de plantão
 | Coluna | Tipo | Restrições |
@@ -294,7 +296,7 @@ estrangeira, **UK** = única.
 | `RegistradoPor` | uniqueidentifier | FK → `LoginPortal` (Restrict), NULL — quem registrou |
 | `Dt_Criado` | datetime2 | NOT NULL |
 
-Não há tabela de plantões: a escala do dia é derivada da data (RN08); só as **exceções** (ausências) são gravadas.
+Não há tabela de plantões: a escala do dia é derivada da data (RN08); só as **exceções** (ausências) são gravadas. Uma ausência só tem efeito em dia de plantão; se o primeiro plantão mudar, ela fica guardada e volta a valer se o dia voltar a ser plantão.
 
 ### `Agendamento` — consulta agendada
 | Coluna | Tipo | Restrições |
