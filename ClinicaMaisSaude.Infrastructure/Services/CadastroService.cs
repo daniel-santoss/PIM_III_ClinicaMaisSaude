@@ -41,6 +41,12 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                 return new CadastroResult { Sucesso = false, Mensagem = "Já existe um usuário com este CPF ou E-mail." };
             }
 
+            if ((request.TipoUsuario == PerfisUsuario.Medico || request.TipoUsuario == PerfisUsuario.Enfermeira)
+                && !EmailInstitucional.EhInstitucional(request.Email))
+            {
+                return new CadastroResult { Sucesso = false, Mensagem = EmailInstitucional.Exigencia };
+            }
+
             // Validação de CRM obrigatório para Médicos
             if (request.TipoUsuario == PerfisUsuario.Medico)
             {

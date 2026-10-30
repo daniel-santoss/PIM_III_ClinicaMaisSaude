@@ -1,6 +1,7 @@
 using ClinicaMaisSaude.Application.DTOs.Profissional;
 using ClinicaMaisSaude.Application.Exceptions;
 using ClinicaMaisSaude.Application.Interfaces;
+using ClinicaMaisSaude.Domain.Common;
 using ClinicaMaisSaude.Domain.Enums;
 using ClinicaMaisSaude.Domain.Services;
 using ClinicaMaisSaude.Infrastructure.Data;
@@ -57,7 +58,13 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                 if (!string.IsNullOrWhiteSpace(request.Nome))
                     prof.Pessoa.AtualizarNome(request.Nome);
                 if (!string.IsNullOrWhiteSpace(request.Email))
-                    prof.Pessoa.AtualizarEmail(request.Email.Trim().ToLowerInvariant());
+                {
+                    var email = request.Email.Trim().ToLowerInvariant();
+                    // Só barra quando o e-mail muda: contas antigas fora do domínio continuam editáveis.
+                    if (email != prof.Pessoa.Email && !EmailInstitucional.EhInstitucional(email))
+                        throw new BusinessRuleException(EmailInstitucional.Exigencia);
+                    prof.Pessoa.AtualizarEmail(email);
+                }
                 if (!string.IsNullOrWhiteSpace(request.Telefone))
                     prof.Pessoa.AtualizarTelefone(request.Telefone.Replace("(", "").Replace(")", "").Replace("-", "").Replace(" ", ""));
             }
