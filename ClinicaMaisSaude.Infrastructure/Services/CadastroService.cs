@@ -46,6 +46,10 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             {
                 return new CadastroResult { Sucesso = false, Mensagem = EmailInstitucional.Exigencia };
             }
+            if (request.TipoUsuario == PerfisUsuario.Paciente && EmailInstitucional.EhInstitucional(request.Email))
+            {
+                return new CadastroResult { Sucesso = false, Mensagem = EmailInstitucional.ExclusivoDaEquipe };
+            }
 
             // Validação de CRM obrigatório para Médicos
             if (request.TipoUsuario == PerfisUsuario.Medico)

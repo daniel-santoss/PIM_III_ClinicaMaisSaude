@@ -10,7 +10,8 @@ using Xunit;
 
 namespace ClinicaMaisSaude.Infrastructure.Tests.Services
 {
-    // Cadastro pelo admin: médicos e enfermeiras só entram com o e-mail institucional.
+    // Cadastro pelo admin: o domínio da clínica é exclusivo da equipe (obrigatório para médicos e
+    // enfermeiras, proibido para pacientes).
     public class CadastroServiceTests : IDisposable
     {
         private readonly ClinicaDbContext _context;
@@ -53,6 +54,15 @@ namespace ClinicaMaisSaude.Infrastructure.Tests.Services
             var resultado = await _service.CadastrarAsync(Pedido(PerfisUsuario.Enfermeira, "maria.souza@clinicamaissaude.com.br"));
 
             Assert.True(resultado.Sucesso);
+        }
+
+        [Fact]
+        public async Task Paciente_ComEmailDaClinica_EhRecusado()
+        {
+            var resultado = await _service.CadastrarAsync(Pedido(PerfisUsuario.Paciente, "maria@clinicamaissaude.com.br"));
+
+            Assert.False(resultado.Sucesso);
+            Assert.Equal(EmailInstitucional.ExclusivoDaEquipe, resultado.Mensagem);
         }
 
         [Fact]

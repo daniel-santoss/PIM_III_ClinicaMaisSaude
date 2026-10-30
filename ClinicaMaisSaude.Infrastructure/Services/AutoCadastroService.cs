@@ -71,6 +71,8 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             var email = (request.Email ?? string.Empty).Trim().ToLowerInvariant();
             if (string.IsNullOrWhiteSpace(email) || !email.Contains('@'))
                 return Falha("Informe um e-mail válido.");
+            if (EmailInstitucional.EhInstitucional(email))
+                return Falha(EmailInstitucional.ExclusivoDaEquipe);
 
             var cpf = Cpf.Sanitizar(request.Cpf);
             if (!Cpf.EhValido(cpf))

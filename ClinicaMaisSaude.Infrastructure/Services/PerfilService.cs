@@ -76,13 +76,10 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             if (!string.IsNullOrWhiteSpace(nome))
                 pessoa.AtualizarNome(nome.Trim());
 
-            if (!string.IsNullOrWhiteSpace(email))
-            {
-                var emailNorm = email.Trim().ToLowerInvariant();
-                var existe = await _context.Pessoas.AnyAsync(p => p.Email == emailNorm && p.Id != pessoa.Id);
-                if (existe) return "Este e-mail já está em uso.";
-                pessoa.AtualizarEmail(emailNorm);
-            }
+            // O e-mail é somente leitura no próprio perfil: é o login, o canal de recuperação de senha
+            // e define quem é da equipe (domínio da clínica). Só a clínica altera, pela tela de usuários.
+            if (!string.IsNullOrWhiteSpace(email) && email.Trim().ToLowerInvariant() != pessoa.Email)
+                return "O e-mail não pode ser alterado pelo perfil. Fale com a clínica.";
 
             if (!string.IsNullOrWhiteSpace(telefone))
                 pessoa.AtualizarTelefone(telefone.Replace("(", "").Replace(")", "").Replace("-", "").Replace(" ", "").Trim());

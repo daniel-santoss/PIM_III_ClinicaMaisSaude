@@ -1,5 +1,6 @@
 using ClinicaMaisSaude.Application.DTOs.Paciente;
 using ClinicaMaisSaude.Application.Exceptions;
+using ClinicaMaisSaude.Domain.Common;
 using ClinicaMaisSaude.Application.Interfaces;
 using ClinicaMaisSaude.Domain.Entities;
 using ClinicaMaisSaude.Domain.Enums;
@@ -197,7 +198,12 @@ namespace ClinicaMaisSaude.Application.Services
                 if (!string.IsNullOrWhiteSpace(request.Nome))
                     paciente.Pessoa.AtualizarNome(request.Nome);
                 if (!string.IsNullOrWhiteSpace(request.Email))
-                    paciente.Pessoa.AtualizarEmail(request.Email.Trim().ToLowerInvariant());
+                {
+                    var email = request.Email.Trim().ToLowerInvariant();
+                    if (email != paciente.Pessoa.Email && EmailInstitucional.EhInstitucional(email))
+                        throw new BusinessRuleException(EmailInstitucional.ExclusivoDaEquipe);
+                    paciente.Pessoa.AtualizarEmail(email);
+                }
                 if (!string.IsNullOrWhiteSpace(request.Telefone))
                     paciente.Pessoa.AtualizarTelefone(request.Telefone.Replace("(", "").Replace(")", "").Replace("-", "").Replace(" ", ""));
             }
