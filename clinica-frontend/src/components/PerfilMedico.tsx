@@ -233,9 +233,9 @@ export default function PerfilMedico() {
           <div className="px-6 py-4 flex items-center justify-between hover:bg-canvas transition-colors group border-b md:border-b-0 border-line">
             <div className="flex flex-col gap-1 flex-1">
               <span className="text-[11px] font-semibold text-muted uppercase tracking-wide">E-mail</span>
-              {/* Somente leitura: é o login e o canal de recuperação de senha; só a clínica altera. */}
+              {/* Somente leitura: o e-mail institucional (domínio da clínica) é gerido pela administração. */}
               <span className="text-sm font-semibold text-ink">{medico?.email}</span>
-              {editMode && <span className="text-[11px] text-muted">Para alterar o e-mail, fale com a clínica.</span>}
+              {editMode && <span className="text-[11px] text-muted">E-mail institucional: para alterar, fale com a administração.</span>}
             </div>
           </div>
 
