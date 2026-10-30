@@ -72,7 +72,7 @@ export default function PacienteList({
   const [emailAoAbrir, setEmailAoAbrir] = useState("");
   const [salvando, setSalvando] = useState(false);
 
-  const [excluindoPaciente, setExcluindoPaciente] = useState<{ id: string, nome: string } | null>(null);
+  const [excluindoPaciente, setExcluindoPaciente] = useState<{ id: string, nome: string, tipo: string } | null>(null);
   const [excluindoLoader, setExcluindoLoader] = useState(false);
 
   const [pacienteReset, setPacienteReset] = useState<{ id: string, usuarioId: string, nome: string } | null>(null);
@@ -207,8 +207,8 @@ export default function PacienteList({
     }
   };
 
-  const abrirModalExclusao = (id: string, nome: string) => {
-    setExcluindoPaciente({ id, nome });
+  const abrirModalExclusao = (id: string, nome: string, tipo: string) => {
+    setExcluindoPaciente({ id, nome, tipo });
   };
 
   const fecharModalExclusao = () => {
@@ -220,15 +220,22 @@ export default function PacienteList({
     setExcluindoLoader(true);
     try {
       const token = localStorage.getItem(storageKeys.authToken);
-      const response = await fetch(`${API_URL}/api/Pacientes/${excluindoPaciente.id}`, {
+      // Como na edição: o id da linha pertence à tabela do perfil (paciente ou profissional).
+      const recurso = excluindoPaciente.tipo === perfis.paciente ? "Pacientes" : "Profissionais";
+      const response = await fetch(`${API_URL}/api/${recurso}/${excluindoPaciente.id}`, {
         method: "DELETE",
         headers: { "Authorization": `Bearer ${token}` }
       });
       if (!response.ok) {
-        if (response.status === 400) toast.error(await response.text());
+        if (response.status === 400) {
+          const texto = await response.text();
+          let mensagem = texto;
+          try { const j = JSON.parse(texto); mensagem = j.message || j.detail || j.title || texto; } catch { /* texto puro */ }
+          toast.error(mensagem);
+        }
         return;
       }
-      toast.success("Paciente excluído com sucesso.");
+      toast.success("Usuário excluído com sucesso.");
       setExcluindoPaciente(null);
       setRefreshInterno((prev) => prev + 1);
     } catch (err) {
@@ -543,7 +550,7 @@ export default function PacienteList({
                             <button
                               title="Excluir usuário"
                               className="w-8 h-8 grid place-items-center bg-white border border-line rounded-md text-danger hover:bg-danger-tint hover:border-danger-border transition-colors"
-                              onClick={() => abrirModalExclusao(p.id, p.nome)}
+                              onClick={() => abrirModalExclusao(p.id, p.nome, p.tipo ?? perfis.paciente)}
                             >
                               <Trash className="w-[15px] h-[15px]" />
                             </button>
