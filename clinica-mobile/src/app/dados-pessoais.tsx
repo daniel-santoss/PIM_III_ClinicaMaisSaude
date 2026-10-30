@@ -18,7 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/auth/AuthContext';
 import TrocarSenhaModal from '@/components/TrocarSenhaModal';
 import { atualizarDados, obterPerfil } from '@/lib/perfil';
-import { isTelefoneValido, mascaraCpf, mascaraTelefone, soDigitos } from '@/lib/validadores';
+import { isEmailValido, isTelefoneValido, mascaraCpf, mascaraTelefone, soDigitos } from '@/lib/validadores';
 import type { PacientePerfil } from '@/types/perfil';
 
 const AZUL = '#2C5282';
@@ -35,12 +35,14 @@ export default function DadosPessoaisScreen() {
 
   const [editando, setEditando] = useState(false);
   const [nome, setNome] = useState('');
+  const [email, setEmail] = useState('');
   const [telefone, setTelefone] = useState('');
   const [salvando, setSalvando] = useState(false);
   const [senhaAberta, setSenhaAberta] = useState(false);
 
   const preencherCampos = useCallback((p: PacientePerfil) => {
     setNome(p.nome ?? '');
+    setEmail(p.email ?? '');
     setTelefone(mascaraTelefone(p.telefone));
   }, []);
 
@@ -67,9 +69,10 @@ export default function DadosPessoaisScreen() {
   const alterou =
     !!perfil &&
     (nome.trim() !== (perfil.nome ?? '') ||
+      email.trim() !== (perfil.email ?? '') ||
       soDigitos(telefone) !== soDigitos(perfil.telefone));
 
-  const podeSalvar = alterou && nome.trim().length > 0 && !salvando;
+  const podeSalvar = alterou && nome.trim().length > 0 && email.trim().length > 0 && !salvando;
 
   function cancelar() {
     if (perfil) preencherCampos(perfil);
@@ -79,13 +82,17 @@ export default function DadosPessoaisScreen() {
   async function salvar() {
     if (!podeSalvar) return;
     // Validações locais antes de enviar (evita salvar dado malformado).
+    if (!isEmailValido(email)) {
+      Alert.alert('E-mail inválido', 'Informe um e-mail no formato nome@dominio.com.');
+      return;
+    }
     if (!isTelefoneValido(telefone)) {
       Alert.alert('Telefone inválido', 'Informe um telefone com DDD (10 ou 11 dígitos).');
       return;
     }
     setSalvando(true);
     try {
-      const dados = { nome: nome.trim(), telefone: soDigitos(telefone) };
+      const dados = { nome: nome.trim(), email: email.trim().toLowerCase(), telefone: soDigitos(telefone) };
       await atualizarDados(dados);
       const atualizado = perfil ? { ...perfil, ...dados } : perfil;
       setPerfil(atualizado);
@@ -144,6 +151,16 @@ export default function DadosPessoaisScreen() {
                       <Text style={styles.label}>Nome</Text>
                       <TextInput value={nome} onChangeText={setNome} style={styles.input} editable={!salvando} autoFocus />
 
+                      <Text style={[styles.label, styles.labelEspaco]}>E-mail</Text>
+                      <TextInput
+                        value={email}
+                        onChangeText={setEmail}
+                        autoCapitalize="none"
+                        keyboardType="email-address"
+                        style={styles.input}
+                        editable={!salvando}
+                      />
+
                       <Text style={[styles.label, styles.labelEspaco]}>Telefone</Text>
                       <TextInput
                         value={telefone}
@@ -158,7 +175,6 @@ export default function DadosPessoaisScreen() {
 
                       {/* Somente leitura também no modo edição: são geridos pela clínica. */}
                       <View style={styles.somenteLeitura}>
-                        <Linha rotulo="E-mail" valor={perfil.email} />
                         <Linha rotulo="CPF" valor={mascaraCpf(perfil.cpf)} />
                         <Linha rotulo="Acompanhamento de memória" valor={perfil.temProblemaMemoria ? 'Ativo' : 'Não'} ultima />
                       </View>
@@ -193,7 +209,7 @@ export default function DadosPessoaisScreen() {
                 <View style={styles.notaWrap}>
                   <Ionicons name="information-circle-outline" size={14} color="#9CA3AF" />
                   <Text style={styles.nota}>
-                    Para alterar o e-mail, o CPF ou o acompanhamento de memória, entre em contato com a clínica.
+                    Para alterar o CPF ou o acompanhamento de memória, entre em contato com a clínica.
                   </Text>
                 </View>
 
