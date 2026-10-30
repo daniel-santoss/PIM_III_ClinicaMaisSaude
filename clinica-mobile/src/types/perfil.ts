@@ -10,8 +10,8 @@ export interface PacientePerfil {
   fotoBase64: string | null;
 }
 
+// O e-mail não entra: é somente leitura no perfil (só a clínica altera).
 export interface DadosPerfilInput {
   nome: string;
-  email: string;
   telefone: string;
 }
