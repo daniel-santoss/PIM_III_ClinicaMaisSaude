@@ -28,7 +28,7 @@ namespace ClinicaMaisSaude.Infrastructure.Repositories
                 .Include(p => p.Usuario)
                 .Include(p => p.Pessoa)
                 .Include(p => p.Especialidades)
-                .Where(p => p.Usuario.Role == role)
+                .Where(p => p.Usuario.Role == role && p.Situacao == Situacao.Ativo)
                 .ToListAsync();
         }
 

@@ -45,6 +45,27 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             };
         }
 
+        // Exclusão pela tela de usuários. É lógica (desativa): as consultas passadas continuam apontando
+        // para o profissional. Não pode excluir a si mesmo nem deixar consultas futuras sem atendimento.
+        public async Task DesativarAsync(Guid id, Guid usuarioLogadoId)
+        {
+            var prof = await _context.Profissionais.FirstOrDefaultAsync(p => p.Id == id && p.Situacao == Situacao.Ativo)
+                ?? throw new NotFoundException("Profissional não encontrado.");
+            if (prof.UsuarioId == usuarioLogadoId)
+                throw new BusinessRuleException("Você não pode excluir a própria conta.");
+
+            var hoje = DateTime.UtcNow.AddHours(-3).Date;
+            var futuras = await _context.Agendamentos.CountAsync(a =>
+                a.ProfissionalId == prof.Id && a.Status == StatusAgendamento.Agendado && a.DataHoraConsulta >= hoje);
+            if (futuras > 0)
+                throw new BusinessRuleException($"Não é possível excluir: {futuras} consulta(s) agendada(s) com este profissional. Remarque-as antes.");
+
+            prof.Desativar();
+            // Encerra as sessões abertas: sem refresh token, o acesso cai em até um JWT (15 min).
+            _context.RefreshTokens.RemoveRange(_context.RefreshTokens.Where(r => r.UsuarioId == prof.UsuarioId));
+            await _context.SaveChangesAsync();
+        }
+
         // Edição cadastral do profissional (tela de usuários). A identidade vive na
         // Pessoa (fonte única), então atualizamos lá — espelha PacienteService.AtualizarAsync.
         // O CPF é inalterável.

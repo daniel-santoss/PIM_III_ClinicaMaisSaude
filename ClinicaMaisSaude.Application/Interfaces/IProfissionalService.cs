@@ -6,5 +6,6 @@ namespace ClinicaMaisSaude.Application.Interfaces
     {
         Task<object?> ObterPorIdAsync(Guid id);
         Task<object> AtualizarAsync(Guid id, ProfissionalUpdateRequest request);
+        Task DesativarAsync(Guid id, Guid usuarioLogadoId);
     }
 }

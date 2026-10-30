@@ -230,6 +230,38 @@ namespace ClinicaMaisSaude.Infrastructure.Tests.Services
         }
 
         [Fact]
+        public async Task Excluir_ProfissionalComConsultaFutura_Bloqueia()
+        {
+            var medico = SemearProfissional("Dr. Carlos", RoleUsuario.Medico, EscalaTrabalho.Escala1);
+            SemearConsulta(medico.Id, ProximoDia(EscalaTrabalho.Escala1).AddHours(9));
+
+            await Assert.ThrowsAsync<BusinessRuleException>(() =>
+                new ProfissionalService(_context, new AvisoContaFake()).DesativarAsync(medico.Id, _adminId));
+            Assert.True((await _context.Profissionais.AsNoTracking().SingleAsync(p => p.Id == medico.Id)).EstaAtivo);
+        }
+
+        [Fact]
+        public async Task Excluir_APropriaConta_Bloqueia()
+        {
+            var medico = SemearProfissional("Dr. Carlos", RoleUsuario.Medico, EscalaTrabalho.Escala1);
+
+            await Assert.ThrowsAsync<BusinessRuleException>(() =>
+                new ProfissionalService(_context, new AvisoContaFake()).DesativarAsync(medico.Id, medico.UsuarioId));
+        }
+
+        [Fact]
+        public async Task Excluir_TiraOProfissionalDaEscalaEDaDelegacao()
+        {
+            var medico = SemearProfissional("Dr. Carlos", RoleUsuario.Medico, EscalaTrabalho.Escala1);
+            var dia = ProximoDia(EscalaTrabalho.Escala1);
+
+            await new ProfissionalService(_context, new AvisoContaFake()).DesativarAsync(medico.Id, _adminId);
+
+            Assert.Empty((await ObterDia(dia)).Profissionais.Itens);
+            Assert.Empty(await new ClinicaMaisSaude.Infrastructure.Repositories.ProfissionalRepository(_context).ObterTodosPorTipoAsync(TipoProfissional.Medico));
+        }
+
+        [Fact]
         public async Task ObterDia_PaginaEFiltraOsProfissionaisPorNome()
         {
             var dia = ProximoDia(EscalaTrabalho.Escala1);

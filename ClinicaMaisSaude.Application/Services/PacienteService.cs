@@ -83,7 +83,8 @@ namespace ClinicaMaisSaude.Application.Services
 
             if (incluirProfissionais)
             {
-                var profissionais = await _profissionalRepository.ObterTodosAsync();
+                // Profissional excluído (desativado) sai da lista, como o paciente.
+                var profissionais = (await _profissionalRepository.ObterTodosAsync()).Where(p => p.EstaAtivo);
 
                 // Filtrar por nome/cpf (identidade a partir da Pessoa) se os filtros foram passados
                 if (!string.IsNullOrWhiteSpace(nome))
@@ -139,7 +140,7 @@ namespace ClinicaMaisSaude.Application.Services
 
             if (incluirProfissionais)
             {
-                var profissionais = await _profissionalRepository.ObterTodosAsync();
+                var profissionais = (await _profissionalRepository.ObterTodosAsync()).Where(p => p.EstaAtivo);
 
                 if (!string.IsNullOrWhiteSpace(nome))
                     profissionais = profissionais.Where(p => p.Pessoa != null && p.Pessoa.Nome.Contains(nome, StringComparison.OrdinalIgnoreCase));

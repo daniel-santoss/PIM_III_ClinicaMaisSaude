@@ -10,7 +10,7 @@ namespace ClinicaMaisSaude.API.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
-    public class ProfissionaisController : ControllerBase
+    public class ProfissionaisController : ClinicaControllerBase
     {
         private readonly IProfissionalService _profissionalService;
 
@@ -35,6 +35,15 @@ namespace ClinicaMaisSaude.API.Controllers
         {
             var resultado = await _profissionalService.AtualizarAsync(id, request);
             return Ok(resultado);
+        }
+
+        // "Excluir" na tela de usuários: desativa o profissional (o histórico de consultas fica).
+        [HttpDelete("{id}")]
+        [Authorize(Roles = PerfisUsuario.Admin)]
+        public async Task<IActionResult> Desativar(Guid id)
+        {
+            await _profissionalService.DesativarAsync(id, UsuarioLogadoId);
+            return NoContent();
         }
     }
 }
