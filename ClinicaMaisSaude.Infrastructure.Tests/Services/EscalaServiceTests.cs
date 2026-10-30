@@ -189,7 +189,7 @@ namespace ClinicaMaisSaude.Infrastructure.Tests.Services
         {
             var medico = SemearProfissional("Dr. Carlos", RoleUsuario.Medico, EscalaTrabalho.Escala1);
             var inicio = ProximoDia(EscalaTrabalho.Escala1).AddDays(2);
-            await new ProfissionalService(_context).AtualizarAsync(medico.Id, new ProfissionalUpdateRequest { InicioPlantoes = inicio });
+            await new ProfissionalService(_context, new AvisoContaFake()).AtualizarAsync(medico.Id, new ProfissionalUpdateRequest { InicioPlantoes = inicio });
 
             var antes = await ObterDia(inicio.AddDays(-2));
             var noInicio = await ObterDia(inicio);
@@ -203,7 +203,7 @@ namespace ClinicaMaisSaude.Infrastructure.Tests.Services
         {
             var medico = SemearProfissional("Dr. Carlos", RoleUsuario.Medico, EscalaTrabalho.Escala1);
             SemearConsulta(medico.Id, ProximoDia(EscalaTrabalho.Escala1).AddHours(9));
-            var profissionalService = new ProfissionalService(_context);
+            var profissionalService = new ProfissionalService(_context, new AvisoContaFake());
 
             await Assert.ThrowsAsync<BusinessRuleException>(() => profissionalService.AtualizarAsync(medico.Id,
                 new ProfissionalUpdateRequest { InicioPlantoes = ProximoDia(EscalaTrabalho.Escala2) }));
@@ -219,7 +219,7 @@ namespace ClinicaMaisSaude.Infrastructure.Tests.Services
                 new RegistrarAusenciaRequest { ProfissionalId = medico.Id, Data = diaAusencia, Motivo = "Compromisso" }, _adminId);
 
             var novoInicio = ProximoDia(EscalaTrabalho.Escala2);
-            await new ProfissionalService(_context).AtualizarAsync(medico.Id, new ProfissionalUpdateRequest { InicioPlantoes = novoInicio });
+            await new ProfissionalService(_context, new AvisoContaFake()).AtualizarAsync(medico.Id, new ProfissionalUpdateRequest { InicioPlantoes = novoInicio });
 
             var prof = await _context.Profissionais.AsNoTracking().SingleAsync(p => p.Id == medico.Id);
             Assert.Equal((EscalaTrabalho.Escala2, novoInicio), (prof.Escala, prof.InicioPlantoes));

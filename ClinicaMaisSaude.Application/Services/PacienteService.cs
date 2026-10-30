@@ -17,12 +17,14 @@ namespace ClinicaMaisSaude.Application.Services
         private readonly IPacienteRepository _repository;
         private readonly IProfissionalRepository _profissionalRepository;
         private readonly IAgendamentoRepository _agendamentoRepository;
+        private readonly IAvisoContaService _avisoConta;
 
-        public PacienteService(IPacienteRepository pacienteRepository, IProfissionalRepository profissionalRepository, IAgendamentoRepository agendamentoRepository)
+        public PacienteService(IPacienteRepository pacienteRepository, IProfissionalRepository profissionalRepository, IAgendamentoRepository agendamentoRepository, IAvisoContaService avisoConta)
         {
             _repository = pacienteRepository;
             _profissionalRepository = profissionalRepository;
             _agendamentoRepository = agendamentoRepository;
+            _avisoConta = avisoConta;
         }
 
         // Carrega a entidade pelo id ou lança 404. Convenção do projeto: Buscar* garante
@@ -190,6 +192,7 @@ namespace ClinicaMaisSaude.Application.Services
         public async Task<PacienteResponse> AtualizarAsync(Guid id, PacienteRequest request)
         {
             var paciente = await BuscarPacienteAsync(id);
+            var emailAntigo = paciente.Pessoa?.Email;
 
             // Identidade (Nome/Email/Telefone) é atualizada na Pessoa (fonte única — Thread B);
             // o perfil de paciente só guarda o dado clínico.
@@ -210,6 +213,9 @@ namespace ClinicaMaisSaude.Application.Services
             paciente.Atualizar(request.TemProblemaMemoria);
 
             await _repository.AtualizarAsync(paciente);
+
+            if (paciente.Pessoa != null && emailAntigo != null && paciente.Pessoa.Email != emailAntigo)
+                await _avisoConta.AvisarTrocaDeEmailAsync(paciente.Pessoa.Nome, emailAntigo, paciente.Pessoa.Email);
 
             return new PacienteResponse
             {

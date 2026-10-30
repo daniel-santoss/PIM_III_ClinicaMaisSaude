@@ -12,10 +12,12 @@ namespace ClinicaMaisSaude.Infrastructure.Services
     public class ProfissionalService : IProfissionalService
     {
         private readonly ClinicaDbContext _context;
+        private readonly IAvisoContaService _avisoConta;
 
-        public ProfissionalService(ClinicaDbContext context)
+        public ProfissionalService(ClinicaDbContext context, IAvisoContaService avisoConta)
         {
             _context = context;
+            _avisoConta = avisoConta;
         }
 
         public async Task<object?> ObterPorIdAsync(Guid id)
@@ -52,6 +54,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                 .Include(p => p.Pessoa)
                 .FirstOrDefaultAsync(p => p.Id == id)
                 ?? throw new NotFoundException("Profissional não encontrado.");
+            var emailAntigo = prof.Pessoa?.Email;
 
             if (prof.Pessoa != null)
             {
@@ -91,6 +94,9 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             }
 
             await _context.SaveChangesAsync();
+
+            if (prof.Pessoa != null && emailAntigo != null && prof.Pessoa.Email != emailAntigo)
+                await _avisoConta.AvisarTrocaDeEmailAsync(prof.Pessoa.Nome, emailAntigo, prof.Pessoa.Email);
 
             return new
             {

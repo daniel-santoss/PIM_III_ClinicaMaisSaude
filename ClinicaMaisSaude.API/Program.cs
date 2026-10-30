@@ -217,6 +217,7 @@ builder.Services.AddScoped<IPrimeiroAcessoService, PrimeiroAcessoService>();
 builder.Services.AddScoped<IVerificacaoEmailService, VerificacaoEmailService>();
 builder.Services.AddScoped<IModeloDeclaracaoService, ModeloDeclaracaoService>();
 builder.Services.AddScoped<IEmailService, SmtpEmailService>();
+builder.Services.AddScoped<IAvisoContaService, AvisoContaService>();
 builder.Services.AddScoped<IRecuperacaoSenhaService, RecuperacaoSenhaService>();
 builder.Services.AddScoped<IProbabilidadeFaltaService, ProbabilidadeFaltaService>();
 builder.Services.AddScoped<IEspecialidadeService, EspecialidadeService>();
