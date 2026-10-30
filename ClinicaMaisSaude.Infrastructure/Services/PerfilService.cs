@@ -1,4 +1,5 @@
 using ClinicaMaisSaude.Application.Interfaces;
+using ClinicaMaisSaude.Domain.Common;
 using ClinicaMaisSaude.Domain.Constants;
 using ClinicaMaisSaude.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -8,10 +9,12 @@ namespace ClinicaMaisSaude.Infrastructure.Services
     public class PerfilService : IPerfilService
     {
         private readonly ClinicaDbContext _context;
+        private readonly IAvisoContaService _avisoConta;
 
-        public PerfilService(ClinicaDbContext context)
+        public PerfilService(ClinicaDbContext context, IAvisoContaService avisoConta)
         {
             _context = context;
+            _avisoConta = avisoConta;
         }
 
         public async Task<object?> ObterPerfilAsync(Guid usuarioId, string tipoUsuario)
@@ -76,15 +79,28 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             if (!string.IsNullOrWhiteSpace(nome))
                 pessoa.AtualizarNome(nome.Trim());
 
-            // O e-mail é somente leitura no próprio perfil: é o login, o canal de recuperação de senha
-            // e define quem é da equipe (domínio da clínica). Só a clínica altera, pela tela de usuários.
-            if (!string.IsNullOrWhiteSpace(email) && email.Trim().ToLowerInvariant() != pessoa.Email)
-                return "O e-mail não pode ser alterado pelo perfil. Fale com a clínica.";
+            string? emailAntigo = null;
+            var emailNorm = email?.Trim().ToLowerInvariant();
+            if (!string.IsNullOrWhiteSpace(emailNorm) && emailNorm != pessoa.Email)
+            {
+                // Médico e enfermeira usam o e-mail institucional: só a administração altera.
+                if (tipoUsuario != PerfisUsuario.Paciente)
+                    return "O e-mail institucional não pode ser alterado pelo perfil. Fale com a administração da clínica.";
+                if (EmailInstitucional.EhInstitucional(emailNorm))
+                    return EmailInstitucional.ExclusivoDaEquipe;
+                if (await _context.Pessoas.AnyAsync(p => p.Email == emailNorm && p.Id != pessoa.Id))
+                    return "Este e-mail já está em uso.";
+                emailAntigo = pessoa.Email;
+                pessoa.AtualizarEmail(emailNorm);
+            }
 
             if (!string.IsNullOrWhiteSpace(telefone))
                 pessoa.AtualizarTelefone(telefone.Replace("(", "").Replace(")", "").Replace("-", "").Replace(" ", "").Trim());
 
             await _context.SaveChangesAsync();
+
+            if (emailAntigo != null)
+                await _avisoConta.AvisarTrocaDeEmailAsync(pessoa.Nome, emailAntigo, pessoa.Email);
             return null; // sucesso
         }
 

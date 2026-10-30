@@ -43,7 +43,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
 
         private string CorpoTrocaDeEmail(string nome, string antigo, string novo) => EmailTemplates.ProsaHtml(EmailTemplates.LogoSrc(_configuration), EmailTemplates.Saudacao(nome), $@"
             <p style=""font-size:14px;color:#475569;line-height:21px;margin:0 0 18px"">
-              A clínica alterou o e-mail da sua conta na <strong style=""color:#0F172A"">Clínica Mais Saúde</strong>
+              O e-mail da sua conta na <strong style=""color:#0F172A"">Clínica Mais Saúde</strong> foi alterado
               de <strong style=""color:#0F172A"">{WebUtility.HtmlEncode(antigo)}</strong>
               para <strong style=""color:#2C5282"">{WebUtility.HtmlEncode(novo)}</strong>.
             </p>
@@ -59,7 +59,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             EmailTemplates.Texto("E-mail da conta alterado",
 $@"{EmailTemplates.Saudacao(nome)}.
 
-A clínica alterou o e-mail da sua conta de {antigo} para {novo}.
+O e-mail da sua conta foi alterado de {antigo} para {novo}.
 A partir de agora, os avisos e a recuperação de senha vão para o novo endereço.
 O login continua funcionando também com o seu CPF.
 

@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 namespace ClinicaMaisSaude.Application.Interfaces
 {
     /// <summary>
-    /// Avisos por e-mail sobre mudanças na conta feitas pela clínica (não pelo próprio usuário).
+    /// Avisos por e-mail sobre mudanças sensíveis na conta (feitas pelo próprio usuário ou pela clínica).
     /// O envio é "melhor esforço": falhar o e-mail não desfaz a alteração.
     /// </summary>
     public interface IAvisoContaService
