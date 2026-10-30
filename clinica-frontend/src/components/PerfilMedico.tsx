@@ -233,16 +233,9 @@ export default function PerfilMedico() {
           <div className="px-6 py-4 flex items-center justify-between hover:bg-canvas transition-colors group border-b md:border-b-0 border-line">
             <div className="flex flex-col gap-1 flex-1">
               <span className="text-[11px] font-semibold text-muted uppercase tracking-wide">E-mail</span>
-              {editMode ? (
-                <input 
-                  type="email" 
-                  value={formEdit.email} 
-                  onChange={e => setFormEdit({...formEdit, email: e.target.value})}
-                  className="text-sm font-medium text-ink bg-transparent border-b border-line outline-none focus:border-brand-600 py-1"
-                />
-              ) : (
-                <span className="text-sm font-semibold text-ink">{medico?.email}</span>
-              )}
+              {/* Somente leitura: é o login e o canal de recuperação de senha; só a clínica altera. */}
+              <span className="text-sm font-semibold text-ink">{medico?.email}</span>
+              {editMode && <span className="text-[11px] text-muted">Para alterar o e-mail, fale com a clínica.</span>}
             </div>
           </div>
 

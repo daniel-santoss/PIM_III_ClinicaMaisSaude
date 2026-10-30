@@ -169,6 +169,10 @@ export default function PacienteList({
       toast.error(`Médicos e enfermeiras devem usar o e-mail institucional (${DOMINIO_CLINICA}).`);
       return;
     }
+    if (editandoTipo === perfis.paciente && form.email !== emailAoAbrir && ehEmailInstitucional(form.email)) {
+      toast.error(`O domínio ${DOMINIO_CLINICA} é exclusivo da equipe da clínica. Use o e-mail pessoal do paciente.`);
+      return;
+    }
     setSalvando(true);
     try {
       const token = localStorage.getItem(storageKeys.authToken);

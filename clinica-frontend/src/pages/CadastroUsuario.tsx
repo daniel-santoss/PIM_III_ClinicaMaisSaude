@@ -67,6 +67,10 @@ export function CadastroUsuario({ open, onClose, onUserCreated, tipoUsuarioLogad
       toast.error(`Médicos e enfermeiras devem usar o e-mail institucional (${DOMINIO_CLINICA}).`);
       return;
     }
+    if (!ehProfissional && ehEmailInstitucional(email)) {
+      toast.error(`O domínio ${DOMINIO_CLINICA} é exclusivo da equipe da clínica. Use o e-mail pessoal do paciente.`);
+      return;
+    }
     if (ehProfissional && inicioPlantoes === null) {
       toast.error("Escolha o dia do primeiro plantão do profissional.");
       return;
