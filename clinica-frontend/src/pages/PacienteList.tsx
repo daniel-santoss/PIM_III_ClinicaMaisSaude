@@ -17,6 +17,7 @@ import { termoDeBusca } from "../utils/busca";
 import AvisoBusca from "../components/ui/AvisoBusca";
 import SeletorPrimeiroPlantao from "../components/SeletorPrimeiroPlantao";
 import { proximoPlantao } from "../constants/escala";
+import { DOMINIO_CLINICA, completarDominio, ehEmailInstitucional } from "../utils/emailInstitucional";
 
 const modalInputCls =
   "w-full h-10 px-3 text-sm text-ink bg-white border border-line rounded-md outline-none focus:border-brand-600 focus:shadow-focus transition-shadow placeholder:text-muted";
@@ -68,6 +69,7 @@ export default function PacienteList({
   const [form, setForm] = useState<PacienteEdicao>({ nome: "", cpf: "", telefone: "", email: "", inicioPlantoes: null });
   // Valor com que o calendário abriu: só envia o primeiro plantão se o admin escolheu outro dia.
   const [inicioAoAbrir, setInicioAoAbrir] = useState<string | null>(null);
+  const [emailAoAbrir, setEmailAoAbrir] = useState("");
   const [salvando, setSalvando] = useState(false);
 
   const [excluindoPaciente, setExcluindoPaciente] = useState<{ id: string, nome: string } | null>(null);
@@ -152,6 +154,7 @@ export default function PacienteList({
     const inicio = p.inicioPlantoes ? proximoPlantao(p.inicioPlantoes) : null;
     setForm({ nome: p.nome, cpf: p.cpf, telefone: p.telefone, email: p.email, inicioPlantoes: inicio });
     setInicioAoAbrir(inicio);
+    setEmailAoAbrir(p.email);
   };
 
   const fecharModal = () => {
@@ -162,6 +165,10 @@ export default function PacienteList({
 
   const salvarEdicao = async () => {
     if (!editandoId) return;
+    if (editandoTipo !== perfis.paciente && form.email !== emailAoAbrir && !ehEmailInstitucional(form.email)) {
+      toast.error(`Médicos e enfermeiras devem usar o e-mail institucional (${DOMINIO_CLINICA}).`);
+      return;
+    }
     setSalvando(true);
     try {
       const token = localStorage.getItem(storageKeys.authToken);
@@ -177,7 +184,13 @@ export default function PacienteList({
         }),
       });
       if (!response.ok) {
-        if (response.status === 400) toast.error(await response.text());
+        if (response.status === 400) {
+          // Regra de negócio vem como ProblemDetails (JSON); validação simples, como texto.
+          const texto = await response.text();
+          let mensagem = texto;
+          try { const j = JSON.parse(texto); mensagem = j.message || j.detail || j.title || texto; } catch { /* texto puro */ }
+          toast.error(mensagem);
+        }
         return;
       }
       toast.success("Edição salva com sucesso!");
@@ -605,10 +618,14 @@ export default function PacienteList({
                   <input
                     type="email"
                     className={modalInputCls}
-                    placeholder="exemplo@email.com"
+                    placeholder={editandoTipo !== perfis.paciente ? `nome.sobrenome${DOMINIO_CLINICA}` : "exemplo@email.com"}
                     value={form.email}
                     onChange={(e) => setForm({ ...form, email: e.target.value })}
+                    onBlur={() => editandoTipo !== perfis.paciente && form.email !== emailAoAbrir && setForm({ ...form, email: completarDominio(form.email) })}
                   />
+                  {editandoTipo !== perfis.paciente && (
+                    <p className="text-[11px] text-muted mt-1">Tab completa com {DOMINIO_CLINICA}</p>
+                  )}
                 </div>
               </div>
               {editandoTipo !== perfis.paciente && (
