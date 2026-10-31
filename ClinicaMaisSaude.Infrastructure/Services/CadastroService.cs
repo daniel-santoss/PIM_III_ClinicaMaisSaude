@@ -32,7 +32,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
 
             if (!Cpf.EhValido(cpfLimpo))
             {
-                return new CadastroResult { Sucesso = false, Mensagem = "O CPF informado não é matematicamente válido." };
+                return new CadastroResult { Sucesso = false, Mensagem = "O CPF informado é inválido." };
             }
 
             // Unicidade de identidade vive na Pessoa (Thread B).

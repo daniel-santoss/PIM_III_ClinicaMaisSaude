@@ -76,7 +76,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
 
             var cpf = Cpf.Sanitizar(request.Cpf);
             if (!Cpf.EhValido(cpf))
-                return Falha("O CPF informado não é matematicamente válido.");
+                return Falha("O CPF informado é inválido.");
 
             // Telefone é OBRIGATÓRIO no wizard (DDD + número, 10 ou 11 dígitos).
             var telefone = new string((request.Telefone ?? string.Empty).Where(char.IsDigit).ToArray());
