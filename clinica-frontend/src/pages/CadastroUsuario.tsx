@@ -209,7 +209,7 @@ export function CadastroUsuario({ open, onClose, onUserCreated, tipoUsuarioLogad
               placeholder={ehProfissional ? `nome.sobrenome${DOMINIO_CLINICA}` : "exemplo@email.com"}
             />
             {ehProfissional && (
-              <p className="text-[11px] text-muted mt-1">Tab completa com {DOMINIO_CLINICA}</p>
+              <p className="text-[11px] text-muted mt-1">Aperte a tecla "TAB" para auto-completar o domínio</p>
             )}
           </div>
           <div>
