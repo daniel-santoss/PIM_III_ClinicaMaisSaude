@@ -217,6 +217,7 @@ builder.Services.AddScoped<IPrimeiroAcessoService, PrimeiroAcessoService>();
 builder.Services.AddScoped<IVerificacaoEmailService, VerificacaoEmailService>();
 builder.Services.AddScoped<IModeloDeclaracaoService, ModeloDeclaracaoService>();
 builder.Services.AddScoped<IEmailService, SmtpEmailService>();
+builder.Services.AddScoped<IAvisoContaService, AvisoContaService>();
 builder.Services.AddScoped<IRecuperacaoSenhaService, RecuperacaoSenhaService>();
 builder.Services.AddScoped<IProbabilidadeFaltaService, ProbabilidadeFaltaService>();
 builder.Services.AddScoped<IEspecialidadeService, EspecialidadeService>();
@@ -268,11 +269,13 @@ app.Use(async (context, next) =>
                 return;
             }
 
-            // Paciente não-ativo (Desativado/Excluido/Banido) não pode usar a API mesmo
+            // Conta não-ativa (paciente desativado/excluído/banido ou profissional excluído) não usa a API mesmo
             // com um JWT ainda válido — o gating de login sozinho deixaria uma janela aberta.
             var pacienteConta = await dbContext.Pacientes
                 .FirstOrDefaultAsync(p => p.UsuarioId == userId);
-            if (pacienteConta != null && pacienteConta.Situacao != ClinicaMaisSaude.Domain.Enums.Situacao.Ativo)
+            var profissionalInativo = pacienteConta == null && await dbContext.Profissionais
+                .AnyAsync(p => p.UsuarioId == userId && p.Situacao != ClinicaMaisSaude.Domain.Enums.Situacao.Ativo);
+            if ((pacienteConta != null && pacienteConta.Situacao != ClinicaMaisSaude.Domain.Enums.Situacao.Ativo) || profissionalInativo)
             {
                 context.Response.StatusCode = 403;
                 await context.Response.WriteAsync("Sua conta está bloqueada.");

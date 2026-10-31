@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  KeyboardAvoidingView,
   Modal,
   Pressable,
   StyleSheet,
@@ -9,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { excluirConta } from '@/lib/perfil';
 
@@ -24,6 +26,7 @@ export default function ExcluirContaModal({ visivel, onClose, onExcluida }: Prop
   const [senha, setSenha] = useState('');
   const [erro, setErro] = useState<string | null>(null);
   const [excluindo, setExcluindo] = useState(false);
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     if (!visivel) {
@@ -48,54 +51,59 @@ export default function ExcluirContaModal({ visivel, onClose, onExcluida }: Prop
 
   return (
     <Modal visible={visivel} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.fundo} onPress={onClose} />
-      <View style={styles.sheet}>
-        <View style={styles.handle} />
+      {/* Dentro do Modal o Android (edge-to-edge) não redimensiona a janela quando o teclado
+          abre, então o sheet ficava atrás dele: "padding" sobe o conteúdo nas duas plataformas. */}
+      <KeyboardAvoidingView style={styles.flex} behavior="padding">
+        <Pressable style={styles.fundo} onPress={onClose} />
+        <View style={[styles.sheet, { paddingBottom: 28 + insets.bottom }]}>
+          <View style={styles.handle} />
 
-        <View style={styles.iconeWrap}>
-          <Ionicons name="warning" size={28} color="#B91C1C" />
+          <View style={styles.iconeWrap}>
+            <Ionicons name="warning" size={28} color="#B91C1C" />
+          </View>
+
+          <Text style={styles.titulo}>Excluir minha conta</Text>
+          <Text style={styles.texto}>
+            Esta ação encerra sua conta e você perde o acesso ao aplicativo. Para
+            confirmar, digite sua senha.
+          </Text>
+
+          <TextInput
+            value={senha}
+            onChangeText={setSenha}
+            secureTextEntry
+            placeholder="Sua senha"
+            placeholderTextColor="#9CA3AF"
+            style={styles.input}
+            editable={!excluindo}
+          />
+
+          {erro && <Text style={styles.erro}>{erro}</Text>}
+
+          <View style={styles.rodape}>
+            <Pressable onPress={onClose} disabled={excluindo} style={styles.botaoSec}>
+              <Text style={styles.botaoSecTexto}>Cancelar</Text>
+            </Pressable>
+            <Pressable
+              onPress={confirmar}
+              disabled={senha.length === 0 || excluindo}
+              style={({ pressed }) => [
+                styles.botaoExcluir,
+                (senha.length === 0 || excluindo) && styles.botaoOff,
+                pressed && senha.length > 0 && !excluindo && { opacity: 0.85 },
+              ]}
+            >
+              {excluindo ? <ActivityIndicator color="#fff" /> : <Text style={styles.botaoExcluirTexto}>Excluir conta</Text>}
+            </Pressable>
+          </View>
         </View>
-
-        <Text style={styles.titulo}>Excluir minha conta</Text>
-        <Text style={styles.texto}>
-          Esta ação encerra sua conta e você perde o acesso ao aplicativo. Para
-          confirmar, digite sua senha.
-        </Text>
-
-        <TextInput
-          value={senha}
-          onChangeText={setSenha}
-          secureTextEntry
-          placeholder="Sua senha"
-          placeholderTextColor="#9CA3AF"
-          style={styles.input}
-          editable={!excluindo}
-        />
-
-        {erro && <Text style={styles.erro}>{erro}</Text>}
-
-        <View style={styles.rodape}>
-          <Pressable onPress={onClose} disabled={excluindo} style={styles.botaoSec}>
-            <Text style={styles.botaoSecTexto}>Cancelar</Text>
-          </Pressable>
-          <Pressable
-            onPress={confirmar}
-            disabled={senha.length === 0 || excluindo}
-            style={({ pressed }) => [
-              styles.botaoExcluir,
-              (senha.length === 0 || excluindo) && styles.botaoOff,
-              pressed && senha.length > 0 && !excluindo && { opacity: 0.85 },
-            ]}
-          >
-            {excluindo ? <ActivityIndicator color="#fff" /> : <Text style={styles.botaoExcluirTexto}>Excluir conta</Text>}
-          </Pressable>
-        </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  flex: { flex: 1 },
   fundo: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' },
   sheet: { backgroundColor: '#fff', borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, paddingBottom: 28, gap: 12 },
   handle: { alignSelf: 'center', width: 40, height: 5, borderRadius: 999, backgroundColor: '#E5E7EB', marginBottom: 4 },

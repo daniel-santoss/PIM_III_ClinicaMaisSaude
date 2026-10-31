@@ -1,6 +1,7 @@
 using ClinicaMaisSaude.Application.DTOs.Profissional;
 using ClinicaMaisSaude.Application.Exceptions;
 using ClinicaMaisSaude.Application.Interfaces;
+using ClinicaMaisSaude.Domain.Common;
 using ClinicaMaisSaude.Domain.Enums;
 using ClinicaMaisSaude.Domain.Services;
 using ClinicaMaisSaude.Infrastructure.Data;
@@ -11,10 +12,12 @@ namespace ClinicaMaisSaude.Infrastructure.Services
     public class ProfissionalService : IProfissionalService
     {
         private readonly ClinicaDbContext _context;
+        private readonly IAvisoContaService _avisoConta;
 
-        public ProfissionalService(ClinicaDbContext context)
+        public ProfissionalService(ClinicaDbContext context, IAvisoContaService avisoConta)
         {
             _context = context;
+            _avisoConta = avisoConta;
         }
 
         public async Task<object?> ObterPorIdAsync(Guid id)
@@ -42,6 +45,27 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             };
         }
 
+        // Exclusão pela tela de usuários. É lógica (desativa): as consultas passadas continuam apontando
+        // para o profissional. Não pode excluir a si mesmo nem deixar consultas futuras sem atendimento.
+        public async Task DesativarAsync(Guid id, Guid usuarioLogadoId)
+        {
+            var prof = await _context.Profissionais.FirstOrDefaultAsync(p => p.Id == id && p.Situacao == Situacao.Ativo)
+                ?? throw new NotFoundException("Profissional não encontrado.");
+            if (prof.UsuarioId == usuarioLogadoId)
+                throw new BusinessRuleException("Você não pode excluir a própria conta.");
+
+            var hoje = DateTime.UtcNow.AddHours(-3).Date;
+            var futuras = await _context.Agendamentos.CountAsync(a =>
+                a.ProfissionalId == prof.Id && a.Status == StatusAgendamento.Agendado && a.DataHoraConsulta >= hoje);
+            if (futuras > 0)
+                throw new BusinessRuleException($"Não é possível excluir: {futuras} consulta(s) agendada(s) com este profissional. Remarque-as antes.");
+
+            prof.Desativar();
+            // Encerra as sessões abertas: sem refresh token, o acesso cai em até um JWT (15 min).
+            _context.RefreshTokens.RemoveRange(_context.RefreshTokens.Where(r => r.UsuarioId == prof.UsuarioId));
+            await _context.SaveChangesAsync();
+        }
+
         // Edição cadastral do profissional (tela de usuários). A identidade vive na
         // Pessoa (fonte única), então atualizamos lá — espelha PacienteService.AtualizarAsync.
         // O CPF é inalterável.
@@ -51,13 +75,20 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                 .Include(p => p.Pessoa)
                 .FirstOrDefaultAsync(p => p.Id == id)
                 ?? throw new NotFoundException("Profissional não encontrado.");
+            var emailAntigo = prof.Pessoa?.Email;
 
             if (prof.Pessoa != null)
             {
                 if (!string.IsNullOrWhiteSpace(request.Nome))
                     prof.Pessoa.AtualizarNome(request.Nome);
                 if (!string.IsNullOrWhiteSpace(request.Email))
-                    prof.Pessoa.AtualizarEmail(request.Email.Trim().ToLowerInvariant());
+                {
+                    var email = request.Email.Trim().ToLowerInvariant();
+                    // Só barra quando o e-mail muda: contas antigas fora do domínio continuam editáveis.
+                    if (email != prof.Pessoa.Email && !EmailInstitucional.EhInstitucional(email))
+                        throw new BusinessRuleException(EmailInstitucional.Exigencia);
+                    prof.Pessoa.AtualizarEmail(email);
+                }
                 if (!string.IsNullOrWhiteSpace(request.Telefone))
                     prof.Pessoa.AtualizarTelefone(request.Telefone.Replace("(", "").Replace(")", "").Replace("-", "").Replace(" ", ""));
             }
@@ -84,6 +115,9 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             }
 
             await _context.SaveChangesAsync();
+
+            if (prof.Pessoa != null && emailAntigo != null && prof.Pessoa.Email != emailAntigo)
+                await _avisoConta.AvisarTrocaDeEmailAsync(prof.Pessoa.Nome, emailAntigo, prof.Pessoa.Email);
 
             return new
             {

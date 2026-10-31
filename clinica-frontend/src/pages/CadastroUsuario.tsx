@@ -9,6 +9,7 @@ import Button from "../components/ui/Button";
 import { useScrollBlock } from "../hooks/useScrollBlock";
 import ModalPortal from "../components/ui/ModalPortal";
 import SeletorPrimeiroPlantao from "../components/SeletorPrimeiroPlantao";
+import { DOMINIO_CLINICA, completarDominio, ehEmailInstitucional } from "../utils/emailInstitucional";
 
 const inputCls =
   "w-full h-10 px-3 text-sm text-ink bg-white border border-line rounded-md outline-none focus:border-brand-600 focus:shadow-focus transition-shadow placeholder:text-muted";
@@ -62,6 +63,14 @@ export function CadastroUsuario({ open, onClose, onUserCreated, tipoUsuarioLogad
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    if (ehProfissional && !ehEmailInstitucional(email)) {
+      toast.error(`Médicos e enfermeiras devem usar o e-mail institucional (${DOMINIO_CLINICA}).`);
+      return;
+    }
+    if (!ehProfissional && ehEmailInstitucional(email)) {
+      toast.error(`O domínio ${DOMINIO_CLINICA} é exclusivo da equipe da clínica. Use o e-mail pessoal do paciente.`);
+      return;
+    }
     if (ehProfissional && inicioPlantoes === null) {
       toast.error("Escolha o dia do primeiro plantão do profissional.");
       return;
@@ -132,62 +141,6 @@ export function CadastroUsuario({ open, onClose, onUserCreated, tipoUsuarioLogad
         <form onSubmit={handleSubmit} className="flex flex-col overflow-hidden">
           <div className="px-6 py-6 overflow-y-auto custom-scrollbar">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-5 gap-y-4">
-          <div>
-            <label className={labelCls}>Nome completo *</label>
-            <input
-              type="text"
-              required
-              value={nome}
-              onChange={(e) => setNome(e.target.value)}
-              className={inputCls}
-              placeholder="Digite o nome completo"
-            />
-          </div>
-          <div>
-            <label className={labelCls}>E-mail *</label>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className={inputCls}
-              placeholder="exemplo@email.com"
-            />
-          </div>
-          <div>
-            <label className={labelCls}>CPF *</label>
-            <input
-              type="text"
-              required
-              maxLength={14}
-              value={cpf}
-              onChange={(e) => setCpf(mascaraCpf(e.target.value))}
-              className={inputCls}
-              placeholder="000.000.000-00"
-            />
-          </div>
-          <div>
-            <label className={labelCls}>Senha *</label>
-            <input
-              type="password"
-              required
-              value={senha}
-              onChange={(e) => setSenha(e.target.value)}
-              className={inputCls}
-              placeholder="••••••"
-            />
-          </div>
-          <div>
-            <label className={labelCls}>Telefone</label>
-            <input
-              type="text"
-              maxLength={15}
-              value={telefone}
-              onChange={(e) => setTelefone(mascaraTelefone(e.target.value))}
-              className={inputCls}
-              placeholder="(00) 00000-0000"
-            />
-          </div>
           <div className="relative">
             <label className={labelCls}>Tipo de perfil *</label>
             {opcoesPerfil.length === 1 ? (
@@ -231,6 +184,67 @@ export function CadastroUsuario({ open, onClose, onUserCreated, tipoUsuarioLogad
                 )}
               </>
             )}
+          </div>
+          <div>
+            <label className={labelCls}>Nome completo *</label>
+            <input
+              type="text"
+              required
+              value={nome}
+              onChange={(e) => setNome(e.target.value)}
+              className={inputCls}
+              placeholder="Digite o nome completo"
+            />
+          </div>
+          <div>
+            <label className={labelCls}>E-mail *</label>
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              // Profissional: Tab (ou sair do campo) completa o domínio da clínica.
+              onBlur={() => ehProfissional && setEmail(completarDominio(email))}
+              className={inputCls}
+              placeholder={ehProfissional ? `nome.sobrenome${DOMINIO_CLINICA}` : "exemplo@email.com"}
+            />
+            {ehProfissional && (
+              <p className="text-[11px] text-muted mt-1">Aperte a tecla "TAB" para auto-completar o domínio</p>
+            )}
+          </div>
+          <div>
+            <label className={labelCls}>CPF *</label>
+            <input
+              type="text"
+              required
+              maxLength={14}
+              value={cpf}
+              onChange={(e) => setCpf(mascaraCpf(e.target.value))}
+              className={inputCls}
+              placeholder="000.000.000-00"
+            />
+          </div>
+          <div>
+            <label className={labelCls}>Senha *</label>
+            <input
+              type="password"
+              required
+              value={senha}
+              onChange={(e) => setSenha(e.target.value)}
+              className={inputCls}
+              placeholder="••••••"
+            />
+          </div>
+          <div>
+            <label className={labelCls}>Telefone</label>
+            <input
+              type="text"
+              maxLength={15}
+              value={telefone}
+              onChange={(e) => setTelefone(mascaraTelefone(e.target.value))}
+              className={inputCls}
+              placeholder="(00) 00000-0000"
+            />
           </div>
         </div>
 

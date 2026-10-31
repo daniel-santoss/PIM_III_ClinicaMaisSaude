@@ -32,13 +32,23 @@ namespace ClinicaMaisSaude.Infrastructure.Services
 
             if (!Cpf.EhValido(cpfLimpo))
             {
-                return new CadastroResult { Sucesso = false, Mensagem = "O CPF informado não é matematicamente válido." };
+                return new CadastroResult { Sucesso = false, Mensagem = "O CPF informado é inválido." };
             }
 
             // Unicidade de identidade vive na Pessoa (Thread B).
             if (await _context.Pessoas.AnyAsync(p => p.Cpf == cpfLimpo || p.Email == request.Email))
             {
                 return new CadastroResult { Sucesso = false, Mensagem = "Já existe um usuário com este CPF ou E-mail." };
+            }
+
+            if ((request.TipoUsuario == PerfisUsuario.Medico || request.TipoUsuario == PerfisUsuario.Enfermeira)
+                && !EmailInstitucional.EhInstitucional(request.Email))
+            {
+                return new CadastroResult { Sucesso = false, Mensagem = EmailInstitucional.Exigencia };
+            }
+            if (request.TipoUsuario == PerfisUsuario.Paciente && EmailInstitucional.EhInstitucional(request.Email))
+            {
+                return new CadastroResult { Sucesso = false, Mensagem = EmailInstitucional.ExclusivoDaEquipe };
             }
 
             // Validação de CRM obrigatório para Médicos

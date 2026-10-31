@@ -92,13 +92,16 @@ namespace ClinicaMaisSaude.Infrastructure.Services
 
             // Conta de paciente não-ativa bloqueia o acesso mesmo com credenciais válidas.
             // Verificado após a senha para não vazar a existência da conta no tempo de resposta.
-            // Banido = permanente (abuso de IA); Desativado/Excluido = encerrada.
+            // Banido = permanente (abuso de IA), com aviso próprio. Desativado/Excluido responde
+            // como credencial inválida: conta encerrada é, para quem tenta entrar, conta que não existe.
             if (perfilPaciente != null && perfilPaciente.Situacao != Situacao.Ativo)
             {
                 if (perfilPaciente.Situacao == Situacao.Banido)
                     throw new UnauthorizedException("PERMANENT_BAN:Sua conta foi banida permanentemente devido a violações graves das políticas de segurança.");
-                throw new UnauthorizedException("Esta conta foi encerrada.");
+                throw new UnauthorizedException("Credenciais inválidas.");
             }
+            if (perfilProfissional != null && !perfilProfissional.EstaAtivo)
+                throw new UnauthorizedException("Credenciais inválidas.");
 
             return await EmitirSessaoAsync(usuario, perfilPaciente, perfilProfissional);
         }
@@ -208,7 +211,8 @@ namespace ClinicaMaisSaude.Infrastructure.Services
 
             // A sessão só se renova enquanto a conta do paciente estiver ativa (mesma regra do
             // login). Assim um banimento ou desativação tira o acesso em até um JWT (15 min).
-            if (perfilPaciente != null && perfilPaciente.Situacao != Situacao.Ativo)
+            if ((perfilPaciente != null && perfilPaciente.Situacao != Situacao.Ativo) ||
+                (perfilProfissional != null && !perfilProfissional.EstaAtivo))
                 throw new UnauthorizedException("Esta conta foi encerrada.");
 
             return await EmitirSessaoAsync(usuario, perfilPaciente, perfilProfissional);

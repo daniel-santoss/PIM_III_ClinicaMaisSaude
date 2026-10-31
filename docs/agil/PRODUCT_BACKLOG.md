@@ -28,6 +28,8 @@ Cada história tem critérios de aceite e situação atual. Derivado do históri
 | E1-09 | Como administrador, quero **escolher quais enfermeiras gerenciam pacientes** (cadastrar, editar, redefinir senha) em vez de todas terem esse acesso. | Should | 📦 |
 | E1-10 | Como sistema, quero **autorização por recurso** (cada um só vê e altera os próprios agendamentos/fichas; enfermeira só redefine senha de paciente). | Must | ✅ |
 | E1-11 | Como sistema, quero **sessão curta** (JWT de 15 min, renovado sem o usuário perceber) e **recusar a renovação** de contas banidas ou desativadas. | Should | ✅ |
+| E1-12 | Como paciente, quero **informar meu nome social** e ser chamado por ele nas telas e nas comunicações (Decreto nº 8.727/2016). | Could | 📦 |
+| E1-13 | Como gestão, quero **coletar o quesito raça/cor autodeclarado** (opcional) para acompanhar indicadores de equidade no acesso ao atendimento (Estatuto da Igualdade Racial e PNSIPN). | Could | 📦 |
 
 **Nota (E8-05):** publicado no Azure (*Azure for Students*) em 25/10/2026: API no App Service B1 (container
 vindo do GHCR), Azure SQL na oferta gratuita e portal + app web em Static Web Apps. Detalhes e custos em
@@ -161,6 +163,7 @@ motivo e notifica o proponente por e-mail; um modelo já usado em solicitações
 | E8-04 | Como equipe, quero **artefatos de deploy** (Dockerfile, compose, DEPLOY.md). | Should | ✅ |
 | E8-05 | Como equipe, quero **publicar em nuvem** com pipeline de CD. | Could | ✅ |
 | E8-06 | Como equipe, quero **acessibilidade** auditada (web + mobile). | Should | ✅ |
+| E8-08 | Como usuário, quero que as **buscas por nome ou CPF** só disparem a partir do 3º caractere e consultem uma coluna só (CPF pelo índice), para a tela não pesar com muitos registros. | Should | ✅ |
 | E8-07 | Como equipe, quero **automatizar no CD** a troca da imagem da API e as migrations (hoje são passos do script local). | Could | 📦 |
 
 ---
@@ -175,4 +178,5 @@ motivo e notifica o proponente por e-mail; um modelo já usado em solicitações
 | 📦 Could | Troca de plantão, plantão extra e outros regimes de escala | E2-11 |
 | 📦 Should | Permissão "Gerenciar pacientes" por enfermeira | E1-09 |
 | 📦 Could | Eliminar o caminho duplicado entre as tabelas de identidade | E1-08 |
+| 📦 Could | Nome social e quesito raça/cor autodeclarado (diversidade) | E1-12, E1-13 |
 | 🚫 Won't (agora) | Multi-tenant (múltiplas unidades) · 2º fator no 1º acesso · planos de saúde na home | — |

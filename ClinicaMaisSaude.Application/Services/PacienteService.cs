@@ -1,5 +1,6 @@
 using ClinicaMaisSaude.Application.DTOs.Paciente;
 using ClinicaMaisSaude.Application.Exceptions;
+using ClinicaMaisSaude.Domain.Common;
 using ClinicaMaisSaude.Application.Interfaces;
 using ClinicaMaisSaude.Domain.Entities;
 using ClinicaMaisSaude.Domain.Enums;
@@ -16,12 +17,14 @@ namespace ClinicaMaisSaude.Application.Services
         private readonly IPacienteRepository _repository;
         private readonly IProfissionalRepository _profissionalRepository;
         private readonly IAgendamentoRepository _agendamentoRepository;
+        private readonly IAvisoContaService _avisoConta;
 
-        public PacienteService(IPacienteRepository pacienteRepository, IProfissionalRepository profissionalRepository, IAgendamentoRepository agendamentoRepository)
+        public PacienteService(IPacienteRepository pacienteRepository, IProfissionalRepository profissionalRepository, IAgendamentoRepository agendamentoRepository, IAvisoContaService avisoConta)
         {
             _repository = pacienteRepository;
             _profissionalRepository = profissionalRepository;
             _agendamentoRepository = agendamentoRepository;
+            _avisoConta = avisoConta;
         }
 
         // Carrega a entidade pelo id ou lança 404. Convenção do projeto: Buscar* garante
@@ -80,7 +83,8 @@ namespace ClinicaMaisSaude.Application.Services
 
             if (incluirProfissionais)
             {
-                var profissionais = await _profissionalRepository.ObterTodosAsync();
+                // Profissional excluído (desativado) sai da lista, como o paciente.
+                var profissionais = (await _profissionalRepository.ObterTodosAsync()).Where(p => p.EstaAtivo);
 
                 // Filtrar por nome/cpf (identidade a partir da Pessoa) se os filtros foram passados
                 if (!string.IsNullOrWhiteSpace(nome))
@@ -136,7 +140,7 @@ namespace ClinicaMaisSaude.Application.Services
 
             if (incluirProfissionais)
             {
-                var profissionais = await _profissionalRepository.ObterTodosAsync();
+                var profissionais = (await _profissionalRepository.ObterTodosAsync()).Where(p => p.EstaAtivo);
 
                 if (!string.IsNullOrWhiteSpace(nome))
                     profissionais = profissionais.Where(p => p.Pessoa != null && p.Pessoa.Nome.Contains(nome, StringComparison.OrdinalIgnoreCase));
@@ -189,6 +193,7 @@ namespace ClinicaMaisSaude.Application.Services
         public async Task<PacienteResponse> AtualizarAsync(Guid id, PacienteRequest request)
         {
             var paciente = await BuscarPacienteAsync(id);
+            var emailAntigo = paciente.Pessoa?.Email;
 
             // Identidade (Nome/Email/Telefone) é atualizada na Pessoa (fonte única — Thread B);
             // o perfil de paciente só guarda o dado clínico.
@@ -197,13 +202,21 @@ namespace ClinicaMaisSaude.Application.Services
                 if (!string.IsNullOrWhiteSpace(request.Nome))
                     paciente.Pessoa.AtualizarNome(request.Nome);
                 if (!string.IsNullOrWhiteSpace(request.Email))
-                    paciente.Pessoa.AtualizarEmail(request.Email.Trim().ToLowerInvariant());
+                {
+                    var email = request.Email.Trim().ToLowerInvariant();
+                    if (email != paciente.Pessoa.Email && EmailInstitucional.EhInstitucional(email))
+                        throw new BusinessRuleException(EmailInstitucional.ExclusivoDaEquipe);
+                    paciente.Pessoa.AtualizarEmail(email);
+                }
                 if (!string.IsNullOrWhiteSpace(request.Telefone))
                     paciente.Pessoa.AtualizarTelefone(request.Telefone.Replace("(", "").Replace(")", "").Replace("-", "").Replace(" ", ""));
             }
             paciente.Atualizar(request.TemProblemaMemoria);
 
             await _repository.AtualizarAsync(paciente);
+
+            if (paciente.Pessoa != null && emailAntigo != null && paciente.Pessoa.Email != emailAntigo)
+                await _avisoConta.AvisarTrocaDeEmailAsync(paciente.Pessoa.Nome, emailAntigo, paciente.Pessoa.Email);
 
             return new PacienteResponse
             {

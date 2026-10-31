@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Threading.Tasks;
 using ClinicaMaisSaude.Application.DTOs.AutoCadastro;
 using ClinicaMaisSaude.Application.Exceptions;
+using ClinicaMaisSaude.Domain.Common;
 using ClinicaMaisSaude.Application.Interfaces;
 using ClinicaMaisSaude.Domain.Constants;
 using ClinicaMaisSaude.Domain.Entities;
@@ -50,6 +51,9 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             var email = NormalizarEmail(request.Email);
             if (!EmailValido(email))
                 throw new ValidationException("Informe um e-mail válido.");
+            // A verificação de e-mail é o primeiro passo do auto-cadastro, que só cria pacientes.
+            if (EmailInstitucional.EhInstitucional(email))
+                throw new ValidationException(EmailInstitucional.ExclusivoDaEquipe);
 
             var agora = DateTime.UtcNow;
             var codigosDoEmail = await _context.CodigosVerificacao

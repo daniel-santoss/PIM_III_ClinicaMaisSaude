@@ -189,7 +189,7 @@ namespace ClinicaMaisSaude.Infrastructure.Tests.Services
         {
             var medico = SemearProfissional("Dr. Carlos", RoleUsuario.Medico, EscalaTrabalho.Escala1);
             var inicio = ProximoDia(EscalaTrabalho.Escala1).AddDays(2);
-            await new ProfissionalService(_context).AtualizarAsync(medico.Id, new ProfissionalUpdateRequest { InicioPlantoes = inicio });
+            await new ProfissionalService(_context, new AvisoContaFake()).AtualizarAsync(medico.Id, new ProfissionalUpdateRequest { InicioPlantoes = inicio });
 
             var antes = await ObterDia(inicio.AddDays(-2));
             var noInicio = await ObterDia(inicio);
@@ -203,7 +203,7 @@ namespace ClinicaMaisSaude.Infrastructure.Tests.Services
         {
             var medico = SemearProfissional("Dr. Carlos", RoleUsuario.Medico, EscalaTrabalho.Escala1);
             SemearConsulta(medico.Id, ProximoDia(EscalaTrabalho.Escala1).AddHours(9));
-            var profissionalService = new ProfissionalService(_context);
+            var profissionalService = new ProfissionalService(_context, new AvisoContaFake());
 
             await Assert.ThrowsAsync<BusinessRuleException>(() => profissionalService.AtualizarAsync(medico.Id,
                 new ProfissionalUpdateRequest { InicioPlantoes = ProximoDia(EscalaTrabalho.Escala2) }));
@@ -219,7 +219,7 @@ namespace ClinicaMaisSaude.Infrastructure.Tests.Services
                 new RegistrarAusenciaRequest { ProfissionalId = medico.Id, Data = diaAusencia, Motivo = "Compromisso" }, _adminId);
 
             var novoInicio = ProximoDia(EscalaTrabalho.Escala2);
-            await new ProfissionalService(_context).AtualizarAsync(medico.Id, new ProfissionalUpdateRequest { InicioPlantoes = novoInicio });
+            await new ProfissionalService(_context, new AvisoContaFake()).AtualizarAsync(medico.Id, new ProfissionalUpdateRequest { InicioPlantoes = novoInicio });
 
             var prof = await _context.Profissionais.AsNoTracking().SingleAsync(p => p.Id == medico.Id);
             Assert.Equal((EscalaTrabalho.Escala2, novoInicio), (prof.Escala, prof.InicioPlantoes));
@@ -227,6 +227,38 @@ namespace ClinicaMaisSaude.Infrastructure.Tests.Services
             Assert.Equal(1, await _context.AusenciasProfissional.CountAsync());
             var mes = await _service.ObterMesAsync(diaAusencia.Year, diaAusencia.Month);
             Assert.Equal(0, mes.Dias.Single(d => d.Data == diaAusencia).Ausencias);
+        }
+
+        [Fact]
+        public async Task Excluir_ProfissionalComConsultaFutura_Bloqueia()
+        {
+            var medico = SemearProfissional("Dr. Carlos", RoleUsuario.Medico, EscalaTrabalho.Escala1);
+            SemearConsulta(medico.Id, ProximoDia(EscalaTrabalho.Escala1).AddHours(9));
+
+            await Assert.ThrowsAsync<BusinessRuleException>(() =>
+                new ProfissionalService(_context, new AvisoContaFake()).DesativarAsync(medico.Id, _adminId));
+            Assert.True((await _context.Profissionais.AsNoTracking().SingleAsync(p => p.Id == medico.Id)).EstaAtivo);
+        }
+
+        [Fact]
+        public async Task Excluir_APropriaConta_Bloqueia()
+        {
+            var medico = SemearProfissional("Dr. Carlos", RoleUsuario.Medico, EscalaTrabalho.Escala1);
+
+            await Assert.ThrowsAsync<BusinessRuleException>(() =>
+                new ProfissionalService(_context, new AvisoContaFake()).DesativarAsync(medico.Id, medico.UsuarioId));
+        }
+
+        [Fact]
+        public async Task Excluir_TiraOProfissionalDaEscalaEDaDelegacao()
+        {
+            var medico = SemearProfissional("Dr. Carlos", RoleUsuario.Medico, EscalaTrabalho.Escala1);
+            var dia = ProximoDia(EscalaTrabalho.Escala1);
+
+            await new ProfissionalService(_context, new AvisoContaFake()).DesativarAsync(medico.Id, _adminId);
+
+            Assert.Empty((await ObterDia(dia)).Profissionais.Itens);
+            Assert.Empty(await new ClinicaMaisSaude.Infrastructure.Repositories.ProfissionalRepository(_context).ObterTodosPorTipoAsync(TipoProfissional.Medico));
         }
 
         [Fact]

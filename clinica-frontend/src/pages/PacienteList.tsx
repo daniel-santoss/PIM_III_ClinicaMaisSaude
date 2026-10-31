@@ -17,6 +17,7 @@ import { termoDeBusca } from "../utils/busca";
 import AvisoBusca from "../components/ui/AvisoBusca";
 import SeletorPrimeiroPlantao from "../components/SeletorPrimeiroPlantao";
 import { proximoPlantao } from "../constants/escala";
+import { DOMINIO_CLINICA, completarDominio, ehEmailInstitucional } from "../utils/emailInstitucional";
 
 const modalInputCls =
   "w-full h-10 px-3 text-sm text-ink bg-white border border-line rounded-md outline-none focus:border-brand-600 focus:shadow-focus transition-shadow placeholder:text-muted";
@@ -68,9 +69,10 @@ export default function PacienteList({
   const [form, setForm] = useState<PacienteEdicao>({ nome: "", cpf: "", telefone: "", email: "", inicioPlantoes: null });
   // Valor com que o calendário abriu: só envia o primeiro plantão se o admin escolheu outro dia.
   const [inicioAoAbrir, setInicioAoAbrir] = useState<string | null>(null);
+  const [emailAoAbrir, setEmailAoAbrir] = useState("");
   const [salvando, setSalvando] = useState(false);
 
-  const [excluindoPaciente, setExcluindoPaciente] = useState<{ id: string, nome: string } | null>(null);
+  const [excluindoPaciente, setExcluindoPaciente] = useState<{ id: string, nome: string, tipo: string } | null>(null);
   const [excluindoLoader, setExcluindoLoader] = useState(false);
 
   const [pacienteReset, setPacienteReset] = useState<{ id: string, usuarioId: string, nome: string } | null>(null);
@@ -152,6 +154,7 @@ export default function PacienteList({
     const inicio = p.inicioPlantoes ? proximoPlantao(p.inicioPlantoes) : null;
     setForm({ nome: p.nome, cpf: p.cpf, telefone: p.telefone, email: p.email, inicioPlantoes: inicio });
     setInicioAoAbrir(inicio);
+    setEmailAoAbrir(p.email);
   };
 
   const fecharModal = () => {
@@ -162,6 +165,14 @@ export default function PacienteList({
 
   const salvarEdicao = async () => {
     if (!editandoId) return;
+    if (editandoTipo !== perfis.paciente && form.email !== emailAoAbrir && !ehEmailInstitucional(form.email)) {
+      toast.error(`Médicos e enfermeiras devem usar o e-mail institucional (${DOMINIO_CLINICA}).`);
+      return;
+    }
+    if (editandoTipo === perfis.paciente && form.email !== emailAoAbrir && ehEmailInstitucional(form.email)) {
+      toast.error(`O domínio ${DOMINIO_CLINICA} é exclusivo da equipe da clínica. Use o e-mail pessoal do paciente.`);
+      return;
+    }
     setSalvando(true);
     try {
       const token = localStorage.getItem(storageKeys.authToken);
@@ -177,7 +188,13 @@ export default function PacienteList({
         }),
       });
       if (!response.ok) {
-        if (response.status === 400) toast.error(await response.text());
+        if (response.status === 400) {
+          // Regra de negócio vem como ProblemDetails (JSON); validação simples, como texto.
+          const texto = await response.text();
+          let mensagem = texto;
+          try { const j = JSON.parse(texto); mensagem = j.message || j.detail || j.title || texto; } catch { /* texto puro */ }
+          toast.error(mensagem);
+        }
         return;
       }
       toast.success("Edição salva com sucesso!");
@@ -190,8 +207,8 @@ export default function PacienteList({
     }
   };
 
-  const abrirModalExclusao = (id: string, nome: string) => {
-    setExcluindoPaciente({ id, nome });
+  const abrirModalExclusao = (id: string, nome: string, tipo: string) => {
+    setExcluindoPaciente({ id, nome, tipo });
   };
 
   const fecharModalExclusao = () => {
@@ -203,15 +220,22 @@ export default function PacienteList({
     setExcluindoLoader(true);
     try {
       const token = localStorage.getItem(storageKeys.authToken);
-      const response = await fetch(`${API_URL}/api/Pacientes/${excluindoPaciente.id}`, {
+      // Como na edição: o id da linha pertence à tabela do perfil (paciente ou profissional).
+      const recurso = excluindoPaciente.tipo === perfis.paciente ? "Pacientes" : "Profissionais";
+      const response = await fetch(`${API_URL}/api/${recurso}/${excluindoPaciente.id}`, {
         method: "DELETE",
         headers: { "Authorization": `Bearer ${token}` }
       });
       if (!response.ok) {
-        if (response.status === 400) toast.error(await response.text());
+        if (response.status === 400) {
+          const texto = await response.text();
+          let mensagem = texto;
+          try { const j = JSON.parse(texto); mensagem = j.message || j.detail || j.title || texto; } catch { /* texto puro */ }
+          toast.error(mensagem);
+        }
         return;
       }
-      toast.success("Paciente excluído com sucesso.");
+      toast.success("Usuário excluído com sucesso.");
       setExcluindoPaciente(null);
       setRefreshInterno((prev) => prev + 1);
     } catch (err) {
@@ -526,7 +550,7 @@ export default function PacienteList({
                             <button
                               title="Excluir usuário"
                               className="w-8 h-8 grid place-items-center bg-white border border-line rounded-md text-danger hover:bg-danger-tint hover:border-danger-border transition-colors"
-                              onClick={() => abrirModalExclusao(p.id, p.nome)}
+                              onClick={() => abrirModalExclusao(p.id, p.nome, p.tipo ?? perfis.paciente)}
                             >
                               <Trash className="w-[15px] h-[15px]" />
                             </button>
@@ -605,10 +629,14 @@ export default function PacienteList({
                   <input
                     type="email"
                     className={modalInputCls}
-                    placeholder="exemplo@email.com"
+                    placeholder={editandoTipo !== perfis.paciente ? `nome.sobrenome${DOMINIO_CLINICA}` : "exemplo@email.com"}
                     value={form.email}
                     onChange={(e) => setForm({ ...form, email: e.target.value })}
+                    onBlur={() => editandoTipo !== perfis.paciente && form.email !== emailAoAbrir && setForm({ ...form, email: completarDominio(form.email) })}
                   />
+                  {editandoTipo !== perfis.paciente && (
+                    <p className="text-[11px] text-muted mt-1">Tab completa com {DOMINIO_CLINICA}</p>
+                  )}
                 </div>
               </div>
               {editandoTipo !== perfis.paciente && (
