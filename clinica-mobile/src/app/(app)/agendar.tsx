@@ -36,6 +36,7 @@ import {
 } from '@/lib/consultas';
 import CalendarioMes from '@/components/CalendarioMes';
 import { TIPO_CONSULTA, TIPO_PROFISSIONAL } from '@/constants/agendamento';
+import AvisoVacinas from '@/components/AvisoVacinas';
 import { formatarDataHora } from '@/lib/datas';
 import type { Agendamento } from '@/types/agendamento';
 
@@ -370,6 +371,7 @@ export default function AgendarScreen() {
                   </View>
                 )}
               </View>
+              {tipoConsultaInt === TIPO_CONSULTA.vacina && <AvisoVacinas />}
 
               <Pressable
                 onPress={() => {
@@ -394,6 +396,8 @@ export default function AgendarScreen() {
                 <Text style={styles.selectTexto}>{tipoManualLabel}</Text>
                 <Ionicons name="chevron-down" size={18} color="#6B7280" />
               </Pressable>
+
+              {tipoConsultaManual === TIPO_CONSULTA.vacina && <AvisoVacinas />}
 
               {tipoConsultaManual === TIPO_CONSULTA.consultaMedica && (
                 <>
