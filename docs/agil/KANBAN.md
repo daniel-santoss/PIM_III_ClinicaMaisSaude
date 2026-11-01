@@ -36,7 +36,7 @@ Um item só entra em **✅ Concluído** quando:
 
 ## Métricas de fluxo (visão geral)
 
-- **353 commits** entre 07/04 e 29/10/2026 · picos de entrega em maio (features), agosto (refactor + mobile) e
+- **400 commits** entre 07/04 e 31/10/2026 · picos de entrega em maio (features), agosto (refactor + mobile) e
   outubro (segurança, paridade mobile e publicação).
-- **217 testes** automatizados no backend (domínio, aplicação, API e infraestrutura) + `tsc` (web/mobile) na CI.
+- **241 testes** automatizados no backend (domínio, aplicação, API e infraestrutura) + `tsc` (web/mobile) na CI.
 - Cadência: entregas incrementais frequentes; sem *sprints* de duração fixa (fluxo Kanban orientado a tema).
