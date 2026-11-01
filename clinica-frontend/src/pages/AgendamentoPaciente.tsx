@@ -8,6 +8,7 @@ import { AlertCircle, Calendar, Zap, Check, AlertTriangle, Sliders, CheckCircle,
 import { getRealDate, obterMinDate } from '../utils/dates';
 import { useScrollBlock } from "../hooks/useScrollBlock";
 import ModalPortal from "../components/ui/ModalPortal";
+import AvisoVacinas from "../components/AvisoVacinas";
 
 interface AgendamentoPacienteProps {
   onSucesso?: () => void;
@@ -464,6 +465,7 @@ export default function AgendamentoPaciente({
                           </p>
                         </div>
                       </div>
+                      {sugestaoIA.tipoConsulta === "Vacina" && <div className="mt-3"><AvisoVacinas /></div>}
                       <div className="flex gap-2.5 pt-4">
                         <button onClick={usarSugestao} className="flex-1 h-10 bg-brand-600 text-white rounded-md font-semibold text-sm border border-brand-600 hover:bg-brand-800 transition-colors">Usar sugestão</button>
                         <button onClick={() => setPasso(2)} className="flex-1 h-10 bg-white text-body border border-line rounded-md font-semibold text-sm hover:bg-canvas transition-colors">Escolher outro</button>
@@ -506,6 +508,8 @@ export default function AgendamentoPaciente({
                   <option value={TC.retorno}>Retorno</option>
                 </select>
               </div>
+
+              {tipoConsulta === TC.vacina && <AvisoVacinas />}
 
               {tipoConsulta === TC.consultaMedica && (() => {
                 const filtradas = ESPECIALIDADES.filter(e => e.toLowerCase().includes(buscaEspecialidade.toLowerCase()));
