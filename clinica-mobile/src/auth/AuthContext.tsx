@@ -51,7 +51,8 @@ async function extrairErro(res: Response): Promise<string> {
   // O backend responde ProblemDetails (JSON) com .message/.detail/.title.
   try {
     const j = (await res.json()) as { message?: string; detail?: string; title?: string };
-    return j.message || j.detail || j.title || 'Credenciais inválidas.';
+    // "PERMANENT_BAN:" é só um marcador para o cliente reconhecer o banimento; não vai para a tela.
+    return (j.message || j.detail || j.title || 'Credenciais inválidas.').replace(/^PERMANENT_BAN:/, '');
   } catch {
     return 'Credenciais inválidas.';
   }

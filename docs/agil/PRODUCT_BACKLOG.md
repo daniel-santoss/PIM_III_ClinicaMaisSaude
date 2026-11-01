@@ -137,7 +137,8 @@ motivo e notifica o proponente por e-mail; um modelo já usado em solicitações
 | E6-05 | Como paciente, quero **agendar pela IA ou manualmente** (modo avançado). | Should | ✅ |
 | E6-06 | Como paciente, quero **escolher o dia num calendário** que destaca os dias com horário livre. | Should | ✅ |
 | E6-07 | Como paciente, quero um **perfil enxuto** (foto e nome) com telas de *Dados pessoais* e *Configurações*. | Could | ✅ |
-| E6-08 | Como paciente, quero **instalar o app no Android** (APK gerado pelo EAS Build). | Should | 🔜 |
+| E6-08 | Como paciente, quero **instalar o app no Android** (APK gerado pelo EAS Build). | Should | ✅ |
+| E6-10 | Como paciente, quero saber **quais vacinas estão disponíveis** ao agendar vacina (hoje COVID-19 e gripe, numa constante; catálogo com estoque fica para depois). | Should | ✅ |
 | E6-09 | Como paciente, quero **usar o app pelo navegador**, sem instalar nada. | Could | ✅ |
 
 ---
@@ -150,6 +151,9 @@ motivo e notifica o proponente por e-mail; um modelo já usado em solicitações
 | E7-02 | Como administrador, quero **auditar violações de IA**. | Should | ✅ |
 | E7-03 | Como administrador, quero **relatórios** (ex.: faltas por profissional). | Should | ✅ |
 | E7-04 | Como administrador, quero um **painel** com indicadores gerais. | Could | 📦 |
+| E7-05 | Como administrador, quero que **médicos e enfermeiras usem o e-mail institucional** (Tab completa o domínio; domínio proibido para pacientes) e ser avisado, no endereço antigo e no novo, de toda troca de e-mail. | Should | ✅ |
+| E7-06 | Como administrador, quero **excluir médico ou enfermeira** (desativa, encerra as sessões e tira da escala; bloqueado se houver consultas agendadas). | Should | ✅ |
+| E7-07 | Como administrador, quero **contadores de pendência no menu** (agendamentos sem baixa, solicitações em análise, violações novas, consultas a remarcar na escala). | Could | 📦 |
 
 ---
 
@@ -176,6 +180,8 @@ motivo e notifica o proponente por e-mail; um modelo já usado em solicitações
 | 📦 Could | Automatizar troca da imagem e migrations no CD | E8-07 |
 | 📦 Could | Painel administrativo com indicadores | E7-04 |
 | 📦 Could | Troca de plantão, plantão extra e outros regimes de escala | E2-11 |
+| 📦 Could | Contadores de pendência no menu do portal | E7-07 |
+| 📦 Could | Campo "qual vacina?" no agendamento ou catálogo de vacinas com estoque | E6-10 |
 | 📦 Should | Permissão "Gerenciar pacientes" por enfermeira | E1-09 |
 | 📦 Could | Eliminar o caminho duplicado entre as tabelas de identidade | E1-08 |
 | 📦 Could | Nome social e quesito raça/cor autodeclarado (diversidade) | E1-12, E1-13 |
