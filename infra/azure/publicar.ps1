@@ -7,8 +7,8 @@
     -Banco  aplica as migrations no Azure SQL (abre o firewall só para o seu IP e fecha ao final)
     -Api    aponta a API para a imagem do último commit da branch publicada no GHCR (gerada pelo
             GitHub Actions) e reinicia
-    -Web    builda o portal (Vite) apontando para a API pública e publica no site estático do Storage
-    -App    exporta o app mobile para web (Expo) e publica no site estático do Storage
+    -Web    builda o portal (Vite) apontando para a API pública e publica no seu Web App
+    -App    exporta o app mobile para web (Expo) e publica no seu Web App
 
 .EXAMPLE
   ./infra/azure/publicar.ps1 -Sufixo edu            # tudo
@@ -41,11 +41,28 @@ function Get-AppSetting([string]$Nome) {
     return ($lista | Where-Object { $_.name -eq $Nome } | Select-Object -First 1).value
 }
 
-# Publica uma pasta estática no site estático da conta de Storage (contêiner $web).
-# "no-cache" faz o navegador revalidar: sem isso, ficaria com o index.html da versão anterior.
-function Publicar-Static([string]$Conta, [string]$Pasta) {
-    Invoke-Az storage blob upload-batch --account-name $Conta --auth-mode key -d '$web' -s $Pasta `
-        --overwrite --content-cache-control "no-cache" -o none
+# Publica uma pasta estática num dos Web Apps de front-end (zip deploy; --clean apaga os arquivos
+# da versão anterior). O zip é montado entrada a entrada porque o ZipFile do PowerShell 5.1 grava
+# os caminhos com "\" ("assets\index.js"), que o Linux do App Service não entende como pasta.
+function Publicar-Static([string]$Site, [string]$Pasta) {
+    Add-Type -AssemblyName System.IO.Compression, System.IO.Compression.FileSystem
+    $zip = Join-Path ([IO.Path]::GetTempPath()) "$Site.zip"
+    Remove-Item $zip -ErrorAction SilentlyContinue
+    $base = (Resolve-Path $Pasta).Path.TrimEnd("\") + "\"
+    $arquivo = [IO.Compression.ZipFile]::Open($zip, [IO.Compression.ZipArchiveMode]::Create)
+    try {
+        foreach ($f in Get-ChildItem $base -Recurse -File) {
+            $entrada = $f.FullName.Substring($base.Length).Replace("\", "/")
+            [IO.Compression.ZipFileExtensions]::CreateEntryFromFile($arquivo, $f.FullName, $entrada) | Out-Null
+        }
+    }
+    finally { $arquivo.Dispose() }
+    try {
+        Invoke-Az webapp deploy -g $n.Grupo -n $Site --src-path $zip --type zip --clean true -o none
+    }
+    finally {
+        Remove-Item $zip -ErrorAction SilentlyContinue
+    }
 }
 
 if ($Banco) {

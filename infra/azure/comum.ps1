@@ -14,9 +14,10 @@ function Get-NomesRecursos([string]$Sufixo) {
         Banco       = "ClinicaMaisSaudeDb"
         Plano       = "plan-clinicamaissaude"
         Api         = "clinicamaissaude-api-$Sufixo"
-        # Contas de Storage (site estático): só letras minúsculas e dígitos, até 24 caracteres.
-        Web         = "clinicaweb$Sufixo"
-        AppWeb      = "clinicaapp$Sufixo"
+        # Endereços públicos (<nome>.azurewebsites.net), citados na monografia: sem sufixo, para
+        # ficarem legíveis. Únicos no Azure inteiro; mude-os se for publicar em outro lugar.
+        Web         = "clinicamaissaude"
+        AppWeb      = "clinicamaissaude-app"
     }
 }
 

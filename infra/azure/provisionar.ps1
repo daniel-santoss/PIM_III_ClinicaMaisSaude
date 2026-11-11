@@ -8,7 +8,7 @@
     - Grupo de recursos            rg-clinicamaissaude
     - Azure SQL Basic (5 DTU)      sql-clinica-<sufixo> / ClinicaMaisSaudeDb
     - App Service Linux B1         clinicamaissaude-api-<sufixo> (container da API vindo do GHCR, Always On)
-    - Storage (site estático) x2   clinicaweb<sufixo> (portal) e clinicaapp<sufixo> (mobile web)
+    - Web Apps no mesmo plano x2   clinicamaissaude (portal) e clinicamaissaude-app (mobile web)
 
   Segredos gerados aqui (JWT, pepper, senha do SQL) vão direto para as configurações do
   App Service e nunca são impressos. Os segredos que só você conhece (senha do admin, chave
@@ -33,7 +33,7 @@ $n = Get-NomesRecursos -Sufixo $Sufixo
 
 Write-Etapa "Provedores de recursos"
 # Assinaturas novas precisam registrar cada serviço antes do primeiro uso (é gratuito).
-foreach ($provedor in @("Microsoft.Sql", "Microsoft.Web", "Microsoft.Storage")) {
+foreach ($provedor in @("Microsoft.Sql", "Microsoft.Web")) {
     $estado = Invoke-Az provider show -n $provedor --query registrationState -o tsv
     if ($estado -ne "Registered") { Invoke-Az provider register -n $provedor --wait -o none }
 }
@@ -79,20 +79,20 @@ Invoke-Az webapp config set -g $n.Grupo -n $n.Api --always-on true --web-sockets
 Invoke-Az webapp update -g $n.Grupo -n $n.Api --https-only true -o none
 
 # ---------------------------------------------------------------- Front-ends
-Write-Etapa "Sites estáticos no Storage (portal web e app mobile no navegador)"
-# Static Web Apps não existe nas regiões que a assinatura libera; o site estático do Storage
-# serve os mesmos arquivos (centavos por mês). As rotas da SPA (ex.: /agendar) não são
-# arquivos: o documento de "404" é o próprio index.html, e o roteador do front resolve.
-foreach ($conta in @($n.Web, $n.AppWeb)) {
-    if (-not (Test-Az storage account show -g $n.Grupo -n $conta)) {
-        Invoke-Az storage account create -g $n.Grupo -n $conta -l $Regiao --sku Standard_LRS `
-            --kind StorageV2 --min-tls-version TLS1_2 -o none
+Write-Etapa "Portal web e app mobile no navegador (mesmo plano da API)"
+# Static Web Apps não existe nas regiões que a assinatura libera. Os dois front-ends rodam no
+# plano B1 já pago (sem custo extra) e o pm2 serve os arquivos; com --spa, as rotas da SPA
+# (ex.: /agendar) devolvem o index.html e o roteador do front resolve.
+foreach ($site in @($n.Web, $n.AppWeb)) {
+    if (-not (Test-Az webapp show -g $n.Grupo -n $site)) {
+        Invoke-Az webapp create -g $n.Grupo -p $n.Plano -n $site --runtime "NODE:24-lts" -o none
     }
-    Invoke-Az storage blob service-properties update --account-name $conta --auth-mode key `
-        --static-website --index-document index.html --404-document index.html -o none
+    Invoke-Az webapp config set -g $n.Grupo -n $site --min-tls-version 1.2 `
+        --startup-file "pm2 serve /home/site/wwwroot --no-daemon --spa" -o none
+    Invoke-Az webapp update -g $n.Grupo -n $site --https-only true -o none
 }
-$urlWeb = (Invoke-Az storage account show -g $n.Grupo -n $n.Web --query primaryEndpoints.web -o tsv).TrimEnd("/")
-$urlAppWeb = (Invoke-Az storage account show -g $n.Grupo -n $n.AppWeb --query primaryEndpoints.web -o tsv).TrimEnd("/")
+$urlWeb = "https://" + (Invoke-Az webapp show -g $n.Grupo -n $n.Web --query defaultHostName -o tsv)
+$urlAppWeb = "https://" + (Invoke-Az webapp show -g $n.Grupo -n $n.AppWeb --query defaultHostName -o tsv)
 $urlApi = "https://" + (Invoke-Az webapp show -g $n.Grupo -n $n.Api --query defaultHostName -o tsv)
 
 # ---------------------------------------------------------------- Configuração da API

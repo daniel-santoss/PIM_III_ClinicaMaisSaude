@@ -10,8 +10,8 @@ A arquitetura e as alternativas estão em [`docs/nuvem/ARQUITETURA_NUVEM.md`](..
 | API (.NET, container) | App Service `clinicamaissaude-api-<sufixo>` | Linux **B1**, *Always On*, WebSockets | ~US$ 13/mês |
 | Banco | Azure SQL `sql-clinica-<sufixo>` / `ClinicaMaisSaudeDb` | **Basic** (5 DTU, 2 GB), preço fixo | ~US$ 5/mês |
 | Imagens da API | GitHub Container Registry (`ghcr.io/daniel-santoss/clinica-api`) | Pacote público | US$ 0 |
-| Portal web | Storage `clinicaweb<sufixo>` | Site estático | centavos |
-| App mobile no navegador | Storage `clinicaapp<sufixo>` | Site estático | centavos |
+| Portal web | Web App `clinicamaissaude` (Node, `pm2 serve --spa`) | mesmo plano B1 | US$ 0 a mais |
+| App mobile no navegador | Web App `clinicamaissaude-app` (Node, `pm2 serve --spa`) | mesmo plano B1 | US$ 0 a mais |
 
 Não use a oferta gratuita *serverless* do Azure SQL: o serviço de lembretes mantém o banco acordado,
 a cota grátis acaba em ~2 dias e o excedente consumiu todo o crédito da primeira assinatura (nov/2026).
