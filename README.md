@@ -122,7 +122,7 @@ graph TD
 | [`requisitos_e_regras.md`](requisitos_e_regras.md) | Requisitos funcionais/não funcionais e regras de negócio |
 | [`clinica-context.md`](clinica-context.md) | Convenções de código e de trabalho |
 | [`DEPLOY.md`](DEPLOY.md) | Variáveis de ambiente, Docker e checklist de publicação |
-| [`infra/azure/`](infra/azure/README.md) | Scripts de publicação no Azure (portal: https://clinicawebedu.z15.web.core.windows.net · app: https://clinicaappedu.z15.web.core.windows.net) |
+| [`infra/azure/`](infra/azure/README.md) | Scripts de publicação no Azure (portal: https://clinicamaissaude.azurewebsites.net · app: https://clinicamaissaude-app.azurewebsites.net) |
 | [`docs/`](docs/) | Artefatos do PIM IV: banco de dados, gestão ágil, acessibilidade, nuvem e monografia |
 
 ---

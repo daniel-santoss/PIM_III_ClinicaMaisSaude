@@ -111,7 +111,7 @@ para o build. Os ícones e a tela de abertura são gerados a partir da logo da c
 ## Versão web e iPhone
 
 Sem conta Apple Developer não há app iOS instalável; no iPhone o caminho é a **versão web** do app, publicada no
-site estático do Azure Storage (`infra/azure/publicar.ps1 -App`). O `public/index.html` (modelo do build `single` do Expo)
+Azure App Service (`infra/azure/publicar.ps1 -App`). O `public/index.html` (modelo do build `single` do Expo)
 traz as tags do iOS e o `public/manifest.json` as do Android, então **Adicionar à Tela de Início** (Safari) ou
 **Instalar app** (Chrome) cria um ícone que abre em tela cheia. Na web, os tokens ficam no `localStorage`
 (`src/lib/storage.web.ts`) e não há biometria.

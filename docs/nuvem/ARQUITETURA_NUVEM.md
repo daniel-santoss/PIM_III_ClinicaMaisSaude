@@ -138,7 +138,7 @@ com o limite de gastos ligado, a assinatura é desativada quando o crédito acab
 |------|---------|--------------|
 | API | App Service Linux **B1** (container, *Always On*, WebSockets), região Brazil South | ~US$ 13/mês |
 | Banco | Azure SQL Database **Basic** (5 DTU, 2 GB), preço fixo | ~US$ 5/mês |
-| Portal web e app mobile no navegador | 2× contas de Storage com **site estático** | centavos |
+| Portal web e app mobile no navegador | 2× Web Apps (Node + `pm2 serve --spa`) **no mesmo plano B1** da API | US$ 0 a mais |
 | Imagem da API | GitHub Container Registry (pacote público), gerada pelo `cd.yml` | US$ 0 |
 
 **Lição (nov/2026):** a primeira publicação usava a oferta gratuita *serverless* do Azure SQL com cobrança do
@@ -150,7 +150,8 @@ custo fixo e previsível.
 Restrições encontradas e como foram contornadas:
 - Cada assinatura de estudante tem sua lista de regiões permitidas (a primeira só aceitava EUA; a atual,
   Brazil South, Canadá e Europa) → **Brazil South**. O Static Web Apps não existe nessas regiões → os
-  front-ends viraram **site estático do Storage** (o `index.html` também responde pelas rotas da SPA).
+  front-ends rodam como **Web Apps no mesmo plano B1** da API (sem custo extra; o `pm2 serve --spa` devolve o
+  `index.html` nas rotas da SPA).
 - O build de imagem no Azure (ACR Tasks) é bloqueado nesse tipo de assinatura → a imagem é buildada no
   **GitHub Actions** e publicada no **GHCR**; o App Service puxa de lá.
 - Tudo é reproduzível pelos scripts em [`infra/azure/`](../../infra/azure/README.md).
@@ -220,8 +221,8 @@ Publicado em 25/10/2026 e republicado em 10/11/2026 em outra assinatura (ver a l
 | | Endereço |
 |---|---|
 | API | https://clinicamaissaude-api-edu.azurewebsites.net |
-| Portal web | https://clinicawebedu.z15.web.core.windows.net |
-| App mobile no navegador | https://clinicaappedu.z15.web.core.windows.net |
+| Portal web | https://clinicamaissaude.azurewebsites.net |
+| App mobile no navegador | https://clinicamaissaude-app.azurewebsites.net |
 
 - [x] Provedor escolhido e conta criada (§5).
 - [x] Banco gerenciado provisionado e migrations aplicadas.
