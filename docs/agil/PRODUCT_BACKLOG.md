@@ -32,7 +32,8 @@ Cada história tem critérios de aceite e situação atual. Derivado do históri
 | E1-13 | Como gestão, quero **coletar o quesito raça/cor autodeclarado** (opcional) para acompanhar indicadores de equidade no acesso ao atendimento (Estatuto da Igualdade Racial e PNSIPN). | Could | 📦 |
 
 **Nota (E8-05):** publicado no Azure (*Azure for Students*) em 25/10/2026: API no App Service B1 (container
-vindo do GHCR), Azure SQL na oferta gratuita e portal + app web em Static Web Apps. Detalhes e custos em
+vindo do GHCR), Azure SQL e portal + app web; republicado em 10/11/2026 em outra assinatura (Brazil South, banco
+Basic de preço fixo, front-ends em site estático do Storage). Detalhes e custos em
 [`docs/nuvem/ARQUITETURA_NUVEM.md`](../nuvem/ARQUITETURA_NUVEM.md) e scripts em [`infra/azure/`](../../infra/azure/README.md).
 
 **Critérios de aceite (ex. E1-03):** o código expira em 15 min, é de uso único, trava após 5 tentativas;
