@@ -7,15 +7,15 @@
     -Banco  aplica as migrations no Azure SQL (abre o firewall só para o seu IP e fecha ao final)
     -Api    aponta a API para a imagem do último commit da branch publicada no GHCR (gerada pelo
             GitHub Actions) e reinicia
-    -Web    builda o portal (Vite) apontando para a API pública e publica no Static Web Apps
-    -App    exporta o app mobile para web (Expo) e publica no Static Web Apps
+    -Web    builda o portal (Vite) apontando para a API pública e publica no site estático do Storage
+    -App    exporta o app mobile para web (Expo) e publica no site estático do Storage
 
 .EXAMPLE
-  ./infra/azure/publicar.ps1 -Sufixo dvs            # tudo
-  ./infra/azure/publicar.ps1 -Sufixo dvs -Api       # só a API
+  ./infra/azure/publicar.ps1 -Sufixo edu            # tudo
+  ./infra/azure/publicar.ps1 -Sufixo edu -Api       # só a API
 #>
 param(
-    [string]$Sufixo = "dvs",
+    [string]$Sufixo = "edu",
     # Dono do repositório no GitHub (a imagem fica em ghcr.io/<dono>/clinica-api).
     [string]$GitHubOwner = "daniel-santoss",
     # Branch publicada: a imagem usada é a do último commit dela (o workflow roda nela).
@@ -41,16 +41,11 @@ function Get-AppSetting([string]$Nome) {
     return ($lista | Where-Object { $_.name -eq $Nome } | Select-Object -First 1).value
 }
 
-# Publica uma pasta estática no Static Web Apps. O token vai por variável de ambiente.
-function Publicar-Static([string]$NomeSwa, [string]$Pasta) {
-    $env:SWA_CLI_DEPLOYMENT_TOKEN = Invoke-Az staticwebapp secrets list -g $n.Grupo -n $NomeSwa --query properties.apiKey -o tsv
-    try {
-        & npx --yes "@azure/static-web-apps-cli@2" deploy $Pasta --env production
-        if ($LASTEXITCODE -ne 0) { throw "Falhou o deploy de $NomeSwa" }
-    }
-    finally {
-        Remove-Item Env:SWA_CLI_DEPLOYMENT_TOKEN -ErrorAction SilentlyContinue
-    }
+# Publica uma pasta estática no site estático da conta de Storage (contêiner $web).
+# "no-cache" faz o navegador revalidar: sem isso, ficaria com o index.html da versão anterior.
+function Publicar-Static([string]$Conta, [string]$Pasta) {
+    Invoke-Az storage blob upload-batch --account-name $Conta --auth-mode key -d '$web' -s $Pasta `
+        --overwrite --content-cache-control "no-cache" -o none
 }
 
 if ($Banco) {

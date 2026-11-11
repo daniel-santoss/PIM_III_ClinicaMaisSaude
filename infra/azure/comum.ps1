@@ -14,8 +14,9 @@ function Get-NomesRecursos([string]$Sufixo) {
         Banco       = "ClinicaMaisSaudeDb"
         Plano       = "plan-clinicamaissaude"
         Api         = "clinicamaissaude-api-$Sufixo"
-        Web         = "clinicamaissaude-web-$Sufixo"
-        AppWeb      = "clinicamaissaude-app-$Sufixo"
+        # Contas de Storage (site estático): só letras minúsculas e dígitos, até 24 caracteres.
+        Web         = "clinicaweb$Sufixo"
+        AppWeb      = "clinicaapp$Sufixo"
     }
 }
 
