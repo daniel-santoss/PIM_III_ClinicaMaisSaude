@@ -131,17 +131,27 @@ O DDL de referência também está em [`../banco/01_schema.sql`](../banco/01_sch
 | **Fly.io / Railway** | Container | SQL Server em container (volume) | Netlify/Vercel | Simples e barato | Você gerencia o SQL Server (backup/HA) |
 | **Render** | Container | (sem SQL Server gerenciado) | Static Site | Deploy fácil por Git | SQL Server exige container próprio |
 
-**Decisão (out/2026): Azure**, com a assinatura *Azure for Students* (crédito de US$ 522 até 15/01/2027).
+**Decisão (out/2026): Azure**, com a assinatura *Azure for Students* (crédito de US$ 100 por ano, sem cartão;
+com o limite de gastos ligado, a assinatura é desativada quando o crédito acaba, sem cobrança).
 
 | Peça | Recurso | Custo aprox. |
 |------|---------|--------------|
-| API | App Service Linux **B1** (container, *Always On*, WebSockets), região Central US | ~US$ 13/mês |
-| Banco | Azure SQL Database, **oferta gratuita** serverless (32 GB + cota mensal de vCore) | US$ 0 |
-| Portal web e app mobile no navegador | 2× Static Web Apps **Free** | US$ 0 |
+| API | App Service Linux **B1** (container, *Always On*, WebSockets), região Brazil South | ~US$ 13/mês |
+| Banco | Azure SQL Database **Basic** (5 DTU, 2 GB), preço fixo | ~US$ 5/mês |
+| Portal web e app mobile no navegador | 2× Web Apps (Node + `pm2 serve --spa`) **no mesmo plano B1** da API | US$ 0 a mais |
 | Imagem da API | GitHub Container Registry (pacote público), gerada pelo `cd.yml` | US$ 0 |
 
+**Lição (nov/2026):** a primeira publicação usava a oferta gratuita *serverless* do Azure SQL com cobrança do
+excedente. O serviço de lembretes consulta o banco a cada 5 min, então o banco nunca pausava: a cota grátis
+acabava em ~2 dias e o excedente consumiu todo o crédito (o banco custou ~R$ 508 em 20 dias, contra ~R$ 29 da
+API), e a assinatura foi desativada. A publicação foi refeita em outra assinatura com o banco **Basic**, de
+custo fixo e previsível.
+
 Restrições encontradas e como foram contornadas:
-- A assinatura de estudante só permite regiões dos EUA, e o East US 2 recusava novos servidores SQL → **Central US**.
+- Cada assinatura de estudante tem sua lista de regiões permitidas (a primeira só aceitava EUA; a atual,
+  Brazil South, Canadá e Europa) → **Brazil South**. O Static Web Apps não existe nessas regiões → os
+  front-ends rodam como **Web Apps no mesmo plano B1** da API (sem custo extra; o `pm2 serve --spa` devolve o
+  `index.html` nas rotas da SPA).
 - O build de imagem no Azure (ACR Tasks) é bloqueado nesse tipo de assinatura → a imagem é buildada no
   **GitHub Actions** e publicada no **GHCR**; o App Service puxa de lá.
 - Tudo é reproduzível pelos scripts em [`infra/azure/`](../../infra/azure/README.md).
@@ -206,13 +216,13 @@ O plano de observabilidade combina o que já existe no código com os recursos d
 
 ## 9. Publicação
 
-Publicado em 25/10/2026:
+Publicado em 25/10/2026 e republicado em 10/11/2026 em outra assinatura (ver a lição no §5):
 
 | | Endereço |
 |---|---|
-| API | https://clinicamaissaude-api-dvs.azurewebsites.net |
-| Portal web | https://yellow-grass-0155ca20f.4.azurestaticapps.net |
-| App mobile no navegador | https://icy-pond-024637d0f.3.azurestaticapps.net |
+| API | https://clinicamaissaude-api-edu.azurewebsites.net |
+| Portal web | https://clinicamaissaude.azurewebsites.net |
+| App mobile no navegador | https://clinicamaissaude-app.azurewebsites.net |
 
 - [x] Provedor escolhido e conta criada (§5).
 - [x] Banco gerenciado provisionado e migrations aplicadas.

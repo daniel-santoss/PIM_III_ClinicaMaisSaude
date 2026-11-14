@@ -10,11 +10,11 @@
     trocar de IP, rode de novo. Para revogar: -Remover.
 
 .EXAMPLE
-  ./infra/azure/acesso-banco.ps1 -Sufixo dvs
-  ./infra/azure/acesso-banco.ps1 -Sufixo dvs -Remover   # tira a regra de firewall
+  ./infra/azure/acesso-banco.ps1 -Sufixo edu
+  ./infra/azure/acesso-banco.ps1 -Sufixo edu -Remover   # tira a regra de firewall
 #>
 param(
-    [string]$Sufixo = "dvs",
+    [string]$Sufixo = "edu",
     [switch]$Remover
 )
 

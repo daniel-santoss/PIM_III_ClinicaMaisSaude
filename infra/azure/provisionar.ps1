@@ -6,9 +6,9 @@
 .DESCRIPTION
   Recursos (ver docs/nuvem/ARQUITETURA_NUVEM.md):
     - Grupo de recursos            rg-clinicamaissaude
-    - Azure SQL (oferta gratuita)  sql-clinica-<sufixo> / ClinicaMaisSaudeDb
+    - Azure SQL Basic (5 DTU)      sql-clinica-<sufixo> / ClinicaMaisSaudeDb
     - App Service Linux B1         clinicamaissaude-api-<sufixo> (container da API vindo do GHCR, Always On)
-    - Static Web Apps (Free) x2    clinicamaissaude-web-<sufixo> (portal) e -app-<sufixo> (mobile web)
+    - Web Apps no mesmo plano x2   clinicamaissaude (portal) e clinicamaissaude-app (mobile web)
 
   Segredos gerados aqui (JWT, pepper, senha do SQL) vão direto para as configurações do
   App Service e nunca são impressos. Os segredos que só você conhece (senha do admin, chave
@@ -17,15 +17,13 @@
   Pré-requisito: Azure CLI instalado e `az login` feito.
 
 .EXAMPLE
-  ./infra/azure/provisionar.ps1 -Sufixo dvs
+  ./infra/azure/provisionar.ps1 -Sufixo edu
 #>
 param(
-    [string]$Sufixo = "dvs",
-    # A assinatura Azure for Students só permite regiões dos EUA, e o East US 2 não aceitava
-    # novos servidores SQL (out/2026): por isso Central US.
-    [string]$Regiao = "centralus",
-    # Static Web Apps só existe em algumas regiões (o conteúdo é servido por CDN global).
-    [string]$RegiaoStatic = "eastus2"
+    [string]$Sufixo = "edu",
+    # Cada assinatura Azure for Students tem sua lista de regiões permitidas (política
+    # "Allowed resource deployment regions"). A atual (nov/2026) libera o Brazil South.
+    [string]$Regiao = "brazilsouth"
 )
 
 $ErrorActionPreference = "Stop"
@@ -57,11 +55,11 @@ Invoke-Az sql server firewall-rule create -g $n.Grupo -s $n.SqlServidor -n Permi
     --start-ip-address 0.0.0.0 --end-ip-address 0.0.0.0 -o none
 
 if (-not (Test-Az sql db show -g $n.Grupo -s $n.SqlServidor -n $n.Banco)) {
-    # Oferta gratuita: 100 mil vCore-segundos + 32 GB por mês. Se a cota acabar, segue
-    # cobrando do crédito (BillOverUsage) em vez de pausar o banco no meio da apresentação.
+    # Basic (5 DTU, 2 GB): preço fixo de ~US$ 5/mês. Não usar a oferta serverless gratuita:
+    # o serviço de lembretes consulta o banco a cada 5 min, o banco nunca pausa, a cota grátis
+    # acaba em ~2 dias e o excedente (BillOverUsage) consumiu todo o crédito em nov/2026.
     Invoke-Az sql db create -g $n.Grupo -s $n.SqlServidor -n $n.Banco `
-        -e GeneralPurpose -f Gen5 -c 2 --compute-model Serverless `
-        --use-free-limit --free-limit-exhaustion-behavior BillOverUsage -o none
+        -e Basic -c 5 --max-size 2GB --backup-storage-redundancy Local -o none
 }
 
 # ---------------------------------------------------------------- API
@@ -81,14 +79,20 @@ Invoke-Az webapp config set -g $n.Grupo -n $n.Api --always-on true --web-sockets
 Invoke-Az webapp update -g $n.Grupo -n $n.Api --https-only true -o none
 
 # ---------------------------------------------------------------- Front-ends
-Write-Etapa "Static Web Apps (portal web e app mobile no navegador)"
-foreach ($swa in @($n.Web, $n.AppWeb)) {
-    if (-not (Test-Az staticwebapp show -g $n.Grupo -n $swa)) {
-        Invoke-Az staticwebapp create -g $n.Grupo -n $swa -l $RegiaoStatic --sku Free -o none
+Write-Etapa "Portal web e app mobile no navegador (mesmo plano da API)"
+# Static Web Apps não existe nas regiões que a assinatura libera. Os dois front-ends rodam no
+# plano B1 já pago (sem custo extra) e o pm2 serve os arquivos; com --spa, as rotas da SPA
+# (ex.: /agendar) devolvem o index.html e o roteador do front resolve.
+foreach ($site in @($n.Web, $n.AppWeb)) {
+    if (-not (Test-Az webapp show -g $n.Grupo -n $site)) {
+        Invoke-Az webapp create -g $n.Grupo -p $n.Plano -n $site --runtime "NODE:24-lts" -o none
     }
+    Invoke-Az webapp config set -g $n.Grupo -n $site --min-tls-version 1.2 `
+        --startup-file "pm2 serve /home/site/wwwroot --no-daemon --spa" -o none
+    Invoke-Az webapp update -g $n.Grupo -n $site --https-only true -o none
 }
-$urlWeb = "https://" + (Invoke-Az staticwebapp show -g $n.Grupo -n $n.Web --query defaultHostname -o tsv)
-$urlAppWeb = "https://" + (Invoke-Az staticwebapp show -g $n.Grupo -n $n.AppWeb --query defaultHostname -o tsv)
+$urlWeb = "https://" + (Invoke-Az webapp show -g $n.Grupo -n $n.Web --query defaultHostName -o tsv)
+$urlAppWeb = "https://" + (Invoke-Az webapp show -g $n.Grupo -n $n.AppWeb --query defaultHostName -o tsv)
 $urlApi = "https://" + (Invoke-Az webapp show -g $n.Grupo -n $n.Api --query defaultHostName -o tsv)
 
 # ---------------------------------------------------------------- Configuração da API

@@ -8,10 +8,10 @@
   Nada é impresso na tela. Depois, a API é reiniciada para semear o admin com a senha nova.
 
 .EXAMPLE
-  ./infra/azure/definir-segredos.ps1 -Sufixo dvs
+  ./infra/azure/definir-segredos.ps1 -Sufixo edu
 #>
 param(
-    [string]$Sufixo = "dvs",
+    [string]$Sufixo = "edu",
     # Só recopia Gemini/SMTP do user-secrets, sem pedir (nem alterar) a senha do admin.
     [switch]$ApenasChaves
 )

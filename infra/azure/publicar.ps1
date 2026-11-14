@@ -7,15 +7,15 @@
     -Banco  aplica as migrations no Azure SQL (abre o firewall só para o seu IP e fecha ao final)
     -Api    aponta a API para a imagem do último commit da branch publicada no GHCR (gerada pelo
             GitHub Actions) e reinicia
-    -Web    builda o portal (Vite) apontando para a API pública e publica no Static Web Apps
-    -App    exporta o app mobile para web (Expo) e publica no Static Web Apps
+    -Web    builda o portal (Vite) apontando para a API pública e publica no seu Web App
+    -App    exporta o app mobile para web (Expo) e publica no seu Web App
 
 .EXAMPLE
-  ./infra/azure/publicar.ps1 -Sufixo dvs            # tudo
-  ./infra/azure/publicar.ps1 -Sufixo dvs -Api       # só a API
+  ./infra/azure/publicar.ps1 -Sufixo edu            # tudo
+  ./infra/azure/publicar.ps1 -Sufixo edu -Api       # só a API
 #>
 param(
-    [string]$Sufixo = "dvs",
+    [string]$Sufixo = "edu",
     # Dono do repositório no GitHub (a imagem fica em ghcr.io/<dono>/clinica-api).
     [string]$GitHubOwner = "daniel-santoss",
     # Branch publicada: a imagem usada é a do último commit dela (o workflow roda nela).
@@ -41,15 +41,27 @@ function Get-AppSetting([string]$Nome) {
     return ($lista | Where-Object { $_.name -eq $Nome } | Select-Object -First 1).value
 }
 
-# Publica uma pasta estática no Static Web Apps. O token vai por variável de ambiente.
-function Publicar-Static([string]$NomeSwa, [string]$Pasta) {
-    $env:SWA_CLI_DEPLOYMENT_TOKEN = Invoke-Az staticwebapp secrets list -g $n.Grupo -n $NomeSwa --query properties.apiKey -o tsv
+# Publica uma pasta estática num dos Web Apps de front-end (zip deploy; --clean apaga os arquivos
+# da versão anterior). O zip é montado entrada a entrada porque o ZipFile do PowerShell 5.1 grava
+# os caminhos com "\" ("assets\index.js"), que o Linux do App Service não entende como pasta.
+function Publicar-Static([string]$Site, [string]$Pasta) {
+    Add-Type -AssemblyName System.IO.Compression, System.IO.Compression.FileSystem
+    $zip = Join-Path ([IO.Path]::GetTempPath()) "$Site.zip"
+    Remove-Item $zip -ErrorAction SilentlyContinue
+    $base = (Resolve-Path $Pasta).Path.TrimEnd("\") + "\"
+    $arquivo = [IO.Compression.ZipFile]::Open($zip, [IO.Compression.ZipArchiveMode]::Create)
     try {
-        & npx --yes "@azure/static-web-apps-cli@2" deploy $Pasta --env production
-        if ($LASTEXITCODE -ne 0) { throw "Falhou o deploy de $NomeSwa" }
+        foreach ($f in Get-ChildItem $base -Recurse -File) {
+            $entrada = $f.FullName.Substring($base.Length).Replace("\", "/")
+            [IO.Compression.ZipFileExtensions]::CreateEntryFromFile($arquivo, $f.FullName, $entrada) | Out-Null
+        }
+    }
+    finally { $arquivo.Dispose() }
+    try {
+        Invoke-Az webapp deploy -g $n.Grupo -n $Site --src-path $zip --type zip --clean true -o none
     }
     finally {
-        Remove-Item Env:SWA_CLI_DEPLOYMENT_TOKEN -ErrorAction SilentlyContinue
+        Remove-Item $zip -ErrorAction SilentlyContinue
     }
 }
 

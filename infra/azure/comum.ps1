@@ -14,8 +14,10 @@ function Get-NomesRecursos([string]$Sufixo) {
         Banco       = "ClinicaMaisSaudeDb"
         Plano       = "plan-clinicamaissaude"
         Api         = "clinicamaissaude-api-$Sufixo"
-        Web         = "clinicamaissaude-web-$Sufixo"
-        AppWeb      = "clinicamaissaude-app-$Sufixo"
+        # Endereços públicos (<nome>.azurewebsites.net), citados na monografia: sem sufixo, para
+        # ficarem legíveis. Únicos no Azure inteiro; mude-os se for publicar em outro lugar.
+        Web         = "clinicamaissaude"
+        AppWeb      = "clinicamaissaude-app"
     }
 }
 
