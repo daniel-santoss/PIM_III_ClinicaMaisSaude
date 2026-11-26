@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, Alert, type AlertButton, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, type AlertButton, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { type Href, useFocusEffect, useRouter } from 'expo-router';
@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 
 import { useAuth } from '@/auth/AuthContext';
+import { alertar } from '@/lib/alerta';
 import { enviarFoto, obterPerfil, removerFoto } from '@/lib/perfil';
 import type { PacientePerfil } from '@/types/perfil';
 
@@ -42,20 +43,28 @@ export default function PerfilScreen() {
   );
 
   function escolherFoto() {
-    const opcoes: AlertButton[] = [
-      { text: 'Câmera', onPress: () => pegarFoto('camera') },
-      { text: 'Galeria', onPress: () => pegarFoto('galeria') },
-    ];
+    // No navegador só há o seletor de arquivos (no celular, ele já oferece a câmera):
+    // sem foto atual, abre direto; com foto, pergunta se troca ou remove.
+    if (Platform.OS === 'web' && !perfil?.fotoBase64) {
+      pegarFoto('galeria');
+      return;
+    }
+    const opcoes: AlertButton[] = Platform.OS === 'web'
+      ? [{ text: 'Escolher outra foto', onPress: () => pegarFoto('galeria') }]
+      : [
+          { text: 'Câmera', onPress: () => pegarFoto('camera') },
+          { text: 'Galeria', onPress: () => pegarFoto('galeria') },
+        ];
     // Só oferece remover quando já existe uma foto.
     if (perfil?.fotoBase64) {
       opcoes.push({ text: 'Remover foto atual', style: 'destructive', onPress: confirmarRemocaoFoto });
     }
     opcoes.push({ text: 'Cancelar', style: 'cancel' });
-    Alert.alert('Foto de perfil', 'O que você quer fazer?', opcoes);
+    alertar('Foto de perfil', 'O que você quer fazer?', opcoes);
   }
 
   function confirmarRemocaoFoto() {
-    Alert.alert(
+    alertar(
       'Remover foto',
       'Sua foto será removida e voltaremos a exibir a inicial do seu nome.',
       [
@@ -71,7 +80,7 @@ export default function PerfilScreen() {
       await removerFoto();
       setPerfil((prev) => (prev ? { ...prev, fotoBase64: null } : prev));
     } catch (e) {
-      Alert.alert('Erro', e instanceof Error ? e.message : 'Não foi possível remover a foto.');
+      alertar('Erro', e instanceof Error ? e.message : 'Não foi possível remover a foto.');
     } finally {
       setEnviandoFoto(false);
     }
@@ -87,7 +96,7 @@ export default function PerfilScreen() {
             ? await ImagePicker.requestCameraPermissionsAsync()
             : await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (!perm.granted) {
-          Alert.alert('Permissão necessária', 'Autorize o acesso para escolher uma foto.');
+          alertar('Permissão necessária', 'Autorize o acesso para escolher uma foto.');
           return null;
         }
 
@@ -109,7 +118,7 @@ export default function PerfilScreen() {
       const novaFoto = await enviarFoto(asset.uri, asset.mimeType);
       setPerfil((prev) => (prev ? { ...prev, fotoBase64: novaFoto } : prev));
     } catch (e) {
-      Alert.alert('Erro', e instanceof Error ? e.message : 'Não foi possível atualizar a foto.');
+      alertar('Erro', e instanceof Error ? e.message : 'Não foi possível atualizar a foto.');
     } finally {
       setEnviandoFoto(false);
     }

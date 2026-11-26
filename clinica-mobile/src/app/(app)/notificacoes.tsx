@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Pressable,
   RefreshControl,
@@ -14,6 +13,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { useNaoLidas } from '@/context/NaoLidasContext';
+import { alertar } from '@/lib/alerta';
 import { tempoRelativo } from '@/lib/datas';
 import {
   listarNotificacoes,
@@ -83,7 +83,7 @@ export default function NotificacoesScreen() {
       await removerNotificacao(item.id);
     } catch (e) {
       setNotificacoes(anterior); // desfaz a remoção otimista
-      Alert.alert('Erro', e instanceof Error ? e.message : 'Não foi possível remover.');
+      alertar('Erro', e instanceof Error ? e.message : 'Não foi possível remover.');
     }
   }
 

@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
 import { useAuth } from '@/auth/AuthContext';
 import ExcluirContaModal from '@/components/ExcluirContaModal';
+import { alertar } from '@/lib/alerta';
 import { biometriaDisponivel } from '@/lib/biometria';
 
 const AZUL = '#2C5282';
@@ -31,7 +32,7 @@ export default function ConfiguracoesScreen() {
     try {
       const ok = await definirBiometria(valor);
       if (!ok && valor) {
-        Alert.alert('Não foi possível ativar', 'A biometria não foi confirmada ou não está disponível.');
+        alertar('Não foi possível ativar', 'A biometria não foi confirmada ou não está disponível.');
       }
     } finally {
       setAlterandoBiometria(false);
@@ -39,7 +40,7 @@ export default function ConfiguracoesScreen() {
   }
 
   function confirmarSair() {
-    Alert.alert('Sair', 'Deseja encerrar a sessão?', [
+    alertar('Sair', 'Deseja encerrar a sessão?', [
       { text: 'Voltar', style: 'cancel' },
       { text: 'Sair', style: 'destructive', onPress: () => logout() },
     ]);
@@ -109,7 +110,7 @@ export default function ConfiguracoesScreen() {
         onClose={() => setExcluirAberto(false)}
         onExcluida={() => {
           setExcluirAberto(false);
-          Alert.alert('Conta excluída', 'Sua conta foi encerrada.');
+          alertar('Conta excluída', 'Sua conta foi encerrada.');
           logout(true); // conta não existe mais: apaga tudo (sem re-login biométrico)
         }}
       />
