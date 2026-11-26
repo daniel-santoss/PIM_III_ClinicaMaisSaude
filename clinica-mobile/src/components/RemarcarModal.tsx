@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Modal,
   Pressable,
   ScrollView,
@@ -12,6 +11,7 @@ import {
 } from 'react-native';
 
 import { TIPO_CONSULTA_LABEL } from '@/constants/agendamento';
+import { alertar } from '@/lib/alerta';
 import { remarcarConsulta } from '@/lib/agendamentos';
 import { tipoConsultaParaInt } from '@/lib/consultas';
 import { horariosDisponiveis } from '@/lib/consultas';
@@ -69,7 +69,7 @@ export default function RemarcarModal({ agendamento, onClose, onSuccess }: Props
   async function confirmar() {
     if (!agendamento || !diaSel || !horarioSel || salvando) return;
     if (!observacao.trim()) {
-      Alert.alert('Observação obrigatória', 'Descreva o motivo da remarcação (fica registrado para auditoria).');
+      alertar('Observação obrigatória', 'Descreva o motivo da remarcação (fica registrado para auditoria).');
       return;
     }
     const novaDataHora = `${diaSel}T${horarioSel}:00`;
@@ -79,7 +79,7 @@ export default function RemarcarModal({ agendamento, onClose, onSuccess }: Props
       ? `${orig.getFullYear()}-${pad(orig.getMonth() + 1)}-${pad(orig.getDate())}T${pad(orig.getHours())}:${pad(orig.getMinutes())}:00`
       : '';
     if (origStr === novaDataHora) {
-      Alert.alert('Sem alteração', 'A nova data e hora devem ser diferentes do agendamento atual.');
+      alertar('Sem alteração', 'A nova data e hora devem ser diferentes do agendamento atual.');
       return;
     }
 
@@ -88,7 +88,7 @@ export default function RemarcarModal({ agendamento, onClose, onSuccess }: Props
       await remarcarConsulta(agendamento.id, novaDataHora, observacao.trim());
       onSuccess();
     } catch (e) {
-      Alert.alert('Não foi possível remarcar', e instanceof Error ? e.message : 'Tente novamente.');
+      alertar('Não foi possível remarcar', e instanceof Error ? e.message : 'Tente novamente.');
     } finally {
       setSalvando(false);
     }

@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Modal,
   Pressable,
   StyleSheet,
@@ -10,6 +9,7 @@ import {
   View,
 } from 'react-native';
 
+import { alertar } from '@/lib/alerta';
 import { alterarSenha } from '@/lib/perfil';
 
 const AZUL = '#2C5282';
@@ -42,11 +42,11 @@ export default function TrocarSenhaModal({ visivel, onClose, onSuccess }: Props)
   async function salvar() {
     if (!podeSalvar) return;
     if (novaSenha !== confirmar) {
-      Alert.alert('As senhas não conferem', 'A confirmação deve ser igual à nova senha.');
+      alertar('As senhas não conferem', 'A confirmação deve ser igual à nova senha.');
       return;
     }
     if (novaSenha === senhaAtual) {
-      Alert.alert('Senha inválida', 'A nova senha não pode ser igual à atual.');
+      alertar('Senha inválida', 'A nova senha não pode ser igual à atual.');
       return;
     }
     setSalvando(true);
@@ -54,7 +54,7 @@ export default function TrocarSenhaModal({ visivel, onClose, onSuccess }: Props)
       await alterarSenha(senhaAtual, novaSenha);
       onSuccess();
     } catch (e) {
-      Alert.alert('Não foi possível trocar a senha', e instanceof Error ? e.message : 'Tente novamente.');
+      alertar('Não foi possível trocar a senha', e instanceof Error ? e.message : 'Tente novamente.');
     } finally {
       setSalvando(false);
     }

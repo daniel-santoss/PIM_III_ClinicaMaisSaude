@@ -1,7 +1,6 @@
 import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -17,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { useAuth } from '@/auth/AuthContext';
 import TrocarSenhaModal from '@/components/TrocarSenhaModal';
+import { alertar } from '@/lib/alerta';
 import { atualizarDados, obterPerfil } from '@/lib/perfil';
 import { isEmailValido, isTelefoneValido, mascaraCpf, mascaraTelefone, soDigitos } from '@/lib/validadores';
 import type { PacientePerfil } from '@/types/perfil';
@@ -83,11 +83,11 @@ export default function DadosPessoaisScreen() {
     if (!podeSalvar) return;
     // Validações locais antes de enviar (evita salvar dado malformado).
     if (!isEmailValido(email)) {
-      Alert.alert('E-mail inválido', 'Informe um e-mail no formato nome@dominio.com.');
+      alertar('E-mail inválido', 'Informe um e-mail no formato nome@dominio.com.');
       return;
     }
     if (!isTelefoneValido(telefone)) {
-      Alert.alert('Telefone inválido', 'Informe um telefone com DDD (10 ou 11 dígitos).');
+      alertar('Telefone inválido', 'Informe um telefone com DDD (10 ou 11 dígitos).');
       return;
     }
     setSalvando(true);
@@ -99,9 +99,9 @@ export default function DadosPessoaisScreen() {
       if (atualizado) preencherCampos(atualizado);
       await atualizarNome(dados.nome);
       setEditando(false);
-      Alert.alert('Pronto', 'Seus dados foram atualizados.');
+      alertar('Pronto', 'Seus dados foram atualizados.');
     } catch (e) {
-      Alert.alert('Erro', e instanceof Error ? e.message : 'Não foi possível salvar.');
+      alertar('Erro', e instanceof Error ? e.message : 'Não foi possível salvar.');
     } finally {
       setSalvando(false);
     }
@@ -239,7 +239,7 @@ export default function DadosPessoaisScreen() {
         onClose={() => setSenhaAberta(false)}
         onSuccess={() => {
           setSenhaAberta(false);
-          Alert.alert('Pronto', 'Sua senha foi alterada.');
+          alertar('Pronto', 'Sua senha foi alterada.');
         }}
       />
     </SafeAreaView>

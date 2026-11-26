@@ -1,7 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Pressable,
   RefreshControl,
@@ -22,6 +21,7 @@ import {
 } from '@/constants/agendamento';
 import AcoesConsultaModal from '@/components/AcoesConsultaModal';
 import RemarcarModal from '@/components/RemarcarModal';
+import { alertar } from '@/lib/alerta';
 import { cancelarConsulta, listarMinhasConsultas } from '@/lib/agendamentos';
 import { formatarDataHora } from '@/lib/datas';
 import type { Agendamento } from '@/types/agendamento';
@@ -69,7 +69,7 @@ export default function MinhasConsultasScreen() {
   }, [consultas, aba]);
 
   function confirmarCancelamento(item: Agendamento) {
-    Alert.alert(
+    alertar(
       'Cancelar consulta',
       `Deseja cancelar a consulta com ${item.nomeProfissional} em ${formatarDataHora(item.dataHoraConsulta)}?`,
       [
@@ -84,7 +84,7 @@ export default function MinhasConsultasScreen() {
       await cancelarConsulta(id);
       await carregar();
     } catch (e) {
-      Alert.alert('Erro', e instanceof Error ? e.message : 'Não foi possível cancelar.');
+      alertar('Erro', e instanceof Error ? e.message : 'Não foi possível cancelar.');
     }
   }
 

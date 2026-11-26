@@ -2,7 +2,6 @@ import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Linking,
   Modal,
@@ -20,6 +19,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/auth/AuthContext';
 import { ESPECIALIDADE_LABEL, TIPO_CONSULTA_LABEL } from '@/constants/agendamento';
+import { alertar } from '@/lib/alerta';
 import { listarMinhasConsultas } from '@/lib/agendamentos';
 import {
   criarAgendamento,
@@ -177,7 +177,7 @@ export default function AgendarScreen() {
       const s = await sugerirTipo(sintomas.trim());
       if (s.justificativa?.includes(MARCADOR_INJECAO)) {
         // Banido no servidor: apaga tudo (sem re-login biométrico — o JWT ainda vale ~3h).
-        Alert.alert('Acesso bloqueado', s.justificativa, [{ text: 'Entendi', onPress: () => logout(true) }]);
+        alertar('Acesso bloqueado', s.justificativa, [{ text: 'Entendi', onPress: () => logout(true) }]);
         return;
       }
       // Crise emocional: acolhe (CVV 188) e pergunta se deseja agendar Psiquiatria — nunca pune.
@@ -188,7 +188,7 @@ export default function AgendarScreen() {
       setSugestao(s);
       setPasso(2);
     } catch (e) {
-      Alert.alert('Ops', e instanceof Error ? e.message : 'Falha ao analisar os sintomas.');
+      alertar('Ops', e instanceof Error ? e.message : 'Falha ao analisar os sintomas.');
     } finally {
       setAnalisando(false);
     }
@@ -231,7 +231,7 @@ export default function AgendarScreen() {
       // Tela de sucesso (sem auto-sumiço): mostra o profissional delegado (nome + foto).
       setSucesso({ nome: criado.nomeProfissional, foto: criado.profissionalFotoBase64 });
     } catch (e) {
-      Alert.alert('Não foi possível agendar', e instanceof Error ? e.message : 'Tente novamente.');
+      alertar('Não foi possível agendar', e instanceof Error ? e.message : 'Tente novamente.');
     } finally {
       setSalvando(false);
     }
