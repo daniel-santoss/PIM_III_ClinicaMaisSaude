@@ -108,7 +108,7 @@ namespace ClinicaMaisSaude.Application.Services
                         UsuarioId = prof.UsuarioId,
                         Tipo = prof.Usuario?.Role.ToString(),
                         UltimoAcesso = prof.Usuario?.UltimoAcesso,
-                        IsBanidoPermanente = prof.Usuario?.BloqueadoAte.HasValue == true && (prof.Usuario.BloqueadoAte.Value - DateTime.UtcNow).TotalDays > 3650,
+                        IsBanidoPermanente = prof.Usuario?.BloqueadoAte.HasValue == true && (prof.Usuario.BloqueadoAte.Value - Relogio.Agora).TotalDays > 3650,
                         FotoBase64 = prof.Usuario?.FotoBase64,
                         Escala = (int)prof.Escala,
                         InicioPlantoes = prof.InicioPlantoes
@@ -159,7 +159,7 @@ namespace ClinicaMaisSaude.Application.Services
                         UsuarioId = prof.UsuarioId,
                         Tipo = prof.Usuario?.Role.ToString(),
                         UltimoAcesso = prof.Usuario?.UltimoAcesso,
-                        IsBanidoPermanente = prof.Usuario?.BloqueadoAte.HasValue == true && (prof.Usuario.BloqueadoAte.Value - DateTime.UtcNow).TotalDays > 3650,
+                        IsBanidoPermanente = prof.Usuario?.BloqueadoAte.HasValue == true && (prof.Usuario.BloqueadoAte.Value - Relogio.Agora).TotalDays > 3650,
                         FotoBase64 = prof.Usuario?.FotoBase64,
                         Escala = (int)prof.Escala,
                         InicioPlantoes = prof.InicioPlantoes
@@ -241,7 +241,7 @@ namespace ClinicaMaisSaude.Application.Services
 
         public async Task<IEnumerable<PacienteResponse>> ObterInativosAsync(int dias)
         {
-            var corte = DateTime.UtcNow.AddDays(-dias);
+            var corte = Relogio.Agora.AddDays(-dias);
             var todosPacientes = await _repository.ObterTodosAsync();
             var todosAgendamentos = await _agendamentoRepository.ObterTodosAsync();
 

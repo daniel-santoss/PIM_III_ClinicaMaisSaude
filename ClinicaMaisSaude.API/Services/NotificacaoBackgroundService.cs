@@ -11,6 +11,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using ClinicaMaisSaude.Domain.Common;
 
 namespace ClinicaMaisSaude.API.Services
 {
@@ -51,7 +52,7 @@ namespace ClinicaMaisSaude.API.Services
             // Notificações criadas neste ciclo, para push em tempo real após o commit.
             var novasNotificacoes = new List<Notificacao>();
 
-            var agora = DateTime.UtcNow;
+            var agora = Relogio.Agora;
 
             // Janela temporal: todas as regras (lembrete de hoje, 2h antes, "não finalizada"
             // = DataHora+2h no passado recente) caem numa faixa curta em torno de agora.

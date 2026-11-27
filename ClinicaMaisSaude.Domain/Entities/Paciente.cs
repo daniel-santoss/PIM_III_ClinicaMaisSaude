@@ -43,7 +43,7 @@ namespace ClinicaMaisSaude.Domain.Entities
             UsuarioId = usuarioId;
             Situacao = Situacao.Ativo;
             TemProblemaMemoria = temProblemaMemoria;
-            DtCriado = DateTime.UtcNow;
+            DtCriado = Relogio.Agora;
         }
 
         /// <summary>
@@ -59,7 +59,7 @@ namespace ClinicaMaisSaude.Domain.Entities
                 UsuarioId = null,
                 Situacao = Situacao.EmAnalise,
                 TemProblemaMemoria = temProblemaMemoria,
-                DtCriado = DateTime.UtcNow
+                DtCriado = Relogio.Agora
             };
         }
 

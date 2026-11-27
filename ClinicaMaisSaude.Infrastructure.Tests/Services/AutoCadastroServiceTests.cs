@@ -9,6 +9,7 @@ using ClinicaMaisSaude.Infrastructure.Data;
 using ClinicaMaisSaude.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using ClinicaMaisSaude.Domain.Common;
 
 namespace ClinicaMaisSaude.Infrastructure.Tests.Services
 {
@@ -48,9 +49,9 @@ namespace ClinicaMaisSaude.Infrastructure.Tests.Services
         private string SemearTokenEmailVerificado(string email)
         {
             var token = CodigoVerificacaoCripto.GerarResetToken();
-            var cod = CodigoVerificacao.ParaVerificacaoEmail(email.ToLowerInvariant(), "00", DateTime.UtcNow.AddMinutes(-1));
+            var cod = CodigoVerificacao.ParaVerificacaoEmail(email.ToLowerInvariant(), "00", Relogio.Agora.AddMinutes(-1));
             cod.MarcarUsado();
-            cod.DefinirResetToken(CodigoVerificacaoCripto.HashResetTokenHex(token), DateTime.UtcNow.AddMinutes(30));
+            cod.DefinirResetToken(CodigoVerificacaoCripto.HashResetTokenHex(token), Relogio.Agora.AddMinutes(30));
             _context.CodigosVerificacao.Add(cod);
             _context.SaveChanges();
             return token;
@@ -299,7 +300,7 @@ namespace ClinicaMaisSaude.Infrastructure.Tests.Services
             SemearProponente("Bruno Lima", "22222222222");
             var s0 = SolicitacaoDe("22222222222");
             await _service.AprovarAsync(s0.Id);
-            _context.CodigosVerificacao.Add(CodigoVerificacao.ParaPrimeiroAcesso(s0.PessoaId, s0.Id, "x@teste.com", "hash", DateTime.UtcNow.AddMinutes(10)));
+            _context.CodigosVerificacao.Add(CodigoVerificacao.ParaPrimeiroAcesso(s0.PessoaId, s0.Id, "x@teste.com", "hash", Relogio.Agora.AddMinutes(10)));
             _context.SaveChanges();
 
             var r = await _service.RetificarAsync(s0.Id, "Aprovado por engano");

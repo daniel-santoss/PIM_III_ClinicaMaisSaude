@@ -2,6 +2,7 @@ using ClinicaMaisSaude.Application.DTOs.Dashboard;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
+using ClinicaMaisSaude.Domain.Common;
 
 namespace ClinicaMaisSaude.Infrastructure.Reports
 {
@@ -43,7 +44,7 @@ namespace ClinicaMaisSaude.Infrastructure.Reports
                             col.Item().Text($"Filtros: {textoFiltros}").FontSize(10).FontColor(Colors.Grey.Medium);
                         }
 
-                        col.Item().Text($"Gerado em: {System.DateTime.Now:dd/MM/yyyy HH:mm}").FontSize(8).FontColor(Colors.Grey.Medium);
+                        col.Item().Text($"Gerado em: {Relogio.Agora:dd/MM/yyyy HH:mm}").FontSize(8).FontColor(Colors.Grey.Medium);
                         col.Item().Text($"Usuário: {nomeUsuario} ({role})").FontSize(8).FontColor(Colors.Grey.Medium);
                         col.Item().PaddingBottom(10).LineHorizontal(1).LineColor(CorBorda);
                     });

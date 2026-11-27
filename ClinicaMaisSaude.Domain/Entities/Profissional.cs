@@ -47,7 +47,7 @@ namespace ClinicaMaisSaude.Domain.Entities
             UfCrm = ufCrm;
             DefinirInicioPlantoes(inicioPlantoes ?? Expediente.PrimeiroDiaDaEscala(escala));
             Situacao = Situacao.Ativo;
-            DtCriado = DateTime.UtcNow;
+            DtCriado = Relogio.Agora;
         }
 
         // Construtor para HasData (onde o Id é pré-definido)

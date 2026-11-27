@@ -2,6 +2,7 @@ using System;
 using ClinicaMaisSaude.Application.DTOs.Agendamento;
 using ClinicaMaisSaude.Application.Validators;
 using ClinicaMaisSaude.Domain.Enums;
+using ClinicaMaisSaude.Domain.Common;
 
 namespace ClinicaMaisSaude.Application.Tests.Validators
 {
@@ -13,7 +14,7 @@ namespace ClinicaMaisSaude.Application.Tests.Validators
         private static AgendamentoRequest Valido() => new()
         {
             PacienteId = Guid.NewGuid(),
-            DataHoraConsulta = DateTime.UtcNow.AddDays(1),
+            DataHoraConsulta = Relogio.Agora.AddDays(1),
             TipoProfissional = (int)TipoProfissional.Medico,
             TipoConsulta = (int)TipoConsulta.ConsultaMedica,
             EspecialidadeId = (int)EspecialidadeMedica.ClinicaGeral

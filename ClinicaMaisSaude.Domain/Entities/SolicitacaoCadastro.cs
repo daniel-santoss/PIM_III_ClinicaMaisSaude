@@ -40,7 +40,7 @@ namespace ClinicaMaisSaude.Domain.Entities
             PessoaId = pessoaId;
             ModeloId = modeloId;
             Status = StatusSolicitacao.EmAnalise;
-            DtCriado = DateTime.UtcNow;
+            DtCriado = Relogio.Agora;
         }
 
         /// <summary>Registra o aceite dos termos de uso (consentimento LGPD) no momento da solicitação.</summary>
@@ -48,7 +48,7 @@ namespace ClinicaMaisSaude.Domain.Entities
         {
             if (string.IsNullOrWhiteSpace(versao))
                 throw new ArgumentException("A versão dos termos é obrigatória.", nameof(versao));
-            TermosAceitosEm = DateTime.UtcNow;
+            TermosAceitosEm = Relogio.Agora;
             TermosVersao = versao;
         }
 

@@ -11,6 +11,7 @@ using ClinicaMaisSaude.Infrastructure.Data;
 using ClinicaMaisSaude.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
+using ClinicaMaisSaude.Domain.Common;
 
 namespace ClinicaMaisSaude.Infrastructure.Tests.Services
 {
@@ -34,7 +35,7 @@ namespace ClinicaMaisSaude.Infrastructure.Tests.Services
             _adminId = SemearUsuario("Admin", RoleUsuario.Admin).Id;
         }
 
-        private static DateTime Hoje => DateTime.UtcNow.AddHours(-3).Date;
+        private static DateTime Hoje => Relogio.Agora.Date;
 
         // Próximo dia (a partir de amanhã) em que a escala informada está de plantão.
         private static DateTime ProximoDia(EscalaTrabalho escala)

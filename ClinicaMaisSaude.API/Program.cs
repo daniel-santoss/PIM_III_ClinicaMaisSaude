@@ -3,6 +3,7 @@ using ClinicaMaisSaude.Application.Services;
 using ClinicaMaisSaude.Infrastructure.Services;
 using ClinicaMaisSaude.Infrastructure.Gateways;
 using ClinicaMaisSaude.Application.Validators;
+using ClinicaMaisSaude.Domain.Common;
 using ClinicaMaisSaude.Domain.Constants;
 using ClinicaMaisSaude.Domain.Interfaces;
 using ClinicaMaisSaude.Infrastructure.Data;
@@ -29,9 +30,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
-        // Garante que todas as datas sejam serializadas com sufixo 'Z' (UTC)
-        // para que o JavaScript as interprete corretamente como UTC e converta ao fuso local
-        options.JsonSerializerOptions.Converters.Add(new UtcDateTimeJsonConverter());
+        // Datas no horário de Brasília, com o deslocamento do fuso (ex.: -03:00) na saída
+        options.JsonSerializerOptions.Converters.Add(new BrasiliaDateTimeJsonConverter());
     });
 builder.Services.AddHttpClient();
 
@@ -200,7 +200,6 @@ builder.Services.AddSingleton<Microsoft.AspNetCore.Authorization.IAuthorizationH
 builder.Services.AddSingleton<Microsoft.AspNetCore.Authorization.IAuthorizationHandler, ClinicaMaisSaude.API.Authorization.ContaAuthorizationHandler>();
 
 // Injeção de Dependências
-builder.Services.AddSingleton<IDataHoraService, DataHoraService>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IPacienteRepository, PacienteRepository>();
 builder.Services.AddScoped<IAgendamentoRepository, AgendamentoRepository>();
@@ -234,6 +233,9 @@ builder.Services.AddScoped<IConsultaService, ConsultaService>();
 builder.Services.AddHostedService<NotificacaoBackgroundService>();
 
 var app = builder.Build();
+
+// Mostra no log de qual base saiu o fuso do relógio da clínica (IANA ou o fallback fixo UTC-3).
+app.Logger.LogInformation("Fuso horário da clínica: {Fuso} (base de fusos do sistema: {DoSistema})", Relogio.Fuso.Id, Relogio.FusoDoSistema);
 
 // Primeiro middleware do pipeline: captura exceções de toda a aplicação.
 app.UseExceptionHandler();

@@ -29,7 +29,7 @@ namespace ClinicaMaisSaude.Domain.Entities
             Id = SequentialGuid.Next();
             Nome = nome;
             ModeloPadrao = modeloPadrao;
-            DtCriado = DateTime.UtcNow;
+            DtCriado = Relogio.Agora;
         }
 
         public void Renomear(string nome)

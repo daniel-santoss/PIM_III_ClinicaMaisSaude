@@ -4,6 +4,7 @@ using ClinicaMaisSaude.Domain.Interfaces;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using ClinicaMaisSaude.Domain.Common;
 
 namespace ClinicaMaisSaude.Application.Services
 {
@@ -58,7 +59,7 @@ namespace ClinicaMaisSaude.Application.Services
             // Como este método pode calcular a probabilidade antes de o Agendamento ser criado no banco
             // vamos usar a data atual como DtCriado base caso não achemos o agendamento exato.
             var agendamentoAtual = todosAgendamentosDoPaciente.FirstOrDefault(a => a.DataHoraConsulta == dataAgendamento);
-            DateTime dataCriacao = agendamentoAtual != null ? agendamentoAtual.DtCriado : DateTime.UtcNow;
+            DateTime dataCriacao = agendamentoAtual != null ? agendamentoAtual.DtCriado : Relogio.Agora;
 
             if ((dataAgendamento - dataCriacao).TotalDays > 30)
             {

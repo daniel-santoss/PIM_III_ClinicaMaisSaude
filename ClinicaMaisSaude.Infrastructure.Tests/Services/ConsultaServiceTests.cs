@@ -36,7 +36,7 @@ namespace ClinicaMaisSaude.Infrastructure.Tests.Services
         }
 
         private ConsultaService CriarService(ITriagemIaGateway gateway) =>
-            new(_context, new DistributedCacheFake(), new DataHoraFake(), _notificador, gateway);
+            new(_context, new DistributedCacheFake(), _notificador, gateway);
 
         // Semeia Pessoa + Usuario(Paciente) + Paciente(Ativo) e devolve os ids (usuário e paciente).
         private (Guid usuarioId, Guid pacienteId) SemearPacienteAtivo()
@@ -177,13 +177,6 @@ namespace ClinicaMaisSaude.Infrastructure.Tests.Services
         {
             public List<Notificacao> Enviadas { get; } = new();
             public Task NotificarAsync(Notificacao notificacao) { Enviadas.Add(notificacao); return Task.CompletedTask; }
-        }
-
-        private sealed class DataHoraFake : IDataHoraService
-        {
-            public DateTime UtcNow => DateTime.UtcNow;
-            public DateTime AgoraBrasilia => DateTime.UtcNow;
-            public DateTime ParaBrasilia(DateTime utc) => utc;
         }
 
         private sealed class DistributedCacheFake : IDistributedCache

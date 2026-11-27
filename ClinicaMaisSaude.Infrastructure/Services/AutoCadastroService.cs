@@ -110,7 +110,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             // ---- E-mail verificado: exige o token do passo de confirmação, amarrado a ESTE e-mail ----
             if (string.IsNullOrWhiteSpace(request.EmailVerificadoToken))
                 return Falha("Confirme seu e-mail antes de enviar o cadastro.");
-            var agora = DateTime.UtcNow;
+            var agora = Relogio.Agora;
             var tokenHash = CodigoVerificacaoCripto.HashResetTokenHex(request.EmailVerificadoToken);
             var tokenEmail = await _context.CodigosVerificacao.FirstOrDefaultAsync(c =>
                 c.Tipo == TipoVerificacao.VerificacaoEmail && c.ResetTokenHash == tokenHash &&

@@ -13,6 +13,7 @@ using ClinicaMaisSaude.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using ClinicaMaisSaude.Domain.Common;
 
 namespace ClinicaMaisSaude.Infrastructure.Services
 {
@@ -49,7 +50,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             var usuario = await LocalizarUsuarioAsync(request.Identificador);
             if (usuario == null) return; // silencioso: o controller responde genérico
 
-            var agora = DateTime.UtcNow;
+            var agora = Relogio.Agora;
 
             var codigosDoUsuario = await _context.CodigosVerificacao
                 .Where(c => c.Tipo == TipoVerificacao.RecuperacaoSenha && c.UsuarioId == usuario.Id)
@@ -107,7 +108,7 @@ Se você não solicitou a recuperação, ignore este e-mail — sua senha contin
             var usuario = await LocalizarUsuarioAsync(request.Identificador);
             if (usuario == null || string.IsNullOrWhiteSpace(request.Codigo)) throw generico;
 
-            var agora = DateTime.UtcNow;
+            var agora = Relogio.Agora;
             var codigo = await _context.CodigosVerificacao
                 .Where(c => c.Tipo == TipoVerificacao.RecuperacaoSenha && c.UsuarioId == usuario.Id && !c.Usado && c.DtExpiracao > agora)
                 .OrderByDescending(c => c.DtCriado)
@@ -147,7 +148,7 @@ Se você não solicitou a recuperação, ignore este e-mail — sua senha contin
 
             ValidarForcaSenha(request.NovaSenha);
 
-            var agora = DateTime.UtcNow;
+            var agora = Relogio.Agora;
             var tokenHash = CodigoVerificacaoCripto.HashResetTokenHex(request.ResetToken);
             var codigo = await _context.CodigosVerificacao
                 .Include(c => c.Usuario)

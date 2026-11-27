@@ -30,7 +30,7 @@ namespace ClinicaMaisSaude.Domain.Entities
             Cpf = cpf;
             Email = email;
             Telefone = telefone;
-            DtCriado = DateTime.UtcNow;
+            DtCriado = Relogio.Agora;
         }
 
         // Construtor para cenários com Id pré-definido (ex.: backfill/seed).

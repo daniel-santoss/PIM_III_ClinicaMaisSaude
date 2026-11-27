@@ -54,7 +54,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             if (prof.UsuarioId == usuarioLogadoId)
                 throw new BusinessRuleException("Você não pode excluir a própria conta.");
 
-            var hoje = DateTime.UtcNow.AddHours(-3).Date;
+            var hoje = Relogio.Agora.Date;
             var futuras = await _context.Agendamentos.CountAsync(a =>
                 a.ProfissionalId == prof.Id && a.Status == StatusAgendamento.Agendado && a.DataHoraConsulta >= hoje);
             if (futuras > 0)
@@ -102,7 +102,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                 // que cairiam antes do novo início ou num dia da outra escala precisam ser remarcadas
                 // antes (senão o paciente fica sem profissional). As ausências ficam guardadas: só
                 // valem nos dias de plantão, então as que caírem fora simplesmente deixam de ter efeito.
-                var hoje = DateTime.UtcNow.AddHours(-3).Date;
+                var hoje = Relogio.Agora.Date;
                 var datasFuturas = await _context.Agendamentos.AsNoTracking()
                     .Where(a => a.ProfissionalId == prof.Id && a.Status == StatusAgendamento.Agendado && a.DataHoraConsulta >= hoje)
                     .Select(a => a.DataHoraConsulta)

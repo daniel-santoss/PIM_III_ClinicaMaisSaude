@@ -55,7 +55,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             if (EmailInstitucional.EhInstitucional(email))
                 throw new ValidationException(EmailInstitucional.ExclusivoDaEquipe);
 
-            var agora = DateTime.UtcNow;
+            var agora = Relogio.Agora;
             var codigosDoEmail = await _context.CodigosVerificacao
                 .Where(c => c.Tipo == TipoVerificacao.VerificacaoEmail && c.Email == email)
                 .ToListAsync();
@@ -106,7 +106,7 @@ Se você não iniciou um cadastro, ignore este e-mail."));
             if (!EmailValido(email) || string.IsNullOrWhiteSpace(request.Codigo))
                 throw generico;
 
-            var agora = DateTime.UtcNow;
+            var agora = Relogio.Agora;
             var codigo = await _context.CodigosVerificacao
                 .Where(c => c.Tipo == TipoVerificacao.VerificacaoEmail && c.Email == email && !c.Usado && c.DtExpiracao > agora)
                 .OrderByDescending(c => c.DtCriado)

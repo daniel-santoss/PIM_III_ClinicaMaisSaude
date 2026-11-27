@@ -23,7 +23,7 @@ namespace ClinicaMaisSaude.Domain.Entities
             AgendamentoId = agendamentoId;
             Link = link;
             Lida = false;
-            DtCriado = DateTime.UtcNow;
+            DtCriado = Relogio.Agora;
         }
 
         public void MarcarComoLida()

@@ -13,6 +13,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
+using ClinicaMaisSaude.Domain.Common;
 
 namespace ClinicaMaisSaude.Infrastructure.Services
 {
@@ -20,7 +21,6 @@ namespace ClinicaMaisSaude.Infrastructure.Services
     {
         private readonly ClinicaDbContext _context;
         private readonly IDistributedCache _cache;
-        private readonly IDataHoraService _dataHora;
         private readonly INotificadorTempoReal _notificadorTempoReal;
         private readonly ITriagemIaGateway _triagemIa;
 
@@ -44,13 +44,11 @@ namespace ClinicaMaisSaude.Infrastructure.Services
         public ConsultaService(
             ClinicaDbContext context,
             IDistributedCache cache,
-            IDataHoraService dataHora,
             INotificadorTempoReal notificadorTempoReal,
             ITriagemIaGateway triagemIa)
         {
             _context = context;
             _cache = cache;
-            _dataHora = dataHora;
             _notificadorTempoReal = notificadorTempoReal;
             _triagemIa = triagemIa;
         }
@@ -65,7 +63,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             }
         }
 
-        // Lê a janela deslizante de timestamps (ticks UTC) do cache distribuído.
+        // Lê a janela deslizante de timestamps (ticks do relógio da clínica) do cache distribuído.
         // Ticks (long) evitam qualquer ambiguidade de fuso/Kind na (de)serialização.
         private async Task<List<long>> LerJanelaAsync(string key)
         {
@@ -87,7 +85,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
 
         public async Task<object> SugerirTipoAsync(string sintomas, Guid? pacienteId, string? tipoUsuario, bool isAdmin, Guid usuarioLogadoId)
         {
-            var agora = DateTime.UtcNow;
+            var agora = Relogio.Agora;
 
             // 1. Rate Limit Global (100 requisições por hora) — janela deslizante em cache distribuído
             var globalKey = ConfigKeys.RateLimitGlobal;
@@ -123,7 +121,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
 
                 if (paciente.Usuario.IsIABloqueada())
                 {
-                    var dataBloqueio = _dataHora.ParaBrasilia(paciente.Usuario.BloqueadoIAAte!.Value).ToString("dd/MM/yyyy HH:mm");
+                    var dataBloqueio = paciente.Usuario.BloqueadoIAAte!.Value.ToString("dd/MM/yyyy HH:mm");
                     throw new ForbiddenException($"Acesso à IA bloqueado até {dataBloqueio}. Se acha que é um erro, entre em contato: suporte@clinicamaissaude.com");
                 }
             }
@@ -222,11 +220,11 @@ namespace ClinicaMaisSaude.Infrastructure.Services
 
             if (totalViolacoes == 2)
             {
-                paciente.Usuario.BloquearIA(DateTime.UtcNow.AddDays(1));
+                paciente.Usuario.BloquearIA(Relogio.Agora.AddDays(1));
             }
             else if (totalViolacoes >= 3)
             {
-                paciente.Usuario.BloquearIA(DateTime.UtcNow.AddDays(7));
+                paciente.Usuario.BloquearIA(Relogio.Agora.AddDays(7));
             }
 
             var notificacoes = new List<Notificacao>();
