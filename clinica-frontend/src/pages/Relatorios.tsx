@@ -58,8 +58,9 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+// Data local (o toISOString usa UTC: depois das 21h, em Brasília, já seria o dia seguinte).
 function formatDate(d: Date): string {
-  return d.toISOString().split('T')[0];
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 function formatDisplayDate(dateStr: string): string {
