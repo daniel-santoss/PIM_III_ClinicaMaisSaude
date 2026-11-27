@@ -3,6 +3,7 @@ using ClinicaMaisSaude.Application.DTOs.Agendamento;
 using ClinicaMaisSaude.Application.Exceptions;
 using ClinicaMaisSaude.Application.Interfaces;
 using ClinicaMaisSaude.Domain.Constants;
+using ClinicaMaisSaude.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authorization.Infrastructure;
 using Microsoft.AspNetCore.Mvc;
@@ -108,7 +109,8 @@ namespace ClinicaMaisSaude.API.Controllers
         [HttpPatch("{id}/status")]
         public async Task<IActionResult> AlterarStatus(Guid id, [FromBody] int novoStatus)
         {
-            if (EhPaciente && novoStatus != 6)
+            // Enum, não número: desde a Fase 22 os status começam em 1 e o 6 passou a ser Faltou.
+            if (EhPaciente && novoStatus != (int)StatusAgendamento.Cancelado)
                 throw new ForbiddenException("Pacientes só podem alterar o status para Cancelado.");
 
             await BuscarAutorizadoAsync(id, OperacoesAgendamento.AlterarStatus);
