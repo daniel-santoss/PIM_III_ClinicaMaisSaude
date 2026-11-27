@@ -16,6 +16,7 @@ using System.Linq;
 using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
+using ClinicaMaisSaude.Domain.Common;
 
 namespace ClinicaMaisSaude.Infrastructure.Services
 {
@@ -55,7 +56,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
 
             if (usuario.IsBloqueado())
             {
-                var minutosRestantes = (int)Math.Ceiling((usuario.BloqueadoAte!.Value - DateTime.UtcNow).TotalMinutes);
+                var minutosRestantes = (int)Math.Ceiling((usuario.BloqueadoAte!.Value - Relogio.Agora).TotalMinutes);
                 
                 // Se o bloqueio for de 100 anos (bloqueio permanente)
                 if (minutosRestantes > 50000000) 
@@ -134,12 +135,13 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             if (pacienteId.HasValue) claims.Add(new Claim(ClinicaClaims.PacienteId, pacienteId.Value.ToString()));
             if (perfilProfissional != null) claims.Add(new Claim(ClinicaClaims.ProfissionalId, perfilProfissional.Id.ToString()));
 
-            var agora = DateTime.UtcNow;
+            var agora = Relogio.Agora;
             var tokenHandler = new JwtSecurityTokenHandler();
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(claims),
-                Expires = agora.AddMinutes(minutosAcesso),
+                // O JWT é a exceção ao relógio da clínica: o padrão exige o vencimento em UTC.
+                Expires = DateTime.UtcNow.AddMinutes(minutosAcesso),
                 Issuer = issuer,
                 Audience = audience,
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
@@ -182,7 +184,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
         // recentes para permitir detecção de reuso (um token roubado reapresentado).
         private async Task LimparRefreshTokensAsync(Guid usuarioId)
         {
-            var agora = DateTime.UtcNow;
+            var agora = Relogio.Agora;
             var limiteUsados = agora.AddDays(-1);
             await _context.RefreshTokens
                 .Where(t => t.UsuarioId == usuarioId &&
@@ -197,7 +199,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             if (storedToken == null) throw new UnauthorizedException("Refresh token não existe.");
             if (storedToken.Usado) throw new UnauthorizedException("Refresh token já foi utilizado.");
             if (storedToken.Revogado) throw new UnauthorizedException("Refresh token foi revogado.");
-            if (storedToken.DtExpiracao < DateTime.UtcNow) throw new UnauthorizedException("Refresh token expirado.");
+            if (storedToken.DtExpiracao < Relogio.Agora) throw new UnauthorizedException("Refresh token expirado.");
 
             storedToken.Usado = true;
             _context.RefreshTokens.Update(storedToken);

@@ -38,7 +38,7 @@ namespace ClinicaMaisSaude.Domain.Entities
         /// <summary>HMAC-SHA256(código, pepper) em hex. Nunca o código em claro.</summary>
         public string CodigoHash { get; private set; } = string.Empty;
 
-        public DateTime DtCriado { get; private set; } = DateTime.UtcNow;
+        public DateTime DtCriado { get; private set; } = Relogio.Agora;
         public DateTime DtExpiracao { get; private set; }
 
         /// <summary>Consumido: o código já foi validado (uso único) ou invalidado por tentativas.</summary>
@@ -59,7 +59,7 @@ namespace ClinicaMaisSaude.Domain.Entities
             Tipo = tipo;
             Email = email;
             CodigoHash = codigoHash;
-            DtCriado = DateTime.UtcNow;
+            DtCriado = Relogio.Agora;
             DtExpiracao = dtExpiracao;
             Usado = false;
             Tentativas = 0;
@@ -77,7 +77,7 @@ namespace ClinicaMaisSaude.Domain.Entities
         public static CodigoVerificacao ParaVerificacaoEmail(string email, string codigoHash, DateTime dtExpiracao) =>
             new(TipoVerificacao.VerificacaoEmail, email, codigoHash, dtExpiracao);
 
-        public bool Expirado() => DtExpiracao < DateTime.UtcNow;
+        public bool Expirado() => DtExpiracao < Relogio.Agora;
 
         public void RegistrarTentativa() => Tentativas++;
 
@@ -93,6 +93,6 @@ namespace ClinicaMaisSaude.Domain.Entities
         public bool ResetTokenValido() =>
             !string.IsNullOrEmpty(ResetTokenHash) &&
             DtExpiracaoReset.HasValue &&
-            DtExpiracaoReset.Value > DateTime.UtcNow;
+            DtExpiracaoReset.Value > Relogio.Agora;
     }
 }

@@ -23,9 +23,10 @@ RUN dotnet publish ClinicaMaisSaude.API/ClinicaMaisSaude.API.csproj -c Release -
 # ---------- runtime ----------
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 
-# QuestPDF (geração de PDF de relatórios) precisa do fontconfig no Linux.
+# QuestPDF (geração de PDF de relatórios) precisa do fontconfig no Linux; o tzdata traz a base
+# de fusos do IANA, de onde sai o "America/Sao_Paulo" do relógio da clínica (Domain/Common/Relogio).
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends libfontconfig1 \
+    && apt-get install -y --no-install-recommends libfontconfig1 tzdata \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using ClinicaMaisSaude.Domain.Common;
 
 namespace ClinicaMaisSaude.Infrastructure.Services
 {
@@ -211,7 +212,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
 
             // Penalidade de IA agora vive no LoginPortal (Fase 6).
             var bloqueados = await _db.Usuarios.AsNoTracking()
-                .Where(u => u.BloqueadoIAAte.HasValue && u.BloqueadoIAAte.Value > DateTime.UtcNow)
+                .Where(u => u.BloqueadoIAAte.HasValue && u.BloqueadoIAAte.Value > Relogio.Agora)
                 .CountAsync();
 
             return new AuditoriaIADto

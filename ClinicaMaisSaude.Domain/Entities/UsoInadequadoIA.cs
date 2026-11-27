@@ -22,7 +22,7 @@ namespace ClinicaMaisSaude.Domain.Entities
             UsuarioId = usuarioId;
             TipoViolacao = tipoViolacao;
             TextoInserido = textoInserido;
-            DtCriado = DateTime.UtcNow;
+            DtCriado = Relogio.Agora;
         }
     }
 }

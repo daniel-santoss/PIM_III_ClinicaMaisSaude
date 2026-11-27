@@ -55,7 +55,7 @@ namespace ClinicaMaisSaude.Domain.Entities
             NotificacaoPendenteGerada = false;
             LembreteManhaEnviado = false;
             LembreteDuasHorasEnviado = false;
-            DtCriado = DateTime.UtcNow;
+            DtCriado = Relogio.Agora;
         }
 
         public void AlterarStatus(StatusAgendamento novoStatus)

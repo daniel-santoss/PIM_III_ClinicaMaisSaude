@@ -35,7 +35,7 @@ namespace ClinicaMaisSaude.Infrastructure.Data
         // atual em ult_Atualizacao. Fica só aqui (nunca nos serviços) para não haver drift.
         private void CarimbarAtualizacao()
         {
-            var agora = DateTime.UtcNow;
+            var agora = Relogio.Agora;
             foreach (var entry in ChangeTracker.Entries<IAuditavel>())
             {
                 if (entry.State == EntityState.Modified)

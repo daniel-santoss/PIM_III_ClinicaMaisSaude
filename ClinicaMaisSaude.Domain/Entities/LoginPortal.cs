@@ -50,7 +50,7 @@ namespace ClinicaMaisSaude.Domain.Entities
             PessoaId = pessoaId;
             SenhaHash = senhaHash;
             Role = role;
-            DtCriado = DateTime.UtcNow;
+            DtCriado = Relogio.Agora;
             TentativasLogin = 0;
             BloqueadoAte = null;
         }
@@ -80,7 +80,7 @@ namespace ClinicaMaisSaude.Domain.Entities
 
         public void AtualizarUltimoAcesso()
         {
-            UltimoAcesso = DateTime.UtcNow;
+            UltimoAcesso = Relogio.Agora;
         }
 
         public void RegistrarFalhaLogin()
@@ -88,7 +88,7 @@ namespace ClinicaMaisSaude.Domain.Entities
             TentativasLogin++;
             if (TentativasLogin >= 5)
             {
-                BloqueadoAte = DateTime.UtcNow.AddMinutes(15);
+                BloqueadoAte = Relogio.Agora.AddMinutes(15);
             }
         }
 
@@ -100,7 +100,7 @@ namespace ClinicaMaisSaude.Domain.Entities
 
         public bool IsBloqueado()
         {
-            return BloqueadoAte.HasValue && BloqueadoAte.Value > DateTime.UtcNow;
+            return BloqueadoAte.HasValue && BloqueadoAte.Value > Relogio.Agora;
         }
 
         public void BloquearIA(DateTime ate)
@@ -110,7 +110,7 @@ namespace ClinicaMaisSaude.Domain.Entities
 
         public bool IsIABloqueada()
         {
-            return BloqueadoIAAte.HasValue && BloqueadoIAAte.Value > DateTime.UtcNow;
+            return BloqueadoIAAte.HasValue && BloqueadoIAAte.Value > Relogio.Agora;
         }
 
         /// <summary>Admin remove a penalidade de IA — libera a triagem.</summary>
@@ -121,7 +121,7 @@ namespace ClinicaMaisSaude.Domain.Entities
 
         public void BloquearPermanentemente()
         {
-            BloqueadoAte = DateTime.UtcNow.AddYears(100);
+            BloqueadoAte = Relogio.Agora.AddYears(100);
         }
 
         /// <summary>Chamado pelo admin ao remover penalidade — libera o acesso ao login</summary>

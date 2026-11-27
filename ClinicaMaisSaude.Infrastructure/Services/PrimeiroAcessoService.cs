@@ -63,7 +63,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
                 .FirstOrDefaultAsync();
             if (solicitacaoAprovada == null) return;
 
-            var agora = DateTime.UtcNow;
+            var agora = Relogio.Agora;
             var codigosDaPessoa = await _context.CodigosVerificacao
                 .Where(c => c.Tipo == TipoVerificacao.PrimeiroAcesso && c.PessoaId == pessoa.Id)
                 .ToListAsync();
@@ -121,7 +121,7 @@ Se você não solicitou o primeiro acesso, ignore este e-mail."));
             var pessoa = await _context.Pessoas.FirstOrDefaultAsync(p => p.Cpf == cpf);
             if (pessoa == null) throw generico;
 
-            var agora = DateTime.UtcNow;
+            var agora = Relogio.Agora;
             var codigo = await _context.CodigosVerificacao
                 .Where(c => c.Tipo == TipoVerificacao.PrimeiroAcesso && c.PessoaId == pessoa.Id && !c.Usado && c.DtExpiracao > agora)
                 .OrderByDescending(c => c.DtCriado)
@@ -161,7 +161,7 @@ Se você não solicitou o primeiro acesso, ignore este e-mail."));
 
             ValidarForcaSenha(request.NovaSenha);
 
-            var agora = DateTime.UtcNow;
+            var agora = Relogio.Agora;
             var tokenHash = CodigoVerificacaoCripto.HashResetTokenHex(request.ResetToken);
             var codigo = await _context.CodigosVerificacao
                 .Include(c => c.Pessoa)

@@ -12,6 +12,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using ClinicaMaisSaude.Application.DTOs.AgendamentoHistorico;
 using Microsoft.Extensions.Configuration;
+using ClinicaMaisSaude.Domain.Common;
 
 namespace ClinicaMaisSaude.Application.Services
 {
@@ -105,10 +106,9 @@ namespace ClinicaMaisSaude.Application.Services
                     throw new BusinessRuleException($"Você já atingiu o limite de {maxConsultasNoMesmoDia} consultas ativas agendadas para o dia {request.DataHoraConsulta:dd/MM/yyyy}.");
                 }
 
-                // 2. Limite B: Agendamentos criados hoje (fuso local UTC-3)
-                var hojeLocal = DateTime.UtcNow.AddHours(-3).Date;
-                var agendamentosCriadosHoje = todosAgendamentosPaciente.Count(a =>
-                    a.DtCriado.AddHours(-3).Date == hojeLocal);
+                // 2. Limite B: Agendamentos criados hoje (DtCriado já está no horário de Brasília)
+                var hoje = Relogio.Hoje;
+                var agendamentosCriadosHoje = todosAgendamentosPaciente.Count(a => a.DtCriado.Date == hoje);
 
                 if (agendamentosCriadosHoje >= maxAgendamentosCriadosPorDia)
                 {
@@ -131,7 +131,7 @@ namespace ClinicaMaisSaude.Application.Services
                     }
 
                     // 4. Regra de Intervalo de 60 Dias para Consultas Finalizadas
-                    var sessentaDiasAtras = DateTime.UtcNow.AddHours(-3).AddDays(-60);
+                    var sessentaDiasAtras = Relogio.Agora.AddDays(-60);
                     var temConsultaRecenteFinalizada = todosAgendamentosPaciente.Any(a =>
                         (int?)a.EspecialidadeId == request.EspecialidadeId &&
                         a.Status == StatusAgendamento.Finalizado &&
@@ -149,7 +149,7 @@ namespace ClinicaMaisSaude.Application.Services
             if (!compatibilidade.EhValida)
                 throw new BusinessRuleException(compatibilidade.MensagemErro!);
 
-            if (request.DataHoraConsulta <= DateTime.UtcNow.AddHours(-3))
+            if (request.DataHoraConsulta <= Relogio.Agora)
                 throw new BusinessRuleException("Não é possível agendar em datas passadas.");
             ValidarExpediente(request.DataHoraConsulta, tipoConsulta);
 
@@ -274,7 +274,7 @@ namespace ClinicaMaisSaude.Application.Services
         {
             var agendamento = await BuscarAgendamentoAsync(id);
 
-            if (request.DataHoraConsulta <= DateTime.UtcNow.AddHours(-3))
+            if (request.DataHoraConsulta <= Relogio.Agora)
                 throw new BusinessRuleException("Não é permitido reagendar para datas/horários passados.");
 
             bool temConflitoPaciente = await _conflitoService.ExisteConflitoPacienteAsync(agendamento.PacienteId, request.DataHoraConsulta, (TipoConsulta)request.TipoConsulta, agendamento.Id);
@@ -322,7 +322,7 @@ namespace ClinicaMaisSaude.Application.Services
             if (!Enum.IsDefined(typeof(StatusAgendamento), novoStatusInt))
                 throw new ValidationException("Status inválido.");
             var novoStatus = (StatusAgendamento)novoStatusInt;
-            var validacao = MaquinaEstadosAgendamento.ValidarTransicao(agendamento, novoStatus, DateTime.UtcNow.AddHours(-3));
+            var validacao = MaquinaEstadosAgendamento.ValidarTransicao(agendamento, novoStatus, Relogio.Agora);
             if (!validacao.EhValida)
                 throw new BusinessRuleException(validacao.MensagemErro!);
 
@@ -437,7 +437,7 @@ namespace ClinicaMaisSaude.Application.Services
                 throw new BusinessRuleException("Não é possível remarcar um agendamento cancelado ou finalizado.");
             }
 
-            if (request.NovaDataHora <= DateTime.UtcNow.AddHours(-3))
+            if (request.NovaDataHora <= Relogio.Agora)
                 throw new BusinessRuleException("Não é permitido remarcar para datas/horários passados.");
             ValidarExpediente(request.NovaDataHora, agendamento.TipoConsulta);
             await GarantirProfissionalDePlantaoAsync(agendamento.ProfissionalId, request.NovaDataHora);
@@ -592,7 +592,7 @@ namespace ClinicaMaisSaude.Application.Services
             var dias = new List<string>();
             if (mes < 1 || mes > 12) return dias;
 
-            var hoje = DateTime.UtcNow.AddHours(-3).Date; // fuso de Brasília, como no cálculo dos slots
+            var hoje = Relogio.Agora.Date; // fuso de Brasília, como no cálculo dos slots
             var primeiro = new DateTime(ano, mes, 1);
             var ultimo = primeiro.AddMonths(1).AddDays(-1);
 
@@ -664,7 +664,7 @@ namespace ClinicaMaisSaude.Application.Services
 
                 var dataHoraSlot = data.Date.Add(horarioAtual);
 
-                if (dataHoraSlot <= DateTime.UtcNow.AddHours(-3))
+                if (dataHoraSlot <= Relogio.Agora)
                 {
                     horarioAtual = horarioAtual.Add(TimeSpan.FromMinutes(duracao));
                     continue;
@@ -831,7 +831,7 @@ namespace ClinicaMaisSaude.Application.Services
             if (agendamento.TipoConsulta != TipoConsulta.Exame)
                 throw new BusinessRuleException("Endpoint exclusivo para exames.");
 
-            var validacao = MaquinaEstadosAgendamento.ValidarTransicao(agendamento, StatusAgendamento.Finalizado, DateTime.UtcNow.AddHours(-3));
+            var validacao = MaquinaEstadosAgendamento.ValidarTransicao(agendamento, StatusAgendamento.Finalizado, Relogio.Agora);
             if (!validacao.EhValida)
                 throw new BusinessRuleException(validacao.MensagemErro!);
 

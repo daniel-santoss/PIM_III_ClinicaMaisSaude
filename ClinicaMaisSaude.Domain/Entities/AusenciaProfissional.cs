@@ -35,7 +35,7 @@ namespace ClinicaMaisSaude.Domain.Entities
             Data = data.Date;
             Motivo = motivo.Trim();
             RegistradoPor = registradoPor;
-            DtCriado = DateTime.UtcNow;
+            DtCriado = Relogio.Agora;
         }
     }
 }

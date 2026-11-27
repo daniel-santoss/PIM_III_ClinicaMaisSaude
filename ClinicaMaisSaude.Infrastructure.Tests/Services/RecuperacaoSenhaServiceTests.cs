@@ -12,6 +12,7 @@ using ClinicaMaisSaude.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
+using ClinicaMaisSaude.Domain.Common;
 
 namespace ClinicaMaisSaude.Infrastructure.Tests.Services
 {
@@ -173,7 +174,7 @@ namespace ClinicaMaisSaude.Infrastructure.Tests.Services
             var usuario = SemearUsuario();
             // Insere diretamente um código já expirado (o serviço filtra por DtExpiracao > agora).
             _context.CodigosVerificacao.Add(
-                CodigoVerificacao.ParaRecuperacaoSenha(usuario.Id, EmailUsuario, "deadbeef", DateTime.UtcNow.AddMinutes(-1)));
+                CodigoVerificacao.ParaRecuperacaoSenha(usuario.Id, EmailUsuario, "deadbeef", Relogio.Agora.AddMinutes(-1)));
             await _context.SaveChangesAsync();
 
             await Assert.ThrowsAsync<ValidationException>(() =>

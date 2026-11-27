@@ -32,7 +32,7 @@ namespace ClinicaMaisSaude.Domain.Entities
             PerguntaId = perguntaId;
             Resposta = resposta;
             Detalhe = resposta ? detalhe!.Trim() : null;
-            DtCriado = DateTime.UtcNow;
+            DtCriado = Relogio.Agora;
         }
     }
 }

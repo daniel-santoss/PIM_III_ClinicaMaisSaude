@@ -34,7 +34,7 @@ namespace ClinicaMaisSaude.Domain.Entities
             StatusNovo = statusNovo;
             Motivo = motivo;
             RealizadoPor = realizadoPor;
-            DtCriado = DateTime.UtcNow;
+            DtCriado = Relogio.Agora;
         }
     }
 }

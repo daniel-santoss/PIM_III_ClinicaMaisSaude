@@ -27,7 +27,7 @@ namespace ClinicaMaisSaude.Domain.Entities
             ModeloId = modeloId;
             Pergunta = pergunta;
             Ordem = ordem;
-            DtCriado = DateTime.UtcNow;
+            DtCriado = Relogio.Agora;
         }
 
         public void Editar(string pergunta, int ordem)

@@ -10,7 +10,7 @@ namespace ClinicaMaisSaude.Domain.Entities
         public string JwtId { get; set; } = string.Empty; // ID do JWT associado
         public bool Usado { get; set; }
         public bool Revogado { get; set; }
-        public DateTime DtCriado { get; set; } = DateTime.UtcNow;
+        public DateTime DtCriado { get; set; } = Relogio.Agora;
         public DateTime DtExpiracao { get; set; }
 
         public Guid UsuarioId { get; set; }

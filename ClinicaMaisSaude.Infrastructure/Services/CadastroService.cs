@@ -107,7 +107,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
             {
                 // Categoria vem do Role (definido acima); o Profissional é magro, sem TipoProfissional (Fase A3b).
                 // O dia do primeiro plantão define a escala 12x36; sem ele, começa hoje (fuso de Brasília).
-                var inicio = request.InicioPlantoes?.Date ?? DateTime.UtcNow.AddHours(-3).Date;
+                var inicio = request.InicioPlantoes?.Date ?? Relogio.Agora.Date;
                 var profissional = new Profissional(novoUsuario.Id, request.Crm, request.UfCrm, inicioPlantoes: inicio);
                 profissional.VincularPessoa(pessoa.Id);
                 _context.Profissionais.Add(profissional);

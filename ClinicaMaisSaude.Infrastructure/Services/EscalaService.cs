@@ -6,6 +6,7 @@ using ClinicaMaisSaude.Domain.Enums;
 using ClinicaMaisSaude.Domain.Services;
 using ClinicaMaisSaude.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using ClinicaMaisSaude.Domain.Common;
 
 namespace ClinicaMaisSaude.Infrastructure.Services
 {
@@ -35,7 +36,7 @@ namespace ClinicaMaisSaude.Infrastructure.Services
         }
 
         // Fuso de Brasília, como no cálculo dos horários da agenda.
-        private static DateTime Hoje => DateTime.UtcNow.AddHours(-3).Date;
+        private static DateTime Hoje => Relogio.Agora.Date;
 
         // Mesma regra de Profissional.EscaladoNoDia, para dados já projetados (sem a entidade).
         private static bool Escalado(EscalaTrabalho escala, DateTime inicioPlantoes, DateTime dia) =>
